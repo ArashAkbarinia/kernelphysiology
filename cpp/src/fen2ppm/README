@@ -1,0 +1,57 @@
+README - fen2ppm Version 0.1.0 - Chess diagram from FEN file
+Copyright (C) 2003  dondalah@ripco.com (Dondalah)
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to:
+
+	Free Software Foundation, Inc.
+	59 Temple Place - Suite 330
+	Boston, MA  02111-1307, USA.
+-------------------------------------------------------------------
+
+To install fen2ppm,
+	extract all the files from fen2ppm-0.1.0.tar.gz.
+	change directory to fen2ppm-0.1.0
+	instpkg
+
+You may use your favorite directory for storing the
+graphics file by changing the define variable for PTH
+in the make file, fen2ppm.mak.
+
+* Search for the statement:  PTH=\"/foo/bar\"
+* Change the font name from "/foo/bar" to your choice.
+* Your local directory is PTH=\"\.\"
+
+Move the executables to your private bin directory.
+
+To de-install fen2ppm, run
+	deinst
+
+Run fen2ppm in X Windows with the following command:
+
+	fen2ppm <fenfile.fen | pnmtopng >fenfile.png
+	xview fenfile.png
+
+You can also run fen2ppm with the following command:
+
+	fen2ppm <fenfile.fen | xview stdin
+
+If you want to change the color scheme, send me an
+e-mail message.
+
+If you encounter problems, please send me:
+
+	A detailed description of your compile steps.
+	A detailed description of the problem.
+
+Browse fen2ppm.html for documentation.

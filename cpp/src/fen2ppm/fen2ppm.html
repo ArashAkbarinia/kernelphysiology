@@ -1,0 +1,491 @@
+<HTML>
+<HEAD>
+<TITLE>
+Chess Diagram from FEN
+</TITLE>
+</HEAD>
+
+<BODY>
+
+<P>
+
+<H1 ALIGN=CENTER>
+Chess Diagram from FEN
+</H1>
+
+<P>
+
+<H2>
+<A HREF="gpl.html">
+Copying fen2ppm</A>
+</H2>
+
+<P>
+
+<H2>
+Introduction
+</H2>
+
+<P>
+
+<B> fen2ppm</B> is a program package that allows a chess
+author to create a diagram of a board position in graphic
+format.  The resulting graphic image can be included in
+an HTML file with the &lt;IMG SRC...  statement.
+
+<P>
+
+The font used for creating chess diagrams is
+based on the
+<A HREF="http://www.chessvariants.com/graphics.dir/alfaerie">
+Alfaerie Variant Chess Graphics</A>
+page by
+<A HREF="http://www.chessvariants.com/index/displayperson.php?personid=DavidHowe">
+David Howe</A>.
+
+<P>
+
+David Howe received his inspiration from the fonts created
+by Eric Bentzen at
+<A HREF="http://www.enpassant.dk/chess/fonteng.htm">
+Chess Alpha</A>.
+
+<P>
+
+<A HREF="http://www.chessvariants.com/graphics.dir/alfaerie/wking.gif">
+White King</A> is an example of one of the Alfaerie chess
+pieces.
+
+<P>
+
+The size of the chess board is 392x392 pixels.  Each
+square is 49x49 pixels.  Because of the size of the board,
+you may count on one diagram per web page for a normal
+<B> VGA</B> screen.
+
+<P>
+
+If you want to create a smaller diagram, you have
+the option of using the
+<A HREF="http://www.lcdf.org/~eddietwo/gifsicle">
+gifsicle</A> program to shrink your <B> GIF</B> image.
+You may use the <B> --scale</B> parameter to shrink
+the image.
+
+<P>
+
+<HR>
+
+<P>
+
+<H2>
+How To Run
+</H2>
+
+<P>
+
+To create a chess diagram from a FEN file, run
+the following command:
+
+<P>
+
+<TT>
+&nbsp; &nbsp; &nbsp; fen2ppm &lt;fenfile.fen | xview stdin
+</TT>
+
+<P>
+
+If you want to create a <B> PNG</B> diagram,
+use the following example as a guide.
+
+<P>
+
+<TT>
+&nbsp; &nbsp; &nbsp; fen2ppm &lt;d4.fen | pnm2png &gt;d4.png
+</TT>
+
+<P>
+
+If you want to create a JPEG file, run <B> ppmtojpeg</B>
+instead of <B> pnmtopng</B>.
+
+<P>
+
+Example:
+
+<P>
+
+<TT>
+&nbsp; &nbsp; &nbsp; fen2ppm &lt;d4.fen | ppmtojpeg &gt;d4.jpg
+</TT>
+
+<P>
+
+For GIF files, run <B> ppmtogif</B>.
+
+<P>
+
+Example:
+
+<P>
+
+<TT>
+&nbsp; &nbsp; &nbsp; fen2ppm &lt;d4.fen | ppmtogif &gt;d4.gif
+</TT>
+
+<P>
+
+To shrink the <B> GIF</B> image:
+
+<P>
+
+<TT>
+&nbsp; &nbsp; &nbsp; gifsicle --scale .5 d4.gif &gt;d4_sm.gif
+</TT>
+
+<P>
+
+In this example, <B> gifsicle</B> shrinks the image to
+half it's original size.
+
+<P>
+
+You may then convert the smaller <B> GIF</B> image to
+a <B> PNG</B> image with the following command:
+
+<P>
+
+<TT>
+&nbsp; &nbsp; &nbsp; giftopnm &lt;d4_sm.gif | pnmtopng &gt;d4_sm.png
+</TT>
+
+<P>
+
+<HR>
+
+<P>
+
+<H2>
+Creating Font Files
+</H2>
+
+<P>
+
+<UL>
+<LI>
+David Howe's GIF files are first converted to XPM files.
+<LI>
+The XPM files are edited to get the proper colors.
+<LI>
+The XPM files are then converted to PPM files.
+<LI>
+The PPM files are converted to FNT files.
+<LI>
+The resulting FNT files are concatenated into a single
+font file called <B> font49</B>.
+<LI>
+The resulting <B> font49</B> file is then
+compressed into
+<A HREF="font49.gz">
+font49.gz</A> using <B> gzip</B>.
+<LI>
+The resulting compressed file is then read into the
+<B> fen2ppm</B> program to create a chess diagram.
+</UL>
+
+<P>
+
+<H2>
+Font Directory
+</H2>
+
+<P>
+
+The <B> make file</B>
+<A HREF="fen2ppm.mak">
+fen2ppm.mak</A>
+has a variable called <B> PTH</B> that contains
+the directory path for your font file.
+
+<P>
+
+Change the make file if you need to specify the
+font directory.  The default is your local directory.
+
+<P>
+
+<HR>
+
+<P>
+
+<H2>
+FEN Format
+</H2>
+
+<P>
+
+<A HREF="d4.fen">
+d4.fen</A>
+is a sample diagram that comes with this package.
+
+<P>
+
+The following rules apply for creating
+a good FEN diagram file:
+
+<P>
+
+<UL>
+<LI>
+All chess pieces are case sensitive.
+<LI>
+Upper case letters are for the White pieces.
+<LI>
+Lower case letters are for the Black pieces.
+<LI>
+Blank squares are single digit numbers.
+<LI>
+A <B> 4</B> means 4 blank squares.
+<LI>
+<B> 22</B> also means 4 blank squares.
+<LI>
+The FEN file is a single line of text.
+<LI>
+The diagram is written from the eighth rank, on the
+left, to the first rank, on the right.
+<LI>
+A space separates the board position from the
+<B> next player</B> letter.
+<LI>
+The letter <B> b</B> means Black plays next.
+<LI>
+The letter <B> w</B> means White plays next.
+<LI>
+The last five letters in the diagram are not
+used by <B> fen2ppm</B>.
+</UL>
+
+<P>
+
+<HR>
+
+<P>
+
+<H2>
+NETPBM package
+</H2>
+
+<P>
+
+The
+<A HREF="http://www.debian.org">
+Debian</A>
+package
+<A HREF="http://packages.debian.org/stable/graphics/netpbm.html">
+netpbm</A>
+contains a program <B> pnmtopng</B> that converts a <B> ppm</B>
+file to the <B> png</B> format.  The resulting <B> png</B>
+file can then be included in an <B> HTML</B> document.
+
+<P>
+
+You will need to install <B> netpbm</B> to work with <B> fen2ppm</B>.
+If you don't have <B> Debian</B>, you can easily compile
+<B> netpbm</B> from source.
+
+<P>
+
+If you have difficulty installing <B> netpbm</B>, you
+may have an easier time compiling
+<A HREF="http://www.schaik.com/png/pngminus/PngMinus.zip">
+pngminus</A>.
+<B> pngminus</B> will allow you to create only PNG images.
+See the following
+<A HREF="pngminus.html">
+information</A> about installing <B> pngminus</B>.
+
+<P>
+
+The <B> ppm</B> file format is the most flexible graphic
+file format.
+You can create many other types of graphic files from a
+<B> ppm</B> file.
+Here is a list of formatting programs available.
+
+<P>
+<UL>
+<LI>
+pnmtops
+<LI>
+pnmtorast
+<LI>
+pnmtotiff
+<LI>
+pnmtoxwd
+<LI>
+ppmtoacad
+<LI>
+ppmtobmp
+<LI>
+ppmtogif
+<LI>
+ppmtoicr
+<LI>
+ppmtoilbm
+<LI>
+ppmtojpeg
+<LI>
+ppmtopcx
+<LI>
+ppmtopi1
+<LI>
+ppmtopict
+<LI>
+ppmtopj
+<LI>
+ppmtopuzz
+<LI>
+ppmtorgb3
+<LI>
+ppmtosixel
+<LI>
+ppmtotga
+<LI>
+ppmtouil
+<LI>
+ppmtoxpm
+<LI>
+ppmtoyuv
+</UL>
+
+<P>
+
+The following table compares other graphic formats
+to the <B> PNG</B> format.
+The comment shows the disadvantage of the other format
+compared to the <B> PNG</B> format.
+Each graphic format is evaluated for inclusion
+in an HTML document.
+
+<P>
+
+<TABLE>
+
+<TR>
+<TH>
+Format
+</TH>
+<TH>
+Program
+</TH>
+<TH>
+Disadvantage compared to PNG
+</TH>
+</TR>
+
+<TR>
+<TD>
+PNG
+</TD>
+<TD>
+pnmtopng
+</TD>
+<TD>
+Good compression, good license, flexible
+</TD>
+</TR>
+
+<TR>
+<TD>
+GIF
+</TD>
+<TD>
+ppmtogif
+</TD>
+<TD>
+Restrictive license
+</TD>
+</TR>
+
+<TR>
+<TD>
+JPEG
+</TD>
+<TD>
+ppmtojpeg
+</TD>
+<TD>
+Lossy compression
+</TD>
+</TR>
+
+<TR>
+<TD>
+TIFF
+</TD>
+<TD>
+pnmtotiff
+</TD>
+<TD>
+Less compression
+</TD>
+</TR>
+
+<TR>
+<TD>
+BMP
+</TD>
+<TD>
+ppmtobmp
+</TD>
+<TD>
+Less compression
+</TD>
+</TR>
+
+<TR>
+<TD>
+PCX
+</TD>
+<TD>
+ppmtopcx
+</TD>
+<TD>
+Less compression
+</TD>
+</TR>
+
+<TR>
+<TD>
+XPM
+</TD>
+<TD>
+ppmtoxpm
+</TD>
+<TD>
+XPM not for HTML
+</TD>
+</TR>
+
+<TR>
+<TD>
+PS
+</TD>
+<TD>
+pnmtops
+</TD>
+<TD>
+PS not for HTML
+</TD>
+</TR>
+
+</TABLE>
+
+<P>
+
+<HR>
+
+<P>
+
+</BODY>
+</HTML>

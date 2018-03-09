@@ -1,0 +1,21 @@
+Begin3
+Title: fen2ppm
+Version: 0.1.0
+Entered-date: 01SEP2003
+Description: Create a chess diagram from a FEN file.
+             Output is a PPM file.  Use a NETPBM program
+	     to convert PPM to a graphics format.
+	     The chess board is 392x392 pixels.
+Keywords: chess diagram FEN fen netpbm graphics
+          png jpeg gif zlib
+Author: dondalah@ripco.com (Dondalah)
+Maintained-by: dondalah@ripco.com (Dondalah)
+Primary-site: sunsite.unc.edu /pub/Linux/games
+	39kb /pub/Linux/games/fen2ppm-0.1.0.tar.gz
+	 1kb /pub/Linux/games/fen2ppm-0.1.0.lsm
+Alternate-site:
+Original-site:
+Platforms: Linux, zlib.
+Copying-policy: GPL
+End
+

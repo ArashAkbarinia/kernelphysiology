@@ -1,0 +1,135 @@
+<HTML>
+<HEAD>
+<TITLE>
+Installing Pngminus
+</TITLE>
+</HEAD>
+
+<BODY>
+
+<H1 ALIGN=CENTER>
+Installing Pngminus
+</H1>
+
+<H2>
+Copying pnm2png
+</H2>
+
+<PRE>
+pnm2png.c --- conversion from PBM/PGM/PPM-file to PNG-file
+copyright (C) 1999 by Willem van Schaik <willem@schaik.com>
+
+version 1.0 - 1997.10.15 - First version.
+
+Permission to use, copy, modify, and distribute this software and
+its documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appear in all copies and
+that both that copyright notice and this permission notice appear in
+supporting documentation. This software is provided "as is" without
+express or implied warranty.
+</PRE>
+
+<H2>
+Downloading PngMinus
+</H2>
+
+<P>
+
+Download the
+<A HREF="http://www.schaik.com/png/pngminus/PngMinus.zip">
+pngminus</A> package.
+
+<P>
+
+Unzip the <B> zip</B> file.
+
+<P>
+
+Change directory to <B> PngMinus</B>.
+
+<P>
+
+<H2>
+Linux Makefile
+</H2>
+
+<P>
+
+Copy <B> makefile.std</B> to <B> Makefile</B>.
+
+<P>
+
+Edit <B> Makefile</B> as follows:
+
+<P>
+
+Comment the first definitions of <B> CC</B> and
+<B> LD</B>.
+Uncomment the second definitions of <B> CC</B> and
+<B> LD</B>.
+
+<P>
+<TT>
+
+# CC=cc -O -Wall
+<BR>
+# LD=cc -O
+<BR>
+CC=gcc -O -Wall
+<BR>
+LD=gcc -O
+
+</TT>
+<P>
+
+Change the definitions of <B> CCFLAGS</B> to point
+to your include library for <B> libpng</B>
+and <B> libz</B>.
+
+<P>
+
+<TT>
+CCFLAGS=-I/usr/include
+</TT>
+
+<P>
+
+Change the definitions of <B> LDFLAGS</B> to point
+to your static link library for <B> libpng</B>
+and <B> libz</B>.
+
+<P>
+
+<TT>
+LDFLAGS=-L/usr/lib -lpng -lz
+</TT>
+
+<P>
+
+Compile with the <B> make</B> command.
+
+<P>
+
+<H2>
+Installing pnm2png
+</H2>
+
+<P>
+
+Run the program <B> pnm2png</B> to convert from PPM
+to PNG format.
+
+<P>
+
+Copy the program to the directory where you compiled
+the <B> asc2ppm</B> package.
+
+<P>
+
+<B> pnm2png</B> should perform the same functions as
+<B> pnmtopng</B> in Netpbm.
+
+<P>
+
+</BODY>
+</HTML>
