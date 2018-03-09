@@ -10,8 +10,10 @@ net = vl_simplenn_tidy(net);
 net = vl_simplenn_move(net, 'gpu');
 
 ValSetInds = imsets == 3;
-TestSet = images(:, :, :, ValSetInds);
+
 LabelSet = labels(ValSetInds);
+TestSet = images(:, :, :, ValSetInds);
+TestSet = gpuArray(TestSet);
 
 nimages = size(TestSet, 4);
 
@@ -19,7 +21,6 @@ EvaluationReport = zeros(nimages, 1);
 % running the CNN
 for i = 1:nimages
   im = TestSet(:, :, :, i);
-  im = gpuArray(im);
   res = vl_simplenn(net, im);
   
   scores = squeeze(gather(res(end).x));
