@@ -24,11 +24,6 @@ opts.AugmentV1 = false;
 
 [opts, ~] = vl_argparse(opts, varargin);
 
-if isempty(opts.expDir)
-  opts.expDir = fullfile(opts.masterDir, sprintf('/nets/cifar/cifar%d/', opts.nclass));
-end
-NetworkName = sprintf('ex-%s-%s', opts.modelType, opts.networkType);
-opts.expDir = fullfile(opts.expDir, NetworkName);
 if isempty(opts.dataDir)
   opts.dataDir = fullfile(opts.masterDir, sprintf('/datasets/cifar/cifar%d/', opts.nclass));
 end
@@ -37,6 +32,12 @@ if isempty(opts.imdb)
 else
   opts.imdb = fullfile(opts.dataDir, opts.imdb);
 end
+if isempty(opts.expDir)
+  opts.expDir = fullfile(opts.masterDir, sprintf('/nets/cifar/cifar%d/', opts.nclass));
+end
+NetworkName = sprintf('ex-%s-%s', opts.modelType, opts.networkType);
+[~, ImdbName, ~] = fileparts(opts.imdb);
+opts.expDir = fullfile(opts.expDir, sprintf('%s-%s/', NetworkName, ImdbName));
 
 % getting the imdb
 if exist(opts.imdb, 'file')
@@ -45,40 +46,10 @@ else
   error('Wrong IMDB path ''%s''.', opts.imdb);
 end
 
-imdb.images.data = imdb.images.data(:, :, 1, :);
-
 [rows, cols, chns, nims] = size(imdb.images.data);
 
 if opts.AugmentV1
-  TrainingSetInds = imdb.images.set == 1;
-  TrainingSet = imdb.images.data(:, :, :, TrainingSetInds);
-  TrainingLabels = imdb.images.labels(TrainingSetInds);
-  
-  imdbgpu = gpuArray(TrainingSet);
-  
-  g00 = Gaussian2Gradient1(0.5, 0);
-  g90 = Gaussian2Gradient1(0.5, pi / 2);
-  
-  im00 = gather(imfilter(imdbgpu, g00));
-  im90 = gather(imfilter(imdbgpu, g90));
-  
-%   dataMean = mean(im00(:, :, :, :), 4);
-%   im00 = bsxfun(@minus, im00, dataMean);
-%   
-%   dataMean = mean(im90(:, :, :, :), 4);
-%   im90 = bsxfun(@minus, im90, dataMean);
-  
-  imdb.images.data = cat(4, imdb.images.data, im00, im90);
-  imdb.images.labels = cat(2, imdb.images.labels, TrainingLabels, TrainingLabels);
-  
-  % clearing
-  clear imdbgpu im00 im90 ;
-  
-  si = nims + 1;
-  ei = size(imdb.images.labels, 2);
-  imdb.images.set(si:ei) = 1;
-  
-%   save('imdb-augmented.mat', '-struct', 'imdb');
+  imdb = AugmentImages(imdb);
 end
 
 opts.InputSize = [rows, cols, chns];
@@ -105,7 +76,45 @@ end
 
 [net, info] = trainfn(net, imdb, getBatch(opts), 'continue', opts.continue, 'expDir', opts.expDir, net.meta.trainOpts, opts.train, 'val', find(imdb.images.set == 3)); %#ok
 
-save(sprintf('%s/cifar%d-%s', opts.expDir, opts.nclass, NetworkName), 'net');
+net.layers{end}.type = 'softmax';
+save(sprintf('%s/cifar%d-%s', opts.expDir, opts.nclass, NetworkName), '-struct', 'net');
+
+[CurrentPath, ~, ~] = fileparts(mfilename('fullpath'));
+copyfile(sprintf('%s/CifarTrainingInit.m', CurrentPath), opts.expDir);
+
+end
+
+function imdb = AugmentImages(imdb)
+
+TrainingSetInds = imdb.images.set == 1;
+TrainingSet = imdb.images.data(:, :, :, TrainingSetInds);
+TrainingLabels = imdb.images.labels(TrainingSetInds);
+
+imdbgpu = gpuArray(TrainingSet);
+
+g00 = Gaussian2Gradient1(0.5, 0);
+g90 = Gaussian2Gradient1(0.5, pi / 2);
+
+im00 = gather(imfilter(imdbgpu, g00));
+im90 = gather(imfilter(imdbgpu, g90));
+
+%   dataMean = mean(im00(:, :, :, :), 4);
+%   im00 = bsxfun(@minus, im00, dataMean);
+%
+%   dataMean = mean(im90(:, :, :, :), 4);
+%   im90 = bsxfun(@minus, im90, dataMean);
+
+imdb.images.data = cat(4, imdb.images.data, im00, im90);
+imdb.images.labels = cat(2, imdb.images.labels, TrainingLabels, TrainingLabels);
+
+% clearing
+clear imdbgpu im00 im90 ;
+
+si = nims + 1;
+ei = size(imdb.images.labels, 2);
+imdb.images.set(si:ei) = 1;
+
+%   save('imdb-augmented.mat', '-struct', 'imdb');
 
 end
 

@@ -210,10 +210,10 @@ for epoch = (start + 1):opts.numEpochs
     else
       lr = opts.postEpochFn(net, params, state);
       if ~isempty(lr)
-        opts.learningRate = lr; 
+        opts.learningRate = lr;
       end
       if opts.learningRate == 0
-        break; 
+        break;
       end
     end
   end
@@ -333,7 +333,7 @@ for t = 1:params.batchSize:numel(subset)
     batch = subset(batchStart : params.numSubBatches * numlabs : batchEnd);
     num = num + numel(batch);
     if numel(batch) == 0
-      continue; 
+      continue;
     end
     
     [im, labels] = params.getBatch(params.imdb, batch);
@@ -380,7 +380,7 @@ for t = 1:params.batchSize:numel(subset)
   % accumulate gradient
   if strcmp(mode, 'train')
     if ~isempty(parserv)
-      parserv.sync(); 
+      parserv.sync();
     end
     [net, res, state] = accumulateGradients(net, res, state, params, batchSize, parserv);
   end
