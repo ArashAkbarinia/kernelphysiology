@@ -193,7 +193,7 @@ for epoch = (start + 1):opts.numEpochs
           leg{end + 1} = f;
         end
       end
-      subplot(1, numel(plots), find(strcmp(p, plots)));
+      subplot(numel(plots), 1, find(strcmp(p, plots)));
       plot(1:epoch, values', 'o-');
       xlabel('epoch');
       title(p);
@@ -606,7 +606,7 @@ end
 
 function saveStats(fileName, stats)
 
-if exist(fileName)
+if exist(fileName, 'file')
   save(fileName, 'stats', '-append');
 else
   save(fileName, 'stats');

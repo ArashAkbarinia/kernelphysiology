@@ -21,6 +21,7 @@ opts.contrastNormalization = true;
 opts.continue = 0;
 opts.BatchSize = 256;
 opts.AugmentV1 = false;
+opts.ExperimentName = 'test';
 
 [opts, ~] = vl_argparse(opts, varargin);
 
@@ -37,7 +38,7 @@ if isempty(opts.expDir)
 end
 NetworkName = sprintf('ex-%s-%s', opts.modelType, opts.networkType);
 [~, ImdbName, ~] = fileparts(opts.imdb);
-opts.expDir = fullfile(opts.expDir, sprintf('%s-%s/', NetworkName, ImdbName));
+opts.expDir = fullfile(opts.expDir, sprintf('%s-%s-%s/', NetworkName, ImdbName, opts.ExperimentName));
 
 % getting the imdb
 if exist(opts.imdb, 'file')
