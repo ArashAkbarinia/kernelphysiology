@@ -17,7 +17,7 @@ FigCols = ceil(sqrt(topn));
 LowerMat = logical(tril(ones(kers, kers)));
 
 FigureHandler = zeros(chns);
-for c = 1:1% change to 3 later on
+for c = 1:chns% change to 3 later on
   FigureHandler(c) = figure('name', ['Similar kernels channel ', num2str(c)], 'visible', isvisible);
   CorrChn = CorrMat(:, :, c);
   CorrChn(LowerMat) = -inf;
@@ -27,8 +27,10 @@ for c = 1:1% change to 3 later on
   for i = 1:topn
     subplot(FigRows, FigCols, splotind);
     splotind = splotind + 1;
-    ker1 = net.layers{1, 1}.weights{1, 1}(:, :, c, rows(i));
-    ker2 = net.layers{1, 1}.weights{1, 1}(:, :, c, cols(i));
+%     ker1 = net.layers{1, 1}.weights{1, 1}(:, :, c, rows(i));
+%     ker2 = net.layers{1, 1}.weights{1, 1}(:, :, c, cols(i));
+    ker1 = net(:, :, :, rows(i));
+    ker2 = net(:, :, :, cols(i));
     
 %     ker1 = NormaliseChannel(ker1);
 %     ker2 = NormaliseChannel(ker2);

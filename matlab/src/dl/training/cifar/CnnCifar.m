@@ -6,6 +6,7 @@ function [net, info] = CnnCifar(varargin)
 % model parameters
 opts.modelType = 'lenet';
 opts.networkType = 'simplenn';
+opts.LearningRate = [0.05 * ones(1, 30), 0.005 * ones(1, 10), 0.0005 * ones(1, 5)];
 % data organisation
 opts.masterDir = '';
 opts.expDir = '';
@@ -22,6 +23,7 @@ opts.continue = 0;
 opts.BatchSize = 256;
 opts.AugmentV1 = false;
 opts.ExperimentName = 'test';
+opts.randomSeed = 0;
 
 [opts, ~] = vl_argparse(opts, varargin);
 
@@ -38,7 +40,12 @@ if isempty(opts.expDir)
 end
 NetworkName = sprintf('ex-%s-%s', opts.modelType, opts.networkType);
 [~, ImdbName, ~] = fileparts(opts.imdb);
-opts.expDir = fullfile(opts.expDir, sprintf('%s-%s-%s/', NetworkName, ImdbName, opts.ExperimentName));
+opts.ExpImdbDir = fullfile(opts.expDir, sprintf('%s/', ImdbName));
+% creating folder for this imdb
+if ~exist(opts.ExpImdbDir, 'dir')
+  mkdir(opts.ExpImdbDir);
+end
+opts.expDir = fullfile(opts.ExpImdbDir, sprintf('%s-%s/', NetworkName, opts.ExperimentName));
 
 % getting the imdb
 if exist(opts.imdb, 'file')
@@ -60,7 +67,7 @@ switch opts.modelType
   case 'lenet'
     net = CifarTrainingInit(opts);
   case 'nin'
-    net = cnn_cifar_init_nin('networkType', opts.networkType);
+    net = CifarTrainingInitNin('networkType', opts.networkType);
   otherwise
     error('Unknown model type ''%s''.', opts.modelType);
 end
@@ -75,10 +82,11 @@ switch opts.networkType
     trainfn = @CnnTrainDag;
 end
 
-[net, info] = trainfn(net, imdb, getBatch(opts), 'continue', opts.continue, 'expDir', opts.expDir, net.meta.trainOpts, opts.train, 'val', find(imdb.images.set == 3)); %#ok
+[net, info] = trainfn(net, imdb, getBatch(opts), 'continue', opts.continue, 'expDir', opts.expDir, net.meta.trainOpts, opts.train, 'val', find(imdb.images.set == 3), 'randomSeed', opts.randomSeed); %#ok
 
 net.layers{end}.type = 'softmax';
-save(sprintf('%s/cifar%d-%s', opts.expDir, opts.nclass, NetworkName), '-struct', 'net');
+save(sprintf('%s/netfinal', opts.expDir), '-struct', 'net');
+save(sprintf('%s/infofinal', opts.expDir), '-struct', 'info');
 
 [CurrentPath, ~, ~] = fileparts(mfilename('fullpath'));
 copyfile(sprintf('%s/CifarTrainingInit.m', CurrentPath), opts.expDir);

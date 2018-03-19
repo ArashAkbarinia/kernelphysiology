@@ -19,24 +19,26 @@ opts.whitenData = true;
 opts.contrastNormalization = true;
 % experiment
 opts.continue = 0;
-opts.BatchSize = 128;
+opts.BatchSize = 256;
 opts.AugmentV1 = false;
+opts.ExperimentName = 'test';
 
 [opts, ~] = vl_argparse(opts, varargin);
 
 if isempty(opts.expDir)
-  opts.expDir = fullfile(opts.masterDir, '/nets/');
+  opts.expDir = fullfile(opts.masterDir, '/nets/chess/');
 end
-NetworkName = sprintf('ex-%s-%s', opts.modelType, opts.networkType);
-opts.expDir = fullfile(opts.expDir, NetworkName);
 if isempty(opts.dataDir)
-  opts.dataDir = fullfile(opts.masterDir, '/datasets/');
+  opts.dataDir = fullfile(opts.masterDir, '/datasets/chess/');
 end
 if isempty(opts.imdb)
   opts.imdb = fullfile(opts.dataDir, 'imdb.mat');
 else
   opts.imdb = fullfile(opts.dataDir, opts.imdb);
 end
+NetworkName = sprintf('ex-%s-%s', opts.modelType, opts.networkType);
+[~, ImdbName, ~] = fileparts(opts.imdb);
+opts.expDir = fullfile(opts.expDir, sprintf('%s-%s-%s/', NetworkName, ImdbName, opts.ExperimentName));
 
 % getting the imdb
 if exist(opts.imdb, 'file')
@@ -73,6 +75,9 @@ end
 
 net.layers{end}.type = 'softmax';
 save(sprintf('%s/%s', opts.expDir, NetworkName), '-struct', 'net');
+
+[CurrentPath, ~, ~] = fileparts(mfilename('fullpath'));
+copyfile(sprintf('%s/ChessTrainingInit.m', CurrentPath), opts.expDir);
 
 end
 
