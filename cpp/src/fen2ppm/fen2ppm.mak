@@ -25,7 +25,7 @@
 # if local directory: PTH=\"\.\"
 
 #PTH=\"\.\"
-PTH=\"/home/arash/Software/binaries/fen2ppm-0.1.0\"
+PTH=\"/home/arash/Software/repositories/kernelphysiology/cpp/src/fen2ppm/\"
 
 CC=gcc
 
