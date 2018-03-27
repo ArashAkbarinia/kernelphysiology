@@ -105,3 +105,6 @@ data/
 
 # matlab tmp files
 *.*~
+
+# analysis files
+analysis/
