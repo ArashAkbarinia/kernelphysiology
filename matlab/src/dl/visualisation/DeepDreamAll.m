@@ -8,7 +8,7 @@ convname{2} = 'nnet.cnn.layer.FullyConnectedLayer';
 %convname{3} = 'nnet.cnn.layer.ClassificationOutputLayer';
 
 for i = 1:nlayers
-  fprintf('Processing layer %i\n', i);
+  fprintf('Processing layer %u\n', i);
   li = net.Layers(i);
   
   if i < 9
@@ -48,7 +48,7 @@ for k = 0:BatchGap:maxfilters - 1
   BatchSize = k;
   channels = channels + BatchSize;
   channels = channels(channels <= maxfilters);
-  if exist(sprintf('%smontage%.2d.png', outdir, (BatchSize / BatchGap) + 1), 'file')
+  if exist(sprintf('%smontage%.2u.png', outdir, (BatchSize / BatchGap) + 1), 'file')
     continue;
   end
   
@@ -56,13 +56,13 @@ for k = 0:BatchGap:maxfilters - 1
   
   for j = 1:size(limage, 4)
     CurrentImage = limage(:, :, :, j);
-    imwrite(uint8(CurrentImage .* 255), sprintf('%s%.4d.png', outdir, j + BatchSize));
+    imwrite(uint8(CurrentImage .* 255), sprintf('%s%.4u.png', outdir, j + BatchSize));
   end
   
   h = figure('visible', 'off');
   montage(limage);
   title(['Layer ', li.Name, ' Features']);
-  saveas(h, sprintf('%smontage%.2d.png', outdir, (BatchSize / BatchGap) + 1));
+  saveas(h, sprintf('%smontage%.2u.png', outdir, (BatchSize / BatchGap) + 1));
   close(h);
 end
 
