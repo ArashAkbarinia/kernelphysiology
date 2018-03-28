@@ -1,13 +1,15 @@
-function imdb = ChessImdb(TrainFile, TestFile)
+function imdb = ChessImdb(FolderPath, ImdbPath)
 %CHESSIMDB Summary of this function goes here
 %   Detailed explanation goes here
 
-opts.ContrastNormalisation = false;
-opts.WhitenData = false;
-opts.ImdbPath = '/home/arash/Software/repositories/chesscnn/matlab/data/datasets/imdb128-org-mean.mat';
+AllSubFolders = GetSubFolders(FolderPath);
+nSubFolders = numel(AllSubFolders);
+AllImageList = cell(nSubFolders, 1);
+for i = 1:nSubFolders
+  AllImageList{i, 1} = dir(sprintf('%s%s/*.jpg', FolderPath, AllSubFolders{i}));
+end
 
-TrainList = ReadSetList(TrainFile);
-TestList = ReadSetList(TestFile);
+[TrainList, TestList] = ChooseSetList(AllImageList);
 
 [data, labels, set] = ReadImages(TrainList, TestList);
 
@@ -19,9 +21,9 @@ imdb.images.data = data;
 imdb.images.labels = labels;
 imdb.images.set = set;
 imdb.meta.sets = {'train', 'val', 'test'};
-imdb.meta.classes = {'white', 'black', 'draw'};
+imdb.meta.classes = AllSubFolders;
 
-save(opts.ImdbPath, '-struct', 'imdb', '-v7.3') ;
+save(ImdbPath, '-struct', 'imdb', '-v7.3') ;
 
 end
 
@@ -31,11 +33,11 @@ if nargin < 3
   GreyScale = true;
 end
 
-ntrain = numel(TrainList{1});
-ntest = numel(TestList{1});
+ntrain = size(TrainList, 1);
+ntest = size(TestList, 1);
 ntotal = ntrain + ntest;
 
-im0 = imread(TrainList{1, 1}{1});
+im0 = imread(TrainList{1, 1});
 [rows, cols, chns] = size(im0);
 if GreyScale
   chns = 1;
@@ -53,8 +55,8 @@ end
 
 function [data, labels, set] = ReadOneSet(WhichList, data, labels, set, ntrain, npixels, GreyScale, WhichSet)
 
-for i = 1:numel(WhichList{1})
-  TmpName = WhichList{1, 1}{i};
+for i = 1:size(WhichList, 1)
+  TmpName = WhichList{i, 1};
   
   cimg = imread(TmpName);
   
@@ -71,16 +73,41 @@ for i = 1:numel(WhichList{1})
   
   j = i + ntrain;
   data(:, :, :, j) = single(cimg);
-  labels(1, j) = single(WhichList{1, 2}(i));
+  labels(1, j) = single(WhichList{i, 2});
   set(1, j) = single(WhichSet);
 end
 
 end
 
-function SetList = ReadSetList(FilePath)
+function [TrainList, TestList] = ChooseSetList(AllImageList)
 
-fid = fopen(FilePath);
-SetList = textscan(fid, '%s%d', 'Delimiter', ' ');
-fclose(fid);
+TrainList = {};
+TestList = {};
+
+t1 = 20000;
+t2 = 10000;
+t3 = 1000;
+MaxTest = 5000;
+
+for i = 1:numel(AllImageList)
+  cl = AllImageList{i};
+  NumImages = numel(cl);
+  if NumImages > t1
+    TrainMax = t1;
+  elseif NumImages > t2
+    TrainMax = t2;
+  else
+    TrainMax = t3;
+  end
+  
+  for j = 1:TrainMax
+    TrainList{end + 1, 1} = sprintf('%s/%s', cl(j).folder, cl(j).name);
+    TrainList{end + 0, 2} = i;
+  end
+  for j = TrainMax + 1:min(NumImages, TrainMax + MaxTest)
+    TestList{end + 1, 1} = sprintf('%s/%s', cl(j).folder, cl(j).name);
+    TestList{end + 0, 2} = i;
+  end
+end
 
 end
