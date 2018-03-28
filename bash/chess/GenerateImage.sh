@@ -1,30 +1,12 @@
 #!/bin/bash
 
-# example of using arguments to a script
-#echo "My first name is $1"
-#echo "My surname is $2"
-#echo "My surname is $3"
-#echo "Total number of arguments is $#" 
+# generates png image from the fen files
 
-#-Tr1-0
-#-Tr0-1
-#-Tr1/2
+echo "Generating png files!"
 
-echo "Generating fen files!"
-
-indir="/home/arash/Software/repositories/chesscnn/data/fen/"
-outdir="/home/arash/Software/repositories/chesscnn/data/images/rotatedorg/"
-
-if [ $1 = "white" ]; then
-  outdir=$outdir"white/"
-  indir=$indir"white/"
-elif [ $1 = "black" ]; then
-  outdir=$outdir"black/"
-  indir=$indir"black/"
-else
-  outdir=$outdir"draw/"
-  indir=$indir"draw/"
-fi
+indir=$1
+outdir=$2
+whowon=$3
 
 echo "Input directory $indir"
 echo "Output directory $outdir"
@@ -35,7 +17,18 @@ do
   echo "Processing $f ...";
   fenname=$(basename $f)
   fenname=${fenname%".fen"}
-  pngname="$outdir$fenname.png"
-  /home/arash/Software/binaries/fen2ppm-0.1.0/fen2ppm $f | pnmtopng >$pngname
+
+  line=$(head -n 1 $f)
+
+  stringarray=($line)
+
+  islast="0"
+  if [ ${fenname: -1} = 'p' ]; then
+    islast="1"
+  fi
+
+  fenname=${fenname%"p"}
+  pngname="$outdir${stringarray[1]}$whowon$islast/$fenname.png"
+  /home/arash/Software/repositories/kernelphysiology/cpp/src/fen2ppm/fen2ppm $f | pnmtopng >$pngname
 done
 
