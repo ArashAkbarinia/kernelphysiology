@@ -1,5 +1,5 @@
-function [net, info] = TrainCifar(imdb, CheckPointPath, ResumeTraining)
-%TrainCifar Summary of this function goes here
+function [net, info] = TrainGeneric(imdb, CheckPointPath, ResumeTraining)
+%TrainGeneric Summary of this function goes here
 %   Detailed explanation goes here
 % https://es.mathworks.com/help/vision/examples/object-detection-using-deep-learning.html
 
