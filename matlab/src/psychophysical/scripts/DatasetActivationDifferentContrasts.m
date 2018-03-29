@@ -1,5 +1,5 @@
 %% Network details
-net = vgg16;
+% net = vgg16;
 
 %% Dataset details
 DatasetName = 'ilsvrc2017';
@@ -22,10 +22,7 @@ if ~exist(outdir, 'dir')
 end
 
 %% Compute activation of kernels for different contrasts
-NumAnalysedImages = 2;
-
-% SelectedImages = randi(NumImages, [1, NumAnalysedImages]);
-SelectedImages = 100:136;
+SelectedImages = 401:600;
 
 for i = SelectedImages
   inim = imread([DatasetPath, ImageList(i).name]);
@@ -41,5 +38,12 @@ for i = SelectedImages
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
   ActivationReport = load([ImageOutDir, 'ActivationReport.mat']);
+  fprintf('%s ', ImageList(i).name);
   AverageKernelMatching = ContrastVsAccuracy(ActivationReport);
+end
+
+%%
+for i = 0:0.1:1.0
+  meanvals = mean(all(all(:, 6) >= i, :));
+  fprintf('>=%.2f %.2f %.2f %.2f %.2f %.2f\n', i, meanvals(1:5));
 end
