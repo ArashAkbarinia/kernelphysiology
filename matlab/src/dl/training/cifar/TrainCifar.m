@@ -1,10 +1,10 @@
-function [CifarNet, CifarInfo] = TrainCifar(imdb, CheckPointPath, ResumeTraining)
+function [net, info] = TrainCifar(imdb, CheckPointPath, ResumeTraining)
 %TrainCifar Summary of this function goes here
 %   Detailed explanation goes here
 % https://es.mathworks.com/help/vision/examples/object-detection-using-deep-learning.html
 
 if nargin < 3
-  ResumeTraining = false;
+  ResumeTraining = [];
 end
 
 if ~exist(CheckPointPath, 'dir')
@@ -22,14 +22,13 @@ TestImages = uint8(TestImages);
 TrainingLabels = categorical(meta.classes(images.labels(images.set == 1)));
 TestLabels = categorical(meta.classes(images.labels(images.set == 3)));
 
-if ResumeTraining
-  AllCheckPoints = dir(sprintf('%sconvnet_checkpoint*', CheckPointPath));
-  LastCheckPoint = load(sprintf('%s%s', CheckPointPath, AllCheckPoints(end).name));
+if ~isempty(ResumeTraining)
+  LastCheckPoint = load(ResumeTraining);
   layers = LastCheckPoint.net.Layers;
 else
   NumImageCategories = numel(meta.classes);
   
-  % Create the image input layer for 32x32x3 CIFAR-10 images
+  % Create the image input layer for size of images
   [rows, cols, chns, ~] = size(TrainingImages);
   
   ImageSize = [rows, cols, chns];
@@ -73,10 +72,10 @@ opts = trainingOptions ...
   );
 
 % train a network.
-[CifarNet, CifarInfo] = trainNetwork(TrainingImages, TrainingLabels, layers, opts);
+[net, info] = trainNetwork(TrainingImages, TrainingLabels, layers, opts);
 
-save(sprintf('%s/CifarNet.mat', CheckPointPath), 'CifarNet');
-save(sprintf('%s/CifarInfo.mat', CheckPointPath), 'CifarInfo');
+save(sprintf('%s/net.mat', CheckPointPath), 'net');
+save(sprintf('%s/info.mat', CheckPointPath), 'info');
 
 end
 
