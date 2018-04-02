@@ -1,4 +1,4 @@
-function imdb = ChessImdb(FolderPath, ImdbPath)
+function imdb = ChessImdb(FolderPath, ImdbPath, FileFormat)
 %CHESSIMDB Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,12 +6,17 @@ AllSubFolders = GetSubFolders(FolderPath);
 nSubFolders = numel(AllSubFolders);
 AllImageList = cell(nSubFolders, 1);
 for i = 1:nSubFolders
-  AllImageList{i, 1} = dir(sprintf('%s%s/*.jpg', FolderPath, AllSubFolders{i}));
+  AllImageList{i, 1} = dir(sprintf('%s%s/*.%s', FolderPath, AllSubFolders{i}, FileFormat));
 end
 
 [TrainList, TestList] = ChooseSetList(AllImageList);
 
-[data, labels, set] = ReadImages(TrainList, TestList);
+if strcmpi(FileFormat, 'txt')
+  [data, labels, set] = ReadTxts(TrainList, TestList);
+else
+  GreyScale = true;
+  [data, labels, set] = ReadImages(TrainList, TestList, GreyScale);
+end
 
 data = single(data);
 labels = single(labels);
@@ -24,6 +29,39 @@ imdb.meta.sets = {'train', 'val', 'test'};
 imdb.meta.classes = AllSubFolders;
 
 save(ImdbPath, '-struct', 'imdb', '-v7.3') ;
+
+end
+
+function [data, labels, set] = ReadTxts(TrainList, TestList)
+
+ntrain = size(TrainList, 1);
+ntest = size(TestList, 1);
+ntotal = ntrain + ntest;
+
+rows = 8;
+cols = 8;
+
+data = single(zeros(rows, cols, 1, ntotal));
+labels = single(zeros(1, ntrain + ntest));
+set = single(zeros(1, ntrain + ntest));
+
+[data, labels, set] = ReadOneSetTxt(TrainList, data, labels, set, 0, 1);
+[data, labels, set] = ReadOneSetTxt(TestList, data, labels, set, ntrain, 3);
+
+end
+
+function [data, labels, set] = ReadOneSetTxt(WhichList, data, labels, set, ntrain, WhichSet)
+
+for i = 1:size(WhichList, 1)
+  TmpName = WhichList{i, 1};
+  
+  cimg = dlmread(TmpName);
+  
+  j = i + ntrain;
+  data(:, :, :, j) = single(cimg);
+  labels(1, j) = single(WhichList{i, 2});
+  set(1, j) = single(WhichSet);
+end
 
 end
 
