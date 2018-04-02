@@ -106,12 +106,12 @@ void putbuf ( int len )
 void isrtr ( unsigned char *dst, unsigned char *src )
 {
   int i,j;
-  unsigned char *p,*q;
+  unsigned char *p, *q;
   p = dst;
-  q = src + FROWLEN*FNT;
-  for ( i=0; i<FNT; i++ )
+  q = src + FROWLEN * FNT;
+  for ( i=0; i < FNT; i++ )
     {
-      for ( j=0; j<FROWLEN; j++ )
+      for ( j=0; j < FROWLEN; j++ )
         {
           *p++ = *q--;
         } /* for each pixel in font row */
@@ -122,12 +122,12 @@ void isrtr ( unsigned char *dst, unsigned char *src )
 void isrt ( unsigned char *dst, unsigned char *src )
 {
   int i,j;
-  unsigned char *p,*q;
+  unsigned char *p, *q;
   p = dst;
   q = src;
-  for ( i=0; i<FNT; i++ )
+  for ( i=0; i < FNT; i++ )
     {
-      for ( j=0; j<FROWLEN; j++ )
+      for ( j = 0; j < FROWLEN; j++ )
         {
           *p++ = *q++;
         } /* for each pixel in font row */
@@ -137,7 +137,7 @@ void isrt ( unsigned char *dst, unsigned char *src )
 
 void loadtbl()
 {
-  int rdlen,stat;
+  int rdlen, stat;
   unsigned char *p;
   char fname[128];
   gzFile hndl;
@@ -145,7 +145,7 @@ void loadtbl()
   /* PTH is defined in fen2ppm.mak              */
   /* if local directory: PTH=\"\.\"             */
   sprintf ( fname,"%s/%s", PTH, "font49.gz" );
-  hndl = gzopen ( fname,"rb" );
+  hndl = gzopen ( fname, "rb" );
   if ( hndl == NULL )
     {
       fprintf ( stderr,"Error opening %s\n", fname );
@@ -153,7 +153,7 @@ void loadtbl()
     } /* open err */
 
   p = fnt[0][0][0][0];
-  rdlen = gzread ( hndl,p,TBLSZ );
+  rdlen = gzread ( hndl, p, TBLSZ );
   if ( rdlen < 0 )
     {
       perror ( "Read error" );
