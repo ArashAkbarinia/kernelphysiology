@@ -19,7 +19,7 @@ end
 
 NumImages = numel(ImageList);
 
-outdir = sprintf('%s%s', outdir, DatasetName);
+outdir = sprintf('%s/%s', outdir, DatasetName);
 
 if ~exist(outdir, 'dir')
   mkdir(outdir);
