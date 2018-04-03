@@ -28,7 +28,7 @@ end
 %% Compute activation of kernels for different contrasts
 SelectedImages = 1:NumImages;
 
-for i = SelectedImages
+parfor i = SelectedImages
   inim = imread([DatasetPath, ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
@@ -39,7 +39,7 @@ end
 
 AverageKernelMatchings = zeros(NumImages, 6);
 
-for i = SelectedImages
+parfor i = SelectedImages
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
   ActivationReport = load([ImageOutDir, 'ActivationReport.mat']);
