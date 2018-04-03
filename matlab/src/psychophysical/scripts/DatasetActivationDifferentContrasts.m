@@ -1,8 +1,9 @@
+function DatasetActivationDifferentContrasts(DatasetName, outdir)
+
 %% Network details
-% net = vgg16;
+net = vgg16;
 
 %% Dataset details
-DatasetName = 'ilsvrc2017';
 
 % path of the dataset
 if strcmpi(DatasetName, 'voc2012')
@@ -11,39 +12,45 @@ if strcmpi(DatasetName, 'voc2012')
 elseif strcmpi(DatasetName, 'ilsvrc2017')
   DatasetPath = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2017/Data/DET/test/';
   ImageList = dir(sprintf('%s*.JPEG', DatasetPath));
+elseif strcmpi(DatasetName, 'ilsvrc-test')
+  DatasetPath = '/home/ImageNet/Val_Images_RGB/';
+  ImageList = dir(sprintf('%s*.png', DatasetPath));
 end
 
 NumImages = numel(ImageList);
 
-outdir = sprintf('/home/arash/Software/repositories/kernelphysiology/analysis/kernelsactivity/vgg16/%s/', DatasetName);
+outdir = sprintf('%s%s', outdir, DatasetName);
 
 if ~exist(outdir, 'dir')
   mkdir(outdir);
 end
 
 %% Compute activation of kernels for different contrasts
-SelectedImages = 401:600;
+SelectedImages = 1:NumImages;
 
 for i = SelectedImages
   inim = imread([DatasetPath, ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
-  ActivationReport = ActivationDifferentContrasts(net, inim, ImageOutDir);
+  ActivationReport = ActivationDifferentContrasts(net, inim, ImageOutDir, false);
 end
 
 %%
 
+AverageKernelMatchings = zeros(NumImages, 6);
+
 for i = SelectedImages
-  inim = imread([DatasetPath, ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
   ActivationReport = load([ImageOutDir, 'ActivationReport.mat']);
   fprintf('%s ', ImageList(i).name);
-  AverageKernelMatching = ContrastVsAccuracy(ActivationReport);
+  AverageKernelMatchings(i, :) = ContrastVsAccuracy(ActivationReport);
 end
+
+save('AverageKernelMatchings.mat', 'AverageKernelMatchings');
 
 %%
 for i = 0:0.1:1.0
-  meanvals = mean(all(all(:, 6) >= i, :));
+  meanvals = mean(AverageKernelMatchings(AverageKernelMatchings(:, 6) >= i, :));
   fprintf('>=%.2f %.2f %.2f %.2f %.2f %.2f\n', i, meanvals(1:5));
 end
