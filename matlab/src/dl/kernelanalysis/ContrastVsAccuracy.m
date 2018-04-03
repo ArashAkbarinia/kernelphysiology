@@ -21,9 +21,12 @@ nSelected = size(CompMatrix, 1);
 
 nElements = nSelected * (nSelected - 1) / 2;
 AverageKernelMatching = sum(sum(CompMatrix)) ./ nElements;
+AverageKernelMatching = permute(AverageKernelMatching, [1, 3, 2]);
 
-StrFormat = repmat('%.2f ', [1, size(AverageKernelMatching, 3)]);
+StrFormat = repmat('%.2f ', [1, size(AverageKernelMatching, 2)]);
 StrFormat = [StrFormat, '%.2f\n'];
 fprintf(StrFormat, AverageKernelMatching, predictioins{10, 2});
+
+AverageKernelMatching(end + 1) = predictioins{10, 2};
 
 end

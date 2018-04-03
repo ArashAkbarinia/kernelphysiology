@@ -1,6 +1,10 @@
-function ActivationReport = ActivationDifferentContrasts(net, inim, outdir)
+function ActivationReport = ActivationDifferentContrasts(net, inim, outdir, SaveImages)
 %ActivationDifferentContrasts Summary of this function goes here
 %   Detailed explanation goes here
+
+if nargin < 4
+  SaveImages = true;
+end
 
 ActivationReport = struct();
 
@@ -35,7 +39,7 @@ for contrast = ContrastLevels
   ContrastedImage = AdjustContrast(inim, contrast / 100);
   ContrastedImage = uint8(ContrastedImage .* 255);
   ContrastName = sprintf('c%.3u', contrast);
-  ActivationReport.cls.(ContrastName) = ProcessOneContrast(net, layers, ContrastedImage, outdir, ContrastName);
+  ActivationReport.cls.(ContrastName) = ProcessOneContrast(net, layers, ContrastedImage, outdir, ContrastName, SaveImages);
 end
 
 nLayers = numel(layers);
@@ -63,7 +67,7 @@ save(sprintf('%sActivationReport.mat', outdir), '-struct', 'ActivationReport');
 
 end
 
-function ActivationReport = ProcessOneContrast(net, layers, inim, outdir, prefix)
+function ActivationReport = ProcessOneContrast(net, layers, inim, outdir, prefix, SaveImages)
 
 [predtype, scores] = classify(net, inim);
 
@@ -82,17 +86,19 @@ for layer = layers
   LayerName = sprintf('l%.2u', layer);
   ActivationReport.(LayerName) = LayerReport;
   
-  nkernels = size(features, 3);
-  cmap = DistinguishableColours(nkernels);
-  
-  rgbim = label2rgb(LayerReport.top{2}, cmap);
-  imwrite(rgbim, sprintf('%s%s-l%.2u.png', outdir, prefix, layer));
-  
-  h = figure('visible', 'off');
-  montage(features);
-  title(['Layer ', li.Name, ' Activities']);
-  saveas(h, sprintf('%s%s-montage%.2u.png', outdir, prefix, layer));
-  close(h);
+  if SaveImages
+    nkernels = size(features, 3);
+    cmap = DistinguishableColours(nkernels);
+    
+    rgbim = label2rgb(LayerReport.top{2}, cmap);
+    imwrite(rgbim, sprintf('%s%s-l%.2u.png', outdir, prefix, layer));
+    
+    h = figure('visible', 'off');
+    montage(features);
+    title(['Layer ', li.Name, ' Activities']);
+    saveas(h, sprintf('%s%s-montage%.2u.png', outdir, prefix, layer));
+    close(h);
+  end
 end
 
 end
