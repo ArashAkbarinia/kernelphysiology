@@ -28,7 +28,6 @@ elseif strcmpi(DatasetName, 'ilsvrc-test')
 end
 
 NumImages = numel(ImageList);
-NumImages = 30;
 
 outdir = sprintf('%s/%s/', outdir, DatasetName);
 
@@ -46,9 +45,9 @@ parfor i = SelectedImages
   ActivationReport(i) = ActivationDifferentContrasts(net, inim, ImageOutDir, false);
 end
 
-save('ActivationReport.mat', 'ActivationReport');
+save([outdir, 'ActivationReport.mat'], 'ActivationReport');
 
-%%
+%% Creating the matrix contrast versus accuracy
 
 AverageKernelMatchings = zeros(NumImages, 6);
 
@@ -57,9 +56,9 @@ parfor i = SelectedImages
   AverageKernelMatchings(i, :) = ContrastVsAccuracy(ActivationReport(i));
 end
 
-save('AverageKernelMatchings.mat', 'AverageKernelMatchings');
+save([outdir, 'AverageKernelMatchings.mat'], 'AverageKernelMatchings');
 
-%%
+%% Printing the results
 for i = 0:0.1:1.0
   meanvals = mean(AverageKernelMatchings(AverageKernelMatchings(:, 6) >= i, :));
   fprintf('>=%.2f %.2f %.2f %.2f %.2f %.2f\n', i, meanvals(1:5));

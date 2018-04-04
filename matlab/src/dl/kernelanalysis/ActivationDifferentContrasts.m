@@ -11,7 +11,7 @@ ActivationReport = struct();
 if ~exist(outdir, 'dir')
   mkdir(outdir);
 elseif exist(sprintf('%sActivationReport.mat', outdir), 'file')
-  fprintf('Skipping %s\n', outdir);
+  ActivationReport = load(sprintf('%sActivationReport.mat', outdir));
   return;
 end
 
