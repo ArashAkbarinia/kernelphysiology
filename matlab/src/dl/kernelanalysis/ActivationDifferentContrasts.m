@@ -49,6 +49,19 @@ for i = 1:nContrasts
   end
 end
 
+% if not save images, remove them from output
+if ~SaveImages
+  for i = 1:nContrasts
+    contrast1 = ContrastLevels(i);
+    ContrastName1 = sprintf('c%.3u', contrast1);
+    for l = 1:nLayers
+      layer = layers(l);
+      LayerName = sprintf('l%.2u', layer);
+      ActivationReport.cls.(ContrastName1) = rmfield(ActivationReport.cls.(ContrastName1), LayerName);
+    end
+  end
+end
+
 save(sprintf('%sActivationReport.mat', outdir), '-struct', 'ActivationReport');
 
 end

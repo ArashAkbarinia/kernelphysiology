@@ -32,8 +32,10 @@ parfor i = SelectedImages
   inim = imread([DatasetPath, ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
-  ActivationReport = ActivationDifferentContrasts(net, inim, ImageOutDir, false);
+  ActivationReport(i) = ActivationDifferentContrasts(net, inim, ImageOutDir, false);
 end
+
+save('ActivationReport.mat', 'ActivationReport');
 
 %%
 
@@ -44,7 +46,7 @@ parfor i = SelectedImages
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
   ActivationReport = load([ImageOutDir, 'ActivationReport.mat']);
   fprintf('%s ', ImageList(i).name);
-  AverageKernelMatchings(i, :) = ContrastVsAccuracy(ActivationReport);
+  AverageKernelMatchings(i, :) = ContrastVsAccuracy(ActivationReport(i));
 end
 
 save('AverageKernelMatchings.mat', 'AverageKernelMatchings');
