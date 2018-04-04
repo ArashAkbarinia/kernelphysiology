@@ -59,7 +59,7 @@ end
 save([outdir, 'AverageKernelMatchings.mat'], 'AverageKernelMatchings');
 
 %% Printing the results
-for i = 0:0.1:1.0
+for i = [0:0.1:0.9, 0.999]
   meanvals = mean(AverageKernelMatchings(AverageKernelMatchings(:, 6) >= i, :));
   fprintf('>=%.2f %.2f %.2f %.2f %.2f %.2f\n', i, meanvals(1:5));
 end
