@@ -1,7 +1,17 @@
-function DatasetActivationDifferentContrasts(DatasetName, outdir)
+function DatasetActivationDifferentContrasts(NetwrokName, DatasetName, outdir)
 
 %% Network details
-net = vgg16;
+if strcmpi(NetwrokName, 'vgg16')
+  net = vgg16;
+elseif strcmpi(NetwrokName, 'vgg19')
+  net = vgg19;
+elseif strcmpi(NetwrokName, 'gogolenet')
+  net = gogolenet;
+elseif strcmpi(NetwrokName, 'inceptionv3')
+  net = inceptionv3;
+elseif strcmpi(NetwrokName, 'alexnet')
+  net = alexnet;
+end
 
 %% Dataset details
 
@@ -18,6 +28,7 @@ elseif strcmpi(DatasetName, 'ilsvrc-test')
 end
 
 NumImages = numel(ImageList);
+NumImages = 30;
 
 outdir = sprintf('%s/%s/', outdir, DatasetName);
 
@@ -42,9 +53,6 @@ save('ActivationReport.mat', 'ActivationReport');
 AverageKernelMatchings = zeros(NumImages, 6);
 
 parfor i = SelectedImages
-  [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
-  ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
-  ActivationReport = load([ImageOutDir, 'ActivationReport.mat']);
   fprintf('%s ', ImageList(i).name);
   AverageKernelMatchings(i, :) = ContrastVsAccuracy(ActivationReport(i));
 end
@@ -55,4 +63,6 @@ save('AverageKernelMatchings.mat', 'AverageKernelMatchings');
 for i = 0:0.1:1.0
   meanvals = mean(AverageKernelMatchings(AverageKernelMatchings(:, 6) >= i, :));
   fprintf('>=%.2f %.2f %.2f %.2f %.2f %.2f\n', i, meanvals(1:5));
+end
+
 end
