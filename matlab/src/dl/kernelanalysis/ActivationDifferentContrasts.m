@@ -10,26 +10,12 @@ ActivationReport = struct();
 
 if ~exist(outdir, 'dir')
   mkdir(outdir);
-else
+elseif exist(sprintf('%sActivationReport.mat', outdir), 'file')
   fprintf('Skipping %s\n', outdir);
   return;
 end
 
-imsize = net.Layers(1).InputSize;
-
-[rows, cols, chns] = size(inim);
-
-if rows ~= cols
-  inim = CropCentreSquareImage(inim);
-end
-
-% convert it to the network input size
-inim = imresize(inim, imsize(1:2));
-
-if chns == 1
-  inim(:, :, 2) = inim(:, :, 1);
-  inim(:, :, 3) = inim(:, :, 1);
-end
+inim = ResizeImageToNet(net, inim);
 
 ContrastLevels = [1, 3, 5, 7, 10, 13, 15, 30, 50, 75, 100];
 
