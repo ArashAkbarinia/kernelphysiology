@@ -1,7 +1,10 @@
-function ActivationReport = ActivationDifferentContrasts(net, inim, outdir, SaveImages)
+function ActivationReport = ActivationDifferentContrasts(net, inim, outdir, SaveImages, layers)
 %ActivationDifferentContrasts Summary of this function goes here
 %   Detailed explanation goes here
 
+if nargin < 5
+  layers = ConvInds(net, 5);
+end
 if nargin < 4
   SaveImages = true;
 end
@@ -19,7 +22,6 @@ inim = ResizeImageToNet(net, inim);
 
 ContrastLevels = [1, 3, 5, 7, 10, 13, 15, 30, 50, 75, 100];
 
-layers = [2, 4, 7, 9, 12];
 nContrasts = numel(ContrastLevels);
 for contrast = ContrastLevels
   ContrastedImage = AdjustContrast(inim, contrast / 100);

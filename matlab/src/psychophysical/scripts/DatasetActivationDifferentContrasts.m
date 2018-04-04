@@ -38,11 +38,13 @@ end
 %% Compute activation of kernels for different contrasts
 SelectedImages = 1:NumImages;
 
+layers = ConvInds(net, 5);
+
 parfor i = SelectedImages
   inim = imread([DatasetPath, ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
-  ActivationReport(i) = ActivationDifferentContrasts(net, inim, ImageOutDir, false);
+  ActivationReport(i) = ActivationDifferentContrasts(net, inim, ImageOutDir, false, layers);
 end
 
 save([outdir, 'ActivationReport.mat'], 'ActivationReport');
