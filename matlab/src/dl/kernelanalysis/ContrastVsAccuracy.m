@@ -20,8 +20,12 @@ CompMatrix = ActivationReport.CompMatrix(IndsCorrectlyClassified, IndsCorrectlyC
 nSelected = size(CompMatrix, 1);
 
 nElements = nSelected * (nSelected - 1) / 2;
-AverageKernelMatching = sum(sum(CompMatrix)) ./ nElements;
-AverageKernelMatching = permute(AverageKernelMatching, [1, 3, 2]);
+if nElements == 0
+  AverageKernelMatching = zeros(1, 5);
+else
+  AverageKernelMatching = sum(sum(CompMatrix)) ./ nElements;
+  AverageKernelMatching = permute(AverageKernelMatching, [1, 3, 2]);
+end
 
 StrFormat = repmat('%.2f ', [1, size(AverageKernelMatching, 2)]);
 StrFormat = [StrFormat, '%.2f\n'];
