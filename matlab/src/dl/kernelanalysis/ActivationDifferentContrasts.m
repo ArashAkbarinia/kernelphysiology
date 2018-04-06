@@ -78,7 +78,7 @@ ActivationReport.prediction.score = max(scores(:));
 for layer = layers
   li = net.Layers(layer);
   
-  features = activations(net, inim, layer);
+  features = activations(net, inim, net.Layers(layer).Name);
   [fsorted, finds] = sort(features, 3, 'descend');
   
   LayerReport.features = features;
