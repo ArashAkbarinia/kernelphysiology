@@ -5,8 +5,8 @@ if strcmpi(NetwrokName, 'vgg16')
   net = vgg16;
 elseif strcmpi(NetwrokName, 'vgg19')
   net = vgg19;
-elseif strcmpi(NetwrokName, 'gogolenet')
-  net = gogolenet;
+elseif strcmpi(NetwrokName, 'googlenet')
+  net = googlenet;
 elseif strcmpi(NetwrokName, 'inceptionv3')
   net = inceptionv3;
 elseif strcmpi(NetwrokName, 'alexnet')
@@ -51,19 +51,79 @@ save([outdir, 'ActivationReport.mat'], 'ActivationReport');
 
 %% Creating the matrix contrast versus accuracy
 
-AverageKernelMatchings = zeros(NumImages, 6);
+AverageKernelMatchingsEqTop = zeros(NumImages, 6);
 
 parfor i = SelectedImages
-  fprintf('%s ', ImageList(i).name);
-  AverageKernelMatchings(i, :) = ContrastVsAccuracy(ActivationReport(i));
+  AverageKernelMatchingsEqTop(i, :) = ContrastVsAccuracy(ActivationReport(i), false);
 end
 
-save([outdir, 'AverageKernelMatchings.mat'], 'AverageKernelMatchings');
+save([outdir, 'AverageKernelMatchingsEqTop.mat'], 'AverageKernelMatchingsEqTop');
 
 %% Printing the results
+fprintf('All results\n');
 for i = [0:0.1:0.9, 0.999]
-  meanvals = mean(AverageKernelMatchings(AverageKernelMatchings(:, 6) >= i, :));
+  meanvals = mean(AverageKernelMatchingsEqTop(AverageKernelMatchingsEqTop(:, 6) >= i, :));
   fprintf('>=%.2f %.2f %.2f %.2f %.2f %.2f\n', i, meanvals(1:5));
+end
+
+%% if GT exist
+if strcmpi(DatasetName, 'ilsvrc-test')
+  ValidationDir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2012/validation/';
+  
+  labels = dlmread(sprintf('%sILSVRC2012_validation_ground_truth.txt', ValidationDir));
+  ImageInfos = load(sprintf('%sILSVRC2012_validation_meta.mat', ValidationDir));
+  
+  %% comuting whether the network has been correct or not
+  AverageKernelMatchingsAll = zeros(NumImages, 7);
+  
+  parfor i = SelectedImages
+    AverageKernelMatchingsTmp = ContrastVsAccuracy(ActivationReport(i));
+    
+    % right now just for the last contrast
+    ContrastNames = fieldnames(ActivationReport(i).cls);
+    nContrasts = numel(ContrastNames);
+    
+    for j = nContrasts
+      prediction = ActivationReport(i).cls.(ContrastNames{j}).prediction.type;
+      AcceptedResults = strsplit(ImageInfos.synsets(labels(i)).words, ', ');
+      MatchedAny = find(strcmpi(AcceptedResults, prediction), 1);
+      AverageKernelMatchingsAll(i, :) = [AverageKernelMatchingsTmp, ~isempty(MatchedAny)];
+    end
+  end
+  
+  AverageKernelMatchingsEqTop(:, 7) = AverageKernelMatchingsAll(:, 7);
+  
+  save([outdir, 'AverageKernelMatchingsAll.mat'], 'AverageKernelMatchingsAll');
+  save([outdir, 'AverageKernelMatchingsEqTop.mat'], 'AverageKernelMatchingsEqTop');
+  
+  %% printing the result according to being correct or not  
+  fprintf('Printing for all\n');
+  PrintAverageKernelMatchings(AverageKernelMatchingsAll);
+  fprintf('Printing for top\n');
+  PrintAverageKernelMatchings(AverageKernelMatchingsEqTop);
+end
+
+end
+
+function PrintAverageKernelMatchings(AverageKernelMatchings)
+
+%%
+for j = [0, 1, 2]
+  switch j
+    case 0
+      fprintf('Network being incorrect\n');
+      WhichResults = AverageKernelMatchings(:, 7) == j;
+    case 1
+      fprintf('Network being correct\n');
+      WhichResults = AverageKernelMatchings(:, 7) == j;
+    case 2
+      WhichResults = true(size(AverageKernelMatchings(:, 7)));
+      fprintf('All results\n');
+  end
+  for i = [0:0.1:0.9, 0.999]
+    meanvals = mean(AverageKernelMatchings(AverageKernelMatchings(:, 6) >= i & WhichResults, :));
+    fprintf('>=%.2f %.2f %.2f %.2f %.2f %.2f\n', i, meanvals(1:5));
+  end
 end
 
 end
