@@ -64,6 +64,14 @@ for k = 0:BatchGap:maxfilters - 1
   title(['Layer ', li.Name, ' Features']);
   saveas(h, sprintf('%smontage%.2u.png', outdir, (BatchSize / BatchGap) + 1));
   close(h);
+  
+  limnor = NormaliseChannel4(limage);
+  
+  h = figure('visible', 'off');
+  montage(limnor);
+  title(['Layer ', li.Name, ' Features']);
+  saveas(h, sprintf('%smontage-normalised%.2u.png', outdir, (BatchSize / BatchGap) + 1));
+  close(h);
 end
 
 end
