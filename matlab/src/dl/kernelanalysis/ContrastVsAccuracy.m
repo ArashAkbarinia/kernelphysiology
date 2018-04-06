@@ -1,6 +1,10 @@
-function AverageKernelMatching = ContrastVsAccuracy(ActivationReport)
+function AverageKernelMatching = ContrastVsAccuracy(ActivationReport, ConsiderAll)
 %ContrastVsAccuracy Summary of this function goes here
 %   Detailed explanation goes here
+
+if nargin < 2
+  ConsiderAll = true;
+end
 
 ContrastNames = fieldnames(ActivationReport.cls);
 nContrasts = numel(ContrastNames);
@@ -12,9 +16,13 @@ for i = 1:nContrasts
   predictioins{i, 2} = ActivationReport.cls.(ContrastNames{i}).prediction.score;
 end
 
-ClassType = predictioins{nContrasts, 1};
-
-IndsCorrectlyClassified = strcmp(predictioins(:, 1), ClassType);
+if ConsiderAll
+  IndsCorrectlyClassified = true(nContrasts, 1);
+else
+  ClassType = predictioins{nContrasts, 1};
+  
+  IndsCorrectlyClassified = strcmp(predictioins(:, 1), ClassType);
+end
 
 CompMatrix = ActivationReport.CompMatrix(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
 nSelected = size(CompMatrix, 1);
@@ -26,10 +34,6 @@ else
   AverageKernelMatching = sum(sum(CompMatrix)) ./ nElements;
   AverageKernelMatching = permute(AverageKernelMatching, [1, 3, 2]);
 end
-
-StrFormat = repmat('%.2f ', [1, size(AverageKernelMatching, 2)]);
-StrFormat = [StrFormat, '%.2f\n'];
-fprintf(StrFormat, AverageKernelMatching, predictioins{10, 2});
 
 AverageKernelMatching(end + 1) = predictioins{10, 2};
 
