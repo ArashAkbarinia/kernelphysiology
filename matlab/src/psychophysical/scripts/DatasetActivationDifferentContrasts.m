@@ -11,6 +11,10 @@ elseif strcmpi(NetwrokName, 'inceptionv3')
   net = inceptionv3;
 elseif strcmpi(NetwrokName, 'alexnet')
   net = alexnet;
+elseif strcmpi(NetwrokName, 'resnet50')
+  net = resnet50;
+elseif strcmpi(NetwrokName, 'resnet101')
+  net = resnet101;
 end
 
 %% Dataset details
@@ -96,7 +100,7 @@ if strcmpi(DatasetName, 'ilsvrc-test')
   save([outdir, 'AverageKernelMatchingsAll.mat'], 'AverageKernelMatchingsAll');
   save([outdir, 'AverageKernelMatchingsEqTop.mat'], 'AverageKernelMatchingsEqTop');
   
-  %% printing the result according to being correct or not  
+  %% printing the result according to being correct or not
   fprintf('Printing for all\n');
   PrintAverageKernelMatchings(AverageKernelMatchingsAll);
   fprintf('Printing for top\n');
@@ -105,7 +109,11 @@ end
 
 end
 
-function PrintAverageKernelMatchings(AverageKernelMatchings)
+function PrintAverageKernelMatchings(AverageKernelMatchings, SpecificRange)
+
+if nargin < 2
+  SpecificRange = true;
+end
 
 %%
 for j = [0, 1, 2]
@@ -120,9 +128,21 @@ for j = [0, 1, 2]
       WhichResults = true(size(AverageKernelMatchings(:, 7)));
       fprintf('All results\n');
   end
-  for i = [0:0.1:0.9, 0.999]
-    meanvals = mean(AverageKernelMatchings(AverageKernelMatchings(:, 6) >= i & WhichResults, :));
-    fprintf('>=%.2f %.2f %.2f %.2f %.2f %.2f\n', i, meanvals(1:5));
+  if SpecificRange
+    for i = 0:0.1:0.9
+      if i ~= 0.90
+        UpperBound = i + 0.1;
+      else
+        UpperBound = 1.0001;
+      end
+      meanvals = mean(AverageKernelMatchings(AverageKernelMatchings(:, 6) >= i & AverageKernelMatchings(:, 6) < UpperBound & WhichResults, :));
+      fprintf('>=%.2f<%.2f %.2f %.2f %.2f %.2f %.2f\n', i, UpperBound, meanvals(1:5));
+    end
+  else
+    for i = [0:0.1:0.9, 0.999]
+      meanvals = mean(AverageKernelMatchings(AverageKernelMatchings(:, 6) >= i & WhichResults, :));
+      fprintf('>=%.2f %.2f %.2f %.2f %.2f %.2f\n', i, meanvals(1:5));
+    end
   end
 end
 
