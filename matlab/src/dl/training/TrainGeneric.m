@@ -1,10 +1,10 @@
-function [net, info] = TrainGeneric(imdb, CheckPointPath, ResumeTraining)
+function [net, info] = TrainGeneric(imdb, CheckPointPath, UseLayers)
 %TrainGeneric Summary of this function goes here
 %   Detailed explanation goes here
 % https://es.mathworks.com/help/vision/examples/object-detection-using-deep-learning.html
 
 if nargin < 3
-  ResumeTraining = [];
+  UseLayers = [];
 end
 
 if ~exist(CheckPointPath, 'dir')
@@ -22,9 +22,13 @@ TestImages = uint8(TestImages);
 TrainingLabels = categorical(meta.classes(images.labels(images.set == 1)));
 TestLabels = categorical(meta.classes(images.labels(images.set == 3)));
 
-if ~isempty(ResumeTraining)
-  LastCheckPoint = load(ResumeTraining);
-  layers = LastCheckPoint.net.Layers;
+if ~isempty(UseLayers)
+  if ischar(UseLayers)
+    LastCheckPoint = load(UseLayers);
+    layers = LastCheckPoint.net.Layers;
+  else
+    layers = UseLayers;
+  end
 else
   NumImageCategories = numel(meta.classes);
   
