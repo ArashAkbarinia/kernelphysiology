@@ -5,6 +5,9 @@ if strcmpi(NetwrokName, 'vgg16')
   net = vgg16;
 elseif strcmpi(NetwrokName, 'vgg19')
   net = vgg19;
+elseif strcmpi(NetwrokName, 'vgg3c4x')
+  net = load('vgg3c4x.mat');
+  net = net.net;
 elseif strcmpi(NetwrokName, 'googlenet')
   net = googlenet;
 elseif strcmpi(NetwrokName, 'inceptionv3')
@@ -71,7 +74,7 @@ for i = [0:0.1:0.9, 0.999]
 end
 
 %% if GT exist
-if strcmpi(DatasetName, 'ilsvrc-test')
+if false %strcmpi(DatasetName, 'ilsvrc-test')
   ValidationDir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2012/validation/';
   
   labels = dlmread(sprintf('%sILSVRC2012_validation_ground_truth.txt', ValidationDir));
