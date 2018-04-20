@@ -8,6 +8,9 @@ elseif strcmpi(NetwrokName, 'vgg19')
 elseif strcmpi(NetwrokName, 'vgg3c4x')
   net = load('vgg3c4x.mat');
   net = net.net;
+elseif strcmpi(NetwrokName, 'vgg5x')
+  net = load('vgg5x.mat');
+  net = net.net;
 elseif strcmpi(NetwrokName, 'googlenet')
   net = googlenet;
 elseif strcmpi(NetwrokName, 'inceptionv3')
