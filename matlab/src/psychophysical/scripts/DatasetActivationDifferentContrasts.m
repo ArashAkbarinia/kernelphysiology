@@ -21,6 +21,10 @@ elseif strcmpi(NetwrokName, 'resnet50')
   net = resnet50;
 elseif strcmpi(NetwrokName, 'resnet101')
   net = resnet101;
+elseif strcmpi(NetwrokName, 'inceptionresnetv2')
+  net = inceptionresnetv2;
+elseif strcmpi(NetwrokName, 'squeezenet')
+  net = squeezenet;
 end
 
 %% Dataset details
