@@ -52,7 +52,7 @@ end
 %% Compute activation of kernels for different contrasts
 SelectedImages = 1:NumImages;
 
-layers = ConvInds(net, 5);
+layers = ConvInds(net, inf);
 
 parfor i = SelectedImages
   inim = imread([DatasetPath, ImageList(i).name]);

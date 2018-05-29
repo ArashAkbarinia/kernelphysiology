@@ -1,12 +1,12 @@
 run /home/arash/Software/repositories/kernelphysiology/matlab/src/kernelphysiology.m
 
-NetNames = {'vgg16', 'vgg19', 'alexnet', 'googlenet', 'inceptionv3', 'resnet50', 'resnet101', 'vgg3c4x', 'vgg5x', 'inceptionresnetv2', 'squeezenet'};
+NetNames = {'vgg16', 'vgg19', 'alexnet', 'googlenet', 'inceptionv3', 'resnet50', 'resnet101', 'vgg3c4x', 'vgg5x'};
 
 DatasetName = 'ilsvrc-test';
 % AnalysisDir = '/home/arash/Software/repositories/kernelphysiology/analysis/kernelsactivity/';
-AnalysisDir = '/home/deeplearning/Desktop/';
+AnalysisDir = '/home/deeplearning/Desktop/histresults/';
 
-for i = 10:numel(NetNames)
+for i = 1:numel(NetNames)
   NetwrokName = NetNames{i};
   outdir = [AnalysisDir, NetwrokName, '/'];
   mkdir(outdir);
