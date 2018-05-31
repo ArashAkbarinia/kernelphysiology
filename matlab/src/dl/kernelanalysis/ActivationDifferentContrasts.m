@@ -31,6 +31,18 @@ for contrast = ContrastLevels
 end
 
 nLayers = numel(layers);
+% computing the histograms in the range of -300:30:300
+for i = 1:nContrasts
+  contrast = ContrastLevels(i);
+  ContrastName = sprintf('c%.3u', contrast);
+  for l = 1:nLayers
+    layer = layers(l);
+    LayerName = sprintf('l%.2u', layer);
+    features = ActivationReport.cls.(ContrastName).(LayerName).features;
+    histvals = histc(features, -300:30:300, 3);
+    ActivationReport.cls.(ContrastName).(LayerName).histogram = histvals;
+  end
+end
 
 ActivationReport.CompMatrix = zeros(nContrasts, nContrasts, nLayers);
 for i = 1:nContrasts
@@ -47,6 +59,21 @@ for i = 1:nContrasts
       DiffActivity = activity1 - activity2;
       PerIdenticalNeurons = sum(DiffActivity(:) == 0) / numel(DiffActivity(:));
       ActivationReport.CompMatrix(i, j, l) = PerIdenticalNeurons;
+      
+      % histogram comparisons
+      hist1 = ActivationReport.cls.(ContrastName1).(LayerName).histogram;
+      hist2 = ActivationReport.cls.(ContrastName2).(LayerName).histogram;
+      
+      [rows, cols] = size(DiffActivity);
+      HistDiff = zeros(rows, cols);
+      for r = 1:rows
+        for c = 1:cols
+          hrc1 = permute(hist1(r, c, :), [3, 1, 2]);
+          hrc2 = permute(hist2(r, c, :), [3, 1, 2]);
+          HistDiff(r, c) = pdist2(hrc1', hrc2');
+        end
+      end
+      ActivationReport.CompMatrixHist(i, j, l) = mean(HistDiff(:));
     end
   end
 end

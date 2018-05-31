@@ -63,6 +63,8 @@ end
 
 save([outdir, 'ActivationReport.mat'], 'ActivationReport');
 
+return;
+
 %% Creating the matrix contrast versus accuracy
 
 AverageKernelMatchingsEqTop = zeros(NumImages, 6);
