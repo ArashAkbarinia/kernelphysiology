@@ -1,7 +1,10 @@
-function AverageKernelMatching = ContrastVsAccuracy(ActivationReport, ConsiderAll)
+function AverageKernelMatching = ContrastVsAccuracy(ActivationReport, ConsiderAll, ExcludeList)
 %ContrastVsAccuracy Summary of this function goes here
 %   Detailed explanation goes here
 
+if nargin < 3
+  ExcludeList = [];
+end
 if nargin < 2
   ConsiderAll = true;
 end
@@ -23,6 +26,7 @@ else
   
   IndsCorrectlyClassified = strcmp(predictioins(:, 1), ClassType);
 end
+IndsCorrectlyClassified(ExcludeList) = false;
 
 CompMatrix = ActivationReport.CompMatrix(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
 nSelected = size(CompMatrix, 1);
