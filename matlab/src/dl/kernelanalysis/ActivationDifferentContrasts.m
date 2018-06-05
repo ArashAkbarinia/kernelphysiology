@@ -64,15 +64,9 @@ for i = 1:nContrasts
       hist1 = ActivationReport.cls.(ContrastName1).(LayerName).histogram;
       hist2 = ActivationReport.cls.(ContrastName2).(LayerName).histogram;
       
-      [rows, cols] = size(DiffActivity);
-      HistDiff = zeros(rows, cols);
-      for r = 1:rows
-        for c = 1:cols
-          hrc1 = permute(hist1(r, c, :), [3, 1, 2]);
-          hrc2 = permute(hist2(r, c, :), [3, 1, 2]);
-          HistDiff(r, c) = pdist2(hrc1', hrc2');
-        end
-      end
+      % Euclidean distance between histograms
+      HistDiff = (hist1 - hist2) .^ 2;
+      HistDiff = sqrt(sum(HistDiff, 3));
       ActivationReport.CompMatrixHist(i, j, l) = mean(HistDiff(:));
     end
   end
