@@ -45,6 +45,7 @@ for i = 1:nContrasts
 end
 
 ActivationReport.CompMatrix = zeros(nContrasts, nContrasts, nLayers);
+ActivationReport.CompMatrixHist = zeros(nContrasts, nContrasts, nLayers);
 for i = 1:nContrasts
   contrast1 = ContrastLevels(i);
   ContrastName1 = sprintf('c%.3u', contrast1);
