@@ -29,17 +29,23 @@ end
 IndsCorrectlyClassified(ExcludeList) = false;
 
 CompMatrix = ActivationReport.CompMatrix(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
+CompMatrixHist = ActivationReport.CompMatrixHist(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
 [nSelected, ~, nLayers] = size(CompMatrix);
 
 nElements = nSelected * (nSelected - 1) / 2;
 if nElements == 0
   MeanVal = zeros(1, nLayers);
+  MeanValHist = zeros(1, nLayers);
 else
   MeanVal = sum(sum(CompMatrix)) ./ nElements;
   MeanVal = permute(MeanVal, [1, 3, 2]);
+  
+  MeanValHist = sum(sum(CompMatrixHist)) ./ nElements;
+  MeanValHist = permute(MeanValHist, [1, 3, 2]);
 end
 
 AverageKernelMatching.avg = MeanVal;
+AverageKernelMatching.HistAvg = MeanValHist;
 AverageKernelMatching.predictions = predictions;
 
 end
