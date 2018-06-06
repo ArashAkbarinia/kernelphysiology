@@ -12,33 +12,34 @@ end
 ContrastNames = fieldnames(ActivationReport.cls);
 nContrasts = numel(ContrastNames);
 
-predictioins = cell(nContrasts, 2);
+predictions = cell(nContrasts, 2);
 
 for i = 1:nContrasts
-  predictioins{i, 1} = ActivationReport.cls.(ContrastNames{i}).prediction.type;
-  predictioins{i, 2} = ActivationReport.cls.(ContrastNames{i}).prediction.score;
+  predictions{i, 1} = ActivationReport.cls.(ContrastNames{i}).prediction.type;
+  predictions{i, 2} = ActivationReport.cls.(ContrastNames{i}).prediction.score;
 end
 
 if ConsiderAll
   IndsCorrectlyClassified = true(nContrasts, 1);
 else
-  ClassType = predictioins{nContrasts, 1};
+  ClassType = predictions{nContrasts, 1};
   
-  IndsCorrectlyClassified = strcmp(predictioins(:, 1), ClassType);
+  IndsCorrectlyClassified = strcmp(predictions(:, 1), ClassType);
 end
 IndsCorrectlyClassified(ExcludeList) = false;
 
 CompMatrix = ActivationReport.CompMatrix(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
-nSelected = size(CompMatrix, 1);
+[nSelected, ~, nLayers] = size(CompMatrix);
 
 nElements = nSelected * (nSelected - 1) / 2;
 if nElements == 0
-  AverageKernelMatching = zeros(1, 5);
+  MeanVal = zeros(1, nLayers);
 else
-  AverageKernelMatching = sum(sum(CompMatrix)) ./ nElements;
-  AverageKernelMatching = permute(AverageKernelMatching, [1, 3, 2]);
+  MeanVal = sum(sum(CompMatrix)) ./ nElements;
+  MeanVal = permute(MeanVal, [1, 3, 2]);
 end
 
-AverageKernelMatching(end + 1) = predictioins{10, 2};
+AverageKernelMatching.avg = MeanVal;
+AverageKernelMatching.predictions = predictions;
 
 end
