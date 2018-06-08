@@ -111,3 +111,6 @@ analysis/
 
 # check point files
 CheckPoints/
+
+# dataset folders
+datasets/
