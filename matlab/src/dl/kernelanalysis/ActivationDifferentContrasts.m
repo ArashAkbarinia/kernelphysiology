@@ -32,7 +32,7 @@ end
 
 nLayers = numel(layers);
 binranges = cell(nLayers, 1);
-% computing the histograms in the range of -300:30:300
+% computing the histograms in a range specific to a layer
 for i = nContrasts:-1:1
   contrast = ContrastLevels(i);
   ContrastName = sprintf('c%.3u', contrast);
@@ -44,6 +44,7 @@ for i = nContrasts:-1:1
       binranges{l} = linspace(0.75 * min(features(:)), 0.75 * max(features(:)), 100);
     end
     histvals = histc(features, binranges{l}, 3);
+    histvals = histvals ./ sum(histvals, 3);
     ActivationReport.cls.(ContrastName).(LayerName).histogram = histvals;
   end
 end
