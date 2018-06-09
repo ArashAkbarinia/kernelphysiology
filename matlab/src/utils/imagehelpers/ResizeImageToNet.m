@@ -9,11 +9,13 @@ function inim = ResizeImageToNet(net, inim)
 %  inim  the resized image prepared to be tested with the network.
 %
 
-inim = im2double(inim);
-
 imsize = net.Layers(1).InputSize;
 
 [rows, cols, chns] = size(inim);
+
+if imsize == size(inim)
+  return;
+end
 
 if rows ~= cols
   inim = CropCentreSquareImage(inim);
