@@ -1,14 +1,20 @@
-function [AverageKernelMatchingsEqTop, AverageKernelMatchingsAll] = AnalyseActivationReport(ActivationReportPath)
+function [AverageKernelMatchingsEqTop, AverageKernelMatchingsAll] = AnalyseActivationReport(ActivationReportPath, DatasetName)
 %AnalyseActivationReport Summary of this function goes here
 %   Detailed explanation goes here
 
-% for now we only have groundtruth for this dataset.
-DatasetName = 'ilsvrc-test';
+% for now we only have groundtruth for ilsvrc-test and cifars
+
+imdb  = [];
+
 if strcmpi(DatasetName, 'ilsvrc-test')
   ValidationDir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2012/validation/';
   
   labels = dlmread(sprintf('%sILSVRC2012_validation_ground_truth.txt', ValidationDir));
   ImageInfos = load(sprintf('%sILSVRC2012_validation_meta.mat', ValidationDir));
+elseif strcmpi(DatasetName, 'cifar10')
+  imdb = load('/home/arash/Software/repositories/kernelphysiology/matlab/data/datasets/cifar/cifar10/imdb-org.mat');
+elseif strcmpi(DatasetName, 'cifar100')
+  imdb = load('/home/arash/Software/repositories/kernelphysiology/matlab/data/datasets/cifar/cifar100/imdb-org.mat');
 else
   error('No groundtruth is available for dataset: %s\n', DatasetName);
 end
@@ -24,6 +30,18 @@ if ~exist(AverageKernelMatchingsEqTopPath, 'file')
   ActivationReport = ActivationReport.ActivationReport;
   
   NumImages = numel(ActivationReport);
+  
+  if ~isempty(imdb)
+    GroundTruths = imdb.images.labels(imdb.images.set == 3);
+    GroundTruths =  categorical(imdb.meta.classes(imdb.images.labels(imdb.images.set == 3)));
+  else
+    TestLabels = ImageInfos.synsets;
+    
+    GroundTruths = cell(NumImages, 1);
+    for i = 1:NumImages
+      GroundTruths{i} = TestLabels(labels(i)).words;
+    end
+  end
   
   [nContrasts, ~, NumLayers] = size(ActivationReport(1).CompMatrix);
   
@@ -45,12 +63,10 @@ if ~exist(AverageKernelMatchingsEqTopPath, 'file')
     AllAvgs(i, :) = AllTmp.avg;
     AllHistAvgs(i, :) = AllTmp.HistAvg;
     
-    % checking whether predictoin is correct
-    AcceptedResults = strsplit(ImageInfos.synsets(labels(i)).words, ', ');
-    prediction = EqTopTmp.predictions(:, 1);
-    MatchedAny = false(nContrasts, 1);
-    for s = 1:numel(AcceptedResults)
-      MatchedAny = strcmpi(AcceptedResults{s}, prediction) | MatchedAny;
+    if ~isempty(imdb)
+      MatchedAny = CheckCifar(EqTopTmp, GroundTruths(i));
+    else
+      MatchedAny = CheckIlsvrc(EqTopTmp, GroundTruths{i});
     end
     
     corrects(i, :) = MatchedAny';
@@ -86,6 +102,29 @@ fprintf('Printing for all\n');
 PrintAverageKernelMatchings(AverageKernelMatchingsAll);
 fprintf('Printing for top\n');
 PrintAverageKernelMatchings(AverageKernelMatchingsEqTop);
+
+end
+
+function MatchedAny = CheckCifar(ResultMat, GroundtTrurh)
+
+% MatchedAny = cellfun(@(x) str2double(x) == GroundtTrurh, ResultMat.predictions(:, 1));
+MatchedAny = strcmpi(char(GroundtTrurh), ResultMat.predictions(:, 1));
+
+MatchedAny = MatchedAny';
+
+end
+
+function MatchedAny = CheckIlsvrc(ResultMat, GroundtTrurh)
+
+% checking whether predictoin is correct
+AcceptedResults = strsplit(GroundtTrurh, ', ');
+prediction = ResultMat.predictions(:, 1);
+MatchedAny = false(numel(prediction), 1);
+for s = 1:numel(AcceptedResults)
+  MatchedAny = strcmpi(AcceptedResults{s}, prediction) | MatchedAny;
+end
+
+MatchedAny = MatchedAny';
 
 end
 
