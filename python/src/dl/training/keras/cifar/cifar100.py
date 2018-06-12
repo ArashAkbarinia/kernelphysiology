@@ -4,14 +4,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from .cifar import load_batch
-from ..utils.data_utils import get_file
-from .. import backend as K
+from cifar import load_batch
+from keras.utils.data_utils import get_file
+from keras import backend as K
 import numpy as np
 import os
 
 
-def load_data(label_mode='fine'):
+def load_data(label_mode='fine', dirname='cifar-100-python'):
     """Loads CIFAR100 dataset.
 
     # Arguments
@@ -26,9 +26,11 @@ def load_data(label_mode='fine'):
     if label_mode not in ['fine', 'coarse']:
         raise ValueError('`label_mode` must be one of `"fine"`, `"coarse"`.')
 
-    dirname = 'cifar-100-python'
-    origin = 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'
-    path = get_file(dirname, origin=origin, untar=True)
+    if not os.path.exists(os.path.join(dirname, 'meta')):
+        origin = 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'
+        path = get_file(dirname, origin=origin, untar=True)
+    else:
+        path = dirname
 
     fpath = os.path.join(path, 'train')
     x_train, y_train = load_batch(fpath, label_key=label_mode + '_labels')
