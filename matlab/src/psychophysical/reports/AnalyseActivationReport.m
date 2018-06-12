@@ -33,7 +33,7 @@ if ~exist(AverageKernelMatchingsEqTopPath, 'file')
   
   if ~isempty(imdb)
     GroundTruths = imdb.images.labels(imdb.images.set == 3);
-%     GroundTruths =  categorical(imdb.meta.classes(imdb.images.labels(imdb.images.set == 3)));
+    %     GroundTruths =  categorical(imdb.meta.classes(imdb.images.labels(imdb.images.set == 3)));
   else
     TestLabels = ImageInfos.synsets;
     
@@ -53,7 +53,7 @@ if ~exist(AverageKernelMatchingsEqTopPath, 'file')
   predictions = cell(NumImages, 1);
   corrects = zeros(NumImages, nContrasts);
   scores = zeros(NumImages, nContrasts);
-  for i = 1:NumImages
+  parfor i = 1:NumImages
     EqTopTmp = ContrastVsAccuracy(ActivationReport(i), false);
     EqTopAvgs(i, :) = EqTopTmp.MaxAvg;
     EqTopHistAvgs(i, :) = EqTopTmp.HistAvg;
@@ -153,6 +153,8 @@ for at = {'max', 'hist'}
         WhichResults = true(NumImages, 1);
         fprintf('All results\n');
     end
+    NonNaN = ~isnan(AverageKernelMatchings.avgs.max(:, 1));
+    WhichResults = WhichResults & NonNaN;
     if SpecificRange
       for i = 0:0.2:0.8
         if i ~= 0.80

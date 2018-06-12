@@ -34,8 +34,8 @@ CompMatrixHist = ActivationReport.CompMatrixHist(IndsCorrectlyClassified, IndsCo
 
 nElements = nSelected * (nSelected - 1) / 2;
 if nElements == 0
-  MeanValMax = zeros(1, nLayers);
-  MeanValHist = zeros(1, nLayers);
+  MeanValMax = nan(1, nLayers);
+  MeanValHist = nan(1, nLayers);
 else
   MeanValMax = sum(sum(CompMatrix)) ./ nElements;
   MeanValMax = permute(MeanValMax, [1, 3, 2]);

@@ -19,7 +19,7 @@ if ~exist(PairwiseReportpPath, 'file')
   MaxAvgs = zeros(NumImages, nComparisons, NumLayers);
   HistAvgs = zeros(NumImages, nComparisons, NumLayers);
   
-  for i = 1:NumImages
+  parfor i = 1:NumImages
     for t = 1:nComparisons
       EqTopTmp = ContrastVsAccuracy(ActivationReport(i), false, [1:t - 1, t + 1:nComparisons]);
       
@@ -50,7 +50,8 @@ function PrintAverageKernelMatchings(PairwiseReport)
 [~, nComparisons, nLayers] = size(PairwiseReport);
 
 for i = 1:nComparisons
-  meanvals = mean(PairwiseReport(:, i, :));
+  NonNaN = ~isnan(PairwiseReport(:, i, 1));
+  meanvals = mean(PairwiseReport(NonNaN, i, :));
   fprintf(sprintf('%s\n', repmat('%.2f ', [1, nLayers])), meanvals);
 end
 
