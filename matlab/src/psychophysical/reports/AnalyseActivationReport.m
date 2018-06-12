@@ -33,7 +33,7 @@ if ~exist(AverageKernelMatchingsEqTopPath, 'file')
   
   if ~isempty(imdb)
     GroundTruths = imdb.images.labels(imdb.images.set == 3);
-    GroundTruths =  categorical(imdb.meta.classes(imdb.images.labels(imdb.images.set == 3)));
+%     GroundTruths =  categorical(imdb.meta.classes(imdb.images.labels(imdb.images.set == 3)));
   else
     TestLabels = ImageInfos.synsets;
     
@@ -53,14 +53,14 @@ if ~exist(AverageKernelMatchingsEqTopPath, 'file')
   predictions = cell(NumImages, 1);
   corrects = zeros(NumImages, nContrasts);
   scores = zeros(NumImages, nContrasts);
-  parfor i = 1:NumImages
+  for i = 1:NumImages
     EqTopTmp = ContrastVsAccuracy(ActivationReport(i), false);
-    EqTopAvgs(i, :) = EqTopTmp.avg;
+    EqTopAvgs(i, :) = EqTopTmp.MaxAvg;
     EqTopHistAvgs(i, :) = EqTopTmp.HistAvg;
     predictions{i} = EqTopTmp.predictions;
     
     AllTmp = ContrastVsAccuracy(ActivationReport(i), true);
-    AllAvgs(i, :) = AllTmp.avg;
+    AllAvgs(i, :) = AllTmp.MaxAvg;
     AllHistAvgs(i, :) = AllTmp.HistAvg;
     
     if ~isempty(imdb)
@@ -107,8 +107,8 @@ end
 
 function MatchedAny = CheckCifar(ResultMat, GroundtTrurh)
 
-% MatchedAny = cellfun(@(x) str2double(x) == GroundtTrurh, ResultMat.predictions(:, 1));
-MatchedAny = strcmpi(char(GroundtTrurh), ResultMat.predictions(:, 1));
+MatchedAny = cellfun(@(x) str2double(x) == GroundtTrurh, ResultMat.predictions(:, 1));
+% MatchedAny = strcmpi(char(GroundtTrurh), ResultMat.predictions(:, 1));
 
 MatchedAny = MatchedAny';
 

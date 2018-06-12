@@ -34,17 +34,17 @@ CompMatrixHist = ActivationReport.CompMatrixHist(IndsCorrectlyClassified, IndsCo
 
 nElements = nSelected * (nSelected - 1) / 2;
 if nElements == 0
-  MeanVal = zeros(1, nLayers);
+  MeanValMax = zeros(1, nLayers);
   MeanValHist = zeros(1, nLayers);
 else
-  MeanVal = sum(sum(CompMatrix)) ./ nElements;
-  MeanVal = permute(MeanVal, [1, 3, 2]);
+  MeanValMax = sum(sum(CompMatrix)) ./ nElements;
+  MeanValMax = permute(MeanValMax, [1, 3, 2]);
   
   MeanValHist = sum(sum(CompMatrixHist)) ./ nElements;
   MeanValHist = permute(MeanValHist, [1, 3, 2]);
 end
 
-AverageKernelMatching.avg = MeanVal;
+AverageKernelMatching.MaxAvg = MeanValMax;
 AverageKernelMatching.HistAvg = MeanValHist;
 AverageKernelMatching.predictions = predictions;
 
