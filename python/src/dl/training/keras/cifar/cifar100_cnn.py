@@ -11,16 +11,17 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 import os
+import sys
 
 project_root = '/home/arash/Software/repositories/kernelphysiology/python/'
 
 batch_size = 32
 num_classes = 100
-epochs = 10
+epochs = 100
 data_augmentation = False
 num_predictions = 20
 save_dir = os.path.join(project_root, 'data/nets/cifar/cifar100/')
-model_name = 'keras_cifar100_area_1layers.h5'
+model_name = 'keras_cifar100_area_'
 
 # The data, split between train and test sets:
 (x_train, y_train), (x_test, y_test) = cifar100.load_data('fine', os.path.join(project_root, 'data/datasets/cifar/cifar100/'))
@@ -32,13 +33,65 @@ print(x_test.shape[0], 'test samples')
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
+nlayers = sys.argv[1]
+print('Processing with %s layers' % nlayers)
+model_name += nlayers
+nlayers = int(nlayers)
+
 model = Sequential()
 model.add(Conv2D(64, (3, 3), padding='same', input_shape=x_train.shape[1:]))
 model.add(Activation('relu'))
-# model.add(Conv2D(16, (3, 3)))
-# model.add(Activation('relu'))
-# model.add(Conv2D(16, (3, 3)))
-# model.add(Activation('relu'))
+if nlayers == 2:
+    model.add(Conv2D(32, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+elif nlayers == 40:
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(64, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+elif nlayers == 41:
+    model.add(Conv2D(20, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(64, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(12, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+elif nlayers == 42:
+    model.add(Conv2D(12, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(64, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(20, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+elif nlayers == 50:
+    model.add(Conv2D(32, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+elif nlayers == 51:
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(32, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(32, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+elif nlayers == 52:
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(16, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(32, (3, 3), padding='same'))
+    model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 
@@ -50,6 +103,8 @@ model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 
 model.add(Flatten())
+model.add(Dense(512))
+model.add(Activation('relu'))
 model.add(Dense(512))
 model.add(Activation('relu'))
 model.add(Dropout(0.5))
@@ -98,6 +153,7 @@ else:
 # Save model and weights
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
+model_name = model_name + '.h5'
 model_path = os.path.join(save_dir, model_name)
 model.save(model_path)
 print('Saved trained model at %s ' % model_path)
