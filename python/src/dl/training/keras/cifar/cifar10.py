@@ -17,7 +17,7 @@ def load_data(dirname='cifar-10-batches-py'):
     # Returns
         Tuple of Numpy arrays: `(x_train, y_train), (x_test, y_test)`.
     """
-    if not os.path.exists(dirname + 'batches.meta'):
+    if not os.path.exists(os.path.join(dirname, 'batches.meta')):
         origin = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
         path = get_file(dirname, origin=origin, untar=True)
     else:
