@@ -1,32 +1,39 @@
-function EvaluationReport = CnnCifarEval( net, imdb )
-%CNNCIFAREVAL Summary of this function goes here
+function EvaluationReport = CnnCifarEval(net,imdb, ContrastLevels)
+%CnnCifarEval Summary of this function goes here
 %   Detailed explanation goes here
+
+if nargin < 3
+  ContrastLevels = [1, 3, 5, 7, 10, 13, 15, 30, 50, 75, 100];
+end
 
 images = imdb.images.data;
 labels = imdb.images.labels;
 imsets = imdb.images.set;
 
-net = vl_simplenn_tidy(net);
-net = vl_simplenn_move(net, 'gpu');
-
 ValSetInds = imsets == 3;
 
-LabelSet = labels(ValSetInds);
+LabelSet = labels(ValSetInds)';
 TestSet = images(:, :, :, ValSetInds);
-TestSet = gpuArray(TestSet);
 
-nimages = size(TestSet, 4);
-
-EvaluationReport = zeros(nimages, 1);
-% running the CNN
-for i = 1:nimages
-  im = TestSet(:, :, :, i);
-  res = vl_simplenn(net, im);
+nContrasts = numel(ContrastLevels);
+AllAccuracies = zeros(1, nContrasts);
+for c = 1:nContrasts
+  contrast = ContrastLevels(c);
+  % converting it to uint8 because the imdb is stored in single
+  ContrastedImages = AdjustContrast(uint8(TestSet), contrast / 100);
+  % dont't convert it back to uint8 because keras has been trained [0, 1]
+  % ContrastedImages = uint8(ContrastedImages .* 255);
   
-  scores = squeeze(gather(res(end).x));
-  [~, best] = max(scores);
+  NetPredictions = net.classify(ContrastedImages);
+  PredictionEval = int8(NetPredictions) == LabelSet;
   
-  EvaluationReport(i) = best == LabelSet(i);
+  ContrastName = sprintf('c%.3u', contrast);
+  
+  EvaluationReport.cls.(ContrastName).NetPredictions = NetPredictions;
+  EvaluationReport.cls.(ContrastName).PredictionEval = PredictionEval;
+  AllAccuracies(1, c) = mean(PredictionEval);
 end
+
+EvaluationReport.sum.AllAccuracies = AllAccuracies;
 
 end
