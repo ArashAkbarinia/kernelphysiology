@@ -13,16 +13,18 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 import os
 import sys
+from keras.callbacks import CSVLogger, ModelCheckpoint
 
 project_root = '/home/arash/Software/repositories/kernelphysiology/python/'
 
 batch_size = 32
 num_classes = 10
-epochs = 10
+epochs = 100
+log_period = round(epochs / 4)
 data_augmentation = False
-num_predictions = 20
-save_dir = os.path.join(project_root, 'data/nets/cifar/cifar10/')
+
 model_name = 'keras_cifar10_area_'
+save_dir = os.path.join(project_root, 'data/nets/cifar/cifar10/')
 
 # The data, split between train and test sets:
 (x_train, y_train), (x_test, y_test) = cifar10.load_data(os.path.join(project_root, 'data/datasets/cifar/cifar10/'))
@@ -37,6 +39,12 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 nlayers = sys.argv[1]
 print('Processing with %s layers' % nlayers)
 model_name += nlayers
+log_dir = os.path.join(save_dir, model_name)
+if not os.path.isdir(log_dir):
+    os.mkdir(log_dir)
+csv_logger = CSVLogger(os.path.join(log_dir, 'log.csv'), append=False, separator=';')
+check_points = ModelCheckpoint(os.path.join(log_dir, 'weights.{epoch:05d}.h5'), period=log_period)
+
 nlayers = int(nlayers)
 
 model = Sequential()
@@ -125,7 +133,7 @@ x_test /= 255
 
 if not data_augmentation:
     print('Not using data augmentation.')
-    model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_test, y_test), shuffle=True)
+    model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_test, y_test), shuffle=True, callbacks=[check_points, csv_logger])
 else:
     print('Using real-time data augmentation.')
     # This will do preprocessing and realtime data augmentation:
