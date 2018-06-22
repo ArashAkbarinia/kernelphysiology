@@ -8,11 +8,12 @@ import datetime
 import pandas as pd
 import keras
 
-from sklearn.model_selection import train_test_split
-from keras.applications.vgg16 import VGG16, preprocess_input
-from keras.preprocessing import image
+from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import cross_val_score
 from sklearn import svm
 from sklearn.externals import joblib
+from keras.applications.vgg16 import VGG16, preprocess_input
+from keras.preprocessing import image
 
 
 use_cache = 1
@@ -207,16 +208,14 @@ def run_single(debug=True):
 
     train_data, train_target, driver_id, unique_drivers = read_and_normalize_train_data(img_rows, img_cols, color_type_global)
 
+    # using the svm as the classifier
     clf = svm.SVC(kernel='linear', C=1, probability=True, max_iter=100, tol=1e-3, verbose=True)
     # for testing purposes, try it with cross validation
     if debug:
         print('Cross validating')
-        ModelPath = 'CrossValidatedModel.pkl'
-        x_train, x_test, y_train, y_test = train_test_split(train_data, train_target, test_size=0.4, random_state=0)
-        clf.fit(x_train, y_train)
-        joblib.dump(clf, ModelPath)
-        score = clf.score(x_test, y_test)
-        print(str(score))
+        cv = ShuffleSplit(n_splits=3, test_size=0.4, random_state=0)
+        scores = cross_val_score(clf, train_data, train_target, cv=cv)
+        print("Accuracy: %0.2f (+/- %0.5f)" % (scores.mean(), scores.std() * 2))
     # this would be the final submission
     else:
         print('Testing')
@@ -227,13 +226,14 @@ def run_single(debug=True):
         else:
             clf = joblib.load(ModelPath)
         test_res, test_id = test_on_chunks(clf, img_rows, img_cols, color_type_global, chunk_size=8000)
-        score = clf.score(train_data, train_target)
-        print(str(score))
-        info_string = 'loss_' + str(score) + '_r_' + str(img_rows) + '_c_' + str(img_cols)
+        info_string = 'vgg16_r_' + str(img_rows) + '_c_' + str(img_cols)
         create_submission(test_res, test_id, info_string)
 
 
 batch_size = 32
+# which model to use as feature extractor
 base_model = VGG16(weights='imagenet')
-model = keras.Model(inputs=base_model.input, outputs=base_model.get_layer('flatten').output)
+# which layer to use as feature extractor
+layer_name = 'flatten'
+model = keras.Model(inputs=base_model.input, outputs=base_model.get_layer(layer_name).output)
 run_single(int(os.sys.argv[1]))
