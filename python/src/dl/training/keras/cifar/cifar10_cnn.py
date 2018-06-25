@@ -6,13 +6,15 @@ It gets to 75% validation accuracy in 25 epochs, and 79% after 50 epochs.
 
 from __future__ import print_function
 import keras
+import os
+import sys
+import numpy as np
 import cifar10
+import gauss
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
-import os
-import sys
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
 project_root = '/home/arash/Software/repositories/kernelphysiology/python/'
@@ -49,6 +51,23 @@ nlayers = int(nlayers)
 
 model = Sequential()
 model.add(Conv2D(64, (3, 3), padding='same', input_shape=x_train.shape[1:]))
+
+weights = model.layers[0].get_weights()
+dogs = weights[0]
+for i in range(0, 64):
+    sigma1 = np.random.uniform(0, 1)
+    g1 = gauss.gkern(3, sigma1)
+    sigma2 = sigma1 + np.random.uniform(0, 1)
+    g2 = gauss.gkern(3, sigma2)
+    dg = -g1 + g2
+    dogs[:, :, 0, i] = dg
+    dogs[:, :, 1, i] = dg
+    dogs[:, :, 2, i] = dg
+
+model.layers[0].set_weights(weights)
+model.layers[0].trainable = False
+
+model.add(Conv2D(64, (3, 3)))
 model.add(Activation('relu'))
 if nlayers == 2:
     model.add(Conv2D(32, (3, 3), padding='same'))
