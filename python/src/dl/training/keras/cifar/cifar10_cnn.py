@@ -8,13 +8,8 @@ from __future__ import print_function
 import keras
 import os
 import sys
-import numpy as np
+import cifar
 import cifar10
-import gauss
-from keras.preprocessing.image import ImageDataGenerator
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, MaxPooling2D
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
 project_root = '/home/arash/Software/repositories/kernelphysiology/python/'
@@ -49,95 +44,7 @@ check_points = ModelCheckpoint(os.path.join(log_dir, 'weights.{epoch:05d}.h5'), 
 
 nlayers = int(nlayers)
 
-model = Sequential()
-model.add(Conv2D(64, (3, 3), padding='same', input_shape=x_train.shape[1:]))
-
-weights = model.layers[0].get_weights()
-dogs = weights[0]
-for i in range(0, 64):
-    sigma1 = np.random.uniform(0, 1)
-    g1 = gauss.gkern(3, sigma1)
-    sigma2 = sigma1 + np.random.uniform(0, 1)
-    g2 = gauss.gkern(3, sigma2)
-    dg = -g1 + g2
-    dogs[:, :, 0, i] = dg
-    dogs[:, :, 1, i] = dg
-    dogs[:, :, 2, i] = dg
-
-model.layers[0].set_weights(weights)
-model.layers[0].trainable = False
-
-model.add(Conv2D(64, (3, 3)))
-model.add(Activation('relu'))
-if nlayers == 2:
-    model.add(Conv2D(32, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-elif nlayers == 40:
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(64, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-elif nlayers == 41:
-    model.add(Conv2D(20, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(64, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(12, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-elif nlayers == 42:
-    model.add(Conv2D(12, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(64, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(20, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-elif nlayers == 50:
-    model.add(Conv2D(32, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-elif nlayers == 51:
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(32, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(32, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-elif nlayers == 52:
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(16, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(32, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
-
-model.add(Conv2D(64, (3, 3), padding='same'))
-model.add(Activation('relu'))
-model.add(Conv2D(64, (3, 3)))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
-
-model.add(Flatten())
-model.add(Dense(512))
-model.add(Activation('relu'))
-model.add(Dense(512))
-model.add(Activation('relu'))
-model.add(Dropout(0.5))
-model.add(Dense(num_classes))
-model.add(Activation('softmax'))
+model = cifar.generate_model(train_shape=x_train.shape[1:], num_classes=num_classes, area1_nlayers=nlayers)
 
 # initiate RMSprop optimizer
 opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
@@ -150,41 +57,10 @@ x_test = x_test.astype('float32')
 x_train /= 255
 x_test /= 255
 
-if not data_augmentation:
-    print('Not using data augmentation.')
-    model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_test, y_test), shuffle=True, callbacks=[check_points, csv_logger])
-else:
-    print('Using real-time data augmentation.')
-    # This will do preprocessing and realtime data augmentation:
-    datagen = ImageDataGenerator(
-        featurewise_center=False,  # set input mean to 0 over the dataset
-        samplewise_center=False,  # set each sample mean to 0
-        featurewise_std_normalization=False,  # divide inputs by std of the dataset
-        samplewise_std_normalization=False,  # divide each input by its std
-        zca_whitening=False,  # apply ZCA whitening
-        rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
-        width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
-        height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
-        horizontal_flip=True,  # randomly flip images
-        vertical_flip=False)  # randomly flip images
+cifar.train_model(x_train, y_train, x_test, y_test, model, 
+                  callbacks=[check_points, csv_logger], save_dir=save_dir, model_name=model_name, 
+                  data_augmentation=False, batch_size=32, epochs=10)
 
-    # Compute quantities required for feature-wise normalization
-    # (std, mean, and principal components if ZCA whitening is applied).
-    datagen.fit(x_train)
-
-    # Fit the model on the batches generated by datagen.flow().
-    model.fit_generator(datagen.flow(x_train, y_train, batch_size=batch_size),
-                        epochs=epochs,
-                        validation_data=(x_test, y_test),
-                        workers=4)
-
-# Save model and weights
-if not os.path.isdir(save_dir):
-    os.makedirs(save_dir)
-model_name = model_name + '.h5'
-model_path = os.path.join(save_dir, model_name)
-model.save(model_path)
-print('Saved trained model at %s ' % model_path)
 
 # Score trained model.
 scores = model.evaluate(x_test, y_test, verbose=1)
