@@ -4,65 +4,56 @@ It gets to 75% validation accuracy in 25 epochs, and 79% after 50 epochs.
 (it's still underfitting at that point, though).
 '''
 
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
-import keras
-import os
+import numpy as np
 import sys
+import os
 import cifar
-import cifar10
-from keras.callbacks import CSVLogger, ModelCheckpoint
+from keras.utils.data_utils import get_file
+from keras import backend as K
 
-project_root = '/home/arash/Software/repositories/kernelphysiology/python/'
 
-batch_size = 32
-num_classes = 10
-epochs = 100
-log_period = round(epochs / 4)
-data_augmentation = False
+def load_data(dirname='cifar-10-batches-py'):
+    """Loads CIFAR10 dataset.
 
-model_name = 'keras_cifar10_area_'
-save_dir = os.path.join(project_root, 'data/nets/cifar/cifar10/')
+    # Returns
+        Tuple of Numpy arrays: `(x_train, y_train), (x_test, y_test)`.
+    """
+    if not os.path.exists(os.path.join(dirname, 'batches.meta')):
+        origin = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
+        path = get_file(dirname, origin=origin, untar=True)
+    else:
+        path = dirname
+
+    num_train_samples = 50000
+
+    x_train = np.empty((num_train_samples, 3, 32, 32), dtype='uint8')
+    y_train = np.empty((num_train_samples,), dtype='uint8')
+
+    for i in range(1, 6):
+        fpath = os.path.join(path, 'data_batch_' + str(i))
+        (x_train[(i - 1) * 10000: i * 10000, :, :, :],
+         y_train[(i - 1) * 10000: i * 10000]) = cifar.load_batch(fpath)
+
+    fpath = os.path.join(path, 'test_batch')
+    x_test, y_test = cifar.load_batch(fpath)
+
+    y_train = np.reshape(y_train, (len(y_train), 1))
+    y_test = np.reshape(y_test, (len(y_test), 1))
+
+    if K.image_data_format() == 'channels_last':
+        x_train = x_train.transpose(0, 2, 3, 1)
+        x_test = x_test.transpose(0, 2, 3, 1)
+
+    return (x_train, y_train), (x_test, y_test)
+
+
+confs = cifar.CifarConfs(num_classes=10)
+confs.area1_nlayers = sys.argv[1]
 
 # The data, split between train and test sets:
-(x_train, y_train), (x_test, y_test) = cifar10.load_data(os.path.join(project_root, 'data/datasets/cifar/cifar10/'))
-print('x_train shape:', x_train.shape)
-print(x_train.shape[0], 'train samples')
-print(x_test.shape[0], 'test samples')
+(confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = load_data(os.path.join(confs.project_root, 'data/datasets/cifar/cifar10/'))
 
-# Convert class vectors to binary class matrices.
-y_train = keras.utils.to_categorical(y_train, num_classes)
-y_test = keras.utils.to_categorical(y_test, num_classes)
-
-nlayers = sys.argv[1]
-print('Processing with %s layers' % nlayers)
-model_name += nlayers
-log_dir = os.path.join(save_dir, model_name)
-if not os.path.isdir(log_dir):
-    os.mkdir(log_dir)
-csv_logger = CSVLogger(os.path.join(log_dir, 'log.csv'), append=False, separator=';')
-check_points = ModelCheckpoint(os.path.join(log_dir, 'weights.{epoch:05d}.h5'), period=log_period)
-
-nlayers = int(nlayers)
-
-model = cifar.generate_model(train_shape=x_train.shape[1:], num_classes=num_classes, area1_nlayers=nlayers)
-
-# initiate RMSprop optimizer
-opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
-
-# Let's train the model using RMSprop
-model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
-
-x_train = x_train.astype('float32')
-x_test = x_test.astype('float32')
-x_train /= 255
-x_test /= 255
-
-cifar.train_model(x_train, y_train, x_test, y_test, model, 
-                  callbacks=[check_points, csv_logger], save_dir=save_dir, model_name=model_name, 
-                  data_augmentation=False, batch_size=32, epochs=10)
-
-
-# Score trained model.
-scores = model.evaluate(x_test, y_test, verbose=1)
-print('Test loss:', scores[0])
-print('Test accuracy:', scores[1])
+cifar.start_training(confs)
