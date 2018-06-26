@@ -24,10 +24,11 @@ class CifarConfs:
 
     batch_size = 32
     num_classes = None
-    epochs = 1
+    epochs = 100
     log_period = round(epochs / 4)
     data_augmentation = False
     area1_nlayers = 1
+    add_dog = True
     
     model_name = None
     save_dir = None
@@ -67,7 +68,7 @@ def start_training(confs):
     
     confs.area1_nlayers = int(confs.area1_nlayers)
     
-    model = generate_model(confs=confs, add_dog=True)
+    model = generate_model(confs=confs)
     
     # initiate RMSprop optimizer
     opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
@@ -165,11 +166,11 @@ def train_model(confs):
     return confs
 
 
-def generate_model(confs, add_dog=False):
+def generate_model(confs):
     model = Sequential()
     model.add(Conv2D(64, (3, 3), padding='same', input_shape=confs.x_train.shape[1:]))
     
-    if add_dog:
+    if confs.add_dog:
         if confs.dog_path == None or not os.path.exists(confs.dog_path):
             print('Saving the DoG file')
             weights = model.layers[0].get_weights()
