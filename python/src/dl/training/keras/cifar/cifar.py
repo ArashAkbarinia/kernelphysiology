@@ -31,7 +31,7 @@ class CifarConfs:
     
     batch_size = 64
     num_classes = None
-    epochs = 1
+    epochs = 100
     log_period = round(epochs / 4)
     data_augmentation = False
     area1_nlayers = 1
