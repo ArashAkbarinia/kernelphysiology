@@ -12,9 +12,10 @@ import sys
 
 # finding the root of the project
 current_path = os.getcwd()
-python_dir = 'kernelphysiology/python/src/'
-root_dir = current_path.split(python_dir, 1)[0]
-sys.path += [os.path.join(root_dir, python_dir)]
+python_root = 'kernelphysiology/python/'
+project_dir = current_path.split(python_root, 1)[0]
+python_root = os.path.join(project_dir, python_root)
+sys.path += [os.path.join(python_root, 'src/')]
 
 
 from six.moves import cPickle
@@ -29,11 +30,11 @@ from filterfactory.gaussian import gauss
 
 
 class CifarConfs:
-    project_root = '/home/arash/Software/repositories/kernelphysiology/python/'
-
+    project_root = python_root
+    
     batch_size = 32
     num_classes = None
-    epochs = 1
+    epochs = 100
     log_period = round(epochs / 4)
     data_augmentation = False
     area1_nlayers = 1
