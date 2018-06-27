@@ -5,18 +5,27 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
-import os
-from six.moves import cPickle
 
+import os
+import sys
+
+
+# finding the root of the project
+current_path = os.getcwd()
+python_dir = 'kernelphysiology/python/src/'
+root_dir = current_path.split(python_dir, 1)[0]
+sys.path += [os.path.join(root_dir, python_dir)]
+
+
+from six.moves import cPickle
 import numpy as np
-import gauss
 import keras
 from keras.callbacks import CSVLogger, ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
+from filterfactory.gaussian import gauss
 
 
 class CifarConfs:
@@ -24,7 +33,7 @@ class CifarConfs:
 
     batch_size = 32
     num_classes = None
-    epochs = 100
+    epochs = 1
     log_period = round(epochs / 4)
     data_augmentation = False
     area1_nlayers = 1
