@@ -1,21 +1,21 @@
-'''Train a simple deep CNN on the CIFAR10 small images dataset.
-
-It gets to 75% validation accuracy in 25 epochs, and 79% after 50 epochs.
-(it's still underfitting at that point, though).
 '''
+Reading the CIFAR-10 dataset.
+'''
+
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import commons
 import numpy as np
-import sys
 import os
-import cifar
+from cifar import load_batch
 from keras.utils.data_utils import get_file
 from keras import backend as K
 
 
-def load_data(dirname='cifar-10-batches-py'):
+def load_data(dirname=os.path.join(commons.python_root, 'data/datasets/cifar/cifar10/')):
     """Loads CIFAR10 dataset.
 
     # Returns
@@ -35,10 +35,10 @@ def load_data(dirname='cifar-10-batches-py'):
     for i in range(1, 6):
         fpath = os.path.join(path, 'data_batch_' + str(i))
         (x_train[(i - 1) * 10000: i * 10000, :, :, :],
-         y_train[(i - 1) * 10000: i * 10000]) = cifar.load_batch(fpath)
+         y_train[(i - 1) * 10000: i * 10000]) = load_batch(fpath)
 
     fpath = os.path.join(path, 'test_batch')
-    x_test, y_test = cifar.load_batch(fpath)
+    x_test, y_test = load_batch(fpath)
 
     y_train = np.reshape(y_train, (len(y_train), 1))
     y_test = np.reshape(y_test, (len(y_test), 1))
@@ -48,12 +48,3 @@ def load_data(dirname='cifar-10-batches-py'):
         x_test = x_test.transpose(0, 2, 3, 1)
 
     return (x_train, y_train), (x_test, y_test)
-
-
-if __name__ == "__main__":
-    confs = cifar.CifarConfs(num_classes=10, args=sys.argv)
-    
-    # The data, split between train and test sets:
-    (confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = load_data(os.path.join(confs.project_root, 'data/datasets/cifar/cifar10/'))
-    
-    cifar.start_training(confs)

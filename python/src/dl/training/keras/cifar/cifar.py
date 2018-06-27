@@ -2,44 +2,36 @@
 Utilities common to CIFAR10 and CIFAR100 datasets.
 '''
 
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 
+import commons
 import os
 import sys
 
-
-# finding the root of the project
-current_path = os.getcwd()
-python_root = 'kernelphysiology/python/'
-project_dir = current_path.split(python_root, 1)[0]
-python_root = os.path.join(project_dir, python_root)
-sys.path += [os.path.join(python_root, 'src/')]
-
-
 from six.moves import cPickle
 import numpy as np
-import keras
 import tensorflow as tf
+import keras
 from keras.callbacks import CSVLogger, ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.utils import multi_gpu_model
-    
-    
+        
 from filterfactory.gaussian import gauss
 
 
 class CifarConfs:
-    project_root = python_root
+    project_root = commons.python_root
     
-    batch_size = 32
+    batch_size = 64
     num_classes = None
-    epochs = 100
+    epochs = 1
     log_period = round(epochs / 4)
     data_augmentation = False
     area1_nlayers = 1
@@ -64,14 +56,16 @@ class CifarConfs:
         self.dog_path = os.path.join(self.save_dir, 'dog.h5')
         
         argc = len(args)
+        print(argc)
+        if argc > 0:
+            self.area1_nlayers = args[0]
         if argc > 1:
-            self.area1_nlayers = args[1]
-        if argc > 2:
-            self.add_dog = int(args[2]) == 1
+            self.add_dog = int(args[1]) == 1
             if self.add_dog:
                 self.model_name += 'dog_'
-        if argc > 3:
-            self.multi_gpus = int(args[3])
+        if argc > 2:
+            self.multi_gpus = int(args[2])
+
 
 def start_training(confs):
     print('x_train shape:', confs.x_train.shape)
