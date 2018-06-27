@@ -106,6 +106,7 @@ def start_training(confs):
         confs.parallel_model = None
     else:
         with tf.device('/cpu:0'):
+            model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
             confs.model = model
         parallel_model = multi_gpu_model(confs.model, gpus=confs.multi_gpus)
         parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
@@ -117,7 +118,6 @@ def start_training(confs):
     confs.x_test /= 255
     
     confs = train_model(confs)
-    
     
     # Score trained model.
     scores = confs.model.evaluate(confs.x_test, confs.y_test, verbose=1)

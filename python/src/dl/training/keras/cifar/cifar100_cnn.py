@@ -52,9 +52,10 @@ def load_data(label_mode='fine', dirname='cifar-100-python'):
     return (x_train, y_train), (x_test, y_test)
 
 
-confs = cifar.CifarConfs(num_classes=100, args=sys.argv)
-
-# The data, split between train and test sets:
-(confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = load_data('fine', os.path.join(confs.project_root, 'data/datasets/cifar/cifar100/'))
-
-cifar.start_training(confs)
+if __name__ == "__main__":
+    confs = cifar.CifarConfs(num_classes=100, args=sys.argv)
+    
+    # The data, split between train and test sets:
+    (confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = load_data('fine', os.path.join(confs.project_root, 'data/datasets/cifar/cifar100/'))
+    
+    cifar.start_training(confs)

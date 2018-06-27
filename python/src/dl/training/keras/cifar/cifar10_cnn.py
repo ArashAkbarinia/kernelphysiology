@@ -50,9 +50,10 @@ def load_data(dirname='cifar-10-batches-py'):
     return (x_train, y_train), (x_test, y_test)
 
 
-confs = cifar.CifarConfs(num_classes=10, args=sys.argv)
-
-# The data, split between train and test sets:
-(confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = load_data(os.path.join(confs.project_root, 'data/datasets/cifar/cifar10/'))
-
-cifar.start_training(confs)
+if __name__ == "__main__":
+    confs = cifar.CifarConfs(num_classes=10, args=sys.argv)
+    
+    # The data, split between train and test sets:
+    (confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = load_data(os.path.join(confs.project_root, 'data/datasets/cifar/cifar10/'))
+    
+    cifar.start_training(confs)
