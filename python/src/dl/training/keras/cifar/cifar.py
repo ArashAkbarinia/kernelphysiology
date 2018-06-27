@@ -1,6 +1,7 @@
-# -*- coding: utf-8 -*-
-"""Utilities common to CIFAR10 and CIFAR100 datasets.
-"""
+'''
+Utilities common to CIFAR10 and CIFAR100 datasets.
+'''
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -176,38 +177,46 @@ def train_model(confs):
     return confs
 
 
+def dog_layer(confs, nkernels, kernel_size, nchannels=3):
+    dogs = np.zeros((kernel_size, kernel_size, nchannels, nkernels))
+    for i in range(0, nkernels):
+        for j in range(0, nchannels):
+            sigma1 = np.random.uniform(0, 1)
+            g1 = gauss.gkern(kernel_size, sigma1)
+            sigma2 = np.random.uniform(0, 1)
+            g2 = gauss.gkern(kernel_size, sigma2)
+            dg = -g1 + g2
+            dogs[:, :, j, i] = dg
+    return dogs
+
+
 def generate_model(confs):
+    area1_nlayers = confs.area1_nlayers
+    
     model = Sequential()
-    model.add(Conv2D(64, (3, 3), padding='same', input_shape=confs.x_train.shape[1:]))
+    
+    kernel_size = 3
+    nkernels = 64
+    model.add(Conv2D(nkernels, (kernel_size, kernel_size), padding='same', input_shape=confs.x_train.shape[1:]))
     
     if confs.add_dog:
         if confs.dog_path == None or not os.path.exists(confs.dog_path):
-            print('Saving the DoG file')
             weights = model.layers[0].get_weights()
-            dogs = weights[0]
-            for i in range(0, 64):
-                sigma1 = np.random.uniform(0, 1)
-                g1 = gauss.gkern(3, sigma1)
-                sigma2 = sigma1 + np.random.uniform(0, 1)
-                g2 = gauss.gkern(3, sigma2)
-                dg = -g1 + g2
-                dogs[:, :, 0, i] = dg
-                dogs[:, :, 1, i] = dg
-                dogs[:, :, 2, i] = dg
+            dogs = dog_layer(confs, nkernels, kernel_size, nchannels=np.size(weights[0], 2))
+            weights[0] = dogs
             
             model.layers[0].set_weights(weights)
             model.layers[0].trainable = False
             
+            model.add(Conv2D(64, (3, 3), padding='same'))
+            
             model.save(confs.dog_path)
         else:
             print('Reading the DoG file')
-            dog_model = load_model(confs.dog_path)
-            weights = dog_model.layers[0].get_weights()
-            model.layers[0].set_weights(weights)
-        model.add(Conv2D(64, (3, 3)))
+            model = load_model(confs.dog_path)
     
     model.add(Activation('relu'))
-    area1_nlayers = confs.area1_nlayers
+    
     if area1_nlayers == 2:
         model.add(Conv2D(32, (3, 3), padding='same'))
         model.add(Activation('relu'))
