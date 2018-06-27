@@ -68,6 +68,8 @@ class CifarConfs:
             self.area1_nlayers = args[1]
         if argc > 2:
             self.add_dog = int(args[2]) == 1
+            if self.add_dog:
+                self.model_name += 'dog_'
         if argc > 3:
             self.multi_gpus = int(args[3])
 
