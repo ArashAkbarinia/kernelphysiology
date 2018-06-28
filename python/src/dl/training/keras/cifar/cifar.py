@@ -67,6 +67,12 @@ class CifarConfs:
             self.multi_gpus = int(args[2])
 
 
+def preprocess_input(img):
+    img = img.astype('float32')
+    img /= 255
+    return img
+
+
 def start_training(confs):
     print('x_train shape:', confs.x_train.shape)
     print(confs.x_train.shape[0], 'train samples')
@@ -106,10 +112,8 @@ def start_training(confs):
         parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
         confs.parallel_model = parallel_model
     
-    confs.x_train = confs.x_train.astype('float32')
-    confs.x_test = confs.x_test.astype('float32')
-    confs.x_train /= 255
-    confs.x_test /= 255
+    confs.x_train = preprocess_input(confs.x_train)
+    confs.x_test = preprocess_input(confs.x_test)
     
     confs = train_model(confs)
     
