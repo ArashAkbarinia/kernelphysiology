@@ -222,7 +222,7 @@ def build_classifier_model(more_layers=False):
     return Model(inputs=[input_1], outputs=[output])
 
 
-def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, batch_size=64, epochs=100, initial_lr=1e-3):  
+def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, batch_size=64, epochs=100, initial_lr=1e-3, more_layers=None):  
     def lr_scheduler(epoch):
         if epoch < 20:
             return initial_lr
@@ -247,7 +247,11 @@ def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, b
         metrics=['accuracy']
     )
 
-    log_dir = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/stl/stl10'
+    model_name = 'keras_stl10_area_%d' % more_layers
+    save_dir = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/stl/stl10/'
+    log_dir = os.path.join(save_dir, model_name)
+    if not os.path.isdir(log_dir):
+        os.mkdir(log_dir)
     csv_logger = CSVLogger(os.path.join(log_dir, 'log.csv'), append=False, separator=';')
     check_points = ModelCheckpoint(os.path.join(log_dir, 'weights.{epoch:05d}.h5'), period=25)
     
@@ -255,6 +259,8 @@ def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, b
               verbose=1, validation_data=(x_test, y_test), 
               callbacks=[LearningRateScheduler(lr_scheduler), csv_logger, check_points])
 
+    model_name += '.h5'
+    model_output_path = os.path.join(save_dir, model_name)
     if model_output_path is not None:
         print('saving trained model to:', model_output_path)
         model.save(model_output_path)
@@ -294,4 +300,4 @@ if __name__ == "__main__":
     model = build_classifier_model(more_layers=more_layers)
     model.summary()
 
-    train_classifier(x_train, y_train, x_test, y_test)
+    train_classifier(x_train, y_train, x_test, y_test, more_layers=more_layers)
