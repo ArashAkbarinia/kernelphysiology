@@ -155,9 +155,9 @@ def download_and_extract():
         tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
 
-def build_classifier_model():
+def build_classifier_model(more_layers=False):
     n_conv_blocks = 5  # number of convolution blocks to have in our model.
-    n_filters = 32  # number of filters to use in the first convolution block.
+    n_filters = 64  # number of filters to use in the first convolution block.
     l2_reg = regularizers.l2(2e-4)  # weight to use for L2 weight decay. 
     activation = 'elu'  # the activation function to use after each linear operation.
 
@@ -175,6 +175,29 @@ def build_classifier_model():
         x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
         x = BatchNormalization()(x)
         x = Activation(activation=activation)(x)
+
+        if i == 0:
+            if more_layers == 2:
+                # 
+                x = Conv2D(filters=32, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+        
+            if more_layers == 4:
+                # 
+                x = Conv2D(filters=16, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+        
+                #
+                x = Conv2D(filters=64, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+    
+                #
+                x = Conv2D(filters=16, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
         
         x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
         x = Add()([shortcut, x])
@@ -267,7 +290,8 @@ def load_dataset():
 if __name__ == "__main__":
     (x_train, y_train), (x_test, y_test) = load_dataset()
 
-    model = build_classifier_model()
+    more_layers = int(sys.argv[1])
+    model = build_classifier_model(more_layers=more_layers)
     model.summary()
 
     train_classifier(x_train, y_train, x_test, y_test)
