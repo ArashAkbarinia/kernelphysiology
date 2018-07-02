@@ -3,7 +3,7 @@ from skimage.io import imread, imsave
 from scipy.misc import toimage
 import numpy as np
 
-import wrapper as wr
+#import wrapper as wr
 
 ###########################################################
 #   IMAGE IO
@@ -40,7 +40,7 @@ def adjust_contrast(image, contrast_level):
     assert(contrast_level >= 0.0), "contrast_level too low."
     assert(contrast_level <= 1.0), "contrast_level too high."
 
-    return (1-contrast_level)/2.0 + image.dot(contrast_level)
+    return (1 - contrast_level) / 2.0 + image.dot(contrast_level)
 
 
 def grayscale_contrast(image, contrast_level):
@@ -129,19 +129,19 @@ def is_in_bounds(mat, low, high):
     return np.all(np.logical_and(mat >= 0, mat <= 1))
 
 
-def eidolon_partially_coherent_disarray(image, reach, coherence, grain):
-    """Return parametrically distorted images (produced by Eidolon factory.
-
-    For more information on the effect of different distortions, please
-    have a look at the paper: Koenderink et al., JoV 2017,
-    Eidolons: Novel stimuli for vision research).
-
-    - image: a numpy.ndarray
-    - reach: float, controlling the strength of the manipulation
-    - coherence: a float within [0, 1] with 1 = full coherence
-    - grain: float, controlling how fine-grained the distortion is
-    """
-
-    return wr.partially_coherent_disarray(wr.data_to_pic(image),
-                                          reach, coherence, grain)
+#def eidolon_partially_coherent_disarray(image, reach, coherence, grain):
+#    """Return parametrically distorted images (produced by Eidolon factory.
+#
+#    For more information on the effect of different distortions, please
+#    have a look at the paper: Koenderink et al., JoV 2017,
+#    Eidolons: Novel stimuli for vision research).
+#
+#    - image: a numpy.ndarray
+#    - reach: float, controlling the strength of the manipulation
+#    - coherence: a float within [0, 1] with 1 = full coherence
+#    - grain: float, controlling how fine-grained the distortion is
+#    """
+#
+#    return wr.partially_coherent_disarray(wr.data_to_pic(image),
+#                                          reach, coherence, grain)
 
