@@ -16,12 +16,13 @@ from six.moves import cPickle
 import numpy as np
 import tensorflow as tf
 import keras
-from keras.callbacks import CSVLogger, ModelCheckpoint
+from keras.callbacks import LearningRateScheduler, CSVLogger, ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
-from keras.models import Sequential, load_model
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, MaxPooling2D
+from keras.models import load_model
+from keras.engine.training import Model
+from keras.layers import Add, Conv2D, MaxPooling2D, Dropout, Flatten, Dense, BatchNormalization, Activation, Input
 from keras.utils import multi_gpu_model
+from keras import regularizers
         
 from filterfactory.gaussian import gauss
 
@@ -56,7 +57,6 @@ class CifarConfs:
         self.dog_path = os.path.join(self.save_dir, 'dog.h5')
         
         argc = len(args)
-        print(argc)
         if argc > 0:
             self.area1_nlayers = args[0]
         if argc > 1:
@@ -94,7 +94,7 @@ def start_training(confs):
     
     confs.area1_nlayers = int(confs.area1_nlayers)
     
-    model = generate_model(confs=confs)
+    model = build_classifier_model(confs=confs)
     
     # initiate RMSprop optimizer
     opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
@@ -121,6 +121,7 @@ def start_training(confs):
     scores = confs.model.evaluate(confs.x_test, confs.y_test, verbose=1)
     print('Test loss:', scores[0])
     print('Test accuracy:', scores[1])
+
 
 def load_batch(fpath, label_key='labels'):
     """Internal utility for parsing CIFAR data.
@@ -158,6 +159,26 @@ def train_model(confs):
     callbacks = confs.callbacks
     batch_size = confs.batch_size
     epochs = confs.epochs
+    
+    initial_lr = 1e-3
+    def lr_scheduler(epoch):
+        if epoch < 20:
+            return initial_lr
+        elif epoch < 40:
+            return initial_lr / 2
+        elif epoch < 50:
+            return initial_lr / 4
+        elif epoch < 60:
+            return initial_lr / 8
+        elif epoch < 70:
+            return initial_lr / 16
+        elif epoch < 80:
+            return initial_lr / 32
+        elif epoch < 90:
+            return initial_lr / 64
+        else:
+            return initial_lr / 128
+    callbacks.append(LearningRateScheduler(lr_scheduler))
     
     if not confs.data_augmentation:
         print('Not using data augmentation.')
@@ -222,102 +243,89 @@ def dog_layer(confs, nkernels, kernel_size, nchannels=3):
     return dogs
 
 
-def generate_model(confs):
+def build_classifier_model(confs):
     area1_nlayers = confs.area1_nlayers
+    n_conv_blocks = 5  # number of convolution blocks to have in our model.
+    n_filters = 64  # number of filters to use in the first convolution block.
+    l2_reg = regularizers.l2(2e-4)  # weight to use for L2 weight decay. 
+    activation = 'elu'  # the activation function to use after each linear operation.
+
+    x = input_1 = Input(shape=confs.x_train.shape[1:])
     
-    model = Sequential()
+    # each convolution block consists of two sub-blocks of Conv->Batch-Normalization->Activation,
+    # followed by a Max-Pooling and a Dropout layer.
+    for i in range(n_conv_blocks):
+        shortcut = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
+        x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+#        if confs.add_dog:
+#            if confs.dog_path == None or not os.path.exists(confs.dog_path):
+#                weights = x.get_weights()
+#                dogs = dog_layer(confs, n_filters, kernel_size=3, nchannels=np.size(weights[0], 2))
+#                weights[0] = dogs
+#                
+#                x.set_weights(weights)
+#                x.trainable = False
+#                x.name = 'dog'
+#                
+#                model.add(Conv2D(64, (3, 3), padding='same', name='afterdog'))
+#                
+#                model.save(confs.dog_path)
+#            else:
+#                print('Reading the DoG file')
+#                model = load_model(confs.dog_path)
+        x = BatchNormalization()(x)
+        x = Activation(activation=activation)(x)
+
+        if i == 0:
+            if area1_nlayers == 2:
+                # 
+                x = Conv2D(filters=44, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+            if area1_nlayers == 3:
+                # 
+                x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+                
+                #
+                x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)   
+            if area1_nlayers == 4:
+                # 
+                x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+        
+                #
+                x = Conv2D(filters=64, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
     
-    kernel_size = 3
-    nkernels = 64
-    model.add(Conv2D(nkernels, (kernel_size, kernel_size), padding='same', input_shape=confs.x_train.shape[1:]))
-    
-    if confs.add_dog:
-        if confs.dog_path == None or not os.path.exists(confs.dog_path):
-            weights = model.layers[0].get_weights()
-            dogs = dog_layer(confs, nkernels, kernel_size, nchannels=np.size(weights[0], 2))
-            weights[0] = dogs
-            
-            model.layers[0].set_weights(weights)
-            model.layers[0].trainable = False
-            model.layers[0].name = 'dog'
-            
-            model.add(Conv2D(64, (3, 3), padding='same', name='afterdog'))
-            
-            model.save(confs.dog_path)
+                #
+                x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
         else:
-            print('Reading the DoG file')
-            model = load_model(confs.dog_path)
-    
-    model.add(Activation('relu'))
-    
-    if area1_nlayers == 2:
-        model.add(Conv2D(32, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-    elif area1_nlayers == 40:
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(64, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-    elif area1_nlayers == 41:
-        model.add(Conv2D(20, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(64, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(12, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-    elif area1_nlayers == 42:
-        model.add(Conv2D(12, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(64, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(20, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-    elif area1_nlayers == 50:
-        model.add(Conv2D(32, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-    elif area1_nlayers == 51:
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(32, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(32, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-    elif area1_nlayers == 52:
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(16, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-        model.add(Conv2D(32, (3, 3), padding='same'))
-        model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-    
-    model.add(Conv2D(64, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(Conv2D(64, (3, 3), padding='same'))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
-    
-    model.add(Flatten())
-    model.add(Dense(512))
-    model.add(Activation('relu'))
-    model.add(Dense(512))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(confs.num_classes))
-    model.add(Activation('softmax'))
-    
-    return model
+            x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+            x = Add()([shortcut, x])
+            x = BatchNormalization()(x)
+            x = Activation(activation=activation)(x)
+        
+        x = MaxPooling2D(pool_size=(2, 2))(x)
+        x = Dropout(rate=0.25)(x)
+        
+        n_filters *= 2
+
+    # finally, we flatten the output of the last convolution block, and add two Fully-Connected layers.
+    x = Flatten()(x)
+    x = Dense(units=512, kernel_regularizer=l2_reg)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation=activation)(x)
+
+    x = Dropout(rate=0.5)(x)
+    x = Dense(units=confs.num_classes, kernel_regularizer=l2_reg)(x)
+    output = Activation(activation='softmax')(x)
+
+    return Model(inputs=[input_1], outputs=[output])

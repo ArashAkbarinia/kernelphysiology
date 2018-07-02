@@ -155,7 +155,7 @@ def download_and_extract():
         tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
 
-def build_classifier_model(more_layers=False):
+def build_classifier_model(more_layers=0):
     n_conv_blocks = 5  # number of convolution blocks to have in our model.
     n_filters = 64  # number of filters to use in the first convolution block.
     l2_reg = regularizers.l2(2e-4)  # weight to use for L2 weight decay. 
@@ -179,13 +179,22 @@ def build_classifier_model(more_layers=False):
         if i == 0:
             if more_layers == 2:
                 # 
-                x = Conv2D(filters=32, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = Conv2D(filters=44, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
                 x = BatchNormalization()(x)
                 x = Activation(activation=activation)(x)
-        
+            if more_layers == 3:
+                # 
+                x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+                
+                #
+                x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)   
             if more_layers == 4:
                 # 
-                x = Conv2D(filters=16, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
                 x = BatchNormalization()(x)
                 x = Activation(activation=activation)(x)
         
@@ -195,14 +204,14 @@ def build_classifier_model(more_layers=False):
                 x = Activation(activation=activation)(x)
     
                 #
-                x = Conv2D(filters=16, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
                 x = BatchNormalization()(x)
                 x = Activation(activation=activation)(x)
-        
-        x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-        x = Add()([shortcut, x])
-        x = BatchNormalization()(x)
-        x = Activation(activation=activation)(x)
+        else:
+            x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+            x = Add()([shortcut, x])
+            x = BatchNormalization()(x)
+            x = Activation(activation=activation)(x)
         
         x = MaxPooling2D(pool_size=(2, 2))(x)
         x = Dropout(rate=0.25)(x)
@@ -266,7 +275,13 @@ def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, b
         model.save(model_output_path)
 
 
-def load_dataset():
+def preprocess_input(img):
+    img = img.astype('float32')
+    img = (img - 127.5) / 127.5
+    return img
+
+
+def load_data(dirname=None):
     # download the extract the dataset.
     download_and_extract()
 
@@ -276,11 +291,15 @@ def load_dataset():
     x_test = read_all_images(TEST_DATA_PATH)
     y_test = read_labels(TEST_LABELS_PATH)
 
+    return (x_train, y_train), (x_test, y_test)
+
+    
+if __name__ == "__main__":
+    (x_train, y_train), (x_test, y_test) = load_data()
+    
     # convert all images to floats in the range [0, 1]
-    x_train = x_train.astype('float32')
-    x_train = (x_train - 127.5) / 127.5
-    x_test = x_test.astype('float32')
-    x_test = (x_test - 127.5) / 127.5
+    x_train = preprocess_input(x_train)
+    x_test = preprocess_input(x_test)
     
     # convert the labels to be zero based.
     y_train -= 1
@@ -289,12 +308,6 @@ def load_dataset():
     # convert labels to hot-one vectors.
     y_train = keras.utils.to_categorical(y_train, N_CLASSES)
     y_test = keras.utils.to_categorical(y_test, N_CLASSES)
-
-    return (x_train, y_train), (x_test, y_test)
-
-    
-if __name__ == "__main__":
-    (x_train, y_train), (x_test, y_test) = load_dataset()
 
     more_layers = int(sys.argv[1])
     model = build_classifier_model(more_layers=more_layers)
