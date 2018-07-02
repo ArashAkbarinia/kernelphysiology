@@ -18,7 +18,6 @@ import tensorflow as tf
 import keras
 from keras.callbacks import LearningRateScheduler, CSVLogger, ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
-from keras.models import load_model
 from keras.engine.training import Model
 from keras.layers import Add, Conv2D, MaxPooling2D, Dropout, Flatten, Dense, BatchNormalization, Activation, Input
 from keras.utils import multi_gpu_model
@@ -230,7 +229,7 @@ def train_model(confs):
     return confs
 
 
-def dog_layer(confs, nkernels, kernel_size, nchannels=3):
+def create_dog_layer(confs, nkernels, kernel_size, nchannels=3):
     dogs = np.zeros((kernel_size, kernel_size, nchannels, nkernels))
     for i in range(0, nkernels):
         for j in range(0, nchannels):
@@ -246,33 +245,21 @@ def dog_layer(confs, nkernels, kernel_size, nchannels=3):
 def build_classifier_model(confs):
     area1_nlayers = confs.area1_nlayers
     n_conv_blocks = 5  # number of convolution blocks to have in our model.
+    n_filters_dog = 64
     n_filters = 64  # number of filters to use in the first convolution block.
     l2_reg = regularizers.l2(2e-4)  # weight to use for L2 weight decay. 
     activation = 'elu'  # the activation function to use after each linear operation.
 
     x = input_1 = Input(shape=confs.x_train.shape[1:])
+
+    if confs.add_dog:
+        x = Conv2D(filters=n_filters_dog, kernel_size=(3, 3), padding='same', name='dog')(x)
     
     # each convolution block consists of two sub-blocks of Conv->Batch-Normalization->Activation,
     # followed by a Max-Pooling and a Dropout layer.
     for i in range(n_conv_blocks):
         shortcut = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
         x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-#        if confs.add_dog:
-#            if confs.dog_path == None or not os.path.exists(confs.dog_path):
-#                weights = x.get_weights()
-#                dogs = dog_layer(confs, n_filters, kernel_size=3, nchannels=np.size(weights[0], 2))
-#                weights[0] = dogs
-#                
-#                x.set_weights(weights)
-#                x.trainable = False
-#                x.name = 'dog'
-#                
-#                model.add(Conv2D(64, (3, 3), padding='same', name='afterdog'))
-#                
-#                model.save(confs.dog_path)
-#            else:
-#                print('Reading the DoG file')
-#                model = load_model(confs.dog_path)
         x = BatchNormalization()(x)
         x = Activation(activation=activation)(x)
 
@@ -328,4 +315,24 @@ def build_classifier_model(confs):
     x = Dense(units=confs.num_classes, kernel_regularizer=l2_reg)(x)
     output = Activation(activation='softmax')(x)
 
-    return Model(inputs=[input_1], outputs=[output])
+    model = Model(inputs=[input_1], outputs=[output])
+
+    if confs.add_dog:
+        if confs.dog_path == None or not os.path.exists(confs.dog_path):
+            dog_model = keras.models.Sequential()
+            dog_model.add(Conv2D(n_filters_dog, (3, 3), padding='same', input_shape=confs.x_train.shape[1:]))
+            
+            weights = dog_model.layers[0].get_weights()
+            dogs = create_dog_layer(confs, n_filters_dog, kernel_size=3, nchannels=np.size(weights[0], 2))
+            weights[0] = dogs
+            dog_model.layers[0].set_weights(weights)
+            
+            dog_model.save(confs.dog_path)
+        else:
+            print('Reading the DoG file')
+            dog_model = keras.models.load_model(confs.dog_path)
+            weights = dog_model.layers[0].get_weights()
+        model.layers[1].trainable = False
+        model.layers[1].set_weights(weights)
+
+    return model
