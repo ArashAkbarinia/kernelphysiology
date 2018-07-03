@@ -155,7 +155,7 @@ def download_and_extract():
         tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
 
-def build_classifier_model(more_layers=0):
+def build_classifier_model(more_layers=0, add_batch_elu=True):
     n_conv_blocks = 5  # number of convolution blocks to have in our model.
     n_filters = 64  # number of filters to use in the first convolution block.
     l2_reg = regularizers.l2(2e-4)  # weight to use for L2 weight decay. 
@@ -171,12 +171,15 @@ def build_classifier_model(more_layers=0):
     # each convolution block consists of two sub-blocks of Conv->Batch-Normalization->Activation,
     # followed by a Max-Pooling and a Dropout layer.
     for i in range(n_conv_blocks):
-        shortcut = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
-        x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-        x = BatchNormalization()(x)
-        x = Activation(activation=activation)(x)
-
         if i == 0:
+            x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+            if more_layers == 1:
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+            elif add_batch_elu:
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+                
             if more_layers == 2:
                 # 
                 x = Conv2D(filters=44, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
@@ -185,8 +188,9 @@ def build_classifier_model(more_layers=0):
             if more_layers == 3:
                 # 
                 x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+                if add_batch_elu:
+                    x = BatchNormalization()(x)
+                    x = Activation(activation=activation)(x)
                 
                 #
                 x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
@@ -195,19 +199,26 @@ def build_classifier_model(more_layers=0):
             if more_layers == 4:
                 # 
                 x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+                if add_batch_elu:
+                    x = BatchNormalization()(x)
+                    x = Activation(activation=activation)(x)
         
                 #
                 x = Conv2D(filters=64, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+                if add_batch_elu:
+                    x = BatchNormalization()(x)
+                    x = Activation(activation=activation)(x)
     
                 #
                 x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
                 x = BatchNormalization()(x)
                 x = Activation(activation=activation)(x)
         else:
+            shortcut = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
+            x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+            x = BatchNormalization()(x)
+            x = Activation(activation=activation)(x)
+            
             x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
             x = Add()([shortcut, x])
             x = BatchNormalization()(x)
@@ -310,7 +321,8 @@ if __name__ == "__main__":
     y_test = keras.utils.to_categorical(y_test, N_CLASSES)
 
     more_layers = int(sys.argv[1])
-    model = build_classifier_model(more_layers=more_layers)
+    add_batch_elu = int(sys.argv[2]) == 1
+    model = build_classifier_model(more_layers=more_layers, add_batch_elu=add_batch_elu)
     model.summary()
 
     train_classifier(x_train, y_train, x_test, y_test, more_layers=more_layers)

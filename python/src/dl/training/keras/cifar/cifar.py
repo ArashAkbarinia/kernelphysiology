@@ -37,6 +37,7 @@ class CifarConfs:
     area1_nlayers = 1
     add_dog = True
     multi_gpus = None
+    add_batch_elu = True
     
     model_name = None
     save_dir = None
@@ -64,6 +65,8 @@ class CifarConfs:
                 self.model_name += 'dog_'
         if argc > 2:
             self.multi_gpus = int(args[2])
+        if argc > 3:
+            self.add_batch_elu = int(args[3]) == 1
 
 
 def preprocess_input(img):
@@ -249,6 +252,7 @@ def build_classifier_model(confs):
     n_filters = 64  # number of filters to use in the first convolution block.
     l2_reg = regularizers.l2(2e-4)  # weight to use for L2 weight decay. 
     activation = 'elu'  # the activation function to use after each linear operation.
+    add_batch_elu = confs.add_batch_elu
 
     x = input_1 = Input(shape=confs.x_train.shape[1:])
 
@@ -258,12 +262,15 @@ def build_classifier_model(confs):
     # each convolution block consists of two sub-blocks of Conv->Batch-Normalization->Activation,
     # followed by a Max-Pooling and a Dropout layer.
     for i in range(n_conv_blocks):
-        shortcut = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
-        x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-        x = BatchNormalization()(x)
-        x = Activation(activation=activation)(x)
-
         if i == 0:
+            x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+            if area1_nlayers == 1:
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+            elif add_batch_elu:
+                x = BatchNormalization()(x)
+                x = Activation(activation=activation)(x)
+            
             if area1_nlayers == 2:
                 # 
                 x = Conv2D(filters=44, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
@@ -272,8 +279,9 @@ def build_classifier_model(confs):
             if area1_nlayers == 3:
                 # 
                 x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+                if add_batch_elu:
+                    x = BatchNormalization()(x)
+                    x = Activation(activation=activation)(x)
                 
                 #
                 x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
@@ -282,19 +290,26 @@ def build_classifier_model(confs):
             if area1_nlayers == 4:
                 # 
                 x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+                if add_batch_elu:
+                    x = BatchNormalization()(x)
+                    x = Activation(activation=activation)(x)
         
                 #
                 x = Conv2D(filters=64, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+                if add_batch_elu:
+                    x = BatchNormalization()(x)
+                    x = Activation(activation=activation)(x)
     
                 #
                 x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
                 x = BatchNormalization()(x)
                 x = Activation(activation=activation)(x)
         else:
+            shortcut = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
+            x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+            x = BatchNormalization()(x)
+            x = Activation(activation=activation)(x)
+        
             x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
             x = Add()([shortcut, x])
             x = BatchNormalization()(x)
