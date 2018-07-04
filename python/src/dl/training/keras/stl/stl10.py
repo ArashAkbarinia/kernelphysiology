@@ -1,17 +1,8 @@
 from __future__ import print_function
 
-
+import commons
 import os
 import sys
-
-
-# finding the root of the project
-current_path = os.getcwd()
-python_root = 'kernelphysiology/python/'
-project_dir = current_path.split(python_root, 1)[0]
-python_root = os.path.join(project_dir, python_root)
-sys.path += [os.path.join(python_root, 'src/')]
-
 
 import argparse
 import urllib.request as urllib
@@ -37,7 +28,7 @@ DEPTH = 3
 SIZE = HEIGHT * WIDTH * DEPTH
 
 # path to the directory with the data
-DATA_DIR = os.path.join(python_root, 'data/datasets/stl/')
+DATA_DIR = os.path.join(commons.python_root, 'data/datasets/stl/')
 
 # url of the binary data
 DATA_URL = 'http://ai.stanford.edu/~acoates/stl10/stl10_binary.tar.gz'
@@ -276,8 +267,15 @@ def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, b
         metrics=['accuracy']
     )
 
-    model_name = 'keras_stl10_area_%d' % args.area1_nlayers
-    save_dir = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/stl/stl10/'
+    model_name = 'keras_stl10_area_'
+    if args.area1_batchnormalise:
+        model_name += 'bnr_'
+    if args.area1_activation:
+        model_name += 'act_'
+    if args.add_dog:
+        model_name += 'dog_'
+    model_name += str(args.area1_nlayers)
+    save_dir = os.path.join(commons.python_root, 'data/nets/stl/stl10/')
     log_dir = os.path.join(save_dir, model_name)
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)

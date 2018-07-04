@@ -58,11 +58,16 @@ class CifarConfs:
         self.dog_path = os.path.join(self.save_dir, 'dog.h5')
         
         self.area1_nlayers = args.area1_nlayers
+        self.area1_batchnormalise = args.area1_batchnormalise
+        if self.area1_batchnormalise:
+            self.model_name += 'bnr_'
+        self.area1_activation = args.area1_activation
+        if self.area1_activation:
+            self.model_name += 'act_'        
         self.add_dog = args.add_dog
         if self.add_dog:
             self.model_name += 'dog_'
         self.multi_gpus = args.multi_gpus
-        self.area1_batchnormalise = args.area1_batchnormalise
 
 
 def preprocess_input(img):
