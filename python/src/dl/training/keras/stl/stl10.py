@@ -10,10 +10,12 @@ import tarfile
 import keras
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
 from keras import backend as K, regularizers
 from keras.engine.training import Model
 from keras.layers import Add, Conv2D, MaxPooling2D, Dropout, Flatten, Dense, BatchNormalization, Activation, Input
 from keras.callbacks import LearningRateScheduler, CSVLogger, ModelCheckpoint
+from keras.utils import multi_gpu_model
 
 
 # number of classes in the STL-10 dataset.
@@ -261,11 +263,15 @@ def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, b
         else:
             return initial_lr / 128
 
-    model.compile(
-        loss='categorical_crossentropy',
-        optimizer=keras.optimizers.Adam(initial_lr),
-        metrics=['accuracy']
-    )
+    opt = keras.optimizers.Adam(initial_lr)
+    
+    if args.multi_gpus == None:
+        model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+    else:
+        with tf.device('/cpu:0'):
+            model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+        parallel_model = multi_gpu_model(model, gpus=args.multi_gpus)
+        parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
     model_name = 'keras_stl10_area_'
     if args.area1_batchnormalise:
@@ -281,16 +287,21 @@ def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, b
         os.mkdir(log_dir)
     csv_logger = CSVLogger(os.path.join(log_dir, 'log.csv'), append=False, separator=';')
     check_points = ModelCheckpoint(os.path.join(log_dir, 'weights.{epoch:05d}.h5'), period=25)
-    
-    model.fit(x=x_train, y=y_train, batch_size=batch_size, epochs=epochs,
-              verbose=1, validation_data=(x_test, y_test), 
-              callbacks=[LearningRateScheduler(lr_scheduler), csv_logger, check_points])
+   
+    if not args.multi_gpus == None:
+        batch_size *= args.multi_gpus
+        parallel_model.fit(x=x_train, y=y_train, batch_size=batch_size, epochs=epochs,
+                           verbose=1, validation_data=(x_test, y_test), 
+                           callbacks=[LearningRateScheduler(lr_scheduler), csv_logger, check_points])
+    else:
+        model.fit(x=x_train, y=y_train, batch_size=batch_size, epochs=epochs,
+                  verbose=1, validation_data=(x_test, y_test), 
+                  callbacks=[LearningRateScheduler(lr_scheduler), csv_logger, check_points])
 
     model_name += '.h5'
     model_output_path = os.path.join(save_dir, model_name)
-    if model_output_path is not None:
-        print('saving trained model to:', model_output_path)
-        model.save(model_output_path)
+    print('saving trained model to:', model_output_path)
+    model.save(model_output_path)
 
 
 def preprocess_input(img):
