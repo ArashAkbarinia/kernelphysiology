@@ -49,24 +49,19 @@ class CifarConfs:
     x_test = None
     y_test = None
     
-    def __init__(self, num_classes, args):
-        self.num_classes = num_classes
+    def __init__(self, args):
+        self.num_classes = args.num_classes
         
         self.model_name = 'keras_cifar%d_area_' % self.num_classes
         self.save_dir = os.path.join(self.project_root, 'data/nets/cifar/cifar%d/' % self.num_classes)
         self.dog_path = os.path.join(self.save_dir, 'dog.h5')
         
-        argc = len(args)
-        if argc > 0:
-            self.area1_nlayers = args[0]
-        if argc > 1:
-            self.add_dog = int(args[1]) == 1
-            if self.add_dog:
-                self.model_name += 'dog_'
-        if argc > 2:
-            self.multi_gpus = int(args[2])
-        if argc > 3:
-            self.add_batch_elu = int(args[3]) == 1
+        self.area1_nlayers = args.area1_nlayers
+        self.add_dog = args.add_dog
+        if self.add_dog:
+            self.model_name += 'dog_'
+        self.multi_gpus = args.multi_gpus
+        self.add_batch_elu = args.add_batch_elu
 
 
 def preprocess_input(img):
@@ -85,8 +80,8 @@ def start_training(confs):
     confs.y_test = keras.utils.to_categorical(confs.y_test, confs.num_classes)
     
     
-    print('Processing with %s layers in area 1' % confs.area1_nlayers)
-    confs.model_name += confs.area1_nlayers
+    print('Processing with %d layers in area 1' % confs.area1_nlayers)
+    confs.model_name += str(confs.area1_nlayers)
     confs.log_dir = os.path.join(confs.save_dir, confs.model_name)
     if not os.path.isdir(confs.log_dir):
         os.mkdir(confs.log_dir)
