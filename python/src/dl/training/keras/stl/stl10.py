@@ -13,6 +13,7 @@ python_root = os.path.join(project_dir, python_root)
 sys.path += [os.path.join(python_root, 'src/')]
 
 
+import argparse
 import urllib.request as urllib
 import tarfile
 import keras
@@ -155,7 +156,7 @@ def download_and_extract():
         tarfile.open(filepath, 'r:gz').extractall(dest_directory)
 
 
-def build_classifier_model(more_layers=0, add_batch_elu=True):
+def build_classifier_model(args):
     n_conv_blocks = 5  # number of convolution blocks to have in our model.
     n_filters = 64  # number of filters to use in the first convolution block.
     l2_reg = regularizers.l2(2e-4)  # weight to use for L2 weight decay. 
@@ -168,45 +169,53 @@ def build_classifier_model(more_layers=0, add_batch_elu=True):
 
     x = input_1 = Input(shape=input_shape)
     
+    area1_nlayers = args.area1_nlayers
+    area1_batchnormalise = args.area1_batchnormalise
+    area1_activation = args.area1_activation
     # each convolution block consists of two sub-blocks of Conv->Batch-Normalization->Activation,
     # followed by a Max-Pooling and a Dropout layer.
     for i in range(n_conv_blocks):
         if i == 0:
             x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-            if more_layers == 1:
+            if area1_nlayers == 1:
                 x = BatchNormalization()(x)
                 x = Activation(activation=activation)(x)
-            elif add_batch_elu:
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+            else:
+                if area1_batchnormalise:
+                    x = BatchNormalization()(x)
+                if area1_activation:
+                    x = Activation(activation=activation)(x)
                 
-            if more_layers == 2:
+            if area1_nlayers == 2:
                 # 
                 x = Conv2D(filters=44, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
                 x = BatchNormalization()(x)
                 x = Activation(activation=activation)(x)
-            if more_layers == 3:
+            if area1_nlayers == 3:
                 # 
                 x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if add_batch_elu:
+                if area1_batchnormalise:
                     x = BatchNormalization()(x)
+                if area1_activation:
                     x = Activation(activation=activation)(x)
                 
                 #
                 x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
                 x = BatchNormalization()(x)
                 x = Activation(activation=activation)(x)   
-            if more_layers == 4:
+            if area1_nlayers == 4:
                 # 
                 x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if add_batch_elu:
+                if area1_batchnormalise:
                     x = BatchNormalization()(x)
+                if area1_activation:
                     x = Activation(activation=activation)(x)
         
                 #
                 x = Conv2D(filters=64, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if add_batch_elu:
+                if area1_batchnormalise:
                     x = BatchNormalization()(x)
+                if area1_activation:
                     x = Activation(activation=activation)(x)
     
                 #
@@ -242,7 +251,7 @@ def build_classifier_model(more_layers=0, add_batch_elu=True):
     return Model(inputs=[input_1], outputs=[output])
 
 
-def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, batch_size=64, epochs=100, initial_lr=1e-3, more_layers=None):  
+def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, batch_size=64, epochs=100, initial_lr=1e-3, args=None):  
     def lr_scheduler(epoch):
         if epoch < 20:
             return initial_lr
@@ -267,7 +276,7 @@ def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, b
         metrics=['accuracy']
     )
 
-    model_name = 'keras_stl10_area_%d' % more_layers
+    model_name = 'keras_stl10_area_%d' % args.area1_nlayers
     save_dir = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/stl/stl10/'
     log_dir = os.path.join(save_dir, model_name)
     if not os.path.isdir(log_dir):
@@ -320,9 +329,17 @@ if __name__ == "__main__":
     y_train = keras.utils.to_categorical(y_train, N_CLASSES)
     y_test = keras.utils.to_categorical(y_test, N_CLASSES)
 
-    more_layers = int(sys.argv[1])
-    add_batch_elu = int(sys.argv[2]) == 1
-    model = build_classifier_model(more_layers=more_layers, add_batch_elu=add_batch_elu)
+
+    parser = argparse.ArgumentParser(description='Training STL.')
+    parser.add_argument('--a1', dest='area1_nlayers', type=int, default=1, help='The number of layers in area 1 (default: 1)')
+    parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
+    parser.add_argument('--a1na', dest='area1_activation', action='store_false', default=True, help='Whether to include activation between layers of area 1 (default: True)')
+    parser.add_argument('--dog', dest='add_dog', action='store_true', default=False, help='Whether to add a DoG layer (default: False)')
+    parser.add_argument('--mg', dest='multi_gpus', type=int, default=None, help='The number of GPUs to be used (default: None)')
+
+    args = parser.parse_args()
+  
+    model = build_classifier_model(args)
     model.summary()
 
-    train_classifier(x_train, y_train, x_test, y_test, more_layers=more_layers)
+    train_classifier(x_train, y_train, x_test, y_test, args=args)

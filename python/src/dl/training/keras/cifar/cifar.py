@@ -35,9 +35,10 @@ class CifarConfs:
     log_period = round(epochs / 4)
     data_augmentation = False
     area1_nlayers = 1
+    area1_batchnormalise = True
+    area1_activation = True
     add_dog = True
     multi_gpus = None
-    add_batch_elu = True
     
     model_name = None
     save_dir = None
@@ -61,7 +62,7 @@ class CifarConfs:
         if self.add_dog:
             self.model_name += 'dog_'
         self.multi_gpus = args.multi_gpus
-        self.add_batch_elu = args.add_batch_elu
+        self.area1_batchnormalise = args.area1_batchnormalise
 
 
 def preprocess_input(img):
@@ -247,7 +248,8 @@ def build_classifier_model(confs):
     n_filters = 64  # number of filters to use in the first convolution block.
     l2_reg = regularizers.l2(2e-4)  # weight to use for L2 weight decay. 
     activation = 'elu'  # the activation function to use after each linear operation.
-    add_batch_elu = confs.add_batch_elu
+    area1_batchnormalise = confs.area1_batchnormalise
+    area1_activation = confs.area1_activation
 
     x = input_1 = Input(shape=confs.x_train.shape[1:])
 
@@ -262,9 +264,11 @@ def build_classifier_model(confs):
             if area1_nlayers == 1:
                 x = BatchNormalization()(x)
                 x = Activation(activation=activation)(x)
-            elif add_batch_elu:
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+            else:
+                if area1_batchnormalise:
+                    x = BatchNormalization()(x)
+                if area1_activation:
+                    x = Activation(activation=activation)(x)
             
             if area1_nlayers == 2:
                 # 
@@ -274,8 +278,9 @@ def build_classifier_model(confs):
             if area1_nlayers == 3:
                 # 
                 x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if add_batch_elu:
+                if area1_batchnormalise:
                     x = BatchNormalization()(x)
+                if area1_activation:
                     x = Activation(activation=activation)(x)
                 
                 #
@@ -285,14 +290,16 @@ def build_classifier_model(confs):
             if area1_nlayers == 4:
                 # 
                 x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if add_batch_elu:
+                if area1_batchnormalise:
                     x = BatchNormalization()(x)
+                if area1_activation:
                     x = Activation(activation=activation)(x)
         
                 #
                 x = Conv2D(filters=64, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if add_batch_elu:
+                if area1_batchnormalise:
                     x = BatchNormalization()(x)
+                if area1_activation:
                     x = Activation(activation=activation)(x)
     
                 #
