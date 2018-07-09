@@ -170,20 +170,18 @@ def build_classifier_model(args):
     for i in range(n_conv_blocks):
         if i == 0:
             x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-            if area1_nlayers == 1:
+            if area1_batchnormalise:
                 x = BatchNormalization()(x)
+            if area1_activation:
                 x = Activation(activation=activation)(x)
-            else:
-                if area1_batchnormalise:
-                    x = BatchNormalization()(x)
-                if area1_activation:
-                    x = Activation(activation=activation)(x)
                 
             if area1_nlayers == 2:
                 # 
                 x = Conv2D(filters=44, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+                if area1_batchnormalise:
+                    x = BatchNormalization()(x)
+                if area1_activation:
+                    x = Activation(activation=activation)(x)
             if area1_nlayers == 3:
                 # 
                 x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
@@ -194,8 +192,10 @@ def build_classifier_model(args):
                 
                 #
                 x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)   
+                if area1_batchnormalise:
+                    x = BatchNormalization()(x)
+                if area1_activation:
+                    x = Activation(activation=activation)(x)
             if area1_nlayers == 4:
                 # 
                 x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
@@ -213,8 +213,11 @@ def build_classifier_model(args):
     
                 #
                 x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                x = BatchNormalization()(x)
-                x = Activation(activation=activation)(x)
+                if area1_batchnormalise:
+                    x = BatchNormalization()(x)
+                if area1_activation:
+                    x = Activation(activation=activation)(x)
+            x = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
         else:
             shortcut = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
             x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
