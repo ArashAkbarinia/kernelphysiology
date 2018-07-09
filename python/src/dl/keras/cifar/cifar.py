@@ -53,7 +53,7 @@ class CifarConfs:
     def __init__(self, args):
         self.num_classes = args.num_classes
         
-        self.model_name = 'keras_cifar%d_area_' % self.num_classes
+        self.model_name = 'keras_cifar%d_area_%s_' % (self.num_classes, args.experiment_name)
         self.save_dir = os.path.join(self.project_root, 'data/nets/cifar/cifar%d/' % self.num_classes)
         self.dog_path = os.path.join(self.save_dir, 'dog.h5')
         

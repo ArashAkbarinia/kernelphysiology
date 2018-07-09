@@ -19,6 +19,7 @@ if __name__ == "__main__":
     parser.add_argument('--a1na', dest='area1_activation', action='store_false', default=True, help='Whether to include activation between layers of area 1 (default: True)')
     parser.add_argument('--dog', dest='add_dog', action='store_true', default=False, help='Whether to add a DoG layer (default: False)')
     parser.add_argument('--mg', dest='multi_gpus', type=int, default=None, help='The number of GPUs to be used (default: None)')
+    parser.add_argument('--name', dest='experiment_name', type=str, default='', help='The name of the experiment (default: None)')
 
     args = parser.parse_args()
 
