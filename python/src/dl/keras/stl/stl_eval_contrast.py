@@ -44,7 +44,7 @@ if __name__ == "__main__":
         j = 0
         for contrast in contrasts:
             # Score trained model.
-            scores = model.evaluate(adjust_contrast(x_test, contrast), y_test, verbose=1)
+            scores = model.evaluate(adjust_contrast(x_test, contrast), y_test, verbose=0)
             results[i, j] = scores[1]
             j += 1
         i += 1
