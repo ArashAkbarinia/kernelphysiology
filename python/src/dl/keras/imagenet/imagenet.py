@@ -37,7 +37,7 @@ DEVKIT_VALID_GROUNDTRUTH_PATH = os.path.join(DEVKIT_DATA_DIR, 'ILSVRC2012_valida
 #TEST_IMAGES_TAR = 'ILSVRC2012_img_test.tar'
 
 
-def read_test_labels():
+def read_test_labels(which_chunk=None):
     """Extract dataset metadata required for HDF5 file setup.
 
     Returns
@@ -221,19 +221,23 @@ def read_metadata_mat_file(meta_mat):
 #            label_counter = label_counter + 1
 
 
-def read_test_images(dirname, rows=224, cols=224, chns=3):
+def read_test_images(dirname, which_chunk=None, rows=224, cols=224, chns=3):
      image_list = sorted(glob.glob(dirname + '*.png'))
      nimages = len(image_list)
+     if which_chunk == None:
+         which_chunk = (0, nimages)
+     nimages = which_chunk[1] - which_chunk[0]
      x_test = np.zeros((nimages, rows, cols, chns))
-     for i in range(0, nimages):
+     for i in range(which_chunk[0], which_chunk[1]):
          current_image = image_list[i]
          img = load_img(current_image, target_size=(rows, cols))
          x_test[i, :, :, :] = img
      return x_test
 
-def load_test_data(dirname):
+#TODO: include the chunk_size
+def load_test_data(dirname, which_chunk=None):
     # load the test data and labels.
-    x_test = read_test_images(dirname)
-    y_test = read_test_labels()
+    x_test = read_test_images(dirname, which_chunk=which_chunk)
+    y_test = read_test_labels(which_chunk=which_chunk)
 
     return (x_test, y_test)
