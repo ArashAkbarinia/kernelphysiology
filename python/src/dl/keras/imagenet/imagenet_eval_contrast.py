@@ -26,11 +26,11 @@ if __name__ == "__main__":
         dirname = args[0]
         args = sorted(glob.glob(dirname + '*.h5'))
 
-    num_classes = 1000
+    num_classes = 5000
 
     # TODO put correct contrasts
     # TODO image size for inception and others might be different
-    contrasts = np.array([1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100]) / 100
+    contrasts = np.array([80, 100]) / 100 # [1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100]
 
     chunk_size = 1000
     ntests = 50000
@@ -47,12 +47,12 @@ if __name__ == "__main__":
             model = VGG16()
             decode_predictions = keras.applications.vgg16.decode_predictions
             preprocess_input = keras.applications.vgg16.preprocess_input
-        if model_path.lower() == 'vgg19':
+        elif model_path.lower() == 'vgg19':
             model_name = 'vgg16'
             model = VGG19()
             decode_predictions = keras.applications.vgg19.decode_predictions
             preprocess_input = keras.applications.vgg19.preprocess_input
-        if model_path.lower() == 'resnet50':
+        elif model_path.lower() == 'resnet50':
             model_name = 'vgg16'
             model = ResNet50()
             decode_predictions = keras.applications.resnet50.decode_predictions
