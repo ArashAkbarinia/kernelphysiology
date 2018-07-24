@@ -56,25 +56,29 @@ def read_test_labels(which_chunk=None):
     # Read what's necessary from the development kit.
     synsets, raw_valid_groundtruth = read_devkit()
 
-    # Mapping to take WordNet IDs to our internal 0-999 encoding.
+    # mapping to take WordNet IDs to our internal 0-999 encoding.
     wnid_map = dict(zip((s.decode('utf8') for s in synsets['WNID']), xrange(1000)))
 
-    # Map the 'ILSVRC2012 ID' to our zero-based ID.
+    # map the 'ILSVRC2012 ID' to our zero-based ID.
     ilsvrc_id_to_zero_based = dict(zip(synsets['ILSVRC2012_ID'], xrange(len(synsets))))
 
-    # Map the validation set groundtruth to 0-999 labels.
+    # map the validation set groundtruth to 0-999 labels.
     valid_groundtruth = [ilsvrc_id_to_zero_based[id_] for id_ in raw_valid_groundtruth]
 
     ntest = 50000
+    if which_chunk == None:
+        which_chunk = (0, ntest)
+    ntest = which_chunk[1] - which_chunk[0]
     y_test = [''] * ntest
-    for i in valid_groundtruth:
-        b = list(wnid_map.keys())[list(wnid_map.values()).index(i)]
-        y_test[i] = b
-
+    j = 0
+    for i in range(which_chunk[0], which_chunk[1]):
+        b = list(wnid_map.keys())[list(wnid_map.values()).index(valid_groundtruth[i])]
+        y_test[j] = b
+        j += 1
 
     return y_test
-#
-#
+
+
 #def create_splits(n_train, n_valid, n_test):
 #    n_total = n_train + n_valid + n_test
 #    tuples = {}
@@ -222,7 +226,8 @@ def read_metadata_mat_file(meta_mat):
 
 
 def read_test_images(dirname, which_chunk=None, rows=224, cols=224, chns=3):
-     image_list = sorted(glob.glob(dirname + '*.png'))
+#     image_list = sorted(glob.glob(dirname + '*.png'))
+     image_list = sorted(glob.glob(dirname + '*.JPEG'))
      nimages = len(image_list)
      if which_chunk == None:
          which_chunk = (0, nimages)
@@ -234,7 +239,6 @@ def read_test_images(dirname, which_chunk=None, rows=224, cols=224, chns=3):
          x_test[i, :, :, :] = img
      return x_test
 
-#TODO: include the chunk_size
 def load_test_data(dirname, which_chunk=None):
     # load the test data and labels.
     x_test = read_test_images(dirname, which_chunk=which_chunk)
