@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # TODO image size for inception and others might be different
     contrasts = np.array([1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100]) / 100
 
-    chunk_size = 10000
+    chunk_size = 5000
     ntests = 50000
 
     results_top1 = np.zeros((np.size(args, 0), np.size(contrasts, 0), ntests))
