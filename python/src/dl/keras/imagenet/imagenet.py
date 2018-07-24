@@ -235,7 +235,7 @@ def read_test_images(dirname, which_chunk=None, rows=224, cols=224, chns=3):
      for i in range(which_chunk[0], which_chunk[1]):
          current_image = image_list[i]
          img = load_img(current_image, target_size=(rows, cols))
-         x_test[i, :, :, :] = img
+         x_test[i - which_chunk[0], :, :, :] = img
      return x_test
 
 def load_test_data(dirname, which_chunk=None):
