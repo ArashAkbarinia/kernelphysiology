@@ -5,11 +5,14 @@ import argparse
 import math
 import tensorflow as tf; slim = tf.contrib.slim
 from keras import backend as K
+import keras
+from keras.applications.vgg16 import VGG16
+import commons
 
 # PYHTONPATH should contain the research/slim/ directory in the tensorflow/models repo.
 from datasets import dataset_factory
-from preprocessing import preprocessing_factory
-from inception_resnet_v2 import InceptionResNetV2
+#from preprocessing import preprocessing_factory
+#from inception_resnet_v2 import InceptionResNetV2
 
 
 def prepare_data(imagenet_dir, batch_size, num_threads):
@@ -22,8 +25,8 @@ def prepare_data(imagenet_dir, batch_size, num_threads):
     image, label = provider.get(['image', 'label'])
 
     # preprocess images and split into batches
-    preprocess_input = preprocessing_factory.get_preprocessing('inception_resnet_v2',
-                                                               is_training=False)
+#    preprocess_input = preprocessing_factory.get_preprocessing('inception_resnet_v2', is_training=False)
+    preprocess_input = keras.applications.vgg16.preprocess_input
     image = preprocess_input(image, 299, 299)
     images, labels = tf.train.batch([image, label],
                                     batch_size=batch_size,
@@ -43,7 +46,8 @@ def evaluate(imagenet_dir, batch_size=100, steps=None, num_threads=4, verbose=Fa
         tf.train.start_queue_runners(coord=tf.train.Coordinator())
 
         # compile model in order to provide `metrics` and `target_tensors`
-        model = InceptionResNetV2(input_tensor=images)
+#        model = InceptionResNetV2(input_tensor=images)
+        model = VGG16(input_tensor=images)
         model.compile(optimizer='adam',
                       loss='sparse_categorical_crossentropy',
                       metrics=['sparse_categorical_accuracy', 'sparse_top_k_categorical_accuracy'],
