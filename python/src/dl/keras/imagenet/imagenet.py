@@ -226,8 +226,7 @@ def read_metadata_mat_file(meta_mat):
 
 
 def read_test_images(dirname, which_chunk=None, rows=224, cols=224, chns=3):
-#     image_list = sorted(glob.glob(dirname + '*.png'))
-     image_list = sorted(glob.glob(dirname + '*.JPEG'))
+     image_list = sorted(glob.glob(dirname + '*.png'))
      nimages = len(image_list)
      if which_chunk == None:
          which_chunk = (0, nimages)
