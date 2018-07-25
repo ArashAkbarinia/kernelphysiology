@@ -124,7 +124,7 @@ def save_image(image, name):
 
     plt.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=True)
     plt.axis('off')
-    
+
     plt.imshow(image)
     plt.savefig(name, bbox_inches='tight', dpi=96)
 
@@ -165,59 +165,65 @@ def build_classifier_model(args):
     area1_nlayers = args.area1_nlayers
     area1_batchnormalise = args.area1_batchnormalise
     area1_activation = args.area1_activation
+
     # each convolution block consists of two sub-blocks of Conv->Batch-Normalization->Activation,
     # followed by a Max-Pooling and a Dropout layer.
     for i in range(n_conv_blocks):
         if i == 0:
-            x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-            if area1_batchnormalise:
-                x = BatchNormalization()(x)
-            if area1_activation:
-                x = Activation(activation=activation)(x)
-                
-            if area1_nlayers == 2:
-                # 
-                x = Conv2D(filters=44, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+            if area1_nlayers == 1:
+                x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
                 if area1_batchnormalise:
                     x = BatchNormalization()(x)
                 if area1_activation:
                     x = Activation(activation=activation)(x)
-            if area1_nlayers == 3:
-                # 
-                x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+            else:
+                x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
                 if area1_batchnormalise:
                     x = BatchNormalization()(x)
                 if area1_activation:
                     x = Activation(activation=activation)(x)
-                
-                #
-                x = Conv2D(filters=37, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if area1_batchnormalise:
-                    x = BatchNormalization()(x)
-                if area1_activation:
-                    x = Activation(activation=activation)(x)
-            if area1_nlayers == 4:
-                # 
-                x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if area1_batchnormalise:
-                    x = BatchNormalization()(x)
-                if area1_activation:
-                    x = Activation(activation=activation)(x)
-        
-                #
-                x = Conv2D(filters=64, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if area1_batchnormalise:
-                    x = BatchNormalization()(x)
-                if area1_activation:
-                    x = Activation(activation=activation)(x)
-    
-                #
-                x = Conv2D(filters=27, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
-                if area1_batchnormalise:
-                    x = BatchNormalization()(x)
-                if area1_activation:
-                    x = Activation(activation=activation)(x)
-            x = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
+
+                if area1_nlayers == 2:
+                    x = Conv2D(filters=44, kernel_size=(3, 3), dilation_rate=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                    if area1_batchnormalise:
+                        x = BatchNormalization()(x)
+                    if area1_activation:
+                        x = Activation(activation=activation)(x)
+
+                elif area1_nlayers == 3:
+                    x = Conv2D(filters=37, kernel_size=(3, 3), dilation_rate=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                    if area1_batchnormalise:
+                        x = BatchNormalization()(x)
+                    if area1_activation:
+                        x = Activation(activation=activation)(x)
+
+                    x = Conv2D(filters=37, kernel_size=(3, 3), dilation_rate=(9, 9), padding='same', kernel_regularizer=l2_reg)(x)
+                    if area1_batchnormalise:
+                        x = BatchNormalization()(x)
+                    if area1_activation:
+                        x = Activation(activation=activation)(x)
+
+                elif area1_nlayers == 4:
+                    x = Conv2D(filters=27, kernel_size=(3, 3), dilation_rate=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
+                    if area1_batchnormalise:
+                        x = BatchNormalization()(x)
+                    if area1_activation:
+                        x = Activation(activation=activation)(x)
+
+                    x = Conv2D(filters=64, kernel_size=(3, 3), dilation_rate=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                    if area1_batchnormalise:
+                        x = BatchNormalization()(x)
+                    if area1_activation:
+                        x = Activation(activation=activation)(x)
+
+                    x = Conv2D(filters=27, kernel_size=(3, 3), dilation_rate=(7, 7), padding='same', kernel_regularizer=l2_reg)(x)
+                    if area1_batchnormalise:
+                        x = BatchNormalization()(x)
+                    if area1_activation:
+                        x = Activation(activation=activation)(x)
+
+            if args.area1_reduction:
+                x = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
         else:
             shortcut = Conv2D(filters=n_filters, kernel_size=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
             x = Conv2D(filters=n_filters, kernel_size=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
@@ -228,10 +234,10 @@ def build_classifier_model(args):
             x = Add()([shortcut, x])
             x = BatchNormalization()(x)
             x = Activation(activation=activation)(x)
-        
+
         x = MaxPooling2D(pool_size=(2, 2))(x)
         x = Dropout(rate=0.25)(x)
-        
+
         n_filters *= 2
 
     # finally, we flatten the output of the last convolution block, and add two Fully-Connected layers.
@@ -267,7 +273,7 @@ def train_classifier(x_train, y_train, x_test, y_test, model_output_path=None, b
             return initial_lr / 128
 
     opt = keras.optimizers.Adam(initial_lr)
-    
+
     if args.multi_gpus == None:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
     else:
@@ -328,11 +334,11 @@ def load_data(dirname=None):
     
 if __name__ == "__main__":
     (x_train, y_train), (x_test, y_test) = load_data()
-    
+
     # convert all images to floats in the range [0, 1]
     x_train = preprocess_input(x_train)
     x_test = preprocess_input(x_test)
-    
+
     # convert the labels to be zero based.
     y_train -= 1
     y_test -= 1
@@ -346,6 +352,7 @@ if __name__ == "__main__":
     parser.add_argument('--a1', dest='area1_nlayers', type=int, default=1, help='The number of layers in area 1 (default: 1)')
     parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
     parser.add_argument('--a1na', dest='area1_activation', action='store_false', default=True, help='Whether to include activation between layers of area 1 (default: True)')
+    parser.add_argument('--a1reduction', dest='area1_reduction', action='store_true', default=False, help='Whether to include a reduction layer in area 1 (default: False)')
     parser.add_argument('--dog', dest='add_dog', action='store_true', default=False, help='Whether to add a DoG layer (default: False)')
     parser.add_argument('--mg', dest='multi_gpus', type=int, default=None, help='The number of GPUs to be used (default: None)')
     parser.add_argument('--name', dest='experiment_name', type=str, default='', help='The name of the experiment (default: None)')
