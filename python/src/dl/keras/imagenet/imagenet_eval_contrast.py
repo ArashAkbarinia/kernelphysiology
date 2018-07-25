@@ -48,12 +48,12 @@ if __name__ == "__main__":
             decode_predictions = keras.applications.vgg16.decode_predictions
             preprocess_input = keras.applications.vgg16.preprocess_input
         elif model_path.lower() == 'vgg19':
-            model_name = 'vgg16'
+            model_name = 'vgg19'
             model = VGG19()
             decode_predictions = keras.applications.vgg19.decode_predictions
             preprocess_input = keras.applications.vgg19.preprocess_input
         elif model_path.lower() == 'resnet50':
-            model_name = 'vgg16'
+            model_name = 'resnet50'
             model = ResNet50()
             decode_predictions = keras.applications.resnet50.decode_predictions
             preprocess_input = keras.applications.resnet50.preprocess_input
