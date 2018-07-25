@@ -68,11 +68,16 @@ if __name__ == "__main__":
             print('Reading chunk: ' + str(start) + '-' + str(end))
     
             (x_test, y_test) = imagenet.load_test_data('/home/ImageNet/Val_Images_RGB/', which_chunk=which_chunk)
+            x_test = x_test.astype('float32')
+            x_test /= 255
+
             # iterating through the contrasts
             j = 0
             for contrast in contrasts:
                 # evaluate the model
-                x_test = preprocess_input(adjust_contrast(x_test, contrast))
+                x_test = adjust_contrast(x_test, contrast)
+                x_test *= 255
+                x_test = preprocess_input(x_test)
                 predicts = model.predict(x_test)
                 model_outs = decode_predictions(predicts, top=5)
                 model_outs = np.array(model_outs)
@@ -87,5 +92,5 @@ if __name__ == "__main__":
             np.savetxt('top1%s.txt' % (model_name), np.transpose(results_top1[i, :, :], (1, 0)), fmt='%d')
             np.savetxt('top5%s.txt' % (model_name), np.transpose(results_top5[i, :, :], (1, 0)), fmt='%d')
             print('%s: Top1' % (model_name), *np.mean(results_top1[i, :, :], axis=1))
-            print('%s: Top5' % (model_name), *np.mean(results_top1[i, :, :], axis=1))
+            print('%s: Top5' % (model_name), *np.mean(results_top5[i, :, :], axis=1))
         i += 1
