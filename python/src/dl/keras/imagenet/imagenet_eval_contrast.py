@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     # TODO put correct contrasts
     # TODO image size for inception and others might be different
-    contrasts = np.array([80, 100]) / 100 # [1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100]
+    contrasts = np.array([75, 100]) / 100 # [1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100]
 
     chunk_size = 5000
     ntests = 50000
@@ -75,10 +75,10 @@ if __name__ == "__main__":
             j = 0
             for contrast in contrasts:
                 # evaluate the model
-                x_test = adjust_contrast(x_test, contrast)
-                x_test *= 255
-                x_test = preprocess_input(x_test)
-                predicts = model.predict(x_test)
+                x_test_contrast = adjust_contrast(x_test, contrast)
+                x_test_contrast *= 255
+                x_test_contrast = preprocess_input(x_test_contrast)
+                predicts = model.predict(x_test_contrast)
                 model_outs = decode_predictions(predicts, top=5)
                 model_outs = np.array(model_outs)
                 for c in range(0, chunk_size):
