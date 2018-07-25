@@ -29,11 +29,11 @@ if __name__ == "__main__":
         confs = cifar.CifarConfs(args=args)
     
         # The data, split between train and test sets:
-        (confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = cifar10.load_data(os.path.join(confs.project_root, 'data/datasets/cifar/cifar10/'))
+        (confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = cifar10.load_data(os.path.join(confs.python_root, 'data/datasets/cifar/cifar10/'))
     elif num_classes == 100:
         confs = cifar.CifarConfs(args=args)
     
         # The data, split between train and test sets:
-        (confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = cifar100.load_data('fine', os.path.join(confs.project_root, 'data/datasets/cifar/cifar100/'))
+        (confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = cifar100.load_data('fine', os.path.join(confs.python_root, 'data/datasets/cifar/cifar100/'))
     
     cifar.start_training(confs)
