@@ -11,7 +11,7 @@ from __future__ import print_function
 import commons
 import numpy as np
 import os
-from cifar import load_batch
+from kernelphysiology.dl.keras.cifar.cifar_utils import load_batch
 from keras.utils.data_utils import get_file
 from keras import backend as K
 

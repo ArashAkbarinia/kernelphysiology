@@ -17,12 +17,12 @@ from keras.engine.training import Model
 from keras.layers import Add, Conv2D, MaxPooling2D, Dropout, Flatten, Dense, BatchNormalization, Activation, Input
 from keras import regularizers
 
-from filterfactory.gaussian import gauss
+from kernelphysiology.filterfactory.gaussian import gauss
 
 
 def preprocess_input(img):
     img = img.astype('float32')
-    img /= 255
+    img = (img - 127.5) / 127.5
     return img
 
 

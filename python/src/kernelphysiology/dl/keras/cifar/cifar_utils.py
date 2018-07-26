@@ -17,7 +17,7 @@ import keras
 from keras.utils import multi_gpu_model
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
-import dl.keras.contrast_net as cnet
+import kernelphysiology.dl.keras.contrast_net as cnet
 
 
 class CifarConfs:

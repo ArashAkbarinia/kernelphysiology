@@ -9,13 +9,13 @@ import numpy as np
 import glob
 
 import commons
-import cifar
-import cifar10
-import cifar100
+from kernelphysiology.dl.keras.cifar import cifar_utils
+from kernelphysiology.dl.keras.cifar import cifar10
+from kernelphysiology.dl.keras.cifar import cifar100
 
 import keras
 
-from utils.imutils import adjust_contrast
+from kernelphysiology.utils.imutils import adjust_contrast
 
 
 if __name__ == "__main__":
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         # The data, split between train and test sets:
         (x_train, y_train), (x_test, y_test) = cifar100.load_data('fine', os.path.join(commons.python_root, 'data/datasets/cifar/cifar100/'))
     
-    x_test = cifar.preprocess_input(x_test)
+    x_test = cifar_utils.preprocess_input(x_test)
     y_test = keras.utils.to_categorical(y_test, num_classes)
     
     contrasts = np.array([1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100]) / 100
