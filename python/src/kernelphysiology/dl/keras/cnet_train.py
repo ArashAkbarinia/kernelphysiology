@@ -90,7 +90,7 @@ if __name__ == "__main__":
         args.model_name += 'bnr_'
     if args.area1_activation:
         args.model_name += 'act_'
-    if args.area1_activation:
+    if args.area1_reduction:
         args.model_name += 'red_'
     if args.add_dog:
         args.model_name += 'dog_'
