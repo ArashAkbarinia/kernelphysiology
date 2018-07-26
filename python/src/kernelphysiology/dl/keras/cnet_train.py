@@ -75,7 +75,7 @@ if __name__ == "__main__":
     parser.add_argument('--mg', dest='multi_gpus', type=int, default=None, help='The number of GPUs to be used (default: None)')
     parser.add_argument('--name', dest='experiment_name', type=str, default='', help='The name of the experiment (default: None)')
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 64)')
-    parser.add_argument('--epochs', dest='epochs', type=int, default=1, help='NUmber of epochs (default: 50)')
+    parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs (default: 50)')
     parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')
 
     args = parser.parse_args()
