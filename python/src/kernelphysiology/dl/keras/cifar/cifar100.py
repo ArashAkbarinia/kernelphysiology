@@ -7,16 +7,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 import commons
 import numpy as np
 import os
+import keras
 from kernelphysiology.dl.keras.cifar.cifar_utils import load_batch
 from keras.utils.data_utils import get_file
 from keras import backend as K
 
 
-def load_data(label_mode='fine', dirname=os.path.join(commons.python_root, 'data/datasets/cifar/cifar10/')):
+def load_data(label_mode='fine', dirname=os.path.join(commons.python_root, 'data/datasets/cifar/cifar100/')):
     """Loads CIFAR100 dataset.
 
     # Arguments
@@ -49,5 +49,9 @@ def load_data(label_mode='fine', dirname=os.path.join(commons.python_root, 'data
     if K.image_data_format() == 'channels_last':
         x_train = x_train.transpose(0, 2, 3, 1)
         x_test = x_test.transpose(0, 2, 3, 1)
+
+    # Convert class vectors to binary class matrices.
+    y_train = keras.utils.to_categorical(y_train, 100)
+    y_test = keras.utils.to_categorical(y_test, 100)
 
     return (x_train, y_train), (x_test, y_test)

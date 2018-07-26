@@ -8,7 +8,7 @@ import commons
 import argparse
 
 from kernelphysiology.dl.keras.cifar import cifar_train
-#from dl.keras.cifar import cifar_train
+from kernelphysiology.dl.keras.stl import stl_train
 
 
 if __name__ == "__main__":
@@ -28,5 +28,5 @@ if __name__ == "__main__":
         cifar_train.train_cifar10(args)
     elif args.dataset.lower() == 'cifar100':
         cifar_train.train_cifar100(args)
-#    elif args.dataset.lower() == 'stl10':
-#        stl_train.stl10(args)
+    elif args.dataset.lower() == 'stl10':
+        stl_train.train_stl10(args)

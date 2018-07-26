@@ -74,11 +74,6 @@ def start_training(confs):
     print(confs.x_train.shape[0], 'train samples')
     print(confs.x_test.shape[0], 'test samples')
 
-    # Convert class vectors to binary class matrices.
-    confs.y_train = keras.utils.to_categorical(confs.y_train, confs.num_classes)
-    confs.y_test = keras.utils.to_categorical(confs.y_test, confs.num_classes)
-    
-
     print('Processing with %d layers in area 1' % confs.area1_nlayers)
     confs.model_name += str(confs.area1_nlayers)
     confs.log_dir = os.path.join(confs.save_dir, confs.model_name)
