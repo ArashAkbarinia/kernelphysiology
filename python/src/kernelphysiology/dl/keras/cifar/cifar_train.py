@@ -12,19 +12,17 @@ from kernelphysiology.dl.keras.cifar import cifar100
 
 def train_cifar10(args):
     args.num_classes = 10
-    confs = cifar_utils.CifarConfs(args=args)
 
     # The data, split between train and test sets:
-    (confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = cifar10.load_data(os.path.join(confs.python_root, 'data/datasets/cifar/cifar10/'))
+    (args.x_train, args.y_train), (args.x_test, args.y_test) = cifar10.load_data()
 
-    cifar_utils.start_training(confs)
+    cifar_utils.start_training(args)
 
 
 def train_cifar100(args):
     args.num_classes = 100
-    confs = cifar_utils.CifarConfs(args=args)
 
     # The data, split between train and test sets:
-    (confs.x_train, confs.y_train), (confs.x_test, confs.y_test) = cifar100.load_data('fine', os.path.join(confs.python_root, 'data/datasets/cifar/cifar100/'))
+    (args.x_train, args.y_train), (args.x_test, args.y_test) = cifar100.load_data()
 
-    cifar_utils.start_training(confs)
+    cifar_utils.start_training(args)
