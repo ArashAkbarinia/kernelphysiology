@@ -3,6 +3,7 @@ Train a simple DNN on CIFAR 10 or 100.
 '''
 
 
+import os
 import commons
 
 import argparse
@@ -21,12 +22,33 @@ if __name__ == "__main__":
     parser.add_argument('--dog', dest='add_dog', action='store_true', default=False, help='Whether to add a DoG layer (default: False)')
     parser.add_argument('--mg', dest='multi_gpus', type=int, default=None, help='The number of GPUs to be used (default: None)')
     parser.add_argument('--name', dest='experiment_name', type=str, default='', help='The name of the experiment (default: None)')
+    parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 64)')
+    parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='NUmber of epochs (default: 50)')
+    parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')
 
     args = parser.parse_args()
+    which_model = args.dataset.lower()
+    # preparing arguments
+    args.save_dir = os.path.join(commons.python_root, 'data/nets/%s/%s/' % (''.join([i for i in which_model if not i.isdigit()]), which_model))
+    args.dog_path = os.path.join(args.save_dir, 'dog.h5')
 
-    if args.dataset.lower() == 'cifar10':
+    # preparing the name of the model
+    args.model_name = 'keras_%s_area_%s_' % (which_model, args.experiment_name)
+    if args.area1_batchnormalise:
+        args.model_name += 'bnr_'
+    if args.area1_activation:
+        args.model_name += 'act_'
+    if args.area1_activation:
+        args.model_name += 'red_'
+    if args.add_dog:
+        args.model_name += 'dog_'
+    # other parameters
+    args.log_period = round(args.epochs / 4)
+
+    # which model to run
+    if which_model == 'cifar10':
         cifar_train.train_cifar10(args)
-    elif args.dataset.lower() == 'cifar100':
+    elif which_model == 'cifar100':
         cifar_train.train_cifar100(args)
-    elif args.dataset.lower() == 'stl10':
+    elif which_model == 'stl10':
         stl_train.train_stl10(args)
