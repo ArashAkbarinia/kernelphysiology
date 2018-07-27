@@ -11,7 +11,6 @@ import os
 
 import numpy as np
 import keras
-from keras.callbacks import LearningRateScheduler
 from keras.preprocessing.image import ImageDataGenerator
 from keras.engine.training import Model
 from keras.layers import Add, Conv2D, MaxPooling2D, Dropout, Flatten, Dense, BatchNormalization, Activation, Input
@@ -34,26 +33,6 @@ def train_model(confs):
     callbacks = confs.callbacks
     batch_size = confs.batch_size
     epochs = confs.epochs
-    
-    initial_lr = 1e-3
-    def lr_scheduler(epoch):
-        if epoch < 20:
-            return initial_lr
-        elif epoch < 40:
-            return initial_lr / 2
-        elif epoch < 50:
-            return initial_lr / 4
-        elif epoch < 60:
-            return initial_lr / 8
-        elif epoch < 70:
-            return initial_lr / 16
-        elif epoch < 80:
-            return initial_lr / 32
-        elif epoch < 90:
-            return initial_lr / 64
-        else:
-            return initial_lr / 128
-    callbacks.append(LearningRateScheduler(lr_scheduler))
 
     if not confs.data_augmentation:
         print('Not using data augmentation.')
@@ -119,12 +98,13 @@ def create_dog_layer(confs, nkernels, kernel_size, nchannels=3):
 
 
 def build_classifier_model(confs):
-    area1_nlayers = confs.area1_nlayers
     n_conv_blocks = 5  # number of convolution blocks to have in our model.
     n_filters_dog = 64
     n_filters = 64  # number of filters to use in the first convolution block.
     l2_reg = regularizers.l2(2e-4)  # weight to use for L2 weight decay. 
     activation = 'elu'  # the activation function to use after each linear operation.
+
+    area1_nlayers = confs.area1_nlayers
     area1_batchnormalise = confs.area1_batchnormalise
     area1_activation = confs.area1_activation
 

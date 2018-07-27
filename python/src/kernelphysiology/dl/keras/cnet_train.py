@@ -11,7 +11,7 @@ import argparse
 import tensorflow as tf
 import keras
 from keras.utils import multi_gpu_model
-from keras.callbacks import CSVLogger, ModelCheckpoint
+from keras.callbacks import CSVLogger, ModelCheckpoint, LearningRateScheduler
 
 import kernelphysiology.dl.keras.contrast_net as cnet
 
@@ -31,14 +31,34 @@ def start_training(args):
         os.mkdir(args.log_dir)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
     check_points = ModelCheckpoint(os.path.join(args.log_dir, 'weights.{epoch:05d}.h5'), period=args.log_period)
-    args.callbacks = [check_points, csv_logger]
 
     args.area1_nlayers = int(args.area1_nlayers)
     
     model = cnet.build_classifier_model(confs=args)
 
-    # initiate RMSprop optimizer
-    opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
+    initial_lr = 1e-3
+    def lr_scheduler(epoch):
+        if epoch < 20:
+            return initial_lr
+        elif epoch < 40:
+            return initial_lr / 2
+        elif epoch < 50:
+            return initial_lr / 4
+        elif epoch < 60:
+            return initial_lr / 8
+        elif epoch < 70:
+            return initial_lr / 16
+        elif epoch < 80:
+            return initial_lr / 32
+        elif epoch < 90:
+            return initial_lr / 64
+        else:
+            return initial_lr / 128
+    args.callbacks = [check_points, csv_logger, LearningRateScheduler(lr_scheduler)]
+
+    # TODO: proper analysis on differnt optimisers
+#    opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
+    opt = keras.optimizers.Adam(initial_lr)
 
     # Let's train the model using RMSprop
     if args.multi_gpus == None:
