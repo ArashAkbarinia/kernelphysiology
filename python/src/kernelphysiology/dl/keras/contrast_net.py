@@ -131,39 +131,57 @@ def build_classifier_model(confs):
                     x = Activation(activation=activation)(x)
 
                 if area1_nlayers == 2:
-                    x = Conv2D(filters=44, kernel_size=(3, 3), dilation_rate=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                    if confs.area1_dilation:
+                        dilation1 = (3, 3)
+                    else:
+                        dilation1 = (1, 1)
+                    x = Conv2D(filters=44, kernel_size=(3, 3), dilation_rate=dilation1, padding='same', kernel_regularizer=l2_reg)(x)
                     if area1_batchnormalise:
                         x = BatchNormalization()(x)
                     if area1_activation:
                         x = Activation(activation=activation)(x)
 
                 elif area1_nlayers == 3:
-                    x = Conv2D(filters=37, kernel_size=(3, 3), dilation_rate=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                    if confs.area1_dilation:
+                        dilation1 = (3, 3)
+                        dilation2 = (9, 9)
+                    else:
+                        dilation1 = (1, 1)
+                        dilation2 = (1, 1)
+                    x = Conv2D(filters=37, kernel_size=(3, 3), dilation_rate=dilation1, padding='same', kernel_regularizer=l2_reg)(x)
                     if area1_batchnormalise:
                         x = BatchNormalization()(x)
                     if area1_activation:
                         x = Activation(activation=activation)(x)
 
-                    x = Conv2D(filters=37, kernel_size=(3, 3), dilation_rate=(9, 9), padding='same', kernel_regularizer=l2_reg)(x)
+                    x = Conv2D(filters=37, kernel_size=(3, 3), dilation_rate=dilation2, padding='same', kernel_regularizer=l2_reg)(x)
                     if area1_batchnormalise:
                         x = BatchNormalization()(x)
                     if area1_activation:
                         x = Activation(activation=activation)(x)
 
                 elif area1_nlayers == 4:
-                    x = Conv2D(filters=27, kernel_size=(3, 3), dilation_rate=(1, 1), padding='same', kernel_regularizer=l2_reg)(x)
+                    if confs.area1_dilation:
+                        dilation1 = (1, 1)
+                        dilation2 = (3, 3)
+                        dilation3 = (7, 7)
+                    else:
+                        dilation1 = (1, 1)
+                        dilation2 = (1, 1)
+                        dilation3 = (1, 1)
+                    x = Conv2D(filters=27, kernel_size=(3, 3), dilation_rate=dilation1, padding='same', kernel_regularizer=l2_reg)(x)
                     if area1_batchnormalise:
                         x = BatchNormalization()(x)
                     if area1_activation:
                         x = Activation(activation=activation)(x)
 
-                    x = Conv2D(filters=64, kernel_size=(3, 3), dilation_rate=(3, 3), padding='same', kernel_regularizer=l2_reg)(x)
+                    x = Conv2D(filters=64, kernel_size=(3, 3), dilation_rate=dilation2, padding='same', kernel_regularizer=l2_reg)(x)
                     if area1_batchnormalise:
                         x = BatchNormalization()(x)
                     if area1_activation:
                         x = Activation(activation=activation)(x)
 
-                    x = Conv2D(filters=27, kernel_size=(3, 3), dilation_rate=(7, 7), padding='same', kernel_regularizer=l2_reg)(x)
+                    x = Conv2D(filters=27, kernel_size=(3, 3), dilation_rate=dilation3, padding='same', kernel_regularizer=l2_reg)(x)
                     if area1_batchnormalise:
                         x = BatchNormalization()(x)
                     if area1_activation:
