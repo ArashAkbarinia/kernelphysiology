@@ -102,6 +102,7 @@ if __name__ == "__main__":
     parser.add_argument('--name', dest='experiment_name', type=str, default='', help='The name of the experiment (default: None)')
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 64)')
     parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs (default: 50)')
+    parser.add_argument('--log_period', dest='log_period', type=int, default=0, help='The period of logging the network (default: 0)')
     parser.add_argument('--train_contrast', dest='train_contrast', type=int, default=100, help='The level of contrast to be used at training (default: 100)')
     parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')
 
@@ -123,8 +124,6 @@ if __name__ == "__main__":
         args.model_name += 'dil_'
     if args.add_dog:
         args.model_name += 'dog_'
-    # other parameters
-    args.log_period = round(args.epochs / 4)
 
     # which model to run
     if which_model == 'cifar10':
