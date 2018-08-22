@@ -34,8 +34,6 @@ if __name__ == "__main__":
     elif dataset.lower() == 'stl10':
         (x_train, y_train), (x_test, y_test) = stl10.load_data(os.path.join(commons.python_root, 'data/datasets/stl/stl10/'))
 
-    x_test = contrast_net.preprocess_input(x_test)
-
     contrasts = np.array([1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100]) / 100
 
     results = np.zeros((np.size(args, 0), np.size(contrasts, 0)))
@@ -46,8 +44,11 @@ if __name__ == "__main__":
         model = keras.models.load_model(model_path)
         j = 0
         for contrast in contrasts:
-            # Score trained model.
-            scores = model.evaluate(adjust_contrast(x_test, contrast), y_test, verbose=0)
+            # reduce the contrast of image
+            x_test_contrast = adjust_contrast(x_test, contrast)
+            # score trained model
+            x_test_contrast = contrast_net.preprocess_input(x_test_contrast)
+            scores = model.evaluate(x_test_contrast, y_test, verbose=0)
             results[i, j] = scores[1]
             j += 1
         i += 1
