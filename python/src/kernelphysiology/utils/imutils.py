@@ -29,6 +29,10 @@ def save_img(image, imgname, use_JPEG=False):
 #   IMAGE MANIPULATION
 ###########################################################
 
+def im2double(image):
+    image = image.astype('float32')
+    return image / 255
+
 def adjust_contrast(image, contrast_level):
     """Return the image scaled to a certain contrast level in [0, 1].
 
@@ -39,6 +43,13 @@ def adjust_contrast(image, contrast_level):
 
     assert(contrast_level >= 0.0), "contrast_level too low."
     assert(contrast_level <= 1.0), "contrast_level too high."
+
+    if image.dtype == 'uint8':
+        image = im2double(image)
+    else:
+        max_pixel = np.max(image)
+        if max_pixel > 1 and max_pixel <= 255:
+            image = im2double(image)
 
     return (1 - contrast_level) / 2.0 + image.dot(contrast_level)
 

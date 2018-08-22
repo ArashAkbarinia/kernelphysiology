@@ -54,7 +54,7 @@ if __name__ == "__main__":
             x_test_contrast = adjust_contrast(x_test, contrast)
             # score trained model
             x_test_contrast = contrast_net.preprocess_input(x_test_contrast)
-            scores = model.evaluate(x_test_contrast, y_test, verbose=0)
+            scores = model.evaluate(x_test_contrast * 255, y_test, verbose=0)
             results[i, j] = scores[1]
             j += 1
         i += 1
