@@ -5,7 +5,8 @@ Train a simple DNN on CIFAR 10 or 100.
 
 import os
 import commons
-
+import time
+import datetime
 import argparse
 
 import tensorflow as tf
@@ -76,7 +77,7 @@ def start_training(args):
         args.parallel_model = parallel_model
 
     # to train the network with a different contrast
-    args.x_train = adjust_contrast(args.x_train, args.train_contrast) * 255
+    args.x_train = adjust_contrast(args.x_train, args.train_contrast / 100) * 255
 
     args.x_train = cnet.preprocess_input(args.x_train)
     args.x_test = cnet.preprocess_input(args.x_test)
@@ -90,6 +91,10 @@ def start_training(args):
 
 
 if __name__ == "__main__":
+    start_stamp = time.time()
+    start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
+    print('Starting at: ' + start_time)
+
     parser = argparse.ArgumentParser(description='Training CNET.')
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
     parser.add_argument('--a1', dest='area1_nlayers', type=int, default=1, help='The number of layers in area 1 (default: 1)')
@@ -134,3 +139,8 @@ if __name__ == "__main__":
         args = stl_train.prepare_stl10(args)
 
     start_training(args)
+
+    finish_stamp = time.time()
+    finish_time = datetime.datetime.fromtimestamp(finish_stamp).strftime('%Y-%m-%d_%H_%M_%S')
+    duration_time = (finish_stamp - start_stamp) / 60
+    print('Finishing at: ' + finish_time + ' - Duration ' + duration_time + ' minutes.')
