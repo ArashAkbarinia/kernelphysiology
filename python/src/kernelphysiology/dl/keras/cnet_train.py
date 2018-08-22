@@ -143,4 +143,4 @@ if __name__ == "__main__":
     finish_stamp = time.time()
     finish_time = datetime.datetime.fromtimestamp(finish_stamp).strftime('%Y-%m-%d_%H_%M_%S')
     duration_time = (finish_stamp - start_stamp) / 60
-    print('Finishing at: ' + finish_time + ' - Duration ' + duration_time + ' minutes.')
+    print('Finishing at: %s - Duration %.2f minutes.' % (finish_time, duration_time))
