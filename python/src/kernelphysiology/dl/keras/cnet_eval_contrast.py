@@ -7,6 +7,8 @@ import os
 import sys
 import numpy as np
 import glob
+import time
+import datetime
 
 import commons
 from kernelphysiology.dl.keras.cifar import cifar10
@@ -24,7 +26,11 @@ if __name__ == "__main__":
 
     if os.path.isdir(args[0]):
         dirname = args[0]
+        output_file = os.path.join(dirname, 'contrast_results.csv')
         args = sorted(glob.glob(dirname + '*.h5'))
+    else:
+        time_stamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
+        output_file = 'contrast_results_' + time_stamp + '.csv'
 
     dataset = sys.argv[1]
     if dataset.lower() == 'cifar10':
@@ -52,4 +58,5 @@ if __name__ == "__main__":
             results[i, j] = scores[1]
             j += 1
         i += 1
-    print(*results)
+    # saving the results in a CSV format
+    np.savetxt(output_file, np.transpose(results), delimiter=',')
