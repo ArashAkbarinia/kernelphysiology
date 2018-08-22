@@ -18,6 +18,8 @@ import kernelphysiology.dl.keras.contrast_net as cnet
 from kernelphysiology.dl.keras.cifar import cifar_train
 from kernelphysiology.dl.keras.stl import stl_train
 
+from kernelphysiology.utils.imutils import adjust_contrast
+
 
 def start_training(args):
     print('x_train shape:', args.x_train.shape)
@@ -73,6 +75,9 @@ def start_training(args):
         parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
         args.parallel_model = parallel_model
 
+    # to train the network with a different contrast
+    args.x_train = adjust_contrast(args.x_train, args.train_contrast) * 255
+
     args.x_train = cnet.preprocess_input(args.x_train)
     args.x_test = cnet.preprocess_input(args.x_test)
     
@@ -97,6 +102,7 @@ if __name__ == "__main__":
     parser.add_argument('--name', dest='experiment_name', type=str, default='', help='The name of the experiment (default: None)')
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 64)')
     parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs (default: 50)')
+    parser.add_argument('--train_contrast', dest='train_contrast', type=int, default=100, help='The level of contrast to be used at training (default: 100)')
     parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')
 
     args = parser.parse_args()
@@ -106,7 +112,7 @@ if __name__ == "__main__":
     args.dog_path = os.path.join(args.save_dir, 'dog.h5')
 
     # preparing the name of the model
-    args.model_name = 'keras_%s_area_%s_' % (which_model, args.experiment_name)
+    args.model_name = 'keras_%s_area_%s_%s_' % (which_model, args.experiment_name, args.train_contrast)
     if args.area1_batchnormalise:
         args.model_name += 'bnr_'
     if args.area1_activation:
