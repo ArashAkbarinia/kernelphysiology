@@ -24,13 +24,15 @@ from kernelphysiology.utils.imutils import adjust_contrast
 if __name__ == "__main__":
     args = sys.argv[2:]
 
+    start_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
+    print('Starting at: ' + start_time)
+
     if os.path.isdir(args[0]):
         dirname = args[0]
         output_file = os.path.join(dirname, 'contrast_results.csv')
         args = sorted(glob.glob(dirname + '*.h5'))
     else:
-        time_stamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
-        output_file = 'contrast_results_' + time_stamp + '.csv'
+        output_file = 'contrast_results_' + start_time + '.csv'
 
     dataset = sys.argv[1]
     if dataset.lower() == 'cifar10':
@@ -51,12 +53,16 @@ if __name__ == "__main__":
         j = 0
         for contrast in contrasts:
             # reduce the contrast of image
-            x_test_contrast = adjust_contrast(x_test, contrast)
+            x_test_contrast = adjust_contrast(x_test, contrast) * 255
             # score trained model
             x_test_contrast = contrast_net.preprocess_input(x_test_contrast)
-            scores = model.evaluate(x_test_contrast * 255, y_test, verbose=0)
+            scores = model.evaluate(x_test_contrast, y_test, verbose=0)
             results[i, j] = scores[1]
             j += 1
         i += 1
+
     # saving the results in a CSV format
     np.savetxt(output_file, np.transpose(results), delimiter=',')
+
+    finish_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
+    print('Finishing at: ' + finish_time)
