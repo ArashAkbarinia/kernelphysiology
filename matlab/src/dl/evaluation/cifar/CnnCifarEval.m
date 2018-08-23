@@ -1,4 +1,4 @@
-function EvaluationReport = CnnCifarEval(net,imdb, ContrastLevels)
+function EvaluationReport = CnnCifarEval(net, imdb, ContrastLevels)
 %CnnCifarEval Summary of this function goes here
 %   Detailed explanation goes here
 
