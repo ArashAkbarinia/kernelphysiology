@@ -33,7 +33,10 @@ def start_training(args):
     if not os.path.isdir(args.log_dir):
         os.mkdir(args.log_dir)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
-    check_points = ModelCheckpoint(os.path.join(args.log_dir, 'weights.{epoch:05d}.h5'), period=args.log_period)
+    args.callbacks = [csv_logger]
+    if args.log_period > 0:
+        check_points = ModelCheckpoint(os.path.join(args.log_dir, 'weights.{epoch:05d}.h5'), period=args.log_period)
+        args.callbacks.append(check_points)
 
     args.area1_nlayers = int(args.area1_nlayers)
     
@@ -57,7 +60,7 @@ def start_training(args):
             return initial_lr / 64
         else:
             return initial_lr / 128
-    args.callbacks = [check_points, csv_logger, LearningRateScheduler(lr_scheduler)]
+    args.callbacks.append(LearningRateScheduler(lr_scheduler))
 
     # TODO: proper analysis on differnt optimisers
 #    opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
