@@ -18,6 +18,7 @@ import kernelphysiology.dl.keras.contrast_net as cnet
 
 from kernelphysiology.dl.keras.cifar import cifar_train
 from kernelphysiology.dl.keras.stl import stl_train
+from kernelphysiology.dl.keras.utils import set_area_trainable_false
 
 from kernelphysiology.utils.imutils import adjust_contrast
 
@@ -43,6 +44,8 @@ def start_training(args):
         model = cnet.build_classifier_model(confs=args)
     else:
         model = keras.models.load_model(args.checkpoint_path)
+        # make the first layer not trainable
+        model = set_area_trainable_false(model, num_areas=1)
 
     initial_lr = 1e-3
     def lr_scheduler(epoch):
