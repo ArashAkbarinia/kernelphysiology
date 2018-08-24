@@ -123,11 +123,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dataset_name = args.dataset.lower()
     # preparing arguments
-    args.save_dir = os.path.join(commons.python_root, 'data/nets/%s/%s/' % (''.join([i for i in dataset_name if not i.isdigit()]), dataset_name))
+    args.save_dir = os.path.join(commons.python_root, 'data/nets/%s/%s/%s/' % (''.join([i for i in dataset_name if not i.isdigit()]), dataset_name, args.experiment_name))
+    if not os.path.isdir(args.save_dir):
+        os.mkdir(args.save_dir)
     args.dog_path = os.path.join(args.save_dir, 'dog.h5')
 
     # preparing the name of the model
-    args.model_name = 'keras_%s_area_%d_%s_contrast_%d_' % (dataset_name, args.area1_nlayers, args.experiment_name, args.train_contrast)
+    args.model_name = 'keras_%s_area_%d_contrast_%d_' % (dataset_name, args.area1_nlayers, args.train_contrast)
     if args.area1_batchnormalise:
         args.model_name += 'bnr_'
     if args.area1_activation:
@@ -150,6 +152,6 @@ if __name__ == "__main__":
     start_training(args)
 
     finish_stamp = time.time()
-    finish_time = datetime.datetime.fromtimestamp(finish_stamp).strftime('%Y-%m-%d_%H_%M_%S')
+    finish_time = datetime.datetime.fromtimestamp(finish_stamp).strftime('%Y-%m-%d_%H-%M-%S')
     duration_time = (finish_stamp - start_stamp) / 60
     print('Finishing at: %s - Duration %.2f minutes.' % (finish_time, duration_time))
