@@ -1,19 +1,24 @@
-function inim = ResizeImageToNet(net, inim)
+function inim = ResizeImageToNet(net, inim, docrop)
 %ResizeImageToNet  resize the input inmage to the input of network.
 %
 % inputs
-%  net   the DNN network.
-%  inim  the image to be resized.
+%  net     the DNN network.
+%  inim    the image to be resized.
+%  docrop  crop the image to the central part.
 %
 % outputs
 %  inim  the resized image prepared to be tested with the network.
 %
 
+if nargin < 3
+  docrop = true;
+end
+
 imsize = net.Layers(1).InputSize;
 
 [rows, cols, chns] = size(inim);
 
-if imsize == size(inim)
+if docrop && imsize == size(inim)
   return;
 end
 
