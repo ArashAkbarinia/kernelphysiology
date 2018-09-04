@@ -18,11 +18,11 @@ imsize = net.Layers(1).InputSize;
 
 [rows, cols, chns] = size(inim);
 
-if docrop && imsize == size(inim)
+if imsize == size(inim)
   return;
 end
 
-if rows ~= cols
+if docrop && rows ~= cols
   inim = CropCentreSquareImage(inim);
 end
 
