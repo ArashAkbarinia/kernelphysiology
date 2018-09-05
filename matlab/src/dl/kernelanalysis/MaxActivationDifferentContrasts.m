@@ -22,7 +22,7 @@ end
 % identical across different level of contrasts.
 inim = ResizeImageToNet(net, inim);
 
-ContrastLevels = [1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100];
+ContrastLevels = [5, 15, 30, 50, 75, 100];
 
 nContrasts = numel(ContrastLevels);
 for contrast = ContrastLevels
