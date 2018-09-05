@@ -18,16 +18,14 @@ imsize = net.Layers(1).InputSize;
 
 [rows, cols, chns] = size(inim);
 
-if imsize == size(inim)
-  return;
+if imsize(1) ~= rows || imsize(2) ~= cols
+  if docrop && rows ~= cols
+    inim = CropCentreSquareImage(inim);
+  end
+  
+  % convert it to the network input size
+  inim = imresize(inim, imsize(1:2));
 end
-
-if docrop && rows ~= cols
-  inim = CropCentreSquareImage(inim);
-end
-
-% convert it to the network input size
-inim = imresize(inim, imsize(1:2));
 
 if chns == 1 && imsize(3) == 3
   inim(:, :, 2) = inim(:, :, 1);
