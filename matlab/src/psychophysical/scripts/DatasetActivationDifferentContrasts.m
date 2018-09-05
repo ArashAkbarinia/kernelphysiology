@@ -81,7 +81,7 @@ end
 function ActivationReport = PerformWithImdb(net, TestImages, layers, outdir, WhichLayers)
 
 NumImages = size(TestImages, 4);
-parfor i = 1:NumImages
+for i = 1:NumImages
   inim = TestImages(:, :, :, i);
   ImageBaseName = sprintf('im%.6i', i);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
@@ -97,7 +97,7 @@ end
 function ActivationReport = PerformWithImageList(net, ImageList, layers, outdir, WhichLayers)
 
 NumImages = numel(ImageList);
-parfor i = 1:NumImages
+for i = 1:NumImages
   inim = imread([ImageList(i).folder, '/', ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
