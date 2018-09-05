@@ -60,8 +60,11 @@ end
 
 ActivationReport.CompMatrix = zeros(nContrasts, nContrasts, nLayers);
 ActivationReport.CompMatrixHist = zeros(nContrasts, nContrasts, nLayers);
-ActivationReport.KernelMatrix = cell(nContrasts, nContrasts, nLayers);
-ActivationReport.KernelMatrixHist = cell(nContrasts, nContrasts, nLayers);
+% storign the values per each kernel is too heavy for the memory
+if SaveImages
+  ActivationReport.KernelMatrix = cell(nContrasts, nContrasts, nLayers);
+  ActivationReport.KernelMatrixHist = cell(nContrasts, nContrasts, nLayers);
+end
 for i = 1:nContrasts
   contrast1 = ContrastLevels(i);
   ContrastName1 = sprintf('c%.3u', contrast1);
@@ -87,7 +90,9 @@ for i = 1:nContrasts
         KernelMatrix(k) = PerIdenticalNeurons;
         KernelMatrixSum = KernelMatrixSum + PerIdenticalNeurons;
       end
-      ActivationReport.KernelMatrix{i, j, l} = KernelMatrix;
+      if SaveImages
+        ActivationReport.KernelMatrix{i, j, l} = KernelMatrix;
+      end
       ActivationReport.CompMatrix(i, j, l) = KernelMatrixSum / chnsk;
       
       % histogram comparisons
@@ -97,7 +102,10 @@ for i = 1:nContrasts
       % Euclidean distance between histograms
       HistDiff = (hist1 - hist2) .^ 2;
       HistDiff = sqrt(sum(HistDiff, 2));
-      ActivationReport.KernelMatrixHist{i, j, l} = HistDiff;
+      
+      if SaveImages
+        ActivationReport.KernelMatrixHist{i, j, l} = HistDiff;
+      end
       ActivationReport.CompMatrixHist(i, j, l) = mean(HistDiff(:));
     end
   end
