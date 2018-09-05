@@ -1,4 +1,4 @@
-function DatasetActivationDifferentContrasts(NetwrokName, DatasetName, outdir)
+function DatasetActivationDifferentContrasts(NetwrokName, DatasetName, outdir, WhichLayers)
 
 %% Network details
 if isa(NetwrokName, 'SeriesNetwork') || isa(NetwrokName, 'DAGNetwork')
@@ -56,39 +56,56 @@ if ~exist(outdir, 'dir')
 end
 
 %% Compute activation of kernels for different contrasts
-layers = ConvInds(net, inf);
+
+if nargin < 4
+  WhichLayers = 'max';
+end
+
+if strcmpi(WhichLayers, 'conv')
+  layers = ConvInds(net, inf);
+elseif strcmpi(WhichLayers, 'max')
+  layers = MaxInds(net, 5) - 1;
+end
 
 if ~isempty(imdb)
   TestImages = uint8(imdb.images.data(:, :, :, imdb.images.set == 3));
-  ActivationReport = PerformWithImdb(net, TestImages, layers, outdir);
+  ActivationReport = PerformWithImdb(net, TestImages, layers, outdir, WhichLayers);
 else
-  ActivationReport = PerformWithImageList(net, ImageList, layers, outdir);
+  ActivationReport = PerformWithImageList(net, ImageList, layers, outdir, WhichLayers);
 end
 
 save([outdir, 'ActivationReport.mat'], 'ActivationReport');
 
 end
 
-function ActivationReport = PerformWithImdb(net, TestImages, layers, outdir)
+function ActivationReport = PerformWithImdb(net, TestImages, layers, outdir, WhichLayers)
 
 NumImages = size(TestImages, 4);
 parfor i = 1:NumImages
   inim = TestImages(:, :, :, i);
   ImageBaseName = sprintf('im%.6i', i);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
-  ActivationReport(i) = ActivationDifferentContrasts(net, inim, ImageOutDir, false, layers);
+  if strcmpi(WhichLayers, 'conv')
+    ActivationReport(i) = ActivationDifferentContrasts(net, inim, ImageOutDir, false, layers);
+  elseif strcmpi(WhichLayers, 'max')
+    ActivationReport(i) = MaxActivationDifferentContrasts(net, inim, ImageOutDir, false, layers);
+  end
 end
 
 end
 
-function ActivationReport = PerformWithImageList(net, ImageList, layers, outdir)
+function ActivationReport = PerformWithImageList(net, ImageList, layers, outdir, WhichLayers)
 
 NumImages = numel(ImageList);
 parfor i = 1:NumImages
   inim = imread([ImageList(i).folder, '/', ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
-  ActivationReport(i) = ActivationDifferentContrasts(net, inim, ImageOutDir, false, layers);
+  if strcmpi(WhichLayers, 'conv')
+    ActivationReport(i) = ActivationDifferentContrasts(net, inim, ImageOutDir, false, layers);
+  elseif strcmpi(WhichLayers, 'max')
+    ActivationReport(i) = MaxActivationDifferentContrasts(net, inim, ImageOutDir, false, layers);
+  end
 end
 
 end
