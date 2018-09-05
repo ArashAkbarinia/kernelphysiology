@@ -22,7 +22,7 @@ end
 % identical across different level of contrasts.
 inim = ResizeImageToNet(net, inim);
 
-ContrastLevels = [1, 3, 5, 7, 10, 13, 15, 30, 50, 75, 100];
+ContrastLevels = [1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100];
 
 nContrasts = numel(ContrastLevels);
 for contrast = ContrastLevels
@@ -35,6 +35,7 @@ end
 nLayers = numel(layers);
 binranges = cell(nLayers, 1);
 nEdges = 100;
+HistPercentage = 0.75;
 % computing the histograms in a range specific to a layer
 for i = nContrasts:-1:1
   contrast = ContrastLevels(i);
@@ -44,7 +45,7 @@ for i = nContrasts:-1:1
     LayerName = sprintf('l%.2u', layer);
     features = ActivationReport.cls.(ContrastName).(LayerName).features;
     if i == nContrasts
-      binranges{l} = linspace(0.75 * min(features(:)), 0.75 * max(features(:)), nEdges + 1);
+      binranges{l} = linspace(HistPercentage * min(features(:)), HistPercentage * max(features(:)), nEdges + 1);
     end
     [~, ~, chnsk] = size(features);
     KernelHistograms = zeros(chnsk, nEdges);
