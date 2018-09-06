@@ -98,7 +98,7 @@ end
 function ActivationReport = PerformWithImageList(net, ImageList, layers, outdir, WhichLayers)
 
 NumImages = numel(ImageList);
-ActivationReport = cell(NumImages);
+ActivationReport = cell(NumImages, 1);
 parfor i = 1:NumImages
   inim = imread([ImageList(i).folder, '/', ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
