@@ -78,7 +78,7 @@ for i = 1:nContrasts
       activity2 = ActivationReport.cls.(ContrastName2).(LayerName).top;
       DiffActivity = activity1 & activity2;
       % computing regional trues according to max pooling stride
-      DiffActivity = RegionalTrues(DiffActivity, net.Layers(layer + 1).Stride);
+      DiffActivity = RegionalTrues(DiffActivity, net.Layers(layer + 1).PoolSize, net.Layers(layer + 1).Stride);
       
       [rowsk, colsk, chnsk] = size(DiffActivity);
       nPixels = rowsk * colsk;
@@ -147,6 +147,16 @@ for layer = layers
   
   % to make it the same size as the one before the max pooling
   features_max = repelem(features_max, li_max.Stride(1), li_max.Stride(2), 1);
+  
+  % NOTE: when pooling size and stride mismatch
+  [rows_max, cols_max, ~] = size(features_max);
+  if cols_max ~= size(features, 2)
+    features_max(:, cols_max + 1, :) = features_max(:, cols_max, :);
+  end
+  if rows_max ~= size(features, 1)
+    features_max(rows_max + 1, :, :) = features_max(rows_max, :, :);
+  end
+  
   % finding out which pixels have been selected by max pooling
   RegionalMaxs = features == features_max;
   
@@ -173,17 +183,22 @@ end
 
 end
 
-function TrueImage = RegionalTrues(ComparisonMatrix, stride)
+function TrueImage = RegionalTrues(ComparisonMatrix, PoolSize, stride)
 
 [rows, cols, chns] = size(ComparisonMatrix);
-rows = rows / stride(1);
-cols = cols / stride(2);
+% NOTE: floor is used for when stride and max pooling size is different
+rows = floor(rows / stride(1));
+cols = floor(cols / stride(2));
 TrueImage = false(rows, cols, chns);
 
-for i = 1:stride(1)
-  for j = 1:stride(2)
-    tmp = ComparisonMatrix(i:stride(1):end, j:stride(2):end, :);
-    TrueImage = TrueImage | tmp;
+% going only till one minus the rows and cols, because pooling doesn't take
+% them
+for i = 1:stride(1):rows - stride(1)
+  erow = i + PoolSize(1) - 1;
+  for j = 1:stride(2):cols - stride(2)
+    ecol = j + PoolSize(2) - 1;
+    tmp = ComparisonMatrix(i:erow, j:ecol, :);
+    TrueImage(i:erow, j:ecol, :) = TrueImage(i:erow, j:ecol, :) | tmp;
   end
 end
 
