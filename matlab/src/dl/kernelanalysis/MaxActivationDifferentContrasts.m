@@ -45,7 +45,10 @@ for i = nContrasts:-1:1
     LayerName = sprintf('l%.2u', layer);
     features = ActivationReport.cls.(ContrastName).(LayerName).features;
     if i == nContrasts
-      binranges{l} = linspace(HistPercentage * min(features(:)), HistPercentage * max(features(:)), nEdges + 1);
+      binranges{l} = linspace(HistPercentage * min(features(:)), HistPercentage * max(features(:)), nEdges - 1);
+      % NOTE: histcounts has a bug that donese't take the values outside of
+      % the rane.
+      binranges{l} = [-inf, binranges{l}, +inf];
     end
     [~, ~, chnsk] = size(features);
     KernelHistograms = zeros(chnsk, nEdges);
@@ -168,7 +171,7 @@ for layer = layers
   
   if SaveImages
     h = figure('visible', 'off');
-    montage(LayerReport.top{2});
+    montage(LayerReport.top);
     title(['Layer ', li.Name, ' Regional Max']);
     saveas(h, sprintf('%s%s-regmax%.2u.png', outdir, prefix, layer));
     close(h);
