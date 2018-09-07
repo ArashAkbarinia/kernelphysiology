@@ -55,7 +55,10 @@ for i = nContrasts:-1:1
     KernelHistograms = zeros(chnsk, nEdges);
     for k = 1:chnsk
       CurrentKernel = features(:, :, k);
-      histvals = histcounts(CurrentKernel(:), binranges{l});
+      % when computing the histogram for the kernel we don't consider the
+      % previous ranges, we basically are interested to check whether the
+      % shape remains the same
+      histvals = histcounts(CurrentKernel(:), nEdges);
       KernelHistograms(k, :) = histvals ./ sum(histvals);
     end
     ActivationReport.cls.(ContrastName).(LayerName).histogram = KernelHistograms;
