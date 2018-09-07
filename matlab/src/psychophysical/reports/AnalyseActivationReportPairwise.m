@@ -16,23 +16,23 @@ if ~exist(PairwiseReportpPath, 'file')
   [nContrasts, ~, NumLayers] = size(ActivationReport{1}.CompMatrix);
   
   nComparisons = nContrasts - 1;
-  MaxAvgs = zeros(NumImages, nComparisons, NumLayers);
-  HistAvgsPixels = zeros(NumImages, nComparisons, NumLayers);
-  HistAvgsKernels = zeros(NumImages, nComparisons, NumLayers);
+  SameOutPixelsTop = zeros(NumImages, nComparisons, NumLayers);
+  SameOutPixelsHist = zeros(NumImages, nComparisons, NumLayers);
+  SameOutKernelsHist = zeros(NumImages, nComparisons, NumLayers);
   
   for i = 1:NumImages
     for t = 1:nComparisons
-      EqTopTmp = ContrastVsAccuracy(ActivationReport{i}, false, [1:t - 1, t + 1:nComparisons]);
+      SameOutCompare = ContrastVsAccuracy(ActivationReport{i}, false, [1:t - 1, t + 1:nComparisons]);
       
-      MaxAvgs(i, t, :) = EqTopTmp.MaxAvg;
-      HistAvgsPixels(i, t, :) = EqTopTmp.HistAvg;
-      HistAvgsKernels(i, t, :) = EqTopTmp.kernels.HistAvg;
+      SameOutPixelsTop(i, t, :) = SameOutCompare.pixels.top.avg;
+      SameOutPixelsHist(i, t, :) = SameOutCompare.pixels.hist.avg;
+      SameOutKernelsHist(i, t, :) = SameOutCompare.kernels.hist.avg;
     end
   end
   
-  PairwiseReport.avgs.max = MaxAvgs;
-  PairwiseReport.avgs.hist = HistAvgsPixels;
-  PairwiseReport.avgs.kernels.hist = HistAvgsKernels;
+  PairwiseReport.pixels.top.avg = SameOutPixelsTop;
+  PairwiseReport.pixels.hist.avg = SameOutPixelsHist;
+  PairwiseReport.kernels.hist.avg = SameOutKernelsHist;
   
   save(PairwiseReportpPath, 'PairwiseReport');
 else
@@ -41,12 +41,12 @@ else
 end
 
 %% printing the results
-fprintf('Printing for max\n');
-PrintAverageKernelMatchings(PairwiseReport.avgs.max);
-fprintf('Printing for hist\n');
-PrintAverageKernelMatchings(PairwiseReport.avgs.hist);
-fprintf('Printing for kernels hist\n');
-PrintAverageKernelMatchings(PairwiseReport.avgs.kernels.hist);
+fprintf('Printing for top pixels\n');
+PrintAverageKernelMatchings(PairwiseReport.pixels.top.avg);
+fprintf('Printing for hist pixels\n');
+PrintAverageKernelMatchings(PairwiseReport.pixels.hist.avg);
+fprintf('Printing for hist kernels\n');
+PrintAverageKernelMatchings(PairwiseReport.kernels.hist.avg);
 
 end
 

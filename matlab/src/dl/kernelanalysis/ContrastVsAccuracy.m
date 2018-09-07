@@ -28,24 +28,53 @@ else
 end
 IndsCorrectlyClassified(ExcludeList) = false;
 
-CompMatrix = ActivationReport.CompMatrix(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
-CompMatrixHist = ActivationReport.CompMatrixHist(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
-[nSelected, ~, nLayers] = size(CompMatrix);
+CompPixelsTop = ActivationReport.CompMatrix(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
+CompPixelsHist = ActivationReport.CompMatrixHist(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
+CompMatrixHistKernels = ActivationReport.kernels.CompMatrixHist(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
+[nSelected, ~, nLayers] = size(CompPixelsTop);
 
 nElements = nSelected * (nSelected - 1) / 2;
 if nElements == 0
-  MeanValMax = nan(1, nLayers);
-  MeanValHist = nan(1, nLayers);
+  PixelsTop = SetToNaN(nLayers);
+  PixelsHist = PixelsTop;
+  KernelsHist = PixelsTop;
 else
-  MeanValMax = sum(sum(CompMatrix)) ./ nElements;
-  MeanValMax = permute(MeanValMax, [1, 3, 2]);
+  NonZeroColumns = [];
   
-  MeanValHist = sum(sum(CompMatrixHist)) ./ nElements;
-  MeanValHist = permute(MeanValHist, [1, 3, 2]);
+  [PixelsTop, NonZeroColumns] = StatisticsHelper(CompPixelsTop, NonZeroColumns);
+  [PixelsHist, NonZeroColumns] = StatisticsHelper(CompPixelsHist, NonZeroColumns);
+  [KernelsHist, ~] = StatisticsHelper(CompMatrixHistKernels, NonZeroColumns);
 end
 
-AverageKernelMatching.MaxAvg = MeanValMax;
-AverageKernelMatching.HistAvg = MeanValHist;
+AverageKernelMatching.pixels.top = PixelsTop;
+AverageKernelMatching.pixels.hist = PixelsHist;
+AverageKernelMatching.kernels.hist = KernelsHist;
 AverageKernelMatching.predictions = predictions;
+
+end
+
+function ReportStatistics = SetToNaN(nLayers)
+
+ReportStatistics.avg = nan(1, nLayers);
+ReportStatistics.std = nan(1, nLayers);
+ReportStatistics.max = nan(1, nLayers);
+ReportStatistics.min = nan(1, nLayers);
+
+end
+
+function [ReportStatistics, NonZeroColumns] = StatisticsHelper(ReportMat, NonZeroColumns)
+
+[rows, cols, chns] = size(ReportMat);
+ReportMat = reshape(ReportMat, rows * cols, chns);
+if isempty(NonZeroColumns)
+  NonZeroColumns = sum(ReportMat, 2);
+  NonZeroColumns = NonZeroColumns > 0;
+end
+ReportMat = ReportMat(NonZeroColumns, :);
+
+ReportStatistics.avg = mean(ReportMat, 1);
+ReportStatistics.std = std(ReportMat, [], 1);
+ReportStatistics.max = max(ReportMat, [], 1);
+ReportStatistics.min = min(ReportMat, [], 1);
 
 end

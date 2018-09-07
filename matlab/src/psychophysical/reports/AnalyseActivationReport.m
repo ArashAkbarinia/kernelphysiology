@@ -1,4 +1,4 @@
-function [AverageKernelMatchingsEqTop, AverageKernelMatchingsAll] = AnalyseActivationReport(ActivationReportPath, DatasetName)
+function [AverageKernelMatchingsSameOut, AverageKernelMatchingsAllOut] = AnalyseActivationReport(ActivationReportPath, DatasetName)
 %AnalyseActivationReport Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -23,9 +23,9 @@ outdir = fileparts(ActivationReportPath);
 
 %% Creating the matrix contrast versus accuracy
 
-AverageKernelMatchingsEqTopPath = [outdir, '/AverageKernelMatchingsEqTop.mat'];
-AverageKernelMatchingsAllPath = [outdir, '/AverageKernelMatchingsAll.mat'];
-if ~exist(AverageKernelMatchingsEqTopPath, 'file')
+AverageKernelMatchingsSameOutPath = [outdir, '/AverageKernelMatchingsSameOut.mat'];
+AverageKernelMatchingsAllOutPath = [outdir, '/AverageKernelMatchingsAllOut.mat'];
+if ~exist(AverageKernelMatchingsSameOutPath, 'file')
   ActivationReport = load(ActivationReportPath);
   ActivationReport = ActivationReport.ActivationReport;
   
@@ -45,63 +45,70 @@ if ~exist(AverageKernelMatchingsEqTopPath, 'file')
   
   [nContrasts, ~, NumLayers] = size(ActivationReport{1}.CompMatrix);
   
-  EqTopAvgs = zeros(NumImages, NumLayers);
-  AllAvgs = zeros(NumImages, NumLayers);
-  EqTopHistAvgs = zeros(NumImages, NumLayers);
-  AllHistAvgs = zeros(NumImages, NumLayers);
+  SameOutPixelsTop = zeros(NumImages, NumLayers);
+  AllOutPixelsTop = zeros(NumImages, NumLayers);
+  SameOutPixelsHist = zeros(NumImages, NumLayers);
+  AllOutPixelsHist = zeros(NumImages, NumLayers);
+  SameOutKernelsHist = zeros(NumImages, NumLayers);
+  AllOutKernelsHist = zeros(NumImages, NumLayers);
   
   predictions = cell(NumImages, 1);
   corrects = zeros(NumImages, nContrasts);
   scores = zeros(NumImages, nContrasts);
-  parfor i = 1:NumImages
-    EqTopTmp = ContrastVsAccuracy(ActivationReport{i}, false);
-    EqTopAvgs(i, :) = EqTopTmp.MaxAvg;
-    EqTopHistAvgs(i, :) = EqTopTmp.HistAvg;
-    predictions{i} = EqTopTmp.predictions;
+  % TODO: maybe get the STDs as well.
+  for i = 1:NumImages
+    SameOutCompare = ContrastVsAccuracy(ActivationReport{i}, false);
+    SameOutPixelsTop(i, :) = SameOutCompare.pixels.top.avg;
+    SameOutPixelsHist(i, :) = SameOutCompare.pixels.hist.avg;
+    SameOutKernelsHist(i, :) = SameOutCompare.kernels.hist.avg;
+    predictions{i} = SameOutCompare.predictions;
     
-    AllTmp = ContrastVsAccuracy(ActivationReport{i}, true);
-    AllAvgs(i, :) = AllTmp.MaxAvg;
-    AllHistAvgs(i, :) = AllTmp.HistAvg;
+    AllOutCompare = ContrastVsAccuracy(ActivationReport{i}, true);
+    AllOutPixelsTop(i, :) = AllOutCompare.pixels.top.avg;
+    AllOutPixelsHist(i, :) = AllOutCompare.pixels.hist.avg;
+    AllOutKernelsHist(i, :) = AllOutCompare.kernels.hist.avg;
     
     if ~isempty(imdb)
-      MatchedAny = CheckCifar(EqTopTmp, GroundTruths(i));
+      MatchedAny = CheckCifar(SameOutCompare, GroundTruths(i));
     else
-      MatchedAny = CheckIlsvrc(EqTopTmp, GroundTruths{i});
+      MatchedAny = CheckIlsvrc(SameOutCompare, GroundTruths{i});
     end
     
     corrects(i, :) = MatchedAny';
-    scores(i, :) = cell2mat(EqTopTmp.predictions(:, 2))';
+    scores(i, :) = cell2mat(SameOutCompare.predictions(:, 2))';
   end
   
   % for those equal to top contrast
-  AverageKernelMatchingsEqTop.avgs.max = EqTopAvgs;
-  AverageKernelMatchingsEqTop.avgs.hist = EqTopHistAvgs;
-  AverageKernelMatchingsEqTop.predictions = predictions;
-  AverageKernelMatchingsEqTop.corrects = corrects;
-  AverageKernelMatchingsEqTop.scores = scores;
+  AverageKernelMatchingsSameOut.pixels.top.avg = SameOutPixelsTop;
+  AverageKernelMatchingsSameOut.pixels.hist.avg = SameOutPixelsHist;
+  AverageKernelMatchingsSameOut.kernels.hist.avg = SameOutKernelsHist;
+  AverageKernelMatchingsSameOut.predictions = predictions;
+  AverageKernelMatchingsSameOut.corrects = corrects;
+  AverageKernelMatchingsSameOut.scores = scores;
   
   % for all
-  AverageKernelMatchingsAll.avgs.max = AllAvgs;
-  AverageKernelMatchingsAll.avgs.hist = AllHistAvgs;
-  AverageKernelMatchingsAll.predictions = predictions;
-  AverageKernelMatchingsAll.corrects = corrects;
-  AverageKernelMatchingsAll.scores = scores;
+  AverageKernelMatchingsAllOut.pixels.top.avg = AllOutPixelsTop;
+  AverageKernelMatchingsAllOut.pixels.hist.avg = AllOutPixelsHist;
+  AverageKernelMatchingsAllOut.kernels.hist.avg = AllOutKernelsHist;
+  AverageKernelMatchingsAllOut.predictions = predictions;
+  AverageKernelMatchingsAllOut.corrects = corrects;
+  AverageKernelMatchingsAllOut.scores = scores;
   
-  save(AverageKernelMatchingsEqTopPath, 'AverageKernelMatchingsEqTop');
-  save(AverageKernelMatchingsAllPath, 'AverageKernelMatchingsAll');
+  save(AverageKernelMatchingsSameOutPath, 'AverageKernelMatchingsSameOut');
+  save(AverageKernelMatchingsAllOutPath, 'AverageKernelMatchingsAllOut');
 else
-  AverageKernelMatchingsEqTop = load(AverageKernelMatchingsEqTopPath);
-  AverageKernelMatchingsEqTop = AverageKernelMatchingsEqTop.AverageKernelMatchingsEqTop;
+  AverageKernelMatchingsSameOut = load(AverageKernelMatchingsSameOutPath);
+  AverageKernelMatchingsSameOut = AverageKernelMatchingsSameOut.AverageKernelMatchingsSameOut;
   
-  AverageKernelMatchingsAll = load(AverageKernelMatchingsAllPath);
-  AverageKernelMatchingsAll = AverageKernelMatchingsAll.AverageKernelMatchingsAll;
+  AverageKernelMatchingsAllOut = load(AverageKernelMatchingsAllOutPath);
+  AverageKernelMatchingsAllOut = AverageKernelMatchingsAllOut.AverageKernelMatchingsAllOut;
 end
 
 %% printing the result according to being correct or not
-fprintf('Printing for all\n');
-PrintAverageKernelMatchings(AverageKernelMatchingsAll);
-fprintf('Printing for top\n');
-PrintAverageKernelMatchings(AverageKernelMatchingsEqTop);
+fprintf('Printing for same output\n');
+PrintAverageKernelMatchings(AverageKernelMatchingsSameOut);
+fprintf('Printing for all outpout\n');
+PrintAverageKernelMatchings(AverageKernelMatchingsAllOut);
 
 end
 
@@ -135,41 +142,48 @@ if nargin < 2
 end
 
 [NumImages, NumContrasts] = size(AverageKernelMatchings.corrects);
-NumLayers = size(AverageKernelMatchings.avgs.max, 2);
+NumLayers = size(AverageKernelMatchings.pixels.top.avg, 2);
 
 %%
-for at = {'max', 'hist'}
-  AvgType = cell2mat(at);
-  fprintf('***Type: %s\n', AvgType);
-  for j = [0, 1, 2]
-    switch j
-      case 0
-        fprintf('Network being incorrect\n');
-        WhichResults = AverageKernelMatchings.corrects(:, NumContrasts) == j;
-      case 1
-        fprintf('Network being correct\n');
-        WhichResults = AverageKernelMatchings.corrects(:, NumContrasts) == j;
-      case 2
-        WhichResults = true(NumImages, 1);
-        fprintf('All results\n');
-    end
-    NonNaN = ~isnan(AverageKernelMatchings.avgs.max(:, 1));
-    WhichResults = WhichResults & NonNaN;
-    if SpecificRange
-      for i = 0:0.2:0.8
-        if i ~= 0.80
-          UpperBound = i + 0.2;
-        else
-          UpperBound = 1.0001;
-        end
-        RangeCondition = AverageKernelMatchings.scores(:, NumContrasts) >= i & AverageKernelMatchings.scores(:, NumContrasts) < UpperBound;
-        meanvals = mean(AverageKernelMatchings.avgs.(AvgType)(WhichResults & RangeCondition, :));
-        fprintf(sprintf('>=%.2f<%.2f %s\n', i, UpperBound, repmat('%.2f ', [1, NumLayers])), meanvals);
+for WhichAnalysis = {'pixels', 'kernels'}
+  AnalyseType = cell2mat(WhichAnalysis);
+  fprintf('***Analyse: %s\n', AnalyseType);
+  CurrentAnalysis = AverageKernelMatchings.(AnalyseType);
+  SupportedFileds = fields(CurrentAnalysis);
+  for at = 1:numel(SupportedFileds)
+    AvgType = SupportedFileds{at};
+    CurrentAnalysisType = CurrentAnalysis.(AvgType);
+    fprintf('*******Type: %s\n', AvgType);
+    for j = [0, 1, 2]
+      switch j
+        case 0
+          fprintf('Network being incorrect\n');
+          WhichResults = AverageKernelMatchings.corrects(:, NumContrasts) == j;
+        case 1
+          fprintf('Network being correct\n');
+          WhichResults = AverageKernelMatchings.corrects(:, NumContrasts) == j;
+        case 2
+          WhichResults = true(NumImages, 1);
+          fprintf('All results\n');
       end
-    else
-      for i = [0:0.1:0.9, 0.999]
-        meanvals = mean(AverageKernelMatchings.avgs.(AvgType)(AverageKernelMatchings.scores(:, NumContrasts) >= i & WhichResults, :));
-        fprintf(sprintf('>=%.2f %s\n', i, repmat('%.2f ', [1, NumLayers])), meanvals);
+      NonNaN = ~isnan(CurrentAnalysisType.avg(:, 1));
+      WhichResults = WhichResults & NonNaN;
+      if SpecificRange
+        for i = 0:0.2:0.8
+          if i ~= 0.80
+            UpperBound = i + 0.2;
+          else
+            UpperBound = 1.0001;
+          end
+          RangeCondition = AverageKernelMatchings.scores(:, NumContrasts) >= i & AverageKernelMatchings.scores(:, NumContrasts) < UpperBound;
+          meanvals = mean(CurrentAnalysisType.avg(WhichResults & RangeCondition, :), 1);
+          fprintf(sprintf('>=%.2f<%.2f %s\n', i, UpperBound, repmat('%.2f ', [1, NumLayers])), meanvals);
+        end
+      else
+        for i = [0:0.1:0.9, 0.999]
+          meanvals = mean(CurrentAnalysisType.avg(AverageKernelMatchings.scores(:, NumContrasts) >= i & WhichResults, :), 1);
+          fprintf(sprintf('>=%.2f %s\n', i, repmat('%.2f ', [1, NumLayers])), meanvals);
+        end
       end
     end
   end
