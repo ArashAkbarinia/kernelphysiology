@@ -7,7 +7,7 @@ if nargin < 6
 end
 if nargin < 5
   % finding out the layers before the max pooling
-  layers = MaxInds(net, 5) - 1;
+  layers = BeforeMaxInds(net, 5);
 end
 if nargin < 4
   SaveImages = true;
@@ -33,7 +33,7 @@ for contrast = ContrastLevels
   ActivationReport.cls.(ContrastName) = ProcessOneContrast(net, layers, ContrastedImage, outdir, ContrastName, SaveImages);
 end
 
-nLayers = numel(layers);
+nLayers = size(layers, 1);
 binranges = cell(nLayers, 1);
 nEdges = 100;
 HistPercentage = 0.75;
@@ -42,7 +42,7 @@ for i = nContrasts:-1:1
   contrast = ContrastLevels(i);
   ContrastName = sprintf('c%.3u', contrast);
   for l = 1:nLayers
-    layer = layers(l);
+    layer = layers(l, 1);
     LayerName = sprintf('l%.2u', layer);
     features = ActivationReport.cls.(ContrastName).(LayerName).features;
     if i == nContrasts
@@ -76,13 +76,14 @@ for i = 1:nContrasts
     contrast2 = ContrastLevels(j);
     ContrastName2 = sprintf('c%.3u', contrast2);
     for l = 1:nLayers
-      layer = layers(l);
+      layer = layers(l, 1);
+      layermax = layers(l, 2);
       LayerName = sprintf('l%.2u', layer);
       activity1 = ActivationReport.cls.(ContrastName1).(LayerName).top;
       activity2 = ActivationReport.cls.(ContrastName2).(LayerName).top;
       DiffActivity = activity1 & activity2;
       % computing regional trues according to max pooling stride
-      DiffActivity = RegionalTrues(DiffActivity, net.Layers(layer + 1).PoolSize, net.Layers(layer + 1).Stride);
+      DiffActivity = RegionalTrues(DiffActivity, net.Layers(layermax).PoolSize, net.Layers(layermax).Stride);
       
       [rowsk, colsk, chnsk] = size(DiffActivity);
       nPixels = rowsk * colsk;
@@ -139,9 +140,10 @@ function ActivationReport = ProcessOneContrast(net, layers, inim, outdir, prefix
 ActivationReport.prediction.type = char(predtype);
 ActivationReport.prediction.score = max(scores(:));
 
-for layer = layers
+for i = 1:size(layers, 1)
+  layer = layers(i, 1);
   % the max layer
-  limax = net.Layers(layer + 1);
+  limax = net.Layers(layers(i, 2));
   
   % retreiving the layer before the max pooling
   li = net.Layers(layer);

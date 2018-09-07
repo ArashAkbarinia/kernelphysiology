@@ -19,9 +19,9 @@ for i = 1:numel(net.Layers)
     if isa(net, 'DAGNetwork')
       ConnectionId = strcmpi(net.Connections.Destination, net.Layers(i).Name);
       LayerId = LayerName2Id(net, net.Connections.Source(ConnectionId));
-      BeforeMaxLayers(end + 1) = LayerId; %#ok
+      BeforeMaxLayers(end + 1, :) = [LayerId, i]; %#ok
     elseif isa(net, 'SeriesNetwork')
-      BeforeMaxLayers(end + 1) = i - 1; %#ok
+      BeforeMaxLayers(end + 1, :) = [i - 1, i]; %#ok
     else
       error('Unsopported network architecture!');
     end
