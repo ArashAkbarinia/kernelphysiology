@@ -141,28 +141,28 @@ ActivationReport.prediction.score = max(scores(:));
 
 for layer = layers
   % the max layer
-  li_max = net.Layers(layer + 1);
+  limax = net.Layers(layer + 1);
   
   % retreiving the layer before the max pooling
   li = net.Layers(layer);
   
   features = activations(net, inim, li.Name);
-  features_max = activations(net, inim, li_max.Name);
+  FeaturesMax = MaxPooling(features, limax.PoolSize, limax.Stride);
   
   % to make it the same size as the one before the max pooling
-  features_max = repelem(features_max, li_max.Stride(1), li_max.Stride(2), 1);
+  FeaturesMax = repelem(FeaturesMax, limax.Stride(1), limax.Stride(2), 1);
   
   % NOTE: when pooling size and stride mismatch
-  [rows_max, cols_max, ~] = size(features_max);
-  if cols_max ~= size(features, 2)
-    features_max(:, cols_max + 1, :) = features_max(:, cols_max, :);
+  [RowsMax, ColsMax, ~] = size(FeaturesMax);
+  if ColsMax ~= size(features, 2)
+    FeaturesMax(:, ColsMax + 1, :) = FeaturesMax(:, ColsMax, :);
   end
-  if rows_max ~= size(features, 1)
-    features_max(rows_max + 1, :, :) = features_max(rows_max, :, :);
+  if RowsMax ~= size(features, 1)
+    FeaturesMax(RowsMax + 1, :, :) = FeaturesMax(RowsMax, :, :);
   end
   
   % finding out which pixels have been selected by max pooling
-  RegionalMaxs = features == features_max;
+  RegionalMaxs = features == FeaturesMax;
   
   LayerReport.features = features;
   LayerReport.top = RegionalMaxs;
@@ -195,18 +195,45 @@ function TrueImage = RegionalTrues(ComparisonMatrix, PoolSize, stride)
 
 [rows, cols, chns] = size(ComparisonMatrix);
 % NOTE: floor is used for when stride and max pooling size is different
-rows = floor(rows / stride(1));
-cols = floor(cols / stride(2));
-TrueImage = false(rows, cols, chns);
+RowsPool = floor(rows / stride(1));
+ColsPool = floor(cols / stride(2));
+TrueImage = false(RowsPool, ColsPool, chns);
 
-% going only till one minus the rows and cols, because pooling doesn't take
-% them
-for i = 1:stride(1):rows - stride(1)
-  erow = i + PoolSize(1) - 1;
-  for j = 1:stride(2):cols - stride(2)
-    ecol = j + PoolSize(2) - 1;
-    tmp = ComparisonMatrix(i:erow, j:ecol, :);
-    TrueImage(i:erow, j:ecol, :) = TrueImage(i:erow, j:ecol, :) | tmp;
+for i = 1:PoolSize(1)
+  for j = 1:PoolSize(2)
+    maxim = ComparisonMatrix(i:stride(1):end, j:stride(2):end, :);
+    [RowsMax, ColsMax, ~] = size(maxim);
+    if ColsMax ~= ColsPool
+      maxim = maxim(:, 1:ColsMax - 1, :);
+    end
+    if RowsMax ~= RowsPool
+      maxim = maxim(1:RowsMax - 1, :, :);
+    end
+    TrueImage = TrueImage | maxim;
+  end
+end
+
+end
+
+function TrueImage = MaxPooling(FeatureMatrix, PoolSize, stride)
+
+[rows, cols, chns] = size(FeatureMatrix);
+% NOTE: floor is used for when stride and max pooling size is different
+RowsPool = floor(rows / stride(1));
+ColsPool = floor(cols / stride(2));
+TrueImage = zeros(RowsPool, ColsPool, chns);
+
+for i = 1:PoolSize(1)
+  for j = 1:PoolSize(2)
+    maxim = FeatureMatrix(i:stride(1):end, j:stride(2):end, :);
+    [RowsMax, ColsMax, ~] = size(maxim);
+    if ColsMax ~= ColsPool
+      maxim = maxim(:, 1:ColsMax - 1, :);
+    end
+    if RowsMax ~= RowsPool
+      maxim = maxim(1:RowsMax - 1, :, :);
+    end
+    TrueImage = max(TrueImage, maxim);
   end
 end
 
