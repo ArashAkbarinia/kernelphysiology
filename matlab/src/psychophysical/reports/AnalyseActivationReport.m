@@ -43,7 +43,7 @@ if ~exist(AverageKernelMatchingsEqTopPath, 'file')
     end
   end
   
-  [nContrasts, ~, NumLayers] = size(ActivationReport(1).CompMatrix);
+  [nContrasts, ~, NumLayers] = size(ActivationReport{1}.CompMatrix);
   
   EqTopAvgs = zeros(NumImages, NumLayers);
   AllAvgs = zeros(NumImages, NumLayers);
@@ -54,12 +54,12 @@ if ~exist(AverageKernelMatchingsEqTopPath, 'file')
   corrects = zeros(NumImages, nContrasts);
   scores = zeros(NumImages, nContrasts);
   parfor i = 1:NumImages
-    EqTopTmp = ContrastVsAccuracy(ActivationReport(i), false);
+    EqTopTmp = ContrastVsAccuracy(ActivationReport{i}, false);
     EqTopAvgs(i, :) = EqTopTmp.MaxAvg;
     EqTopHistAvgs(i, :) = EqTopTmp.HistAvg;
     predictions{i} = EqTopTmp.predictions;
     
-    AllTmp = ContrastVsAccuracy(ActivationReport(i), true);
+    AllTmp = ContrastVsAccuracy(ActivationReport{i}, true);
     AllAvgs(i, :) = AllTmp.MaxAvg;
     AllHistAvgs(i, :) = AllTmp.HistAvg;
     
