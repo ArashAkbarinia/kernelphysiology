@@ -42,6 +42,7 @@ elseif strcmpi(DatasetName, 'ilsvrc2017')
   ImageList = dir(sprintf('%s*.JPEG', DatasetPath));
 elseif strcmpi(DatasetName, 'ilsvrc-test')
   DatasetPath = '/home/ImageNet/Val_Images_RGB/';
+%   DatasetPath = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2012/Val_Images_RGB/';
   ImageList = dir(sprintf('%s*.png', DatasetPath));
 elseif strcmpi(DatasetName, 'cifar10')
   imdb = load('/home/arash/Software/repositories/kernelphysiology/matlab/data/datasets/cifar/cifar10/imdb-org.mat');
@@ -64,7 +65,7 @@ end
 if strcmpi(WhichLayers, 'conv')
   layers = ConvInds(net, inf);
 elseif strcmpi(WhichLayers, 'max')
-  layers = MaxInds(net, 5) - 1;
+  layers = BeforeMaxInds(net, 5);
 end
 
 if ~isempty(imdb)
@@ -85,7 +86,7 @@ ActivationReport = cell(NumImages);
 parfor i = 1:NumImages
   inim = TestImages(:, :, :, i);
   ImageBaseName = sprintf('im%.6i', i);
-  ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
+  ImageOutDir = sprintf('%s%s/%s/', outdir, WhichLayers, ImageBaseName);
   if strcmpi(WhichLayers, 'conv')
     ActivationReport{i} = ActivationDifferentContrasts(net, inim, ImageOutDir, false, layers);
   elseif strcmpi(WhichLayers, 'max')
@@ -102,7 +103,7 @@ ActivationReport = cell(NumImages, 1);
 parfor i = 1:NumImages
   inim = imread([ImageList(i).folder, '/', ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
-  ImageOutDir = sprintf('%s%s/', outdir, ImageBaseName);
+  ImageOutDir = sprintf('%s%s/%s/', outdir, WhichLayers, ImageBaseName);
   if strcmpi(WhichLayers, 'conv')
     ActivationReport{i} = ActivationDifferentContrasts(net, inim, ImageOutDir, false, layers);
   elseif strcmpi(WhichLayers, 'max')
