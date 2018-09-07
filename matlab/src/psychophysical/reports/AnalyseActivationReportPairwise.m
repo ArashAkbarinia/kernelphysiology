@@ -13,23 +13,26 @@ if ~exist(PairwiseReportpPath, 'file')
   
   NumImages = numel(ActivationReport);
   
-  [nContrasts, ~, NumLayers] = size(ActivationReport(1).CompMatrix);
+  [nContrasts, ~, NumLayers] = size(ActivationReport{1}.CompMatrix);
   
   nComparisons = nContrasts - 1;
   MaxAvgs = zeros(NumImages, nComparisons, NumLayers);
-  HistAvgs = zeros(NumImages, nComparisons, NumLayers);
+  HistAvgsPixels = zeros(NumImages, nComparisons, NumLayers);
+  HistAvgsKernels = zeros(NumImages, nComparisons, NumLayers);
   
-  parfor i = 1:NumImages
+  for i = 1:NumImages
     for t = 1:nComparisons
-      EqTopTmp = ContrastVsAccuracy(ActivationReport(i), false, [1:t - 1, t + 1:nComparisons]);
+      EqTopTmp = ContrastVsAccuracy(ActivationReport{i}, false, [1:t - 1, t + 1:nComparisons]);
       
       MaxAvgs(i, t, :) = EqTopTmp.MaxAvg;
-      HistAvgs(i, t, :) = EqTopTmp.HistAvg;
+      HistAvgsPixels(i, t, :) = EqTopTmp.HistAvg;
+      HistAvgsKernels(i, t, :) = EqTopTmp.kernels.HistAvg;
     end
   end
   
   PairwiseReport.avgs.max = MaxAvgs;
-  PairwiseReport.avgs.hist = HistAvgs;
+  PairwiseReport.avgs.hist = HistAvgsPixels;
+  PairwiseReport.avgs.kernels.hist = HistAvgsKernels;
   
   save(PairwiseReportpPath, 'PairwiseReport');
 else
@@ -42,6 +45,8 @@ fprintf('Printing for max\n');
 PrintAverageKernelMatchings(PairwiseReport.avgs.max);
 fprintf('Printing for hist\n');
 PrintAverageKernelMatchings(PairwiseReport.avgs.hist);
+fprintf('Printing for kernels hist\n');
+PrintAverageKernelMatchings(PairwiseReport.avgs.kernels.hist);
 
 end
 
@@ -51,7 +56,7 @@ function PrintAverageKernelMatchings(PairwiseReport)
 
 for i = 1:nComparisons
   NonNaN = ~isnan(PairwiseReport(:, i, 1));
-  meanvals = mean(PairwiseReport(NonNaN, i, :));
+  meanvals = mean(PairwiseReport(NonNaN, i, :), 1);
   fprintf(sprintf('%s\n', repmat('%.2f ', [1, nLayers])), meanvals);
 end
 
