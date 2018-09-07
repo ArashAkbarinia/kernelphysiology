@@ -1,7 +1,10 @@
-function ActivationReport = ActivationDifferentContrasts(net, inim, outdir, SaveImages, layers)
+function ActivationReport = ActivationDifferentContrasts(net, inim, outdir, SaveImages, layers, ContrastLevels)
 %ActivationDifferentContrasts Summary of this function goes here
 %   Detailed explanation goes here
 
+if nargin < 6
+  ContrastLevels = [1, 3, 5, 7, 10, 13, 15, 30, 50, 75, 100];
+end
 if nargin < 5
   layers = ConvInds(net, 5);
 end
@@ -19,8 +22,6 @@ elseif exist(sprintf('%sActivationReport.mat', outdir), 'file')
 end
 
 inim = ResizeImageToNet(net, inim);
-
-ContrastLevels = [1, 3, 5, 7, 10, 13, 15, 30, 50, 75, 100];
 
 nContrasts = numel(ContrastLevels);
 for contrast = ContrastLevels

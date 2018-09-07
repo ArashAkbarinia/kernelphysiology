@@ -1,7 +1,10 @@
-function ActivationReport = MaxActivationDifferentContrasts(net, inim, outdir, SaveImages, layers)
+function ActivationReport = MaxActivationDifferentContrasts(net, inim, outdir, SaveImages, layers, ContrastLevels)
 %MaxActivationDifferentContrasts  computing the activity of layers before
 %                                 max pooling.
 
+if nargin < 6
+  ContrastLevels = [5, 15, 30, 50, 75, 100];
+end
 if nargin < 5
   % finding out the layers before the max pooling
   layers = MaxInds(net, 5) - 1;
@@ -21,8 +24,6 @@ end
 
 % identical across different level of contrasts.
 inim = ResizeImageToNet(net, inim);
-
-ContrastLevels = [5, 15, 30, 50, 75, 100];
 
 nContrasts = numel(ContrastLevels);
 for contrast = ContrastLevels
@@ -171,13 +172,17 @@ for layer = layers
   
   if SaveImages
     h = figure('visible', 'off');
-    montage(LayerReport.top);
+    minval = min(min(LayerReport.top));
+    maxval = max(max(LayerReport.top));
+    montage(NormaliseChannel(LayerReport.top, 0, 1, minval, maxval));
     title(['Layer ', li.Name, ' Regional Max']);
     saveas(h, sprintf('%s%s-regmax%.2u.png', outdir, prefix, layer));
     close(h);
     
     h = figure('visible', 'off');
-    montage(features);
+    minval = min(min(features));
+    maxval = max(max(features));
+    montage(NormaliseChannel(features, 0, 1, minval, maxval));
     title(['Layer ', li.Name, ' Activities']);
     saveas(h, sprintf('%s%s-montage%.2u.png', outdir, prefix, layer));
     close(h);
