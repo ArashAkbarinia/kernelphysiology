@@ -33,6 +33,8 @@ end
 
 nLayers = numel(layers);
 binranges = cell(nLayers, 1);
+nEdges = 100;
+HistPercentage = 0.75;
 % computing the histograms in a range specific to a layer
 for i = nContrasts:-1:1
   contrast = ContrastLevels(i);
@@ -42,7 +44,10 @@ for i = nContrasts:-1:1
     LayerName = sprintf('l%.2u', layer);
     features = ActivationReport.cls.(ContrastName).(LayerName).features;
     if i == nContrasts
-      binranges{l} = linspace(0.75 * min(features(:)), 0.75 * max(features(:)), 100);
+      binranges{l} = linspace(HistPercentage * min(features(:)), HistPercentage * max(features(:)), nEdges - 1);
+      % NOTE: histcounts has a bug that donese't take the values outside of
+      % the rane.
+      binranges{l} = [-inf, binranges{l}, +inf];
     end
     histvals = histc(features, binranges{l}, 3);
     histvals = histvals ./ sum(histvals, 3);
