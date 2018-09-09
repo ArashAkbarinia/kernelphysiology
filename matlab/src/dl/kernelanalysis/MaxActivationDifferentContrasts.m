@@ -88,8 +88,13 @@ for i = 1:nContrasts
       % computing regional trues according to max pooling stride
       DiffActivity = RegionalTrues(DiffActivity, net.Layers(layermax));
       
+      % size of the pooled matrix is size of all the regions devided by the
+      % pooling size
       [rowsk, colsk, chnsk] = size(DiffActivity);
+      rowsk = rowsk / net.Layers(layermax).PoolSize(1);
+      colsk = colsk / net.Layers(layermax).PoolSize(2);
       nPixels = rowsk * colsk;
+      
       KernelMatrix = zeros(chnsk);
       KernelMatrixSum = 0;
       for k = 1:chnsk
@@ -159,20 +164,7 @@ for i = 1:size(layers, 1)
     disp(num2str(sum(features_max(:) - FeaturesMax(:))))
   end
   
-  % to make it the same size as the one before the max pooling
-  FeaturesMax = repelem(FeaturesMax, limax.Stride(1), limax.Stride(2), 1);
-  
-  % NOTE: when pooling size and stride mismatch
-  [RowsMax, ColsMax, ~] = size(FeaturesMax);
-  if ColsMax ~= size(features, 2)
-    FeaturesMax(:, ColsMax + 1, :) = FeaturesMax(:, ColsMax, :);
-  end
-  if RowsMax ~= size(features, 1)
-    FeaturesMax(RowsMax + 1, :, :) = FeaturesMax(RowsMax, :, :);
-  end
-  
-  % finding out which pixels have been selected by max pooling
-  RegionalMaxs = features == FeaturesMax;
+  RegionalMaxs = FindRegionalMaxes(FeaturesMax, features, limax);
   
   LayerReport.features = features;
   LayerReport.top = RegionalMaxs;
@@ -203,17 +195,17 @@ end
 
 function TrueImage = RegionalTrues(ComparisonMatrix, limax)
 
-TrueImage = RegionalPooling(ComparisonMatrix, limax, 'or');
+TrueImage = FindAnyMaxRegion(ComparisonMatrix, limax);
 
 end
 
 function TrueImage = MaxPooling(FeatureMatrix, limax)
 
-TrueImage = RegionalPooling(FeatureMatrix, limax, 'max');
+TrueImage = RegionalPooling(FeatureMatrix, limax);
 
 end
 
-function TrueImage = RegionalPooling(FeatureMatrix, limax, OperationType)
+function TrueImage = RegionalPooling(FeatureMatrix, limax)
 
 PoolSize = limax.PoolSize;
 stride = limax.Stride;
@@ -221,18 +213,7 @@ padding = limax.PaddingSize;
 
 [rows, cols, chns] = size(FeatureMatrix);
 
-if padding(1) > 0
-  FeatureMatrix = cat(1, FeatureMatrix(1:padding(1), :, :), FeatureMatrix);
-end
-if padding(2) > 0
-  FeatureMatrix = cat(1, FeatureMatrix, FeatureMatrix(rows - padding(2) + 1:rows, :, :));
-end
-if padding(3) > 0
-  FeatureMatrix = cat(2, FeatureMatrix(:, 1:padding(3), :), FeatureMatrix);
-end
-if padding(4) > 0
-  FeatureMatrix = cat(2, FeatureMatrix, FeatureMatrix(:, cols - padding(4) + 1:cols, :));
-end
+FeatureMatrix = AddPadding(FeatureMatrix, padding);
 
 % NOTE: floor is used for when stride and max pooling size is different
 RowsPool = floor(rows / stride(1));
@@ -257,12 +238,88 @@ for i = 1:PoolSize(1)
       RowDiff = abs(RowDiff);
       maxim(RowsMax + 1:RowsMax + RowDiff, 1:ColsMax, :) = FeatureMatrix(rows - RowDiff + 1:rows, j:stride(2):end, :);
     end
-    if strcmpi(OperationType, 'max')
-      TrueImage = max(TrueImage, maxim);
-    elseif strcmpi(OperationType, 'or')
-      TrueImage = TrueImage | maxim;
-    end
+    TrueImage = max(TrueImage, maxim);
   end
+end
+
+end
+
+function RegionalMax = FindRegionalMaxes(FeaturesMax, FeatureMatrix, limax)
+
+PoolSize = limax.PoolSize;
+stride = limax.Stride;
+padding = limax.PaddingSize;
+
+[rows, cols, chns] = size(FeatureMatrix);
+
+FeatureMatrix = AddPadding(FeatureMatrix, padding);
+
+[RowsPool, ColsPool, ~] = size(FeaturesMax);
+
+% a logical matrix that presents which pixels have been the most activated
+% one within their region
+RegionalMax = false(RowsPool * PoolSize(1), ColsPool * PoolSize(2), chns);
+
+for i = 1:PoolSize(1)
+  for j = 1:PoolSize(2)
+    maxim = FeatureMatrix(i:stride(1):end, j:stride(2):end, :);
+    [RowsMax, ColsMax, ~] = size(maxim);
+    ColDiff = ColsMax - ColsPool;
+    if ColDiff > 0
+      maxim = maxim(:, 1:ColsMax - ColDiff, :);
+    elseif ColDiff < 0
+      ColDiff = abs(ColDiff);
+      maxim(1:RowsMax, ColsMax + 1:ColsMax + ColDiff, :) = FeatureMatrix(i:stride(1):end, cols - ColDiff + 1:cols, :);
+    end
+    RowDiff = RowsMax - RowsPool;
+    if RowDiff > 0
+      maxim = maxim(1:RowsMax - RowDiff, :, :);
+    elseif RowDiff < 0
+      RowDiff = abs(RowDiff);
+      maxim(RowsMax + 1:RowsMax + RowDiff, 1:ColsMax, :) = FeatureMatrix(rows - RowDiff + 1:rows, j:stride(2):end, :);
+    end
+    CurrentMax = FeaturesMax == maxim;
+    
+    RegionalMax(i:PoolSize(1):end, j:PoolSize(2):end, :) = RegionalMax(i:PoolSize(1):end, j:PoolSize(2):end, :) | CurrentMax;
+  end
+end
+
+end
+
+function RegionalMax = FindAnyMaxRegion(FeaturesMax, limax)
+
+PoolSize = limax.PoolSize;
+
+[rows, cols, chns] = size(FeaturesMax);
+
+% a logical matrix that presents which pixels have been the most activated
+% one within their region
+RegionalMax = false(rows / PoolSize(1), cols / PoolSize(2), chns);
+
+for i = 1:PoolSize(1)
+  for j = 1:PoolSize(2)
+    maxim = FeaturesMax(i:PoolSize(1):end, j:PoolSize(2):end, :);
+    RegionalMax = RegionalMax | maxim;
+  end
+end
+
+end
+
+function inmat = AddPadding(inmat, padding)
+
+[rows, cols, ~] = size(inmat);
+
+if padding(1) > 0
+  inmat = cat(1, inmat(1:padding(1), :, :), inmat);
+end
+if padding(2) > 0
+  inmat = cat(1, inmat, inmat(rows - padding(2) + 1:rows, :, :));
+end
+if padding(3) > 0
+  inmat = cat(2, inmat(:, 1:padding(3), :), inmat);
+end
+if padding(4) > 0
+  inmat = cat(2, inmat, inmat(:, cols - padding(4) + 1:cols, :));
 end
 
 end
