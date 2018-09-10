@@ -22,8 +22,8 @@ else
 end
 
 %% printing the results
-[AverageKernelMatchings, ~] = AnalyseActivationReport(ActivationReportPath, DatasetName, false);
-corrects = AverageKernelMatchings.corrects(:, end);
+AverageKernelMatchings = AnalyseActivationReport(ActivationReportPath, DatasetName, false);
+corrects = AverageKernelMatchings.same.out.corrects(:, end);
 
 fprintf('**** Same results\n');
 PrintOneType(PairwiseReport.same, corrects);
@@ -36,48 +36,42 @@ end
 
 function PrintOneType(PairwiseReport, corrects)
 
-fprintf('Printing for top pixels\n');
-fprintf('- All\n');
-PrintAverageKernelMatchings(PairwiseReport.pixels.top.avg);
-fprintf('-Corrects\n');
-PrintAverageKernelMatchings(PairwiseReport.pixels.top.avg, corrects);
-fprintf('Printing for hist pixels\n');
-fprintf('All\n');
-PrintAverageKernelMatchings(PairwiseReport.pixels.hist.avg);
-fprintf('-Corrects\n');
-PrintAverageKernelMatchings(PairwiseReport.pixels.hist.avg, corrects);
-fprintf('Printing for hist kernels\n');
-fprintf('All\n');
-PrintAverageKernelMatchings(PairwiseReport.kernels.hist.avg);
-fprintf('-Corrects\n');
-PrintAverageKernelMatchings(PairwiseReport.kernels.hist.avg, corrects);
+metrices = fields(PairwiseReport.metrices);
+nMetrices = numel(metrices);
+for i = 1:nMetrices
+  fprintf('**** Results for %s ****\n', metrices{i});
+  fprintf('- All\n');
+  PrintAverageKernelMatchings(PairwiseReport.metrices.(metrices{i}).avg);
+  fprintf('-Corrects\n');
+  PrintAverageKernelMatchings(PairwiseReport.metrices.(metrices{i}).avg, corrects);
+end
 
 end
 
 function PairwiseReport = ProcessOneType(ActivationReport, WhichRype)
 
-NumImages = numel(ActivationReport);
-
-[nContrasts, ~, NumLayers] = size(ActivationReport{1}.CompMatrix);
+data = ActivationReport.data;
+nImages = ActivationReport.info.nImages;
+nContrasts = ActivationReport.info.nContrasts;
+nLayers = ActivationReport.info.nLayers;
 
 nComparisons = nContrasts - 1;
-SameOutPixelsTop = zeros(NumImages, nComparisons, NumLayers);
-SameOutPixelsHist = zeros(NumImages, nComparisons, NumLayers);
-SameOutKernelsHist = zeros(NumImages, nComparisons, NumLayers);
 
-parfor i = 1:NumImages
-  for t = 1:nComparisons
-    SameOutCompare = ContrastVsAccuracy(ActivationReport{i}, WhichRype, [1:t - 1, t + 1:nComparisons]);
-    
-    SameOutPixelsTop(i, t, :) = SameOutCompare.pixels.top.avg;
-    SameOutPixelsHist(i, t, :) = SameOutCompare.pixels.hist.avg;
-    SameOutKernelsHist(i, t, :) = SameOutCompare.kernels.hist.avg;
-  end
+metrices = fields(data{1}.metrices);
+nMetrices = numel(metrices);
+for i = 1:nMetrices
+  PairwiseReport.metrices.(metrices{i}).avg = zeros(nImages, nComparisons, nLayers);
 end
 
-PairwiseReport.pixels.top.avg = SameOutPixelsTop;
-PairwiseReport.pixels.hist.avg = SameOutPixelsHist;
-PairwiseReport.kernels.hist.avg = SameOutKernelsHist;
+for i = 1:nImages
+  for t = 1:nComparisons
+    ComparisonReport = ContrastVsAccuracy(data{i}, WhichRype, [1:t - 1, t + 1:nComparisons]);
+    
+    for k = 1:nMetrices
+      PairwiseReport.metrices.(metrices{k}).avg(i, t, :) = ComparisonReport.metrices.(metrices{k}).avg;
+    end
+  end
+end
 
 end
 

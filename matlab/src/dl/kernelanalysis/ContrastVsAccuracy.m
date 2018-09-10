@@ -1,4 +1,4 @@
-function AverageKernelMatching = ContrastVsAccuracy(ActivationReport, WhichResults, ExcludeList)
+function ComparisonReport = ContrastVsAccuracy(ActivationReport, WhichResults, ExcludeList)
 %ContrastVsAccuracy Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -31,28 +31,26 @@ elseif strcmpi(WhichResults, 'diff')
 end
 IndsCorrectlyClassified(ExcludeList) = false;
 
-CompPixelsTop = ActivationReport.CompMatrix(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
-CompPixelsHist = ActivationReport.CompMatrixHist(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
-CompMatrixHistKernels = ActivationReport.kernels.CompMatrixHist(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
-[nSelected, ~, nLayers] = size(CompPixelsTop);
+metrices = fields(ActivationReport.metrices);
 
-nElements = nSelected * (nSelected - 1) / 2;
-if nElements == 0
-  PixelsTop = SetToNaN(nLayers);
-  PixelsHist = PixelsTop;
-  KernelsHist = PixelsTop;
-else
-  NonZeroColumns = [];
+NonZeroColumns = [];
+for i = 1:numel(metrices)
+  CurrentMetricName = metrices{i};
+  CurrentMetricMat = ActivationReport.metrices.(CurrentMetricName)(IndsCorrectlyClassified, IndsCorrectlyClassified, :);
   
-  [PixelsTop, NonZeroColumns] = StatisticsHelper(CompPixelsTop, NonZeroColumns);
-  [PixelsHist, NonZeroColumns] = StatisticsHelper(CompPixelsHist, NonZeroColumns);
-  [KernelsHist, ~] = StatisticsHelper(CompMatrixHistKernels, NonZeroColumns);
+  [nSelected, ~, nLayers] = size(CurrentMetricMat);
+  
+  nElements = nSelected * (nSelected - 1) / 2;
+  if nElements == 0
+    CurrentMetricReport = SetToNaN(nLayers);
+  else
+    [CurrentMetricReport, NonZeroColumns] = StatisticsHelper(CurrentMetricMat, NonZeroColumns);
+  end
+  
+  ComparisonReport.metrices.(CurrentMetricName) = CurrentMetricReport;
 end
 
-AverageKernelMatching.pixels.top = PixelsTop;
-AverageKernelMatching.pixels.hist = PixelsHist;
-AverageKernelMatching.kernels.hist = KernelsHist;
-AverageKernelMatching.predictions = predictions;
+ComparisonReport.predictions = predictions;
 
 end
 
