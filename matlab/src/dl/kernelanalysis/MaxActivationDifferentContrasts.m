@@ -92,17 +92,15 @@ for i = 1:nContrasts
       nPixels = rowsk * colsk;
       
       KernelMatrix = zeros(chnsk, 1);
-      KernelMatrixSum = 0;
       for k = 1:chnsk
         CurrentKernel = DiffActivity(:, :, k);
         PerIdenticalNeurons = sum(CurrentKernel(:)) / nPixels;
-        KernelMatrix(k) = PerIdenticalNeurons;
-        KernelMatrixSum = KernelMatrixSum + PerIdenticalNeurons;
+        KernelMatrix(k, 1) = PerIdenticalNeurons;
       end
       if SaveImages
         ActivationReport.KernelMatrix{i, j, l} = KernelMatrix;
       end
-      ActivationReport.CompMatrix(i, j, l) = KernelMatrixSum / chnsk;
+      ActivationReport.CompMatrix(i, j, l) = mean(KernelMatrix);
       
       % histogram comparisons
       hist1 = ActivationReport.cls.(ContrastName1).(LayerName).histogram;
