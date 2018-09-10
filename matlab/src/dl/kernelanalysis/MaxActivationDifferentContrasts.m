@@ -88,11 +88,7 @@ for i = 1:nContrasts
       % computing regional trues according to max pooling stride
       DiffActivity = RegionalTrues(DiffActivity, net.Layers(layermax));
       
-      % size of the pooled matrix is size of all the regions devided by the
-      % pooling size
       [rowsk, colsk, chnsk] = size(DiffActivity);
-      rowsk = rowsk / net.Layers(layermax).PoolSize(1);
-      colsk = colsk / net.Layers(layermax).PoolSize(2);
       nPixels = rowsk * colsk;
       
       KernelMatrix = zeros(chnsk);
@@ -158,11 +154,6 @@ for i = 1:size(layers, 1)
   
   features = activations(net, inim, li.Name);
   FeaturesMax = MaxPooling(features, limax);
-  features_max = activations(net, inim, limax.Name);
-  
-  if sum(features_max(:) - FeaturesMax(:)) ~= 0
-    disp(num2str(sum(features_max(:) - FeaturesMax(:))))
-  end
   
   RegionalMaxs = FindRegionalMaxes(FeaturesMax, features, limax);
   
