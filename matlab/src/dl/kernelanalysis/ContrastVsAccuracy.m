@@ -1,4 +1,4 @@
-function AverageKernelMatching = ContrastVsAccuracy(ActivationReport, ConsiderAll, ExcludeList)
+function AverageKernelMatching = ContrastVsAccuracy(ActivationReport, WhichResults, ExcludeList)
 %ContrastVsAccuracy Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,7 +6,7 @@ if nargin < 3
   ExcludeList = [];
 end
 if nargin < 2
-  ConsiderAll = true;
+  WhichResults = 'all';
 end
 
 ContrastNames = fieldnames(ActivationReport.cls);
@@ -19,12 +19,15 @@ for i = 1:nContrasts
   predictions{i, 2} = ActivationReport.cls.(ContrastNames{i}).prediction.score;
 end
 
-if ConsiderAll
+if strcmpi(WhichResults, 'all')
   IndsCorrectlyClassified = true(nContrasts, 1);
-else
+elseif strcmpi(WhichResults, 'same')
   ClassType = predictions{nContrasts, 1};
-  
-  IndsCorrectlyClassified = strcmp(predictions(:, 1), ClassType);
+  IndsCorrectlyClassified = strcmpi(predictions(:, 1), ClassType);
+elseif strcmpi(WhichResults, 'diff')
+  ClassType = predictions{nContrasts, 1};
+  IndsCorrectlyClassified = ~strcmpi(predictions(:, 1), ClassType);
+  IndsCorrectlyClassified(nContrasts) = true;
 end
 IndsCorrectlyClassified(ExcludeList) = false;
 

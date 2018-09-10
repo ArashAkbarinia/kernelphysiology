@@ -1,6 +1,10 @@
-function [AverageKernelMatchingsSameOut, AverageKernelMatchingsAllOut] = AnalyseActivationReport(ActivationReportPath, DatasetName)
+function [AverageKernelMatchingsSameOut, AverageKernelMatchingsAllOut] = AnalyseActivationReport(ActivationReportPath, DatasetName, PrintResults)
 %AnalyseActivationReport Summary of this function goes here
 %   Detailed explanation goes here
+
+if nargin < 3
+  PrintResults = true;
+end
 
 % for now we only have groundtruth for ilsvrc-test and cifars
 
@@ -57,13 +61,13 @@ if ~exist(AverageKernelMatchingsSameOutPath, 'file')
   scores = zeros(NumImages, nContrasts);
   % TODO: maybe get the STDs as well.
   for i = 1:NumImages
-    SameOutCompare = ContrastVsAccuracy(ActivationReport{i}, false);
+    SameOutCompare = ContrastVsAccuracy(ActivationReport{i}, 'same');
     SameOutPixelsTop(i, :) = SameOutCompare.pixels.top.avg;
     SameOutPixelsHist(i, :) = SameOutCompare.pixels.hist.avg;
     SameOutKernelsHist(i, :) = SameOutCompare.kernels.hist.avg;
     predictions{i} = SameOutCompare.predictions;
     
-    AllOutCompare = ContrastVsAccuracy(ActivationReport{i}, true);
+    AllOutCompare = ContrastVsAccuracy(ActivationReport{i}, 'all');
     AllOutPixelsTop(i, :) = AllOutCompare.pixels.top.avg;
     AllOutPixelsHist(i, :) = AllOutCompare.pixels.hist.avg;
     AllOutKernelsHist(i, :) = AllOutCompare.kernels.hist.avg;
@@ -105,10 +109,12 @@ else
 end
 
 %% printing the result according to being correct or not
-fprintf('Printing for same output\n');
-PrintAverageKernelMatchings(AverageKernelMatchingsSameOut);
-fprintf('Printing for all outpout\n');
-PrintAverageKernelMatchings(AverageKernelMatchingsAllOut);
+if PrintResults
+  fprintf('Printing for same output\n');
+  PrintAverageKernelMatchings(AverageKernelMatchingsSameOut);
+  fprintf('Printing for all outpout\n');
+  PrintAverageKernelMatchings(AverageKernelMatchingsAllOut);
+end
 
 end
 
