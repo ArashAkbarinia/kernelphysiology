@@ -16,7 +16,7 @@ end
 MaxLayers = [];
 for i = 1:numel(net.Layers)
   if isa(net.Layers(i), 'nnet.cnn.layer.MaxPooling2DLayer')
-    MaxLayers(end + 1) = i; %#ok
+    MaxLayers(end + 1, 1) = i; %#ok
     if numel(MaxLayers) == topn
       return;
     end

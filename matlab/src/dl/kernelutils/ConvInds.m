@@ -16,7 +16,7 @@ end
 ConvLayers = [];
 for i = 1:numel(net.Layers)
   if isa(net.Layers(i), 'nnet.cnn.layer.Convolution2DLayer')
-    ConvLayers(end + 1) = i; %#ok
+    ConvLayers(end + 1, 1) = i; %#ok
     if numel(ConvLayers) == topn
       return;
     end
