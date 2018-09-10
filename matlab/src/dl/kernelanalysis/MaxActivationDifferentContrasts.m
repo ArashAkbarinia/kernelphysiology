@@ -91,7 +91,7 @@ for i = 1:nContrasts
       [rowsk, colsk, chnsk] = size(DiffActivity);
       nPixels = rowsk * colsk;
       
-      KernelMatrix = zeros(chnsk);
+      KernelMatrix = zeros(chnsk, 1);
       KernelMatrixSum = 0;
       for k = 1:chnsk
         CurrentKernel = DiffActivity(:, :, k);
@@ -165,9 +165,7 @@ for i = 1:size(layers, 1)
   
   if SaveImages
     h = figure('visible', 'off');
-    minval = min(min(LayerReport.top));
-    maxval = max(max(LayerReport.top));
-    montage(NormaliseChannel(LayerReport.top, 0, 1, minval, maxval));
+    montage(LayerReport.top);
     title(['Layer ', li.Name, ' Regional Max']);
     saveas(h, sprintf('%s%s-regmax%.2u.png', outdir, prefix, layer));
     close(h);
