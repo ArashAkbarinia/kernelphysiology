@@ -23,8 +23,8 @@ end
 
 ReportPath = sprintf('%sActivationReport.mat', outdir);
 if exist(ReportPath, 'file')
-%   ActivationReport = load(ReportPath);
-%   return;
+  ActivationReport = load(ReportPath);
+  return;
 end
 
 % identical across different level of contrasts.
@@ -40,8 +40,10 @@ end
 
 nLayers = size(layers, 1);
 
-CompMatrixCorrMed = zeros(nContrasts, nContrasts, nLayers);
-CompMatrixCorrAvg = zeros(nContrasts, nContrasts, nLayers);
+PixelCorrMed = zeros(nContrasts, nContrasts, nLayers);
+PixelCorrAvg = zeros(nContrasts, nContrasts, nLayers);
+KernelCorrMed = zeros(nContrasts, nContrasts, nLayers);
+KernelCorrAvg = zeros(nContrasts, nContrasts, nLayers);
 for i = 1:nContrasts
   contrast1 = ContrastLevels(i);
   ContrastName1 = sprintf('c%.3u', contrast1);
@@ -56,21 +58,30 @@ for i = 1:nContrasts
       f1 = ActivationReport.cls.(ContrastName1).(LayerName).features;
       f2 = ActivationReport.cls.(ContrastName2).(LayerName).features;
       
+      % computing the correlation along the pixels for a kernel
       chnsk = size(f1, 3);
-      CorrMatrix = zeros(chnsk, 1);
+      KernelCorrMatrix = zeros(chnsk, 1);
       for k = 1:chnsk
-        CorrMatrix(k, 1) = corr2(f1(:, :, k), f2(:, :, k));
+        KernelCorrMatrix(k, 1) = corr2(f1(:, :, k), f2(:, :, k));
       end
       % replacing the NaNs with 0, otherwise we can take mean or median.
-      CorrMatrix(isnan(CorrMatrix)) = 0;
-      CompMatrixCorrMed(i, j, l) = median(CorrMatrix);
-      CompMatrixCorrAvg(i, j, l) = mean(CorrMatrix);
+      KernelCorrMatrix(isnan(KernelCorrMatrix)) = 0;
+      PixelCorrMed(i, j, l) = median(KernelCorrMatrix);
+      PixelCorrAvg(i, j, l) = mean(KernelCorrMatrix);
+      
+      % computing the correlation along the kernels for a pixel
+      PixelCorrMatrix = corr3(f1, f2);
+      PixelCorrMatrix(isnan(PixelCorrMatrix)) = 0;
+      KernelCorrMed(i, j, l) = median(PixelCorrMatrix(:));
+      KernelCorrAvg(i, j, l) = mean(PixelCorrMatrix(:));
     end
   end
 end
 
-ActivationReport.metrices.CompMatrixCorrMed = CompMatrixCorrMed;
-ActivationReport.metrices.CompMatrixCorrAvg = CompMatrixCorrAvg;
+ActivationReport.metrices.PixelCorrMed = PixelCorrMed;
+ActivationReport.metrices.PixelCorrAvg = PixelCorrAvg;
+ActivationReport.metrices.KernelCorrMed = KernelCorrMed;
+ActivationReport.metrices.KernelCorrAvg = KernelCorrAvg;
 
 % if not save images, remove them from output
 if ~SaveImages
