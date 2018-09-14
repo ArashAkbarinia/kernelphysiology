@@ -79,9 +79,11 @@ for i = 1:nContrasts
       TmpPixDiffTop = zeros(chnsk, 1);
       for k = 1:chnsk
         TmpPixCorrAll(k, 1) = corr2(f1(:, :, k), f2(:, :, k));
+        
         f1k = f1(:, :, k);
         f2k = f2(:, :, k);
         f1f2 = abs(f1k - f2k) ./ max(abs(f1k), abs(f2k));
+        f1f2(isnan(f1f2)) = 0;
         f1f2 = sort(f1f2(:), 'descend');
         
         TmpDiffPerc = f1f2(pinds);
@@ -90,7 +92,6 @@ for i = 1:nContrasts
       
       % replacing the NaNs with 0, otherwise we can take mean or median.
       TmpPixCorrAll(isnan(TmpPixCorrAll)) = 0;
-      TmpPixDiffTop(isnan(TmpPixDiffTop)) = 0;
       PixelCorrMed(i, j, l) = median(TmpPixCorrAll);
       PixelCorrAvg(i, j, l) = mean(TmpPixCorrAll);
       PixelTopDiffMed(i, j, l) = median(TmpPixDiffTop);
@@ -100,7 +101,6 @@ for i = 1:nContrasts
       TmpKerCorrAll = corr3(f1, f2);
       TmpKerCorrAll(isnan(TmpKerCorrAll)) = 0;
       TmpKerDiffTop = PercentageChange3(f1, f2, TopKernels);
-      TmpKerDiffTop(isnan(TmpKerDiffTop)) = 0;
       KernelCorrMed(i, j, l) = median(TmpKerCorrAll(:));
       KernelCorrAvg(i, j, l) = mean(TmpKerCorrAll(:));
       KernelTopDiffMed(i, j, l) = median(TmpKerDiffTop(:));

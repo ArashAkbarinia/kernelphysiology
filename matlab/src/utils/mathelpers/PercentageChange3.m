@@ -11,6 +11,7 @@ function pchange = PercentageChange3(mat1, mat2, TopPercentile)
 %
 
 pchange = abs(mat1 - mat2) ./ max(abs(mat1), abs(mat2));
+pchange(isnan(pchange)) = 0;
 
 if nargin > 2
   [~, ~, chnsk] = size(mat1);
