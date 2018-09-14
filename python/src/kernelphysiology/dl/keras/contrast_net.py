@@ -108,7 +108,7 @@ def build_classifier_model(confs):
     area1_batchnormalise = confs.area1_batchnormalise
     area1_activation = confs.area1_activation
 
-    x = input_1 = Input(shape=confs.x_train.shape[1:])
+    x = input_1 = Input(shape=confs.x_train_shape)
 
     if confs.add_dog:
         x = Conv2D(filters=n_filters_dog, kernel_size=(3, 3), padding='same', name='dog')(x)
@@ -220,7 +220,7 @@ def build_classifier_model(confs):
     if confs.add_dog:
         if confs.dog_path == None or not os.path.exists(confs.dog_path):
             dog_model = keras.models.Sequential()
-            dog_model.add(Conv2D(n_filters_dog, (3, 3), padding='same', input_shape=confs.x_train.shape[1:]))
+            dog_model.add(Conv2D(n_filters_dog, (3, 3), padding='same', input_shape=confs.x_train_shape))
 
             weights = dog_model.layers[0].get_weights()
             dogs = create_dog_layer(confs, n_filters_dog, kernel_size=3, nchannels=np.size(weights[0], 2))

@@ -107,6 +107,7 @@ def start_training_generator(args):
     args.callbacks = [csv_logger]
 
     args.area1_nlayers = int(args.area1_nlayers)
+    args.x_train_shape = (224, 224, 3)
 
     model = cnet.build_classifier_model(confs=args)
     opt = keras.optimizers.Adam(1e-1)
