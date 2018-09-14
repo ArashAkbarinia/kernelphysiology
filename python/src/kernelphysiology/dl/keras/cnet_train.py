@@ -122,7 +122,7 @@ def start_training_generator(args):
         parallel_model = multi_gpu_model(args.model, gpus=args.multi_gpus)
         parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
-    if not args.parallel_model == None:
+    if not parallel_model == None:
         batch_size = args.batch_size * args.multi_gpus
         parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=1, epochs=1, verbose=1, validation_data=args.validation_generator,
                                      batch_size=batch_size, callbacks=args.callbacks)
