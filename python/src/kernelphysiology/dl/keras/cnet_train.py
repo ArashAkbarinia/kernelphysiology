@@ -123,12 +123,11 @@ def start_training_generator(args):
         parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
     if not parallel_model == None:
-        batch_size = args.batch_size * args.multi_gpus
-        parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=1, epochs=1, verbose=1, validation_data=args.validation_generator,
-                                     batch_size=batch_size, callbacks=args.callbacks)
+        parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps, epochs=args.epochs, verbose=1, validation_data=args.validation_generator,
+                                     callbacks=args.callbacks)
     else:
-        parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=1, epochs=1, verbose=1, validation_data=args.validation_generator,
-                                     batch_size=args.batch_size, callbacks=args.callbacks)
+        parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps, epochs=args.epochs, verbose=1, validation_data=args.validation_generator,
+                                     callbacks=args.callbacks)
 
     # Save model and weights
     if not os.path.isdir(args.save_dir):
@@ -156,6 +155,7 @@ if __name__ == "__main__":
     parser.add_argument('--checkpoint_path', dest='checkpoint_path', type=str, default=None, help='The path to a previous checkpoint to continue (default: None)')
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 64)')
     parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs (default: 50)')
+    parser.add_argument('--steps', dest='steps', type=int, default=10000, help='Number of steps per epochs (default: 10000)')
     parser.add_argument('--log_period', dest='log_period', type=int, default=0, help='The period of logging the network (default: 0)')
     parser.add_argument('--train_contrast', dest='train_contrast', type=int, default=100, help='The level of contrast to be used at training (default: 100)')
     parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')
