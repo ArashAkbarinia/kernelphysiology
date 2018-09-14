@@ -38,12 +38,23 @@ for contrast = ContrastLevels
   ActivationReport.cls.(ContrastName) = ProcessOneContrast(net, layers, ContrastedImage, outdir, ContrastName, SaveImages);
 end
 
+TopPixels = 0.01;
+TopKernels = 0.1;
+
 nLayers = size(layers, 1);
 
+% pixel related matrices
 PixelCorrMed = zeros(nContrasts, nContrasts, nLayers);
 PixelCorrAvg = zeros(nContrasts, nContrasts, nLayers);
+PixelTopDiffMed = zeros(nContrasts, nContrasts, nLayers);
+PixelTopDiffAvg = zeros(nContrasts, nContrasts, nLayers);
+
+% kernel related matrices
 KernelCorrMed = zeros(nContrasts, nContrasts, nLayers);
 KernelCorrAvg = zeros(nContrasts, nContrasts, nLayers);
+KernelTopDiffMed = zeros(nContrasts, nContrasts, nLayers);
+KernelTopDiffAvg = zeros(nContrasts, nContrasts, nLayers);
+
 for i = 1:nContrasts
   contrast1 = ContrastLevels(i);
   ContrastName1 = sprintf('c%.3u', contrast1);
@@ -59,29 +70,53 @@ for i = 1:nContrasts
       f2 = ActivationReport.cls.(ContrastName2).(LayerName).features;
       
       % computing the correlation along the pixels for a kernel
-      chnsk = size(f1, 3);
-      KernelCorrMatrix = zeros(chnsk, 1);
+      [rowsk, colsk, chnsk] = size(f1);
+      nPixels = rowsk * colsk;
+      PixellTopPercentile = ceil(double(nPixels) .* TopPixels);
+      pinds = 1:PixellTopPercentile;
+      
+      TmpPixCorrAll = zeros(chnsk, 1);
+      TmpPixDiffTop = zeros(chnsk, 1);
       for k = 1:chnsk
-        KernelCorrMatrix(k, 1) = corr2(f1(:, :, k), f2(:, :, k));
+        TmpPixCorrAll(k, 1) = corr2(f1(:, :, k), f2(:, :, k));
+        f1k = f1(:, :, k);
+        f2k = f2(:, :, k);
+        f1f2 = abs(f1k - f2k) ./ max(abs(f1k), abs(f2k));
+        f1f2 = sort(f1f2(:), 'descend');
+        
+        TmpDiffPerc = f1f2(pinds);
+        TmpPixDiffTop(k, 1) = mean(TmpDiffPerc);
       end
+      
       % replacing the NaNs with 0, otherwise we can take mean or median.
-      KernelCorrMatrix(isnan(KernelCorrMatrix)) = 0;
-      PixelCorrMed(i, j, l) = median(KernelCorrMatrix);
-      PixelCorrAvg(i, j, l) = mean(KernelCorrMatrix);
+      TmpPixCorrAll(isnan(TmpPixCorrAll)) = 0;
+      TmpPixDiffTop(isnan(TmpPixDiffTop)) = 0;
+      PixelCorrMed(i, j, l) = median(TmpPixCorrAll);
+      PixelCorrAvg(i, j, l) = mean(TmpPixCorrAll);
+      PixelTopDiffMed(i, j, l) = median(TmpPixDiffTop);
+      PixelTopDiffAvg(i, j, l) = mean(TmpPixDiffTop);
       
       % computing the correlation along the kernels for a pixel
-      PixelCorrMatrix = corr3(f1, f2);
-      PixelCorrMatrix(isnan(PixelCorrMatrix)) = 0;
-      KernelCorrMed(i, j, l) = median(PixelCorrMatrix(:));
-      KernelCorrAvg(i, j, l) = mean(PixelCorrMatrix(:));
+      TmpKerCorrAll = corr3(f1, f2);
+      TmpKerCorrAll(isnan(TmpKerCorrAll)) = 0;
+      TmpKerDiffTop = PercentageChange3(f1, f2, TopKernels);
+      TmpKerDiffTop(isnan(TmpKerDiffTop)) = 0;
+      KernelCorrMed(i, j, l) = median(TmpKerCorrAll(:));
+      KernelCorrAvg(i, j, l) = mean(TmpKerCorrAll(:));
+      KernelTopDiffMed(i, j, l) = median(TmpKerDiffTop(:));
+      KernelTopDiffAvg(i, j, l) = mean(TmpKerDiffTop(:));
     end
   end
 end
 
 ActivationReport.metrices.PixelCorrMed = PixelCorrMed;
 ActivationReport.metrices.PixelCorrAvg = PixelCorrAvg;
+ActivationReport.metrices.PixelTopDiffMed = PixelTopDiffMed;
+ActivationReport.metrices.PixelTopDiffAvg = PixelTopDiffAvg;
 ActivationReport.metrices.KernelCorrMed = KernelCorrMed;
 ActivationReport.metrices.KernelCorrAvg = KernelCorrAvg;
+ActivationReport.metrices.KernelTopDiffMed = KernelTopDiffMed;
+ActivationReport.metrices.KernelTopDiffAvg = KernelTopDiffAvg;
 
 % if not save images, remove them from output
 if ~SaveImages
@@ -107,10 +142,10 @@ function ActivationReport = ProcessOneContrast(net, layers, inim, outdir, prefix
 ActivationReport.prediction.type = char(predtype);
 ActivationReport.prediction.score = max(scores(:));
 
+% going through all the layers and compute their activities
 for i = 1:size(layers, 1)
   layer = layers(i, 1);
   
-  % retreiving the layer before the max pooling
   li = net.Layers(layer);
   
   features = activations(net, inim, li.Name);
