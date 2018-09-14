@@ -18,6 +18,7 @@ import kernelphysiology.dl.keras.contrast_net as cnet
 
 from kernelphysiology.dl.keras.cifar import cifar_train
 from kernelphysiology.dl.keras.stl import stl_train
+from kernelphysiology.dl.keras.imagenet import imagenet_train
 from kernelphysiology.dl.keras.utils import set_area_trainable_false
 
 from kernelphysiology.utils.imutils import adjust_contrast
@@ -98,6 +99,23 @@ def start_training(args):
     print('Test accuracy:', scores[1])
 
 
+def start_training_generator(args):
+    
+    model = keras.applications.vgg16.VGG16();
+    model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
+    model.fit_generator(
+        generator=args.train_generator,
+        steps_per_epoch=5,
+        epochs=1,
+        verbose=1,
+        validation_data=args.validation_generator,
+    )
+    
+    model_name = args.model_name + '.h5'
+    model_path = os.path.join('/home/arash/Software/', model_name)
+    model.save(model_path)
+
+
 if __name__ == "__main__":
     start_stamp = time.time()
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
@@ -148,8 +166,16 @@ if __name__ == "__main__":
         args = cifar_train.prepare_cifar100(args)
     elif dataset_name == 'stl10':
         args = stl_train.prepare_stl10(args)
+    elif dataset_name == 'imagenet':
+        args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
+        args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
+        args.preprocessing_function = keras.applications.vgg16.preprocess_input;
+        args = imagenet_train.prepare_imagenet(args)
 
-    start_training(args)
+    if dataset_name == 'imagenet':
+        start_training_generator(args)
+    else:
+        start_training(args)
 
     finish_stamp = time.time()
     finish_time = datetime.datetime.fromtimestamp(finish_stamp).strftime('%Y-%m-%d_%H-%M-%S')

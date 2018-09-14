@@ -24,6 +24,7 @@ import glob
 #from fuel.datasets import H5PYDataset
 
 from keras.preprocessing.image import load_img
+from keras.preprocessing.image import ImageDataGenerator
 
 log = logging.getLogger(__name__)
 
@@ -244,3 +245,19 @@ def load_test_data(dirname, which_chunk=None):
     y_test = read_test_labels(which_chunk=which_chunk)
 
     return (x_test, y_test)
+
+
+def train_generator(dirname, batch_size=32, target_size=(224, 224), preprocessing_function=None):
+    train_datagen = ImageDataGenerator(preprocessing_function=preprocessing_function)
+
+    train_generator = train_datagen.flow_from_directory(dirname, target_size=target_size, batch_size=32)
+
+    return train_generator
+
+
+def validation_generator(dirname, batch_size=32, target_size=(224, 224), preprocessing_function=None):
+    validarion_datagen = ImageDataGenerator(preprocessing_function=preprocessing_function)
+
+    validatoin_generator = validarion_datagen.flow_from_directory(dirname, target_size=target_size, batch_size=32)
+
+    return validatoin_generator
