@@ -72,7 +72,6 @@ def start_training(args):
 #    opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
     opt = keras.optimizers.Adam(initial_lr)
 
-    # Let's train the model using RMSprop
     if args.multi_gpus == None:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
         args.model = model
@@ -100,20 +99,42 @@ def start_training(args):
 
 
 def start_training_generator(args):
+
+    args.log_dir = os.path.join(args.save_dir, args.model_name)
+    if not os.path.isdir(args.log_dir):
+        os.mkdir(args.log_dir)
+    csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
+    args.callbacks = [csv_logger]
+
+    args.area1_nlayers = int(args.area1_nlayers)
+
+    model = cnet.build_classifier_model(confs=args)
+    opt = keras.optimizers.Adam(1e-1)
     
-    model = keras.applications.vgg16.VGG16();
-    model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
-    model.fit_generator(
-        generator=args.train_generator,
-        steps_per_epoch=5,
-        epochs=1,
-        verbose=1,
-        validation_data=args.validation_generator,
-    )
-    
+    if args.multi_gpus == None:
+        model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+        parallel_model = None
+    else:
+        with tf.device('/cpu:0'):
+            model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+            args.model = model
+        parallel_model = multi_gpu_model(args.model, gpus=args.multi_gpus)
+        parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+
+    if not args.parallel_model == None:
+        batch_size = args.batch_size * args.multi_gpus
+        parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=1, epochs=1, verbose=1, validation_data=args.validation_generator,
+                                     batch_size=batch_size, callbacks=args.callbacks)
+    else:
+        parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=1, epochs=1, verbose=1, validation_data=args.validation_generator,
+                                     batch_size=args.batch_size, callbacks=args.callbacks)
+
+    # Save model and weights
+    if not os.path.isdir(args.save_dir):
+        os.makedirs(args.save_dir)
     model_name = args.model_name + '.h5'
-    model_path = os.path.join('/home/arash/Software/', model_name)
-    model.save(model_path)
+    model_path = os.path.join(args.save_dir, model_name)
+    model.save_weights(model_path)
 
 
 if __name__ == "__main__":
@@ -169,7 +190,7 @@ if __name__ == "__main__":
     elif dataset_name == 'imagenet':
         args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
-        args.preprocessing_function = keras.applications.vgg16.preprocess_input;
+        args.preprocessing_function = cnet.preprocess_input;
         args = imagenet_train.prepare_imagenet(args)
 
     if dataset_name == 'imagenet':
