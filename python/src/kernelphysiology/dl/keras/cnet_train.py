@@ -110,7 +110,7 @@ def start_training_generator(args):
     args.x_train_shape = (224, 224, 3)
 
     model = cnet.build_classifier_model(confs=args)
-    opt = keras.optimizers.Adam(1e-1)
+    opt = keras.optimizers.Adam(1e-3, decay=1e-6)
     
     if args.multi_gpus == None:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
