@@ -1,4 +1,4 @@
-function PairwiseReport = AnalyseActivationReportPairwise(ActivationReportPath, DatasetName)
+function PairwiseReport = AnalyseActivationReportPairwise(ActivationReportPath, DatasetName, MinConfidence)
 %AnalyseActivationReportPairwise Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -21,14 +21,18 @@ end
 
 %% printing the results
 AverageKernelMatchings = AnalyseActivationReport(ActivationReportPath, DatasetName, false);
-corrects = AverageKernelMatchings.same.out.corrects(:, end);
+corrects = AverageKernelMatchings.same.out.corrects;
+if nargin < 3
+  MinConfidence = 0.5;
+end
+scores = AverageKernelMatchings.same.out.scores > MinConfidence;
 
 fprintf('**** Same results\n');
-PairwiseReport.same.reports = PrintOneType(PairwiseReport.same, corrects);
+PairwiseReport.same.reports = PrintOneType(PairwiseReport.same, corrects, scores);
 fprintf('**** Different results\n');
-PairwiseReport.diff.reports = PrintOneType(PairwiseReport.diff, corrects);
+PairwiseReport.diff.reports = PrintOneType(PairwiseReport.diff, corrects, scores);
 fprintf('**** All results\n');
-PairwiseReport.all.reports = PrintOneType(PairwiseReport.all, corrects);
+PairwiseReport.all.reports = PrintOneType(PairwiseReport.all, corrects, scores);
 
 if ~exist(PairwiseReportpPath, 'file')
   save(PairwiseReportpPath, 'PairwiseReport');
@@ -36,7 +40,7 @@ end
 
 end
 
-function TableReports = PrintOneType(PairwiseReport, corrects)
+function TableReports = PrintOneType(PairwiseReport, corrects, scores)
 
 metrices = fields(PairwiseReport.metrices);
 nMetrices = numel(metrices);
@@ -44,8 +48,10 @@ for i = 1:nMetrices
   fprintf('**** Results for %s ****\n', metrices{i});
   fprintf('- All\n');
   TableReports.(metrices{i}).all = PrintAverageKernelMatchings(PairwiseReport.metrices.(metrices{i}).avg);
-  fprintf('-Corrects\n');
+  fprintf('- Corrects\n');
   TableReports.(metrices{i}).corrects = PrintAverageKernelMatchings(PairwiseReport.metrices.(metrices{i}).avg, corrects);
+  fprintf('- Scores\n');
+  TableReports.(metrices{i}).scores = PrintAverageKernelMatchings(PairwiseReport.metrices.(metrices{i}).avg, scores);
 end
 
 end
@@ -77,12 +83,12 @@ end
 
 end
 
-function TableReports = PrintAverageKernelMatchings(PairwiseReport, corrects)
+function TableReports = PrintAverageKernelMatchings(PairwiseReport, WhichImages)
 
 [nImages, nComparisons, nLayers] = size(PairwiseReport);
 
 if nargin < 2
-  corrects = true(nImages, 1);
+  WhichImages = true(nImages, nComparisons);
 end
 
 TableReports.avg = zeros(nComparisons, nLayers);
@@ -91,14 +97,15 @@ TableReports.nSamples = zeros(nComparisons, 1);
 
 for i = 1:nComparisons
   NonNaN = ~isnan(PairwiseReport(:, i, 1));
-  meanvals = mean(PairwiseReport(NonNaN & corrects, i, :), 1);
+  TmpWhich = WhichImages(:, i);
+  meanvals = mean(PairwiseReport(NonNaN & TmpWhich, i, :), 1);
   TableReports.avg(i, :) = meanvals;
-  stdvals = std(PairwiseReport(NonNaN & corrects, i, :), [], 1);
+  stdvals = std(PairwiseReport(NonNaN & TmpWhich, i, :), [], 1);
   TableReports.std(i, :) = stdvals;
   PrintVals(1:2:nLayers * 2) = permute(meanvals, [3, 1, 2]);
   PrintVals(2:2:nLayers * 2) = permute(stdvals, [3, 1, 2]);
-  TableReports.nSamples(i, 1) = sum(NonNaN & corrects);
-  fprintf(sprintf('%d | %s\n', sum(NonNaN & corrects), repmat('%.2f(%.2f) ', [1, nLayers])), PrintVals);
+  TableReports.nSamples(i, 1) = sum(NonNaN & TmpWhich);
+  fprintf(sprintf('%d | %s\n', sum(NonNaN & TmpWhich), repmat('%.2f(%.2f) ', [1, nLayers])), PrintVals);
 end
 
 end
