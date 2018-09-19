@@ -15,6 +15,7 @@ import keras
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
 from keras.applications.resnet50 import ResNet50
+from keras.applications.inception_v3 import InceptionV3
 
 from kernelphysiology.utils.imutils import adjust_contrast
 
@@ -30,7 +31,7 @@ if __name__ == "__main__":
 
     # TODO put correct contrasts
     # TODO image size for inception and others might be different
-    contrasts = np.array([75, 100]) / 100 # [1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100]
+    contrasts = np.array([5, 15, 50, 100]) / 100 # [1, 3, 5, 10, 15, 20, 30, 40, 50, 65, 80, 100]
 
     chunk_size = 5000
     ntests = 50000
@@ -57,6 +58,11 @@ if __name__ == "__main__":
             model = ResNet50()
             decode_predictions = keras.applications.resnet50.decode_predictions
             preprocess_input = keras.applications.resnet50.preprocess_input
+        elif model_path.lower() == 'inception':
+            model_name = 'inception'
+            model = InceptionV3()
+            decode_predictions = keras.applications.inception_v3.decode_predictions
+            preprocess_input = keras.applications.inception_v3.preprocess_input
         else:
             model_name = os.path.basename(model_path)[0:-3]
             model = keras.models.load_model(model_path)
