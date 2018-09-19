@@ -39,19 +39,23 @@ for contrast = ContrastLevels
 end
 
 TopPixels = 0.01;
-TopKernels = 0.1;
+TopKernels = 0.01;
 
 nLayers = size(layers, 1);
 
 % pixel related matrices
 PixelCorrMed = zeros(nContrasts, nContrasts, nLayers);
 PixelCorrAvg = zeros(nContrasts, nContrasts, nLayers);
+PixelDiffMed = zeros(nContrasts, nContrasts, nLayers);
+PixelDiffAvg = zeros(nContrasts, nContrasts, nLayers);
 PixelTopDiffMed = zeros(nContrasts, nContrasts, nLayers);
 PixelTopDiffAvg = zeros(nContrasts, nContrasts, nLayers);
 
 % kernel related matrices
 KernelCorrMed = zeros(nContrasts, nContrasts, nLayers);
 KernelCorrAvg = zeros(nContrasts, nContrasts, nLayers);
+KernelDiffMed = zeros(nContrasts, nContrasts, nLayers);
+KernelDiffAvg = zeros(nContrasts, nContrasts, nLayers);
 KernelTopDiffMed = zeros(nContrasts, nContrasts, nLayers);
 KernelTopDiffAvg = zeros(nContrasts, nContrasts, nLayers);
 
@@ -76,16 +80,18 @@ for i = 1:nContrasts
       pinds = 1:PixellTopPercentile;
       
       TmpPixCorrAll = zeros(chnsk, 1);
+      TmpPixDiffAll = zeros(chnsk, 1);
       TmpPixDiffTop = zeros(chnsk, 1);
       for k = 1:chnsk
         TmpPixCorrAll(k, 1) = corr2(f1(:, :, k), f2(:, :, k));
         
         f1k = f1(:, :, k);
         f2k = f2(:, :, k);
-        f1f2 = abs(f1k - f2k) ./ max(abs(f1k), abs(f2k));
+        f1f2 = sqrt(abs(f1k - f2k));
         f1f2(isnan(f1f2)) = 0;
         f1f2 = sort(f1f2(:), 'descend');
         
+        TmpPixDiffAll(k, 1) = mean(f1f2);
         TmpDiffPerc = f1f2(pinds);
         TmpPixDiffTop(k, 1) = mean(TmpDiffPerc);
       end
@@ -94,15 +100,20 @@ for i = 1:nContrasts
       TmpPixCorrAll(isnan(TmpPixCorrAll)) = 0;
       PixelCorrMed(i, j, l) = median(TmpPixCorrAll);
       PixelCorrAvg(i, j, l) = mean(TmpPixCorrAll);
+      PixelDiffMed(i, j, l) = median(TmpPixDiffAll);
+      PixelDiffAvg(i, j, l) = mean(TmpPixDiffAll);
       PixelTopDiffMed(i, j, l) = median(TmpPixDiffTop);
       PixelTopDiffAvg(i, j, l) = mean(TmpPixDiffTop);
       
       % computing the correlation along the kernels for a pixel
       TmpKerCorrAll = corr3(f1, f2);
       TmpKerCorrAll(isnan(TmpKerCorrAll)) = 0;
+      TmpKerDiffAll = PercentageChange3(f1, f2);
       TmpKerDiffTop = PercentageChange3(f1, f2, TopKernels);
       KernelCorrMed(i, j, l) = median(TmpKerCorrAll(:));
       KernelCorrAvg(i, j, l) = mean(TmpKerCorrAll(:));
+      KernelDiffMed(i, j, l) = median(TmpKerDiffAll(:));
+      KernelDiffAvg(i, j, l) = mean(TmpKerDiffAll(:));
       KernelTopDiffMed(i, j, l) = median(TmpKerDiffTop(:));
       KernelTopDiffAvg(i, j, l) = mean(TmpKerDiffTop(:));
     end
@@ -111,10 +122,15 @@ end
 
 ActivationReport.metrices.PixelCorrMed = PixelCorrMed;
 ActivationReport.metrices.PixelCorrAvg = PixelCorrAvg;
+ActivationReport.metrices.PixelDiffMed = PixelDiffMed;
+ActivationReport.metrices.PixelDiffAvg = PixelDiffAvg;
 ActivationReport.metrices.PixelTopDiffMed = PixelTopDiffMed;
 ActivationReport.metrices.PixelTopDiffAvg = PixelTopDiffAvg;
+
 ActivationReport.metrices.KernelCorrMed = KernelCorrMed;
 ActivationReport.metrices.KernelCorrAvg = KernelCorrAvg;
+ActivationReport.metrices.KernelDiffMed = KernelDiffMed;
+ActivationReport.metrices.KernelDiffAvg = KernelDiffAvg;
 ActivationReport.metrices.KernelTopDiffMed = KernelTopDiffMed;
 ActivationReport.metrices.KernelTopDiffAvg = KernelTopDiffAvg;
 
@@ -158,7 +174,8 @@ for i = 1:size(layers, 1)
     h = figure('visible', 'off');
     minval = min(min(features));
     maxval = max(max(features));
-    montage(NormaliseChannel(features, 0, 1, minval, maxval));
+    features = NormaliseChannel(features, 0, 1, minval, maxval);
+    montage(features);
     title(['Layer ', li.Name, ' Activities']);
     saveas(h, sprintf('%s%s-montage%.2u.png', outdir, prefix, layer));
     close(h);
