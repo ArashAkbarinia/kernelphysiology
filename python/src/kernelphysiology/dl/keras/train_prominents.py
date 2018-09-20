@@ -1,5 +1,5 @@
 '''
-Train a simple DNN on CIFAR 10 or 100.
+Train prominent DNN architectures on various different datasets.
 '''
 
 
@@ -22,6 +22,8 @@ from kernelphysiology.dl.keras.imagenet import imagenet_train
 from kernelphysiology.dl.keras.utils import set_area_trainable_false
 
 from kernelphysiology.utils.imutils import adjust_contrast
+
+from kernelphysiology.dl.keras.models import ResNet50
 
 
 def start_training(args):
@@ -110,7 +112,8 @@ def start_training_generator(args):
     args.x_train_shape = (224, 224, 3)
 
     print('Training ResNet50')
-    model = keras.applications.resnet50.ResNet50(weights=None)
+#    model = keras.applications.resnet50.ResNet50(weights=None)
+    model = ResNet50.ResNet50(weights=None)
     opt = keras.optimizers.Adam(1e-3, decay=1e-6)
     
     if args.multi_gpus == None:
@@ -143,7 +146,7 @@ if __name__ == "__main__":
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
     print('Starting at: ' + start_time)
 
-    parser = argparse.ArgumentParser(description='Training CNET.')
+    parser = argparse.ArgumentParser(description='Training prominent nets of Keras.')
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
     parser.add_argument('--a1', dest='area1_nlayers', type=int, default=1, help='The number of layers in area 1 (default: 1)')
     parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
@@ -192,7 +195,7 @@ if __name__ == "__main__":
     elif dataset_name == 'imagenet':
         args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
-        args.preprocessing_function = keras.applications.resnet50.preprocess_input;
+        args.preprocessing_function = ResNet50.preprocess_input;
         args = imagenet_train.prepare_imagenet(args)
 
     if dataset_name == 'imagenet':
