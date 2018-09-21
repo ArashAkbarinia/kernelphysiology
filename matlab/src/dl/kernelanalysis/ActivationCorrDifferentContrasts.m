@@ -1,8 +1,11 @@
-function ActivationReport = ActivationCorrDifferentContrasts(net, inim, outdir, SaveImages, layers, ContrastLevels)
+function ActivationReport = ActivationCorrDifferentContrasts(net, inim, outdir, SaveImages, layers, ContrastLevels, TopXError)
 %ActivationCorrDifferentContrasts  computing the correlation between
 %                                  activities of the kernels of the same
 %                                  layer at different levels of contrast
 
+if nargin < 7
+  TopXError = 5;
+end
 if nargin < 6
   ContrastLevels = [5, 15, 30, 50, 75, 100];
 end
@@ -35,7 +38,7 @@ for contrast = ContrastLevels
   ContrastedImage = AdjustContrast(inim, contrast / 100);
   ContrastedImage = uint8(ContrastedImage .* 255);
   ContrastName = sprintf('c%.3u', contrast);
-  ActivationReport.cls.(ContrastName) = ProcessOneContrast(net, layers, ContrastedImage, outdir, ContrastName, SaveImages);
+  ActivationReport.cls.(ContrastName) = ProcessOneContrast(net, layers, ContrastedImage, outdir, ContrastName, SaveImages, TopXError);
 end
 
 TopPixels = 0.01;
@@ -151,12 +154,14 @@ save(ReportPath, '-struct', 'ActivationReport');
 
 end
 
-function ActivationReport = ProcessOneContrast(net, layers, inim, outdir, prefix, SaveImages)
+function ActivationReport = ProcessOneContrast(net, layers, inim, outdir, prefix, SaveImages, TopXError)
 
-[predtype, scores] = classify(net, inim);
+[~, scores] = classify(net, inim);
 
-ActivationReport.prediction.type = char(predtype);
-ActivationReport.prediction.score = max(scores(:));
+[sval(:, 1), sval(:, 2)] = sort(scores, 'descend');
+
+ActivationReport.prediction.type = net.Layers(end).ClassNames(sval(1:TopXError, 2));
+ActivationReport.prediction.score = sval(1:TopXError, 1);
 
 % going through all the layers and compute their activities
 for i = 1:size(layers, 1)
