@@ -12,21 +12,29 @@ end
 ContrastNames = fieldnames(ActivationReport.cls);
 nContrasts = numel(ContrastNames);
 
-predictions = cell(nContrasts, 2);
+nTopXPred = numel(ActivationReport.cls.(ContrastNames{1}).prediction.type);
+types = cell(nContrasts, nTopXPred);
+scores = zeros(nContrasts, nTopXPred);
 
 for i = 1:nContrasts
-  predictions{i, 1} = ActivationReport.cls.(ContrastNames{i}).prediction.type;
-  predictions{i, 2} = ActivationReport.cls.(ContrastNames{i}).prediction.score;
+  types(i, :) = ActivationReport.cls.(ContrastNames{i}).prediction.type';
+  scores(i, :) = ActivationReport.cls.(ContrastNames{i}).prediction.score';
 end
 
 if strcmpi(WhichResults, 'all')
   IndsCorrectlyClassified = true(nContrasts, 1);
 elseif strcmpi(WhichResults, 'same')
-  ClassType = predictions{nContrasts, 1};
-  IndsCorrectlyClassified = strcmpi(predictions(:, 1), ClassType);
+  ClassType = types{nContrasts, 1};
+  IndsCorrectlyClassified = strcmpi(types(:, 1), ClassType);
+elseif strcmpi(WhichResults, 'similar')
+  ClassType = types(nContrasts, :);
+  IndsCorrectlyClassified = true(nContrasts, 1);
+  for i = 1:nContrasts - 1
+    IndsCorrectlyClassified(i, 1) = any(strcmpi(types(i, 1), ClassType));
+  end
 elseif strcmpi(WhichResults, 'diff')
-  ClassType = predictions{nContrasts, 1};
-  IndsCorrectlyClassified = ~strcmpi(predictions(:, 1), ClassType);
+  ClassType = types{nContrasts, 1};
+  IndsCorrectlyClassified = ~strcmpi(types(:, 1), ClassType);
   IndsCorrectlyClassified(nContrasts) = true;
 end
 IndsCorrectlyClassified(ExcludeList) = false;
@@ -50,7 +58,8 @@ for i = 1:numel(metrices)
   ComparisonReport.metrices.(CurrentMetricName) = CurrentMetricReport;
 end
 
-ComparisonReport.predictions = predictions;
+ComparisonReport.predictions.types = types;
+ComparisonReport.predictions.scores = scores;
 
 end
 

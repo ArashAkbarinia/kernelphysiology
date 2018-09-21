@@ -14,6 +14,7 @@ if ~exist(PairwiseReportpPath, 'file')
   PairwiseReport.same = ProcessOneType(ActivationReport, 'same');
   PairwiseReport.diff = ProcessOneType(ActivationReport, 'diff');
   PairwiseReport.all = ProcessOneType(ActivationReport, 'all');
+  PairwiseReport.similar = ProcessOneType(ActivationReport, 'similar');
 else
   PairwiseReport = load(PairwiseReportpPath);
   PairwiseReport = PairwiseReport.PairwiseReport;
@@ -33,6 +34,8 @@ fprintf('**** Different results\n');
 PairwiseReport.diff.reports = PrintOneType(PairwiseReport.diff, corrects, scores);
 fprintf('**** All results\n');
 PairwiseReport.all.reports = PrintOneType(PairwiseReport.all, corrects, scores);
+fprintf('**** Similar results\n');
+PairwiseReport.similar.reports = PrintOneType(PairwiseReport.similar, corrects, scores);
 
 if ~exist(PairwiseReportpPath, 'file')
   save(PairwiseReportpPath, 'PairwiseReport');
@@ -87,6 +90,8 @@ function TableReports = PrintAverageKernelMatchings(PairwiseReport, WhichImages)
 
 [nImages, nComparisons, nLayers] = size(PairwiseReport);
 
+% TODO: if it becomes relevant consider other results as well.
+TopXPred = 1;
 if nargin < 2
   WhichImages = true(nImages, nComparisons);
 end
@@ -97,7 +102,7 @@ TableReports.nSamples = zeros(nComparisons, 1);
 
 for i = 1:nComparisons
   NonNaN = ~isnan(PairwiseReport(:, i, 1));
-  TmpWhich = WhichImages(:, i);
+  TmpWhich = WhichImages(:, i, TopXPred);
   meanvals = mean(PairwiseReport(NonNaN & TmpWhich, i, :), 1);
   TableReports.avg(i, :) = meanvals;
   stdvals = std(PairwiseReport(NonNaN & TmpWhich, i, :), [], 1);

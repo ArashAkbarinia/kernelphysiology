@@ -81,6 +81,7 @@ data = ActivationReport.data;
 nImages = ActivationReport.info.nImages;
 nContrasts = ActivationReport.info.nContrasts;
 nLayers = ActivationReport.info.nLayers;
+nTopXPreds = ActivationReport.info.nTopXPreds;
 
 metrices = fields(data{1}.metrices);
 nMetrices = numel(metrices);
@@ -89,12 +90,12 @@ for i = 1:nMetrices
 end
 
 AllContrastReport.out.predictions = cell(nImages, 1);
-AllContrastReport.out.corrects = zeros(nImages, nContrasts);
-AllContrastReport.out.scores = zeros(nImages, nContrasts);
+AllContrastReport.out.corrects = zeros(nImages, nContrasts, nTopXPreds);
+AllContrastReport.out.scores = zeros(nImages, nContrasts, nTopXPreds);
 
 for i = 1:nImages
   ComparisonReport = ContrastVsAccuracy(data{i}, WhichRype);
-  AllContrastReport.out.predictions{i, 1} = ComparisonReport.predictions;
+  AllContrastReport.out.predictions{i, 1} = ComparisonReport.predictions.types;
   
   for k = 1:nMetrices
     AllContrastReport.metrices.(metrices{k}).avgs(i, :) = ComparisonReport.metrices.(metrices{k}).avg;
@@ -102,12 +103,12 @@ for i = 1:nImages
   
   if CheckGT.CompareToGT
     if ~isempty(CheckGT.imdb)
-      MatchedAny = CheckCifar(ComparisonReport.predictions, CheckGT.GroundTruths(i));
+      MatchedAny = CheckCifar(ComparisonReport.predictions.types, CheckGT.GroundTruths(i));
     else
-      MatchedAny = CheckIlsvrc(ComparisonReport.predictions, CheckGT.GroundTruths{i});
+      MatchedAny = CheckIlsvrc(ComparisonReport.predictions.types, CheckGT.GroundTruths{i});
     end
-    AllContrastReport.out.corrects(i, :) = MatchedAny';
-    AllContrastReport.out.scores(i, :) = cell2mat(ComparisonReport.predictions(:, 2))';
+    AllContrastReport.out.corrects(i, :, :) = MatchedAny;
+    AllContrastReport.out.scores(i, :, :) = ComparisonReport.predictions.scores;
   end
 end
 
@@ -115,24 +116,28 @@ end
 
 function MatchedAny = CheckCifar(predictions, GroundtTrurh)
 
+% TODO: fix for CIFAR the topXpreds
+
 MatchedAny = cellfun(@(x) str2double(x) == GroundtTrurh, predictions(:, 1));
 % MatchedAny = strcmpi(char(GroundtTrurh), ResultMat.predictions(:, 1));
-
-MatchedAny = MatchedAny';
 
 end
 
 function MatchedAny = CheckIlsvrc(NetPredictions, GroundtTrurh)
 
-% checking whether predictoin is correct
-AcceptedResults = strsplit(GroundtTrurh, ', ');
-prediction = NetPredictions(:, 1);
-MatchedAny = false(numel(prediction), 1);
-for s = 1:numel(AcceptedResults)
-  MatchedAny = strcmpi(AcceptedResults{s}, prediction) | MatchedAny;
-end
+[nContrasts, nPreds] = size(NetPredictions);
 
-MatchedAny = MatchedAny';
+AcceptedResults = strsplit(GroundtTrurh, ', ');
+MatchedAny = false(nContrasts, nPreds);
+
+for i = 1:nPreds
+  % checking whether predictoin is correct
+  prediction = NetPredictions(:, i);
+  % just because Matlab doesn't store the IDs we have to compare strings
+  for s = 1:numel(AcceptedResults)
+    MatchedAny(:, i) = strcmpi(AcceptedResults{s}, prediction) | MatchedAny(:, i);
+  end
+end
 
 end
 
