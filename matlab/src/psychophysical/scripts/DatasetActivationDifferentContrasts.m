@@ -68,7 +68,7 @@ elseif strcmpi(WhichLayers, 'max')
   layers = BeforeMaxInds(net, 5);
 elseif strcmpi(WhichLayers, 'corr')
   layers = MaxInds(net, inf);
-  layers = (2:min(layers(end), 38))';
+  layers = (2:min(layers(end), 11))';
 end
 
 ActivitiesDir = sprintf('%s/%s/activities/', outdir, WhichLayers);
@@ -80,20 +80,21 @@ if ~exist(ReportDir, 'dir')
   mkdir(ReportDir);
 end
 
-ContrastLevels = [5, 15, 30, 50, 75, 100];
+ContrastLevels = [5, 15, 50, 100];
+nTopXPreds = 5;
 
 if ~isempty(imdb)
   TestImages = uint8(imdb.images.data(:, :, :, imdb.images.set == 3));
-  ActivationReport = PerformWithImdb(net, TestImages, layers, ActivitiesDir, WhichLayers, ContrastLevels); %#ok
+  ActivationReport = PerformWithImdb(net, TestImages, layers, ActivitiesDir, WhichLayers, ContrastLevels, nTopXPreds); %#ok
 else
-  ActivationReport = PerformWithImageList(net, ImageList, layers, ActivitiesDir, WhichLayers, ContrastLevels); %#ok
+  ActivationReport = PerformWithImageList(net, ImageList, layers, ActivitiesDir, WhichLayers, ContrastLevels, nTopXPreds); %#ok
 end
 
 save([ReportDir, 'ActivationReport.mat'], 'ActivationReport');
 
 end
 
-function ActivationReport = PerformWithImdb(net, TestImages, layers, ActivitiesDir, WhichLayers, ContrastLevels)
+function ActivationReport = PerformWithImdb(net, TestImages, layers, ActivitiesDir, WhichLayers, ContrastLevels, nTopXPreds)
 
 NumImages = size(TestImages, 4);
 data = cell(NumImages);
@@ -102,17 +103,18 @@ parfor i = 1:NumImages
   inim = TestImages(:, :, :, i);
   ImageBaseName = sprintf('im%.6i', i);
   ImageOutDir = sprintf('%s/%s/', ActivitiesDir, ImageBaseName);
-  data{i} = PerformOneImage(net, inim, ImageOutDir, layers, ContrastLevels, WhichLayers);
+  data{i} = PerformOneImage(net, inim, ImageOutDir, layers, ContrastLevels, WhichLayers, nTopXPreds);
 end
 
 ActivationReport.data = data;
 ActivationReport.info.nImages = NumImages;
 ActivationReport.info.nContrasts = numel(ContrastLevels);
 ActivationReport.info.nLayers = size(layers, 1);
+ActivationReport.info.nTopXPreds = nTopXPreds;
 
 end
 
-function ActivationReport = PerformWithImageList(net, ImageList, layers, ActivitiesDir, WhichLayers, ContrastLevels)
+function ActivationReport = PerformWithImageList(net, ImageList, layers, ActivitiesDir, WhichLayers, ContrastLevels, nTopXPreds)
 
 NumImages = numel(ImageList);
 data = cell(NumImages, 1);
@@ -121,24 +123,25 @@ parfor i = 1:NumImages
   inim = imread([ImageList(i).folder, '/', ImageList(i).name]);
   [~, ImageBaseName, ~] = fileparts(ImageList(i).name);
   ImageOutDir = sprintf('%s/%s/', ActivitiesDir, ImageBaseName);
-  data{i} = PerformOneImage(net, inim, ImageOutDir, layers, ContrastLevels, WhichLayers);
+  data{i} = PerformOneImage(net, inim, ImageOutDir, layers, ContrastLevels, WhichLayers, nTopXPreds);
 end
 
 ActivationReport.data = data;
 ActivationReport.info.nImages = NumImages;
 ActivationReport.info.nContrasts = numel(ContrastLevels);
 ActivationReport.info.nLayers = size(layers, 1);
+ActivationReport.info.nTopXPreds = nTopXPreds;
 
 end
 
-function data = PerformOneImage(net, inim, ImageOutDir, layers, ContrastLevels, WhichLayers)
+function data = PerformOneImage(net, inim, ImageOutDir, layers, ContrastLevels, WhichLayers, nTopXPreds)
 
 if strcmpi(WhichLayers, 'conv')
   data = ActivationDifferentContrasts(net, inim, ImageOutDir, false, layers, ContrastLevels);
 elseif strcmpi(WhichLayers, 'max')
   data = MaxActivationDifferentContrasts(net, inim, ImageOutDir, false, layers, ContrastLevels);
 elseif strcmpi(WhichLayers, 'corr')
-  data = ActivationCorrDifferentContrasts(net, inim, ImageOutDir, false, layers, ContrastLevels);
+  data = ActivationCorrDifferentContrasts(net, inim, ImageOutDir, false, layers, ContrastLevels, nTopXPreds);
 end
 
 end
