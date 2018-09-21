@@ -27,11 +27,10 @@ elseif strcmpi(WhichResults, 'same')
   ClassType = types{nContrasts, 1};
   IndsCorrectlyClassified = strcmpi(types(:, 1), ClassType);
 elseif strcmpi(WhichResults, 'similar')
-  ClassType = types(nContrasts, :);
-  IndsCorrectlyClassified = true(nContrasts, 1);
-  for i = 1:nContrasts - 1
-    IndsCorrectlyClassified(i, 1) = any(strcmpi(types(i, 1), ClassType));
-  end
+  IndsCorrectlyClassified = GetSimilarTypesInds(types, nContrasts);
+elseif strcmpi(WhichResults, 'dissimilar')
+  IndsCorrectlyClassified = ~GetSimilarTypesInds(types, nContrasts);
+  IndsCorrectlyClassified(nContrasts) = true;
 elseif strcmpi(WhichResults, 'diff')
   ClassType = types{nContrasts, 1};
   IndsCorrectlyClassified = ~strcmpi(types(:, 1), ClassType);
@@ -60,6 +59,16 @@ end
 
 ComparisonReport.predictions.types = types;
 ComparisonReport.predictions.scores = scores;
+
+end
+
+function IndsCorrectlyClassified = GetSimilarTypesInds(types, nContrasts)
+
+ClassType = types(nContrasts, :);
+IndsCorrectlyClassified = true(nContrasts, 1);
+for i = 1:nContrasts - 1
+  IndsCorrectlyClassified(i, 1) = any(strcmpi(types(i, 1), ClassType));
+end
 
 end
 

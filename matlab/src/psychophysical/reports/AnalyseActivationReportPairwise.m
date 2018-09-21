@@ -15,6 +15,7 @@ if ~exist(PairwiseReportpPath, 'file')
   PairwiseReport.diff = ProcessOneType(ActivationReport, 'diff');
   PairwiseReport.all = ProcessOneType(ActivationReport, 'all');
   PairwiseReport.similar = ProcessOneType(ActivationReport, 'similar');
+  PairwiseReport.dissimilar = ProcessOneType(ActivationReport, 'dissimilar');
 else
   PairwiseReport = load(PairwiseReportpPath);
   PairwiseReport = PairwiseReport.PairwiseReport;
@@ -36,6 +37,8 @@ fprintf('**** All results\n');
 PairwiseReport.all.reports = PrintOneType(PairwiseReport.all, corrects, scores);
 fprintf('**** Similar results\n');
 PairwiseReport.similar.reports = PrintOneType(PairwiseReport.similar, corrects, scores);
+fprintf('**** Dissimilar results\n');
+PairwiseReport.dissimilar.reports = PrintOneType(PairwiseReport.dissimilar, corrects, scores);
 
 if ~exist(PairwiseReportpPath, 'file')
   save(PairwiseReportpPath, 'PairwiseReport');
