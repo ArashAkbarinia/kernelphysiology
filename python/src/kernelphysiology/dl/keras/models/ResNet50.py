@@ -219,6 +219,9 @@ def ResNet50(include_top=True, weights=None,
         x = Conv2D(64, (7, 7), strides=(1, 1), padding='same', name='conv1_02')(x)
         x = BatchNormalization(axis=bn_axis, name='bn_conv1_02')(x)
         x = Activation('relu')(x)
+        x = Conv2D(64, (7, 7), strides=(1, 1), padding='same', name='conv1_03')(x)
+        x = BatchNormalization(axis=bn_axis, name='bn_conv1_03')(x)
+        x = Activation('relu')(x)
     # END OF MY CHANGES
     x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
