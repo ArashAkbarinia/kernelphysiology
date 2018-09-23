@@ -129,7 +129,7 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2))
 def ResNet50(include_top=True, weights=None,
              input_tensor=None, input_shape=None,
              pooling=None,
-             classes=1000):
+             classes=1000, area1layers=1):
     """Instantiates the ResNet50 architecture.
 
     Optionally loads weights pre-trained
@@ -215,9 +215,10 @@ def ResNet50(include_top=True, weights=None,
     x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
     x = Activation('relu')(x)
     # TODO: make this dynamic according to parameters
-    x = Conv2D(64, (7, 7), strides=(1, 1), padding='same', name='conv1_02')(x)
-    x = BatchNormalization(axis=bn_axis, name='bn_conv1_02')(x)
-    x = Activation('relu')(x)
+    if area1layers > 1:
+        x = Conv2D(64, (7, 7), strides=(1, 1), padding='same', name='conv1_02')(x)
+        x = BatchNormalization(axis=bn_axis, name='bn_conv1_02')(x)
+        x = Activation('relu')(x)
     # END OF MY CHANGES
     x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 

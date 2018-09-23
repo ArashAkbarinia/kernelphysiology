@@ -14,10 +14,10 @@ import imagenet
 import keras
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
-from keras.applications.resnet50 import ResNet50
 from keras.applications.inception_v3 import InceptionV3
 
 from kernelphysiology.utils.imutils import adjust_contrast
+from kernelphysiology.dl.keras.models import ResNet50
 
 
 if __name__ == "__main__":
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             preprocess_input = keras.applications.vgg19.preprocess_input
         elif model_path.lower() == 'resnet50':
             model_name = 'resnet50'
-            model = ResNet50()
+            model = keras.applications.resnet50.ResNet50()
             decode_predictions = keras.applications.resnet50.decode_predictions
             preprocess_input = keras.applications.resnet50.preprocess_input
         elif model_path.lower() == 'inception':
@@ -65,10 +65,15 @@ if __name__ == "__main__":
             preprocess_input = keras.applications.inception_v3.preprocess_input
         else:
             model_name = os.path.basename(model_path)[0:-3]
-            model = keras.models.load_model(model_path)
+            if model_name == 'org':
+                area1layers = 1
+            else:
+                area_layers = 2
+            model = ResNet50.ResNet50(area1layers=area1layers)
+            model = model.load_weights(model_path)
             # TODO: fix me with correct preprocessings
-            decode_predictions = keras.applications.resnet50.decode_predictions
-            preprocess_input = keras.applications.resnet50.preprocess_input
+            decode_predictions = ResNet50.decode_predictions
+            preprocess_input = ResNet50.preprocess_input
 
         for start in range(0, ntests, chunk_size):
             # read the data by chunks
