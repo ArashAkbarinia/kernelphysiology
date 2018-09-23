@@ -66,6 +66,9 @@ if __name__ == "__main__":
         else:
             model_name = os.path.basename(model_path)[0:-3]
             model = keras.models.load_model(model_path)
+            # TODO: fix me with correct preprocessings
+            decode_predictions = keras.applications.resnet50.decode_predictions
+            preprocess_input = keras.applications.resnet50.preprocess_input
 
         for start in range(0, ntests, chunk_size):
             # read the data by chunks
