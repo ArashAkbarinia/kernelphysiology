@@ -68,7 +68,7 @@ if __name__ == "__main__":
             if model_name == 'org':
                 area1layers = 1
             else:
-                area_layers = 2
+                area1layers = 2
             model = ResNet50.ResNet50(area1layers=area1layers)
             model = model.load_weights(model_path)
             # TODO: fix me with correct preprocessings
