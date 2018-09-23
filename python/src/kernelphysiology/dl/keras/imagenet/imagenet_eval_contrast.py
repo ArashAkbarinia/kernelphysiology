@@ -70,7 +70,7 @@ if __name__ == "__main__":
             else:
                 area1layers = 2
             model = ResNet50.ResNet50(area1layers=area1layers)
-            model = model.load_weights(model_path)
+            model.load_weights(model_path)
             # TODO: fix me with correct preprocessings
             decode_predictions = ResNet50.decode_predictions
             preprocess_input = ResNet50.preprocess_input
