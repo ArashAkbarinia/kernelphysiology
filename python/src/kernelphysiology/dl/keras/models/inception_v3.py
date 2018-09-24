@@ -89,7 +89,8 @@ def InceptionV3(include_top=True,
                 input_tensor=None,
                 input_shape=None,
                 pooling=None,
-                classes=1000):
+                classes=1000,
+                area1layers=0):
     """Instantiates the Inception v3 architecture.
 
     Optionally loads weights pre-trained
