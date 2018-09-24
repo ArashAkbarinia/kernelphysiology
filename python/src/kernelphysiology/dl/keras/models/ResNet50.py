@@ -126,10 +126,21 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2))
     return x
 
 
+def area_layers(x, num_layers, num_kernels, axis, kernel_size=(7, 7)):
+    for i in range(num_layers):
+        # start naming from i + 2, beacause i starts from 0 and 1 is already added after the input
+        conv_name = 'conv1_%02d' % (i + 2)
+        x = Conv2D(64, (7, 7), strides=(1, 1), padding='same', name=conv_name)(x)
+        norm_name = 'bn_conv1_%02d' % (i + 2)
+        x = BatchNormalization(axis=axis, name=norm_name)(x)
+        x = Activation('relu')(x)
+    return x
+
+
 def ResNet50(include_top=True, weights=None,
              input_tensor=None, input_shape=None,
              pooling=None,
-             classes=1000, area1layers=1):
+             classes=1000, area1layers=0):
     """Instantiates the ResNet50 architecture.
 
     Optionally loads weights pre-trained
@@ -211,17 +222,11 @@ def ResNet50(include_top=True, weights=None,
         bn_axis = 1
 
     x = ZeroPadding2D(padding=(3, 3), name='conv1_pad')(img_input)
-    x = Conv2D(64, (7, 7), strides=(2, 2), padding='valid', name='conv1')(x)
+    x = Conv2D(64, (7, 7), strides=(2, 2), padding='valid', name='conv1_01')(x)
     x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
     x = Activation('relu')(x)
-    # TODO: make this dynamic according to parameters
-    if area1layers > 1:
-        x = Conv2D(64, (7, 7), strides=(1, 1), padding='same', name='conv1_02')(x)
-        x = BatchNormalization(axis=bn_axis, name='bn_conv1_02')(x)
-        x = Activation('relu')(x)
-        x = Conv2D(64, (7, 7), strides=(1, 1), padding='same', name='conv1_03')(x)
-        x = BatchNormalization(axis=bn_axis, name='bn_conv1_03')(x)
-        x = Activation('relu')(x)
+    # START OF MY CHANGES
+    x = area_layers(x, num_layers=area1layers, num_kernels=64, axis=bn_axis, kernel_size=(7, 7))
     # END OF MY CHANGES
     x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
