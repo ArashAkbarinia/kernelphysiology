@@ -17,7 +17,7 @@ from keras.applications.vgg19 import VGG19
 from keras.applications.inception_v3 import InceptionV3
 
 from kernelphysiology.utils.imutils import adjust_contrast
-from kernelphysiology.dl.keras.models import ResNet50
+from kernelphysiology.dl.keras.models import resnet50
 
 
 if __name__ == "__main__":
@@ -69,11 +69,11 @@ if __name__ == "__main__":
                 area1layers = 1
             else:
                 area1layers = 2
-            model = ResNet50.ResNet50(area1layers=area1layers)
+            model = resnet50.ResNet50(area1layers=area1layers)
             model.load_weights(model_path)
             # TODO: fix me with correct preprocessings
-            decode_predictions = ResNet50.decode_predictions
-            preprocess_input = ResNet50.preprocess_input
+            decode_predictions = resnet50.decode_predictions
+            preprocess_input = resnet50.preprocess_input
 
         for start in range(0, ntests, chunk_size):
             # read the data by chunks

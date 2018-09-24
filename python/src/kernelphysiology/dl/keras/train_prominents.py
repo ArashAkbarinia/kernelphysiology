@@ -23,7 +23,7 @@ from kernelphysiology.dl.keras.utils import set_area_trainable_false
 
 from kernelphysiology.utils.imutils import adjust_contrast
 
-from kernelphysiology.dl.keras.models import ResNet50
+from kernelphysiology.dl.keras.models import resnet50
 
 
 def start_training(args):
@@ -113,7 +113,7 @@ def start_training_generator(args):
 
     print('Training ResNet50')
 #    model = keras.applications.resnet50.ResNet50(weights=None)
-    model = ResNet50.ResNet50(weights=None)
+    model = resnet50.ResNet50(weights=None)
     opt = keras.optimizers.Adam(1e-3, decay=1e-6)
     
     if args.multi_gpus == None:
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     elif dataset_name == 'imagenet':
         args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
-        args.preprocessing_function = ResNet50.preprocess_input;
+        args.preprocessing_function = resnet50.preprocess_input;
         args = imagenet_train.prepare_imagenet(args)
 
     if dataset_name == 'imagenet':
