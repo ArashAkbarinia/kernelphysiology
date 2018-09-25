@@ -37,7 +37,10 @@ def start_training_generator(args):
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
     args.callbacks = [csv_logger, checkpoint_logger]
 
-    opt = keras.optimizers.Adam(1e-3, decay=1e-6)
+    # TODO: put a switch case according to each network
+#    opt = keras.optimizers.Adam(lr=1e-3, decay=1e-6)
+    opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
+
     model = args.model
     if args.multi_gpus == None:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
