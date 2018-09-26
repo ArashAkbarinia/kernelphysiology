@@ -103,7 +103,8 @@ if __name__ == "__main__":
         args.input_shape = (3, *args.target_size)
 
     # choosing the preprocessing function
-    if not args.preprocessing:
+    preprocessing = args.preprocessing
+    if not preprocessing:
         preprocessing = network_name
     # switch case of preprocessing functions
     if preprocessing == 'resnet50':
