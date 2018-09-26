@@ -70,6 +70,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Training prominent nets of Keras.')
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
     parser.add_argument(dest='network', type=str, help='Which network to be used')
+
     parser.add_argument('--area1layers', dest='area1layers', type=int, default=0, help='The number of layers in area 1 (default: 0)')
     parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
     parser.add_argument('--a1na', dest='area1_activation', action='store_false', default=True, help='Whether to include activation between layers of area 1 (default: True)')
@@ -77,13 +78,16 @@ if __name__ == "__main__":
     parser.add_argument('--a1dilation', dest='area1_dilation', action='store_true', default=False, help='Whether to include dilation in kernels in area 1 (default: False)')
     parser.add_argument('--dog', dest='add_dog', action='store_true', default=False, help='Whether to add a DoG layer (default: False)')
     parser.add_argument('--train_contrast', dest='train_contrast', type=int, default=100, help='The level of contrast to be used at training (default: 100)')
+
     parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
     parser.add_argument('--checkpoint_path', dest='checkpoint_path', type=str, default=None, help='The path to a previous checkpoint to continue (default: None)')
     parser.add_argument('--mg', dest='multi_gpus', type=int, default=None, help='The number of GPUs to be used (default: None)')
+
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 32)')
     parser.add_argument('--target_size', dest='target_size', type=int, default=224, help='Target size (default: 224)')
     parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs (default: 50)')
     parser.add_argument('--steps', dest='steps', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
+    parser.add_argument('--preprocessing', dest='preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
     parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')
 
     args = parser.parse_args()
@@ -119,13 +123,20 @@ if __name__ == "__main__":
     elif K.image_data_format() == 'channels_first':
         args.input_shape = (3, *args.target_size)
 
-    # TODO: identical preprocessing for all
-    if network_name == 'resnet50':
+    # choosing the preprocessing function
+    if not args.preprocessing:
+        preprocessing = network_name
+    # switch case of preprocessing functions
+    if preprocessing == 'resnet50':
         args.preprocessing_function = resnet50.preprocess_input
-    elif network_name == 'inception_v3':
+    elif preprocessing == 'inception_v3':
         args.preprocessing_function = inception_v3.preprocess_input
-    elif network_name == 'vgg16':
+    elif preprocessing == 'vgg16':
         args.preprocessing_function = vgg16.preprocess_input
+    elif preprocessing == 'vgg19':
+        args.preprocessing_function = vgg19.preprocess_input
+    elif preprocessing == 'densenet121' or network_name == 'densenet169' or network_name == 'densenet201':
+        args.preprocessing_function = densenet.preprocess_input
 
     # which dataset
     if dataset_name == 'cifar10':
@@ -146,6 +157,14 @@ if __name__ == "__main__":
         args.model = inception_v3.InceptionV3(classes=args.num_classes, area1layers=int(args.area1layers))
     elif network_name == 'vgg16':
         args.model = vgg16.VGG16(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+    elif network_name == 'vgg19':
+        args.model = vgg19.VGG19(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+    elif network_name == 'densenet121':
+        args.model = densenet.DenseNet121(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+    elif network_name == 'densenet169':
+        args.model = densenet.DenseNet169(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+    elif network_name == 'densenet201':
+        args.model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
 
     start_training_generator(args)
 
