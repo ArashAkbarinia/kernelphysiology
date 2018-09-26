@@ -11,6 +11,7 @@ import argparse
 
 import tensorflow as tf
 import keras
+from keras import backend as K
 from keras.utils import multi_gpu_model
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
@@ -80,6 +81,7 @@ if __name__ == "__main__":
     parser.add_argument('--checkpoint_path', dest='checkpoint_path', type=str, default=None, help='The path to a previous checkpoint to continue (default: None)')
     parser.add_argument('--mg', dest='multi_gpus', type=int, default=None, help='The number of GPUs to be used (default: None)')
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 32)')
+    parser.add_argument('--target_size', dest='target_size', type=int, default=224, help='Target size (default: 224)')
     parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs (default: 50)')
     parser.add_argument('--steps', dest='steps', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
     parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')
@@ -110,15 +112,22 @@ if __name__ == "__main__":
         args.model_name += '_dog'
         args.dog_path = os.path.join(args.save_dir, 'dog.h5')
 
-    # TODO: maybe make it dynamic
-    args.target_size = (224, 224)
+    args.target_size = (args.target_size, args.target_size)
+    # check the input shape
+    if K.image_data_format() == 'channels_last':
+        args.input_shape = (*args.target_size, 3)
+    elif K.image_data_format() == 'channels_first':
+        args.input_shape = (3, *args.target_size)
 
+    # TODO: identical preprocessing for all
     if network_name == 'resnet50':
         args.preprocessing_function = resnet50.preprocess_input
     elif network_name == 'inception_v3':
         args.preprocessing_function = inception_v3.preprocess_input
+    elif network_name == 'vgg16':
+        args.preprocessing_function = vgg16.preprocess_input
 
-    # which model to run
+    # which dataset
     if dataset_name == 'cifar10':
         args = cifar_train.prepare_cifar10_generators(args)
     elif dataset_name == 'cifar100':
@@ -130,10 +139,13 @@ if __name__ == "__main__":
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
         args = imagenet_train.prepare_imagenet(args)
 
+    # which architecture
     if network_name == 'resnet50':
-        args.model = resnet50.ResNet50(classes=args.num_classes, area1layers=int(args.area1layers))
+        args.model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
     elif network_name == 'inception_v3':
         args.model = inception_v3.InceptionV3(classes=args.num_classes, area1layers=int(args.area1layers))
+    elif network_name == 'vgg16':
+        args.model = vgg16.VGG16(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
 
     start_training_generator(args)
 

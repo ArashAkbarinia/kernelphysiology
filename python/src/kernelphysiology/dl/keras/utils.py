@@ -47,9 +47,9 @@ class ResizeGenerator(keras.utils.Sequence):
         self.shuffle = shuffle
 
         if K.image_data_format() == 'channels_last':
-            self.out_shape = (self.target_size[0], self.target_size[1], self.x_data.shape[3])
+            self.out_shape = (*self.target_size, self.x_data.shape[3])
         elif K.image_data_format() == 'channels_first':
-            self.out_shape = (self.x_data.shape[1], self.target_size[0], self.target_size[1])
+            self.out_shape = (self.x_data.shape[1], *self.target_size)
 
         self.on_epoch_end()
 
@@ -76,7 +76,7 @@ class ResizeGenerator(keras.utils.Sequence):
     def __data_generation(self, current_batch):
         'Generates data containing batch_size samples'
         # initialisation
-        x_batch = np.empty((self.batch_size, self.out_shape[0], self.out_shape[1], self.out_shape[2]), dtype='float32')
+        x_batch = np.empty((self.batch_size, *self.out_shape), dtype='float32')
         y_batch = np.empty((self.batch_size, self.num_classes), dtype=int)
 
         # generate data
