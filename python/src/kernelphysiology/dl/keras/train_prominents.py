@@ -20,11 +20,8 @@ from kernelphysiology.dl.keras.imagenet import imagenet_train
 
 from kernelphysiology.dl.keras.models import resnet50
 from kernelphysiology.dl.keras.models import inception_v3
-
-
-# TODO: for CIFAR and STL
-def start_training(args):
-    return
+from kernelphysiology.dl.keras.models import vgg16, vgg19
+from kernelphysiology.dl.keras.models import densenet
 
 
 def start_training_generator(args):
@@ -116,19 +113,16 @@ if __name__ == "__main__":
     # TODO: maybe make it dynamic
     args.target_size = (224, 224)
 
-    # TODO: don't add model to args and pass it to imagenet
     if network_name == 'resnet50':
         args.preprocessing_function = resnet50.preprocess_input
-        args.model = resnet50.ResNet50(area1layers=int(args.area1layers))
     elif network_name == 'inception_v3':
         args.preprocessing_function = inception_v3.preprocess_input
-        args.model = inception_v3.InceptionV3(area1layers=int(args.area1layers))
 
     # which model to run
     if dataset_name == 'cifar10':
-        args = cifar_train.prepare_cifar10(args)
+        args = cifar_train.prepare_cifar10_generators(args)
     elif dataset_name == 'cifar100':
-        args = cifar_train.prepare_cifar100(args)
+        args = cifar_train.prepare_cifar100_generators(args)
     elif dataset_name == 'stl10':
         args = stl_train.prepare_stl10(args)
     elif dataset_name == 'imagenet':
@@ -136,10 +130,12 @@ if __name__ == "__main__":
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
         args = imagenet_train.prepare_imagenet(args)
 
-    if dataset_name == 'imagenet':
-        start_training_generator(args)
-    else:
-        start_training(args)
+    if network_name == 'resnet50':
+        args.model = resnet50.ResNet50(classes=args.num_classes, area1layers=int(args.area1layers))
+    elif network_name == 'inception_v3':
+        args.model = inception_v3.InceptionV3(classes=args.num_classes, area1layers=int(args.area1layers))
+
+    start_training_generator(args)
 
     finish_stamp = time.time()
     finish_time = datetime.datetime.fromtimestamp(finish_stamp).strftime('%Y-%m-%d_%H-%M-%S')
