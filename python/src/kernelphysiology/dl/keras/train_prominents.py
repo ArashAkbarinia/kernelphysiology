@@ -124,7 +124,7 @@ if __name__ == "__main__":
     elif dataset_name == 'cifar100':
         args = cifar_train.prepare_cifar100_generators(args)
     elif dataset_name == 'stl10':
-        args = stl_train.prepare_stl10(args)
+        args = stl_train.prepare_stl10_generators(args)
     elif dataset_name == 'imagenet':
         args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
