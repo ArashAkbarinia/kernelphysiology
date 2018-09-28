@@ -34,22 +34,44 @@ def test_prominent_prepares(args):
         dirname = args.network
         output_file = os.path.join(dirname, 'contrast_results.csv')
         networks = sorted(glob.glob(dirname + '*.h5'))
+        preprocessings = [args.preprocessing] * len(networks)
     elif os.path.isfile(args.network):
+        networks = []
+        preprocessings = []
         with open(args.network) as f:
-            networks = f.readlines()
-        networks = [x.strip() for x in networks]
+            lines = f.readlines()
+            for line in lines:
+                tokens = line.strip().split(',')
+                networks.append(tokens[0])
+                preprocessings.append(tokens[1])
     else:
         networks = args.network.lower()
+        preprocessings = [args.preprocessing]
 
     if not output_file:
         current_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
         output_file = 'contrast_results_' + current_time + '.csv'
 
     args.networks = networks
+    args.preprocessings = preprocessings
     args.output_file = output_file
 
     return args
 
+
+def get_preprocessing_function(preprocessing):
+        # switch case of preprocessing functions
+    if preprocessing == 'resnet50':
+        preprocessing_function = resnet50.preprocess_input
+    elif preprocessing == 'inception_v3':
+        preprocessing_function = inception_v3.preprocess_input
+    elif preprocessing == 'vgg16':
+        preprocessing_function = vgg16.preprocess_input
+    elif preprocessing == 'vgg19':
+        preprocessing_function = vgg19.preprocess_input
+    elif preprocessing == 'densenet121' or preprocessing == 'densenet169' or preprocessing == 'densenet201':
+        preprocessing_function = densenet.preprocess_input
+    return preprocessing_function
 
 def train_prominent_prepares(args):
     dataset_name = args.dataset.lower()
@@ -63,20 +85,7 @@ def train_prominent_prepares(args):
         args.input_shape = (3, *args.target_size)
 
     # choosing the preprocessing function
-    preprocessing = args.preprocessing
-    if not preprocessing:
-        preprocessing = network_name
-    # switch case of preprocessing functions
-    if preprocessing == 'resnet50':
-        args.preprocessing_function = resnet50.preprocess_input
-    elif preprocessing == 'inception_v3':
-        args.preprocessing_function = inception_v3.preprocess_input
-    elif preprocessing == 'vgg16':
-        args.preprocessing_function = vgg16.preprocess_input
-    elif preprocessing == 'vgg19':
-        args.preprocessing_function = vgg19.preprocess_input
-    elif preprocessing == 'densenet121' or network_name == 'densenet169' or network_name == 'densenet201':
-        args.preprocessing_function = densenet.preprocess_input
+    args.preprocessing_function = get_preprocessing_function(args.preprocessing)
 
     # which dataset
     if dataset_name == 'cifar10':
