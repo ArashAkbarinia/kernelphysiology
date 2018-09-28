@@ -78,7 +78,7 @@ def get_preprocessing_function(preprocessing):
 
 def get_top_k_accuracy(k):
     top_k_acc = partial(keras.metrics.top_k_categorical_accuracy, k=k)
-    top_k_acc.__name__ = 'top_k_acc'
+    top_k_acc.__name__ = 'top_%d_acc' % k
     return top_k_acc
 
 

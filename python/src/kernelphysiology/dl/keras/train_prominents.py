@@ -15,6 +15,7 @@ from keras.utils import multi_gpu_model
 from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau
 
 from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_prominent_prepares
+from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
 
 
 def start_training_generator(args):
@@ -33,15 +34,18 @@ def start_training_generator(args):
 #    opt = keras.optimizers.Adam(lr=1e-3, decay=1e-6)
     opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
 
+    top_k_acc = get_top_k_accuracy(args.top_k)
+    metrics = ['accuracy', top_k_acc]
+
     model = args.model
     if args.multi_gpus == None:
-        model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+        model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
         parallel_model = None
     else:
         with tf.device('/cpu:0'):
-            model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+            model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
         parallel_model = multi_gpu_model(model, gpus=args.multi_gpus)
-        parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+        parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
 
     if not parallel_model == None:
         parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps, epochs=args.epochs, verbose=1, validation_data=args.validation_generator,
