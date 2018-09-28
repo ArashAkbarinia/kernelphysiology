@@ -11,20 +11,10 @@ import sys
 
 import tensorflow as tf
 import keras
-from keras import backend as K
 from keras.utils import multi_gpu_model
-from keras.callbacks import CSVLogger, ModelCheckpoint
+from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau
 
-from kernelphysiology.dl.keras.cifar import cifar_train
-from kernelphysiology.dl.keras.stl import stl_train
-from kernelphysiology.dl.keras.imagenet import imagenet_train
-
-from kernelphysiology.dl.keras.models import resnet50
-from kernelphysiology.dl.keras.models import inception_v3
-from kernelphysiology.dl.keras.models import vgg16, vgg19
-from kernelphysiology.dl.keras.models import densenet
-
-from kernelphysiology.dl.keras.utils import common_arg_parser
+from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_prominent_prepares
 
 
 def start_training_generator(args):
@@ -35,7 +25,9 @@ def start_training_generator(args):
 
     checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights.h5'), monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
-    args.callbacks = [csv_logger, checkpoint_logger]
+    # TODO: put a proper plateau
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=1e-3)
+    args.callbacks = [csv_logger, checkpoint_logger, reduce_lr]
 
     # TODO: put a switch case according to each network
 #    opt = keras.optimizers.Adam(lr=1e-3, decay=1e-6)
@@ -61,7 +53,7 @@ def start_training_generator(args):
     # save model and weights
     model_name = args.model_name + '.h5'
     model_path = os.path.join(args.save_dir, model_name)
-    model.save_weights(model_path)
+    model.save(model_path, include_optimizer=False)
 
 
 if __name__ == "__main__":
@@ -69,7 +61,9 @@ if __name__ == "__main__":
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
     print('Starting at: ' + start_time)
 
-    args = common_arg_parser(sys.argv[1:])
+    args = train_arg_parser(sys.argv[1:])
+    args = train_prominent_prepares(args)
+
     dataset_name = args.dataset.lower()
     network_name = args.network.lower()
 
@@ -94,57 +88,6 @@ if __name__ == "__main__":
     if args.add_dog:
         args.model_name += '_dog'
         args.dog_path = os.path.join(args.save_dir, 'dog.h5')
-
-    args.target_size = (args.target_size, args.target_size)
-    # check the input shape
-    if K.image_data_format() == 'channels_last':
-        args.input_shape = (*args.target_size, 3)
-    elif K.image_data_format() == 'channels_first':
-        args.input_shape = (3, *args.target_size)
-
-    # choosing the preprocessing function
-    preprocessing = args.preprocessing
-    if not preprocessing:
-        preprocessing = network_name
-    # switch case of preprocessing functions
-    if preprocessing == 'resnet50':
-        args.preprocessing_function = resnet50.preprocess_input
-    elif preprocessing == 'inception_v3':
-        args.preprocessing_function = inception_v3.preprocess_input
-    elif preprocessing == 'vgg16':
-        args.preprocessing_function = vgg16.preprocess_input
-    elif preprocessing == 'vgg19':
-        args.preprocessing_function = vgg19.preprocess_input
-    elif preprocessing == 'densenet121' or network_name == 'densenet169' or network_name == 'densenet201':
-        args.preprocessing_function = densenet.preprocess_input
-
-    # which dataset
-    if dataset_name == 'cifar10':
-        args = cifar_train.prepare_cifar10_generators(args)
-    elif dataset_name == 'cifar100':
-        args = cifar_train.prepare_cifar100_generators(args)
-    elif dataset_name == 'stl10':
-        args = stl_train.prepare_stl10_generators(args)
-    elif dataset_name == 'imagenet':
-        args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
-        args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
-        args = imagenet_train.prepare_imagenet(args)
-
-    # which architecture
-    if network_name == 'resnet50':
-        args.model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
-    elif network_name == 'inception_v3':
-        args.model = inception_v3.InceptionV3(classes=args.num_classes, area1layers=int(args.area1layers))
-    elif network_name == 'vgg16':
-        args.model = vgg16.VGG16(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
-    elif network_name == 'vgg19':
-        args.model = vgg19.VGG19(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
-    elif network_name == 'densenet121':
-        args.model = densenet.DenseNet121(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
-    elif network_name == 'densenet169':
-        args.model = densenet.DenseNet169(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
-    elif network_name == 'densenet201':
-        args.model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
 
     start_training_generator(args)
 
