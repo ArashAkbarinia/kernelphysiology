@@ -62,7 +62,7 @@ def test_prominent_prepares(args):
 
 
 def get_preprocessing_function(preprocessing):
-        # switch case of preprocessing functions
+    # switch case of preprocessing functions
     if preprocessing == 'resnet50':
         preprocessing_function = resnet50.preprocess_input
     elif preprocessing == 'inception_v3':
@@ -94,6 +94,8 @@ def train_prominent_prepares(args):
         args.input_shape = (3, *args.target_size)
 
     # choosing the preprocessing function
+    if not args.preprocessing:
+        args.preprocessing = network_name
     args.preprocessing_function = get_preprocessing_function(args.preprocessing)
 
     # which dataset
