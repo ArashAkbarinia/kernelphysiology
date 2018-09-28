@@ -8,7 +8,9 @@ import glob
 import argparse
 import datetime
 import time
+from functools import partial
 
+import keras
 from keras import backend as K
 
 from kernelphysiology.dl.keras.cifar import cifar_train
@@ -32,7 +34,7 @@ def test_prominent_prepares(args):
     output_file = None
     if os.path.isdir(args.network):
         dirname = args.network
-        output_file = os.path.join(dirname, 'contrast_results.csv')
+        output_file = os.path.join(dirname, 'contrast_results')
         networks = sorted(glob.glob(dirname + '*.h5'))
         preprocessings = [args.preprocessing] * len(networks)
     elif os.path.isfile(args.network):
@@ -50,7 +52,7 @@ def test_prominent_prepares(args):
 
     if not output_file:
         current_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
-        output_file = 'contrast_results_' + current_time + '.csv'
+        output_file = 'contrast_results_' + current_time
 
     args.networks = networks
     args.preprocessings = preprocessings
@@ -72,6 +74,13 @@ def get_preprocessing_function(preprocessing):
     elif preprocessing == 'densenet121' or preprocessing == 'densenet169' or preprocessing == 'densenet201':
         preprocessing_function = densenet.preprocess_input
     return preprocessing_function
+
+
+def get_top_k_accuracy(k):
+    top_k_acc = partial(keras.metrics.top_k_categorical_accuracy, k=k)
+    top_k_acc.__name__ = 'top_k_acc'
+    return top_k_acc
+
 
 def train_prominent_prepares(args):
     dataset_name = args.dataset.lower()
@@ -128,6 +137,7 @@ def common_arg_parser(description):
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 32)')
     parser.add_argument('--target_size', dest='target_size', type=int, default=224, help='Target size (default: 224)')
     parser.add_argument('--preprocessing', dest='preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
+    parser.add_argument('--top_k', dest='top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
 
     return parser
 
