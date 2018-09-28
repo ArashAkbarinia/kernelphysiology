@@ -22,7 +22,7 @@ from kernelphysiology.dl.keras.models import vgg16, vgg19
 from kernelphysiology.dl.keras.models import densenet
 
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
-from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function
+from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function, get_top_k_accuracy
 from kernelphysiology.utils.imutils import adjust_contrast
 
 
@@ -44,7 +44,8 @@ if __name__ == "__main__":
     dataset_name = args.dataset.lower()
 
     contrasts = np.array(args.contrasts) / 100
-    results = np.zeros((contrasts.shape[0], len(args.networks)))
+    results_top1 = np.zeros((contrasts.shape[0], len(args.networks)))
+    results_topk = np.zeros((contrasts.shape[0], len(args.networks)))
     for i, contrast in enumerate(contrasts):
         # Maybe if only one preprocessing is used, the generators can be called only once
         for j, network_name in enumerate(args.networks):
@@ -83,12 +84,16 @@ if __name__ == "__main__":
                 args.model = keras.models.load_model(network_name, compile=False)
                 # the compilation being necessary is a bug of keras
                 opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
-                args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+                top_k_acc = get_top_k_accuracy(args.top_k)
+                args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy', top_k_acc])
 
-            results[i, j] = args.model.evaluate_generator(generator=args.validation_generator, verbose=1)[1]
+            current_results = args.model.evaluate_generator(generator=args.validation_generator, verbose=1)
+            results_top1[i, j] = current_results[1]
+            results_topk[i, j] = current_results[2]
 
     # saving the results in a CSV format
-    np.savetxt(args.output_file, results, delimiter=',')
+    np.savetxt(args.output_file + '_top1.csv', results_top1, delimiter=',')
+    np.savetxt(args.output_file + '_top%d.csv' % args.top_k, results_topk, delimiter=',')
 
     finish_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
     print('Finishing at: ' + finish_time)
