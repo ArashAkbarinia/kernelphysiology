@@ -3,11 +3,10 @@ Testing a Keras model of CIFAR or STL against different levels of contrast.
 '''
 
 
-import os
 import commons
+
 import sys
 import numpy as np
-import glob
 import time
 import datetime
 
@@ -47,23 +46,24 @@ if __name__ == "__main__":
     contrasts = np.array(args.contrasts) / 100
     results = np.zeros((contrasts.shape[0], len(args.networks)))
     for i, contrast in enumerate(contrasts):
-        preprocessing = args.preprocessings[i]
-        current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast, preprocessing_function=get_preprocessing_function(preprocessing))
-        args.preprocessing_function = current_contrast_preprocessing
-        # which dataset
-        if dataset_name == 'cifar10':
-            args = cifar_train.prepare_cifar10_generators(args)
-        elif dataset_name == 'cifar100':
-            args = cifar_train.prepare_cifar100_generators(args)
-        elif dataset_name == 'stl10':
-            args = stl_train.prepare_stl10_generators(args)
-        elif dataset_name == 'imagenet':
-            args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
-            args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
-            args = imagenet_train.validation_generator(args)
-
+        # Maybe if only one preprocessing is used, the generators can be called only once
         for j, network_name in enumerate(args.networks):
+            preprocessing = args.preprocessings[j]
+            current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast, preprocessing_function=get_preprocessing_function(preprocessing))
+            args.preprocessing_function = current_contrast_preprocessing
+            # which dataset
+            if dataset_name == 'cifar10':
+                args = cifar_train.prepare_cifar10_generators(args)
+            elif dataset_name == 'cifar100':
+                args = cifar_train.prepare_cifar100_generators(args)
+            elif dataset_name == 'stl10':
+                args = stl_train.prepare_stl10_generators(args)
+            elif dataset_name == 'imagenet':
+                args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
+                args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
+                args = imagenet_train.validation_generator(args)
             print('Processing network %s and contrast %f' % (network_name, contrast))
+
             # which architecture
             if network_name == 'resnet50':
                 args.model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
