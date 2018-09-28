@@ -42,7 +42,7 @@ if __name__ == "__main__":
     args = test_prominent_prepares(args)
 
     # FIXME: for now we assume one type of preprocessing
-    preprocessing = inception_v3.preprocess_input
+    preprocessing = args.preprocessing
 
     dataset_name = args.dataset.lower()
 
