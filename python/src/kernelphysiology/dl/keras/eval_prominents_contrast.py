@@ -23,6 +23,7 @@ from kernelphysiology.dl.keras.models import vgg16, vgg19
 from kernelphysiology.dl.keras.models import densenet
 
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
+from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function
 from kernelphysiology.utils.imutils import adjust_contrast
 
 
@@ -41,16 +42,13 @@ if __name__ == "__main__":
     args = test_arg_parser(sys.argv[1:])
     args = test_prominent_prepares(args)
 
-    # FIXME: for now we assume one type of preprocessing
-    preprocessing = args.preprocessing
-
     dataset_name = args.dataset.lower()
 
     contrasts = np.array(args.contrasts) / 100
     results = np.zeros((contrasts.shape[0], len(args.networks)))
-    i = 0
-    for contrast in contrasts:
-        current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast, preprocessing_function=preprocessing)
+    for i, contrast in enumerate(contrasts):
+        preprocessing = args.preprocessings[i]
+        current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast, preprocessing_function=get_preprocessing_function(preprocessing))
         args.preprocessing_function = current_contrast_preprocessing
         # which dataset
         if dataset_name == 'cifar10':
@@ -64,8 +62,7 @@ if __name__ == "__main__":
             args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
             args = imagenet_train.validation_generator(args)
 
-        j = 0
-        for network_name in args.networks:
+        for j, network_name in enumerate(args.networks):
             print('Processing network %s and contrast %f' % (network_name, contrast))
             # which architecture
             if network_name == 'resnet50':
@@ -89,11 +86,9 @@ if __name__ == "__main__":
                 args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
             results[i, j] = args.model.evaluate_generator(generator=args.validation_generator, verbose=1)[1]
-            j += 1
-        i += 1
 
     # saving the results in a CSV format
-    np.savetxt(args.output_file, np.transpose(results), delimiter=',')
+    np.savetxt(args.output_file, results, delimiter=',')
 
     finish_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
     print('Finishing at: ' + finish_time)
