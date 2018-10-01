@@ -147,7 +147,7 @@ def common_arg_parser(description):
 def test_arg_parser(argvs):
     parser = common_arg_parser('Test prominent nets of Keras for different contrasts.')
 
-    parser.add_argument('--contrasts', dest='contrasts', nargs='+', type=int, default=[50, 100], help='List of contrasts to be evaluated (default: [50, 100]')
+    parser.add_argument('--contrasts', dest='contrasts', nargs='+', type=int, default=[50, 100], help='List of contrasts to be evaluated (default: [50, 100])')
 
     return parser.parse_args(argvs)
 
@@ -166,6 +166,7 @@ def train_arg_parser(argvs):
     parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
     parser.add_argument('--checkpoint_path', dest='checkpoint_path', type=str, default=None, help='The path to a previous checkpoint to continue (default: None)')
 
+    parser.add_argument('--optimiser', dest='optimiser', type=str, default='sgd', help='The optimiser to be used (default: sgd)')
     parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs (default: 50)')
     parser.add_argument('--steps', dest='steps', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
     parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')

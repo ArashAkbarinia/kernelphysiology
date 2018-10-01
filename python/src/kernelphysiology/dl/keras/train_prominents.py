@@ -30,9 +30,10 @@ def start_training_generator(args):
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=1e-3)
     args.callbacks = [csv_logger, checkpoint_logger, reduce_lr]
 
-    # TODO: put a switch case according to each network
-#    opt = keras.optimizers.Adam(lr=1e-3, decay=1e-6)
-    opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
+    if args.optimiser.lower() == 'adam':
+        opt = keras.optimizers.Adam(lr=1e-3, decay=1e-6)
+    elif args.optimiser.lower() == 'sgd':
+        opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
 
     top_k_acc = get_top_k_accuracy(args.top_k)
     metrics = ['accuracy', top_k_acc]
