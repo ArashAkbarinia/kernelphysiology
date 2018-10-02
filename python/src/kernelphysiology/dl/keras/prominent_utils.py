@@ -173,8 +173,9 @@ def train_arg_parser(argvs):
 
     return check_args(parser, argvs)
 
+
 def check_args(parser, argvs):
     args = parser.parse_args(argvs)
     # TODO: more checking for GPUs
-    os.environ["CUDA_VISIBLE_DEVICES"] = ' '.join(str(e) for e in args.gpus)
+    os.environ["CUDA_VISIBLE_DEVICES"] = ', '.join(str(e) for e in args.gpus)
     return args
