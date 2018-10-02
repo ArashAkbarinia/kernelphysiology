@@ -136,7 +136,7 @@ def common_arg_parser(description):
 
     parser.add_argument('--gpus', dest='gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 
-    parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 32)')
+    parser.add_argument('--batch_size', dest='batch_size', type=int, default=64, help='Batch size (default: 64)')
     parser.add_argument('--target_size', dest='target_size', type=int, default=224, help='Target size (default: 224)')
     parser.add_argument('--preprocessing', dest='preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
     parser.add_argument('--top_k', dest='top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')

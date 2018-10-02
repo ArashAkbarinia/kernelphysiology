@@ -8,6 +8,7 @@ import commons
 import time
 import datetime
 import sys
+import logging
 
 import tensorflow as tf
 import keras
@@ -22,18 +23,28 @@ def start_training_generator(args):
     args.log_dir = os.path.join(args.save_dir, args.model_name)
     if not os.path.isdir(args.log_dir):
         os.mkdir(args.log_dir)
+    logging.basicConfig(filename=os.path.join(args.log_dir, 'experiment_info.log'), level=logging.DEBUG)
+    logging.info('Preprocessing %s' % args.preprocessing)
 
     best_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_best.h5'), monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True)
     last_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_last.h5'), verbose=1, save_weights_only=True, save_best_only=False)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
     # TODO: put a proper plateau
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=1e-3)
+    logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_lr))
     args.callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
 
     if args.optimiser.lower() == 'adam':
-        opt = keras.optimizers.Adam(lr=1e-3, decay=1e-6)
+        lr = 1e-3
+        decay = 1e-6
+        opt = keras.optimizers.Adam(lr=lr, decay=decay)
+        logging.info('Optimiser Adam lr=%f decay=%f' % (lr, decay))
     elif args.optimiser.lower() == 'sgd':
-        opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
+        lr = 1e-1
+        decay = 1e-4
+        momentum = 0.9
+        opt = keras.optimizers.SGD(lr=lr, decay=decay, momentum=momentum)
+        logging.info('Optimiser SGD lr=%f decay=%f momentum=%f' % (lr, decay, momentum))
 
     top_k_acc = get_top_k_accuracy(args.top_k)
     metrics = ['accuracy', top_k_acc]
