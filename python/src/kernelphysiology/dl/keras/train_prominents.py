@@ -24,11 +24,12 @@ def start_training_generator(args):
     if not os.path.isdir(args.log_dir):
         os.mkdir(args.log_dir)
 
-    checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights.h5'), monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True)
+    best_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_best.h5'), monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True)
+    last_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_last.h5'), verbose=1, save_weights_only=True, save_best_only=False)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
     # TODO: put a proper plateau
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=1e-3)
-    args.callbacks = [csv_logger, checkpoint_logger, reduce_lr]
+    args.callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
 
     if args.optimiser.lower() == 'adam':
         opt = keras.optimizers.Adam(lr=1e-3, decay=1e-6)
