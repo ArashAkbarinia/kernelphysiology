@@ -69,19 +69,19 @@ if __name__ == "__main__":
 
             # which architecture
             if network_name == 'resnet50':
-                args.model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+                args.model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
             elif network_name == 'inception_v3':
-                args.model = inception_v3.InceptionV3(classes=args.num_classes, area1layers=int(args.area1layers))
+                args.model = inception_v3.InceptionV3(classes=args.num_classes, area1layers=args.area1layers)
             elif network_name == 'vgg16':
-                args.model = vgg16.VGG16(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+                args.model = vgg16.VGG16(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
             elif network_name == 'vgg19':
-                args.model = vgg19.VGG19(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+                args.model = vgg19.VGG19(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
             elif network_name == 'densenet121':
-                args.model = densenet.DenseNet121(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+                args.model = densenet.DenseNet121(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
             elif network_name == 'densenet169':
-                args.model = densenet.DenseNet169(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+                args.model = densenet.DenseNet169(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
             elif network_name == 'densenet201':
-                args.model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+                args.model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
             else:
                 args.model = keras.models.load_model(network_name, compile=False)
 

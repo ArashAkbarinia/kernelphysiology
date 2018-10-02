@@ -130,7 +130,7 @@ def area_layers(x, num_layers, num_kernels, axis, kernel_size=(7, 7)):
     for i in range(num_layers):
         # start naming from i + 2, beacause i starts from 0 and 1 is already added after the input
         conv_name = 'conv1_%02d' % (i + 2)
-        x = Conv2D(64, (7, 7), strides=(1, 1), padding='same', name=conv_name)(x)
+        x = Conv2D(num_kernels, kernel_size, strides=(1, 1), padding='same', name=conv_name)(x)
         norm_name = 'bn_conv1_%02d' % (i + 2)
         x = BatchNormalization(axis=axis, name=norm_name)(x)
         x = Activation('relu')(x)
@@ -220,6 +220,9 @@ def ResNet50(include_top=True, weights=None,
         bn_axis = 3
     else:
         bn_axis = 1
+
+    if area1layers is None:
+        area1layers = 0
 
     x = ZeroPadding2D(padding=(3, 3), name='conv1_pad')(img_input)
     x = Conv2D(64, (7, 7), strides=(2, 2), padding='valid', name='conv1_01')(x)

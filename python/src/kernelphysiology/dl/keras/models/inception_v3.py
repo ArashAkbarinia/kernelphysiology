@@ -90,7 +90,7 @@ def InceptionV3(include_top=True,
                 input_shape=None,
                 pooling=None,
                 classes=1000,
-                area1layers=0):
+                area1layers=2):
     """Instantiates the Inception v3 architecture.
 
     Optionally loads weights pre-trained
@@ -173,9 +173,15 @@ def InceptionV3(include_top=True,
     else:
         channel_axis = 3
 
-    x = conv2d_bn(img_input, 32, 3, 3, strides=(2, 2), padding='valid')
-    x = conv2d_bn(x, 32, 3, 3, padding='valid')
-    x = conv2d_bn(x, 64, 3, 3)
+    if area1layers is None:
+        area1layers = 2
+    # FIXME: better defining number of layers
+    if area1layers == 0:
+        x = conv2d_bn(img_input, 64, 3, 3, strides=(2, 2), padding='valid')
+    if area1layers == 2:
+        x = conv2d_bn(img_input, 32, 3, 3, strides=(2, 2), padding='valid')
+        x = conv2d_bn(x, 32, 3, 3, padding='valid')
+        x = conv2d_bn(x, 64, 3, 3)
     x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
     x = conv2d_bn(x, 80, 1, 1, padding='valid')

@@ -112,19 +112,19 @@ def train_prominent_prepares(args):
 
     # which architecture
     if network_name == 'resnet50':
-        args.model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+        args.model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'inception_v3':
-        args.model = inception_v3.InceptionV3(classes=args.num_classes, area1layers=int(args.area1layers))
+        args.model = inception_v3.InceptionV3(classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'vgg16':
-        args.model = vgg16.VGG16(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+        args.model = vgg16.VGG16(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'vgg19':
-        args.model = vgg19.VGG19(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+        args.model = vgg19.VGG19(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'densenet121':
-        args.model = densenet.DenseNet121(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+        args.model = densenet.DenseNet121(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'densenet169':
-        args.model = densenet.DenseNet169(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+        args.model = densenet.DenseNet169(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'densenet201':
-        args.model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
+        args.model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
 
     return args
 
@@ -155,7 +155,7 @@ def test_arg_parser(argvs):
 def train_arg_parser(argvs):
     parser = common_arg_parser('Training prominent nets of Keras.')
 
-    parser.add_argument('--area1layers', dest='area1layers', type=int, default=0, help='The number of layers in area 1 (default: 0)')
+    parser.add_argument('--area1layers', dest='area1layers', type=int, default=None, help='The number of layers in area 1 (default: 0)')
     parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
     parser.add_argument('--a1na', dest='area1_activation', action='store_false', default=True, help='Whether to include activation between layers of area 1 (default: True)')
     parser.add_argument('--a1reduction', dest='area1_reduction', action='store_true', default=False, help='Whether to include a reduction layer in area 1 (default: False)')
