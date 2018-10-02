@@ -10,7 +10,9 @@ import numpy as np
 import time
 import datetime
 
+import tensorflow as tf
 import keras
+from keras.utils import multi_gpu_model
 
 from kernelphysiology.dl.keras.cifar import cifar_train
 from kernelphysiology.dl.keras.stl import stl_train
@@ -82,12 +84,20 @@ if __name__ == "__main__":
                 args.model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=int(args.area1layers))
             else:
                 args.model = keras.models.load_model(network_name, compile=False)
-                # the compilation being necessary is a bug of keras
-                opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
-                top_k_acc = get_top_k_accuracy(args.top_k)
-                args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy', top_k_acc])
 
-            current_results = args.model.evaluate_generator(generator=args.validation_generator, verbose=1)
+            top_k_acc = get_top_k_accuracy(args.top_k)
+            metrics=['accuracy', top_k_acc]
+            opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
+            if len(args.gpus) == 1:
+                # the compilation being necessary is a bug of keras
+                args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+                current_results = args.model.evaluate_generator(generator=args.validation_generator, verbose=1)
+            else:
+                with tf.device('/cpu:0'):
+                    args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+                parallel_model = multi_gpu_model(args.model, gpus=args.gpus)
+                parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+                current_results = parallel_model.evaluate_generator(generator=args.validation_generator, verbose=1)
             results_top1[i, j] = current_results[1]
             results_topk[i, j] = current_results[2]
 

@@ -19,7 +19,6 @@ from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
 
 
 def start_training_generator(args):
-
     args.log_dir = os.path.join(args.save_dir, args.model_name)
     if not os.path.isdir(args.log_dir):
         os.mkdir(args.log_dir)
@@ -40,13 +39,13 @@ def start_training_generator(args):
     metrics = ['accuracy', top_k_acc]
 
     model = args.model
-    if args.multi_gpus == None:
+    if len(args.gpus) == 1:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
         parallel_model = None
     else:
         with tf.device('/cpu:0'):
             model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
-        parallel_model = multi_gpu_model(model, gpus=args.multi_gpus)
+        parallel_model = multi_gpu_model(model, gpus=args.gpus)
         parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
 
     if not parallel_model == None:

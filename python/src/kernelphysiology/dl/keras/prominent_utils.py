@@ -134,7 +134,7 @@ def common_arg_parser(description):
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
     parser.add_argument(dest='network', type=str, help='Which network to be used')
 
-    parser.add_argument('--mg', dest='multi_gpus', type=int, default=None, help='The number of GPUs to be used (default: None)')
+    parser.add_argument('--gpus', dest='gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='Batch size (default: 32)')
     parser.add_argument('--target_size', dest='target_size', type=int, default=224, help='Target size (default: 224)')
@@ -149,7 +149,7 @@ def test_arg_parser(argvs):
 
     parser.add_argument('--contrasts', dest='contrasts', nargs='+', type=int, default=[50, 100], help='List of contrasts to be evaluated (default: [50, 100])')
 
-    return parser.parse_args(argvs)
+    return check_args(parser, argvs)
 
 
 def train_arg_parser(argvs):
@@ -171,4 +171,10 @@ def train_arg_parser(argvs):
     parser.add_argument('--steps', dest='steps', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
     parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')
 
-    return parser.parse_args(argvs)
+    return check_args(parser, argvs)
+
+def check_args(parser, argvs):
+    args = parser.parse_args(argvs)
+    # TODO: more checking for GPUs
+    os.environ["CUDA_VISIBLE_DEVICES"] = ' '.join(str(e) for e in args.gpus)
+    return args
