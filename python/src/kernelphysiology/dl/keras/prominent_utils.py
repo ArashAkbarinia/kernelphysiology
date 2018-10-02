@@ -169,7 +169,9 @@ def train_arg_parser(argvs):
     parser.add_argument('--optimiser', dest='optimiser', type=str, default='sgd', help='The optimiser to be used (default: sgd)')
     parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs (default: 50)')
     parser.add_argument('--steps', dest='steps', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
-    parser.add_argument('--data_augmentation', dest='data_augmentation', action='store_true', default=False, help='Whether to augment data (default: False)')
+
+    parser.add_argument('--horizontal_flip', dest='horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
+    parser.add_argument('--vertical_flip', dest='vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
 
     return check_args(parser, argvs)
 

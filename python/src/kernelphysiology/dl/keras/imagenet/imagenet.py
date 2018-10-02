@@ -247,10 +247,10 @@ def load_test_data(dirname, which_chunk=None):
     return (x_test, y_test)
 
 
-def train_generator(dirname, batch_size=32, target_size=(224, 224), preprocessing_function=None):
+def train_generator(dirname, batch_size=32, target_size=(224, 224), preprocessing_function=None, horizontal_flip=False, vertical_flip=False):
     train_datagen = ImageDataGenerator(preprocessing_function=preprocessing_function)
 
-    train_generator = train_datagen.flow_from_directory(dirname, target_size=target_size, batch_size=batch_size)
+    train_generator = train_datagen.flow_from_directory(dirname, target_size=target_size, batch_size=batch_size, horizontal_flip=horizontal_flip, vertical_flip=vertical_flip)
 
     return train_generator
 

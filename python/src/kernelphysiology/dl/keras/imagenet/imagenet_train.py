@@ -14,7 +14,11 @@ from kernelphysiology.dl.keras.imagenet import imagenet
 def prepare_imagenet(args):
     args.num_classes = 1000
 
-    args.train_generator = imagenet.train_generator(args.train_dir, batch_size=args.batch_size, target_size=args.target_size, preprocessing_function=args.preprocessing_function)
+    args.train_generator = imagenet.train_generator(args.train_dir, batch_size=args.batch_size,
+                                                    target_size=args.target_size,
+                                                    preprocessing_function=args.preprocessing_function,
+                                                    horizontal_flip=args.horizontal_flip,
+                                                    vertical_flip=args.vertical_flip)
 
     args.validation_generator = imagenet.validation_generator(args.validation_dir, batch_size=args.batch_size, target_size=args.target_size, preprocessing_function=args.preprocessing_function)
 
