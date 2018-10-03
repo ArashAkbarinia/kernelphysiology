@@ -12,12 +12,20 @@ end
 ContrastNames = fieldnames(ActivationReport.cls);
 nContrasts = numel(ContrastNames);
 
-nTopXPred = numel(ActivationReport.cls.(ContrastNames{1}).prediction.type);
+if iscell(ActivationReport.cls.(ContrastNames{1}).prediction.type)
+  nTopXPred = numel(ActivationReport.cls.(ContrastNames{1}).prediction.type);
+else
+  nTopXPred = 1;
+end
 types = cell(nContrasts, nTopXPred);
 scores = zeros(nContrasts, nTopXPred);
 
 for i = 1:nContrasts
-  types(i, :) = ActivationReport.cls.(ContrastNames{i}).prediction.type';
+  if nTopXPred > 1
+    types(i, :) = ActivationReport.cls.(ContrastNames{i}).prediction.type';
+  else
+    types{i, :} = ActivationReport.cls.(ContrastNames{i}).prediction.type;
+  end
   scores(i, :) = ActivationReport.cls.(ContrastNames{i}).prediction.score';
 end
 
