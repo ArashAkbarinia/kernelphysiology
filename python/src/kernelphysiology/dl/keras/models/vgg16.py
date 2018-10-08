@@ -16,6 +16,7 @@ import warnings
 from keras.models import Model
 from keras.layers import Flatten
 from keras.layers import Dense
+from keras.layers import Dropout
 from keras.layers import Input
 from keras.layers import Conv2D
 from keras.layers import MaxPooling2D
@@ -145,7 +146,9 @@ def VGG16(include_top=True, weights=None,
         # Classification block
         x = Flatten(name='flatten')(x)
         x = Dense(4096, activation='relu', name='fc1')(x)
+        x = Dropout(0.5)(x)
         x = Dense(4096, activation='relu', name='fc2')(x)
+        x = Dropout(0.5)(x)
         x = Dense(classes, activation='softmax', name='predictions')(x)
     else:
         if pooling == 'avg':
