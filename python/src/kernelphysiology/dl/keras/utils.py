@@ -100,8 +100,28 @@ class ResizeGenerator(keras.utils.Sequence):
         return (x_batch, y_batch)
 
 
-def resize_generator(x_data, y_data, target_size, batch_size=32, preprocessing_function=None, horizontal_flip=False, vertical_flip=False):
-    datagen = ImageDataGenerator(preprocessing_function=preprocessing_function, horizontal_flip=horizontal_flip, vertical_flip=vertical_flip)
+def get_generators(args, x_train, y_train, x_test, y_test):
+    (args.train_generator, args.train_samples) = resize_generator(x_train, y_train, batch_size=args.batch_size,
+                                            target_size=args.target_size, preprocessing_function=args.train_preprocessing_function,
+                                            horizontal_flip=args.horizontal_flip, vertical_flip=args.vertical_flip,
+                                            zoom_range=args.zoom_range,
+                                            width_shift_range=args.width_shift_range, height_shift_range=args.height_shift_range)
+
+
+    (args.validation_generator, args.validation_samples) = resize_generator(x_test, y_test, batch_size=args.batch_size,
+                                            target_size=args.target_size, preprocessing_function=args.validation_preprocessing_function)
+
+    return args
+
+
+def resize_generator(x_data, y_data, target_size, batch_size=32, preprocessing_function=None,
+                     horizontal_flip=False, vertical_flip=False,
+                     zoom_range=0.0, width_shift_range=0.0, height_shift_range=0.0):
+    datagen = ImageDataGenerator(preprocessing_function=preprocessing_function,
+                                 horizontal_flip=horizontal_flip, vertical_flip=vertical_flip,
+                                 zoom_range=zoom_range,
+                                 width_shift_range=width_shift_range, height_shift_range=height_shift_range
+                                 )
     data_batches = datagen.flow(x_data, y_data, batch_size)
     if target_size[0] != x_data.shape[2]:
         return (resize_iterator(data_batches, target_size), x_data.shape[0])

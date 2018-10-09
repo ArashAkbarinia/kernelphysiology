@@ -107,8 +107,9 @@ def train_prominent_prepares(args):
     if not args.preprocessing:
         args.preprocessing = network_name
 
-    if args.contrast_aug:
-        contrast_range = np.array([1, 100]) / 100
+    if args.contrast_range is not None:
+        # TODO: better range handling for contrast
+        contrast_range = np.array([args.contrast_range, 100]) / 100
         current_contrast_preprocessing = lambda img : contrast_augmented_preprocessing(img, contrast_range=contrast_range, preprocessing_function=get_preprocessing_function(args.preprocessing))
         args.train_preprocessing_function = current_contrast_preprocessing
     else:
@@ -206,7 +207,10 @@ def train_arg_parser(argvs):
 
     parser.add_argument('--horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
     parser.add_argument('--vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
-    parser.add_argument('--contrast_aug', action='store_true', default=False, help='Whether to perform contrast agumentation (default: False)')
+    parser.add_argument('--contrast_range', type=float, default=None, help='Value perform contrast agumentation (default: None)')
+    parser.add_argument('--zoom_range', type=float, default=0, help='Value for zoom agumentation (default: 0)')
+    parser.add_argument('--width_shift_range', type=float, default=0, help='Value for width shift agumentation (default: 0)')
+    parser.add_argument('--height_shift_range', type=float, default=0, help='Value for height shift agumentation (default: 0)')
 
     return check_args(parser, argvs)
 

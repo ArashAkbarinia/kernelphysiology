@@ -18,7 +18,9 @@ def prepare_imagenet(args):
                                                     target_size=args.target_size,
                                                     preprocessing_function=args.train_preprocessing_function,
                                                     horizontal_flip=args.horizontal_flip,
-                                                    vertical_flip=args.vertical_flip)
+                                                    vertical_flip=args.vertical_flip,
+                                                    zoom_range=args.zoom_range,
+                                                    width_shift_range=args.width_shift_range, height_shift_range=args.height_shift_range)
     args.train_samples = args.train_generator.samples
 
     args.validation_generator = imagenet.validation_generator(args.validation_dir, batch_size=args.batch_size,
