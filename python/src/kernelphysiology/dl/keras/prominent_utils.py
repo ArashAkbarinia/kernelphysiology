@@ -23,7 +23,14 @@ from kernelphysiology.dl.keras.models import inception_v3
 from kernelphysiology.dl.keras.models import vgg16, vgg19
 from kernelphysiology.dl.keras.models import densenet
 
-from kernelphysiology.dl.keras.utils import contrast_generator
+from kernelphysiology.utils.imutils import adjust_contrast
+
+
+def contrast_augmented_preprocessing(img, contrast_range, preprocessing_function=None):
+    img = adjust_contrast(img, np.random.uniform(*contrast_range)) * 255
+    if preprocessing_function is not None:
+        img = preprocessing_function(img)
+    return img
 
 
 def test_prominent_prepares(args):
@@ -101,6 +108,10 @@ def train_prominent_prepares(args):
         args.preprocessing = network_name
     args.preprocessing_function = get_preprocessing_function(args.preprocessing)
 
+    if args.contrast_aug:
+        contrast_range = np.array([1, 100]) / 100
+        args.preprocessing_function = lambda img : contrast_augmented_preprocessing(img, contrast_range=contrast_range, preprocessing_function=args.preprocessing_function)
+
     # which dataset
     if dataset_name == 'cifar10':
         args = cifar_train.prepare_cifar10_generators(args)
@@ -114,12 +125,6 @@ def train_prominent_prepares(args):
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
         args = imagenet_train.prepare_imagenet(args)
 
-        # FIXME: this is working only for imagenet nwo
-        if args.contrast_aug:
-            contrast_range = np.array([1, 100]) / 100
-            if args.steps is None:
-                args.steps = args.train_generator.samples / args.batch_size
-            args.train_generator = contrast_generator(args.train_generator, contrast_range)
 
     # which architecture
     if network_name == 'resnet50':
