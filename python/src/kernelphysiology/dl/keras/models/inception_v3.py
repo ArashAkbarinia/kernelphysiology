@@ -151,11 +151,12 @@ def InceptionV3(include_top=True,
         raise ValueError('If using `weights` as imagenet with `include_top`'
                          ' as true, `classes` should be 1000')
 
+    org_min_size = 139
     # Determine proper input shape
     input_shape = _obtain_input_shape(
         input_shape,
         default_size=299,
-        min_size=139,
+        min_size=32,
         data_format=K.image_data_format(),
         require_flatten=False,
         weights=weights)
@@ -175,14 +176,19 @@ def InceptionV3(include_top=True,
 
     if area1layers is None:
         area1layers = 2
+    # FIXME: better handling smaller images
+    if input_shape[0] >= org_min_size:
+        strides = (2, 2)
+    else:
+        strides = (1, 1)
     # FIXME: better defining number of layers
     if area1layers == 0:
-        x = conv2d_bn(img_input, 64, 3, 3, strides=(2, 2), padding='valid')
+        x = conv2d_bn(img_input, 64, 3, 3, strides=strides, padding='valid')
     if area1layers == 2:
-        x = conv2d_bn(img_input, 32, 3, 3, strides=(2, 2), padding='valid')
+        x = conv2d_bn(img_input, 32, 3, 3, strides=strides, padding='valid')
         x = conv2d_bn(x, 32, 3, 3, padding='valid')
         x = conv2d_bn(x, 64, 3, 3)
-    x = MaxPooling2D((3, 3), strides=(2, 2))(x)
+    x = MaxPooling2D((3, 3), strides=strides)(x)
 
     x = conv2d_bn(x, 80, 1, 1, padding='valid')
     x = conv2d_bn(x, 192, 3, 3, padding='valid')

@@ -103,7 +103,10 @@ class ResizeGenerator(keras.utils.Sequence):
 def resize_generator(x_data, y_data, target_size, batch_size=32, preprocessing_function=None, horizontal_flip=False, vertical_flip=False):
     datagen = ImageDataGenerator(preprocessing_function=preprocessing_function, horizontal_flip=horizontal_flip, vertical_flip=vertical_flip)
     data_batches = datagen.flow(x_data, y_data, batch_size)
-    return (resize_iterator(data_batches, target_size), x_data.shape[0])
+    if target_size[0] != x_data.shape[2]:
+        return (resize_iterator(data_batches, target_size), x_data.shape[0])
+    else:
+        return (data_batches, x_data.shape[0])
 
 
 def resize_iterator(batches, target_size):
