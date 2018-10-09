@@ -6,7 +6,7 @@ Train a simple DNN on CIFAR 10 or 100.
 from kernelphysiology.dl.keras.cifar import cifar10
 from kernelphysiology.dl.keras.cifar import cifar100
 
-from kernelphysiology.dl.keras.utils import ResizeGenerator
+from kernelphysiology.dl.keras.utils import resize_generator
 
 
 def prepare_cifar10(args):
@@ -48,8 +48,13 @@ def prepare_cifar100_generators(args):
 
 
 def get_generators(args, x_train, y_train, x_test, y_test):
-    args.train_generator = ResizeGenerator(x_train, y_train, args.num_classes, batch_size=args.batch_size, target_size=args.target_size, preprocessing_function=args.preprocessing_function)
+    (args.train_generator, args.train_samples) = resize_generator(x_train, y_train, batch_size=args.batch_size,
+                                            target_size=args.target_size, preprocessing_function=args.preprocessing_function,
+                                            horizontal_flip=args.horizontal_flip, vertical_flip=args.vertical_flip)
 
-    args.validation_generator = ResizeGenerator(x_test, y_test, args.num_classes, batch_size=args.batch_size, target_size=args.target_size, preprocessing_function=args.preprocessing_function)
+
+    (args.validation_generator, args.validation_samples) = resize_generator(x_test, y_test, batch_size=args.batch_size,
+                                            target_size=args.target_size, preprocessing_function=args.preprocessing_function)
 
     return args
+

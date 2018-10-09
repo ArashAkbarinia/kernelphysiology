@@ -42,22 +42,22 @@ def test_prominent_prepares(args):
         args.input_shape = (3, *args.target_size)
 
     output_file = None
-    if os.path.isdir(args.network):
-        dirname = args.network
+    if os.path.isdir(args.network_name):
+        dirname = args.network_name
         output_file = os.path.join(dirname, 'contrast_results')
         networks = sorted(glob.glob(dirname + '*.h5'))
         preprocessings = [args.preprocessing] * len(networks)
-    elif os.path.isfile(args.network):
+    elif os.path.isfile(args.network_name):
         networks = []
         preprocessings = []
-        with open(args.network) as f:
+        with open(args.network_name) as f:
             lines = f.readlines()
             for line in lines:
                 tokens = line.strip().split(',')
                 networks.append(tokens[0])
                 preprocessings.append(tokens[1])
     else:
-        networks = args.network.lower()
+        networks = args.network_name.lower()
         preprocessings = [args.preprocessing]
 
     if not output_file:
@@ -94,7 +94,7 @@ def get_top_k_accuracy(k):
 
 def train_prominent_prepares(args):
     dataset_name = args.dataset.lower()
-    network_name = args.network.lower()
+    network_name = args.network_name.lower()
 
     args.target_size = (args.target_size, args.target_size)
     # check the input shape
@@ -127,6 +127,11 @@ def train_prominent_prepares(args):
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
         args = imagenet_train.prepare_imagenet(args)
 
+    if args.steps_per_epoch is None:
+        args.steps_per_epoch = args.train_samples / args.batch_size
+    if args.validation_steps is None:
+        args.validation_steps = args.validation_samples / args.batch_size
+
     # which architecture
     args.model = get_model(args)
 
@@ -156,7 +161,7 @@ def get_model(args):
 def common_arg_parser(description):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
-    parser.add_argument(dest='network', type=str, help='Which network to be used')
+    parser.add_argument(dest='network_name', type=str, help='Which network to be used')
 
     # TODO: make the argument list nicer according to test or train ...
     parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
@@ -194,7 +199,8 @@ def train_arg_parser(argvs):
 
     parser.add_argument('--optimiser', type=str, default='sgd', help='The optimiser to be used (default: sgd)')
     parser.add_argument('--epochs', type=int, default=50, help='Number of epochs (default: 50)')
-    parser.add_argument('--steps', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
+    parser.add_argument('--steps_per_epoch', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
+    parser.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')
 
     parser.add_argument('--horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
     parser.add_argument('--vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')

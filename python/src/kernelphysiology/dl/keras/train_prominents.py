@@ -37,6 +37,7 @@ def start_training_generator(args):
     logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_lr))
     args.callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
 
+    # TODO: add more optimisers and parametrise from argument line
     if args.optimiser.lower() == 'adam':
         lr = 1e-3
         decay = 1e-6
@@ -75,11 +76,13 @@ def start_training_generator(args):
         parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
 
     if not parallel_model == None:
-        parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps, epochs=args.epochs, verbose=1, validation_data=args.validation_generator,
+        parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
+                                     validation_data=args.validation_generator, validation_steps=args.validation_steps,
                                      callbacks=args.callbacks)
     else:
-        model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps, epochs=args.epochs, verbose=1, validation_data=args.validation_generator,
-                                     callbacks=args.callbacks)
+        model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
+                            validation_data=args.validation_generator, validation_steps=args.validation_steps,
+                            callbacks=args.callbacks)
 
     # save model and weights
     model_name = args.model_name + '.h5'
@@ -96,8 +99,9 @@ if __name__ == "__main__":
     args = train_prominent_prepares(args)
 
     dataset_name = args.dataset.lower()
-    network_name = args.network.lower()
+    network_name = args.network_name.lower()
 
+    # FIXME make sure the directory exist
     # preparing arguments
     network_dir = os.path.join(commons.python_root, 'data/nets/%s/%s/%s/' % (''.join([i for i in dataset_name if not i.isdigit()]), dataset_name, network_name))
     if not os.path.isdir(network_dir):

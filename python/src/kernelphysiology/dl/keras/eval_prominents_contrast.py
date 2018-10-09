@@ -49,7 +49,7 @@ if __name__ == "__main__":
     results_top1 = np.zeros((contrasts.shape[0], len(args.networks)))
     results_topk = np.zeros((contrasts.shape[0], len(args.networks)))
     for i, contrast in enumerate(contrasts):
-        # Maybe if only one preprocessing is used, the generators can be called only once
+        # maybe if only one preprocessing is used, the generators can be called only once
         for j, network_name in enumerate(args.networks):
             preprocessing = args.preprocessings[j]
             current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast, preprocessing_function=get_preprocessing_function(preprocessing))
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                 args.model = keras.models.load_model(network_name, compile=False)
 
             top_k_acc = get_top_k_accuracy(args.top_k)
-            metrics=['accuracy', top_k_acc]
+            metrics = ['accuracy', top_k_acc]
             opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
             if len(args.gpus) == 1:
                 # the compilation being necessary is a bug of keras
