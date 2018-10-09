@@ -39,14 +39,26 @@ def start_training_generator(args):
     if args.optimiser.lower() == 'adam':
         lr = 1e-3
         decay = 1e-6
-        opt = keras.optimizers.Adam(lr=lr, decay=decay)
-        logging.info('Optimiser Adam lr=%f decay=%f' % (lr, decay))
+        beta_1 = 0.9
+        beta_2 = 0.999
+        epsilon = None
+        amsgrad = False
+        opt = keras.optimizers.Adam(lr=lr, decay=decay, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon, amsgrad=amsgrad)
+        logging.info('Optimiser Adam lr=%f decay=%f beta_1=%f beta_2=%f epsilon=%s amsgrad=%s' % (lr, decay, beta_1, beta_2, epsilon, amsgrad))
     elif args.optimiser.lower() == 'sgd':
         lr = 1e-1
         decay = 1e-4
         momentum = 0.9
-        opt = keras.optimizers.SGD(lr=lr, decay=decay, momentum=momentum)
-        logging.info('Optimiser SGD lr=%f decay=%f momentum=%f' % (lr, decay, momentum))
+        nesterov = False
+        opt = keras.optimizers.SGD(lr=lr, decay=decay, momentum=momentum, nesterov=nesterov)
+        logging.info('Optimiser SGD lr=%f decay=%f momentum=%f nesterov=%s' % (lr, decay, momentum, nesterov))
+    elif args.optimiser.lower() == 'rmsprop':
+        lr = 1e-2
+        decay = 1e-4
+        rho = 0.9
+        epsilon = 1.0
+        opt = keras.optimizers.RMSprop(lr=lr, decay=decay, rho=rho, epsilon=epsilon)
+        logging.info('Optimiser RMSprop lr=%f decay=%f rho=%f epsilon=%f' % (lr, decay, rho, epsilon))
 
     top_k_acc = get_top_k_accuracy(args.top_k)
     metrics = ['accuracy', top_k_acc]
