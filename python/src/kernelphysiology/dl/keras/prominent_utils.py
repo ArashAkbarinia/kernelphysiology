@@ -128,22 +128,29 @@ def train_prominent_prepares(args):
         args = imagenet_train.prepare_imagenet(args)
 
     # which architecture
-    if network_name == 'resnet50':
-        args.model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
-    elif network_name == 'inception_v3':
-        args.model = inception_v3.InceptionV3(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
-    elif network_name == 'vgg16':
-        args.model = vgg16.VGG16(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
-    elif network_name == 'vgg19':
-        args.model = vgg19.VGG19(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
-    elif network_name == 'densenet121':
-        args.model = densenet.DenseNet121(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
-    elif network_name == 'densenet169':
-        args.model = densenet.DenseNet169(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
-    elif network_name == 'densenet201':
-        args.model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+    args.model = get_model(args)
 
     return args
+
+
+def get_model(args):
+    # TODO: add other architectures of keras
+    network_name = args.network_name
+    if network_name == 'resnet50':
+        model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+    elif network_name == 'inception_v3':
+        model = inception_v3.InceptionV3(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+    elif network_name == 'vgg16':
+        model = vgg16.VGG16(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+    elif network_name == 'vgg19':
+        model = vgg19.VGG19(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+    elif network_name == 'densenet121':
+        model = densenet.DenseNet121(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+    elif network_name == 'densenet169':
+        model = densenet.DenseNet169(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+    elif network_name == 'densenet201':
+        model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+    return model
 
 
 def common_arg_parser(description):
@@ -151,6 +158,7 @@ def common_arg_parser(description):
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
     parser.add_argument(dest='network', type=str, help='Which network to be used')
 
+    # TODO: make the argument list nicer according to test or train ...
     parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 
     parser.add_argument('--batch_size', type=int, default=48, help='Batch size (default: 64)')
