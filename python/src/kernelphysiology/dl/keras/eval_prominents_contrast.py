@@ -53,7 +53,7 @@ if __name__ == "__main__":
         for j, network_name in enumerate(args.networks):
             preprocessing = args.preprocessings[j]
             current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast, preprocessing_function=get_preprocessing_function(preprocessing))
-            args.preprocessing_function = current_contrast_preprocessing
+            args.validation_preprocessing_function = current_contrast_preprocessing
             # which dataset
             if dataset_name == 'cifar10':
                 args = cifar_train.prepare_cifar10_generators(args)

@@ -16,12 +16,14 @@ def prepare_imagenet(args):
 
     args.train_generator = imagenet.train_generator(args.train_dir, batch_size=args.batch_size,
                                                     target_size=args.target_size,
-                                                    preprocessing_function=args.preprocessing_function,
+                                                    preprocessing_function=args.train_preprocessing_function,
                                                     horizontal_flip=args.horizontal_flip,
                                                     vertical_flip=args.vertical_flip)
     args.train_samples = args.train_generator.samples
 
-    args.validation_generator = imagenet.validation_generator(args.validation_dir, batch_size=args.batch_size, target_size=args.target_size, preprocessing_function=args.preprocessing_function)
+    args.validation_generator = imagenet.validation_generator(args.validation_dir, batch_size=args.batch_size,
+                                                              target_size=args.target_size,
+                                                              preprocessing_function=args.validation_preprocessing_function)
     args.validation_samples = args.validation_generator.samples
 
     return args
@@ -30,6 +32,8 @@ def prepare_imagenet(args):
 def validation_generator(args):
     args.num_classes = 1000
 
-    args.validation_generator = imagenet.validation_generator(args.validation_dir, batch_size=args.batch_size, target_size=args.target_size, preprocessing_function=args.preprocessing_function)
+    args.validation_generator = imagenet.validation_generator(args.validation_dir, batch_size=args.batch_size,
+                                                              target_size=args.target_size,
+                                                              preprocessing_function=args.validation_preprocessing_function)
 
     return args

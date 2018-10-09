@@ -110,9 +110,11 @@ def train_prominent_prepares(args):
     if args.contrast_aug:
         contrast_range = np.array([1, 100]) / 100
         current_contrast_preprocessing = lambda img : contrast_augmented_preprocessing(img, contrast_range=contrast_range, preprocessing_function=get_preprocessing_function(args.preprocessing))
-        args.preprocessing_function = current_contrast_preprocessing
+        args.train_preprocessing_function = current_contrast_preprocessing
     else:
-        args.preprocessing_function = get_preprocessing_function(args.preprocessing)
+        args.train_preprocessing_function = get_preprocessing_function(args.preprocessing)
+    # we don't want contrast augmentation for validation set
+    args.validation_preprocessing_function = get_preprocessing_function(args.preprocessing)
 
     # which dataset
     if dataset_name == 'cifar10':
