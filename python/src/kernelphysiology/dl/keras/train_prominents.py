@@ -106,7 +106,7 @@ if __name__ == "__main__":
         os.mkdir(args.save_dir)
 
     # preparing the name of the model
-    args.model_name = 'keras_%s_%s_area_%d_contrast_%d' % (dataset_name, network_name, args.area1layers, args.train_contrast)
+    args.model_name = 'keras_%s_%s_area_%s_contrast_%d' % (dataset_name, network_name, args.area1layers, args.train_contrast)
     if args.area1_batchnormalise:
         args.model_name += '_bnr'
     if args.area1_activation:
