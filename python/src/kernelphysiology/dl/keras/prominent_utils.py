@@ -8,6 +8,7 @@ import glob
 import argparse
 import datetime
 import time
+import numpy as np
 from functools import partial
 
 import keras
@@ -21,6 +22,8 @@ from kernelphysiology.dl.keras.models import resnet50
 from kernelphysiology.dl.keras.models import inception_v3
 from kernelphysiology.dl.keras.models import vgg16, vgg19
 from kernelphysiology.dl.keras.models import densenet
+
+from kernelphysiology.dl.keras.utils import contrast_generator
 
 
 def test_prominent_prepares(args):
@@ -106,9 +109,17 @@ def train_prominent_prepares(args):
     elif dataset_name == 'stl10':
         args = stl_train.prepare_stl10_generators(args)
     elif dataset_name == 'imagenet':
+        # TODO: make the path as a parameter
         args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
         args = imagenet_train.prepare_imagenet(args)
+
+        # FIXME: this is working only for imagenet nwo
+        if args.contrast_aug:
+            contrast_range = np.array([1, 100]) / 100
+            if args.steps is None:
+                args.steps = args.train_generator.samples / args.batch_size
+            args.train_generator = contrast_generator(args.train_generator, contrast_range)
 
     # which architecture
     if network_name == 'resnet50':
@@ -136,7 +147,7 @@ def common_arg_parser(description):
 
     parser.add_argument('--gpus', dest='gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 
-    parser.add_argument('--batch_size', dest='batch_size', type=int, default=64, help='Batch size (default: 64)')
+    parser.add_argument('--batch_size', dest='batch_size', type=int, default=48, help='Batch size (default: 64)')
     parser.add_argument('--target_size', dest='target_size', type=int, default=224, help='Target size (default: 224)')
     parser.add_argument('--preprocessing', dest='preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
     parser.add_argument('--top_k', dest='top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
@@ -155,6 +166,7 @@ def test_arg_parser(argvs):
 def train_arg_parser(argvs):
     parser = common_arg_parser('Training prominent nets of Keras.')
 
+    # TODO: remove dest with identical names
     parser.add_argument('--area1layers', dest='area1layers', type=int, default=None, help='The number of layers in area 1 (default: 0)')
     parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
     parser.add_argument('--a1na', dest='area1_activation', action='store_false', default=True, help='Whether to include activation between layers of area 1 (default: True)')
@@ -172,6 +184,7 @@ def train_arg_parser(argvs):
 
     parser.add_argument('--horizontal_flip', dest='horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
     parser.add_argument('--vertical_flip', dest='vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
+    parser.add_argument('--contrast_aug', action='store_true', default=False, help='Whether to perform contrast agumentation (default: False)')
 
     return check_args(parser, argvs)
 
