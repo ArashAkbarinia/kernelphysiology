@@ -151,12 +151,12 @@ def common_arg_parser(description):
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
     parser.add_argument(dest='network', type=str, help='Which network to be used')
 
-    parser.add_argument('--gpus', dest='gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
+    parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 
-    parser.add_argument('--batch_size', dest='batch_size', type=int, default=48, help='Batch size (default: 64)')
-    parser.add_argument('--target_size', dest='target_size', type=int, default=224, help='Target size (default: 224)')
-    parser.add_argument('--preprocessing', dest='preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
-    parser.add_argument('--top_k', dest='top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
+    parser.add_argument('--batch_size', type=int, default=48, help='Batch size (default: 64)')
+    parser.add_argument('--target_size', type=int, default=224, help='Target size (default: 224)')
+    parser.add_argument('--preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
+    parser.add_argument('--top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
 
     return parser
 
@@ -164,7 +164,7 @@ def common_arg_parser(description):
 def test_arg_parser(argvs):
     parser = common_arg_parser('Test prominent nets of Keras for different contrasts.')
 
-    parser.add_argument('--contrasts', dest='contrasts', nargs='+', type=int, default=[50, 100], help='List of contrasts to be evaluated (default: [50, 100])')
+    parser.add_argument('--contrasts', nargs='+', type=int, default=[50, 100], help='List of contrasts to be evaluated (default: [50, 100])')
 
     return check_args(parser, argvs)
 
@@ -172,24 +172,24 @@ def test_arg_parser(argvs):
 def train_arg_parser(argvs):
     parser = common_arg_parser('Training prominent nets of Keras.')
 
-    # TODO: remove dest with identical names
+    # TODO: remove unused arguments
     parser.add_argument('--area1layers', type=int, default=None, help='The number of layers in area 1 (default: None)')
     parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
     parser.add_argument('--a1na', dest='area1_activation', action='store_false', default=True, help='Whether to include activation between layers of area 1 (default: True)')
     parser.add_argument('--a1reduction', dest='area1_reduction', action='store_true', default=False, help='Whether to include a reduction layer in area 1 (default: False)')
     parser.add_argument('--a1dilation', dest='area1_dilation', action='store_true', default=False, help='Whether to include dilation in kernels in area 1 (default: False)')
     parser.add_argument('--dog', dest='add_dog', action='store_true', default=False, help='Whether to add a DoG layer (default: False)')
-    parser.add_argument('--train_contrast', dest='train_contrast', type=int, default=100, help='The level of contrast to be used at training (default: 100)')
+    parser.add_argument('--train_contrast', type=int, default=100, help='The level of contrast to be used at training (default: 100)')
 
     parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
-    parser.add_argument('--checkpoint_path', dest='checkpoint_path', type=str, default=None, help='The path to a previous checkpoint to continue (default: None)')
+    parser.add_argument('--checkpoint_path', type=str, default=None, help='The path to a previous checkpoint to continue (default: None)')
 
-    parser.add_argument('--optimiser', dest='optimiser', type=str, default='sgd', help='The optimiser to be used (default: sgd)')
-    parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs (default: 50)')
-    parser.add_argument('--steps', dest='steps', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
+    parser.add_argument('--optimiser', type=str, default='sgd', help='The optimiser to be used (default: sgd)')
+    parser.add_argument('--epochs', type=int, default=50, help='Number of epochs (default: 50)')
+    parser.add_argument('--steps', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
 
-    parser.add_argument('--horizontal_flip', dest='horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
-    parser.add_argument('--vertical_flip', dest='vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
+    parser.add_argument('--horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
+    parser.add_argument('--vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
     parser.add_argument('--contrast_aug', action='store_true', default=False, help='Whether to perform contrast agumentation (default: False)')
 
     return check_args(parser, argvs)
