@@ -167,7 +167,7 @@ def train_arg_parser(argvs):
     parser = common_arg_parser('Training prominent nets of Keras.')
 
     # TODO: remove dest with identical names
-    parser.add_argument('--area1layers', dest='area1layers', type=int, default=None, help='The number of layers in area 1 (default: 0)')
+    parser.add_argument('--area1layers', type=int, default=None, help='The number of layers in area 1 (default: None)')
     parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
     parser.add_argument('--a1na', dest='area1_activation', action='store_false', default=True, help='Whether to include activation between layers of area 1 (default: True)')
     parser.add_argument('--a1reduction', dest='area1_reduction', action='store_true', default=False, help='Whether to include a reduction layer in area 1 (default: False)')

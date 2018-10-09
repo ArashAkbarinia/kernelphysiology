@@ -27,6 +27,7 @@ def start_training_generator(args):
     logging.info('Preprocessing %s' % args.preprocessing)
     logging.info('Horizontal flip is %s' % args.horizontal_flip)
     logging.info('Vertical flip is %s' % args.vertical_flip)
+    logging.info('Contrast augmentation %s' % args.contrast_aug)
 
     best_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_best.h5'), monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True)
     last_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_last.h5'), verbose=1, save_weights_only=True, save_best_only=False)
