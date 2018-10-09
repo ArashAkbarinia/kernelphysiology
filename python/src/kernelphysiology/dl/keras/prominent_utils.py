@@ -106,11 +106,13 @@ def train_prominent_prepares(args):
     # choosing the preprocessing function
     if not args.preprocessing:
         args.preprocessing = network_name
-    args.preprocessing_function = get_preprocessing_function(args.preprocessing)
 
     if args.contrast_aug:
         contrast_range = np.array([1, 100]) / 100
-        args.preprocessing_function = lambda img : contrast_augmented_preprocessing(img, contrast_range=contrast_range, preprocessing_function=args.preprocessing_function)
+        current_contrast_preprocessing = lambda img : contrast_augmented_preprocessing(img, contrast_range=contrast_range, preprocessing_function=get_preprocessing_function(args.preprocessing))
+        args.preprocessing_function = current_contrast_preprocessing
+    else:
+        args.preprocessing_function = get_preprocessing_function(args.preprocessing)
 
     # which dataset
     if dataset_name == 'cifar10':
@@ -124,7 +126,6 @@ def train_prominent_prepares(args):
         args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
         args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
         args = imagenet_train.prepare_imagenet(args)
-
 
     # which architecture
     if network_name == 'resnet50':
