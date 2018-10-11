@@ -137,6 +137,7 @@ def area_layers(x, num_layers, num_kernels, axis, kernel_size=(7, 7)):
     return x
 
 
+# TODO: conv2d with kernel_initializer='he_normal',
 def ResNet50(include_top=True, weights=None,
              input_tensor=None, input_shape=None,
              pooling=None,
@@ -204,7 +205,7 @@ def ResNet50(include_top=True, weights=None,
     # Determine proper input shape
     input_shape = _obtain_input_shape(input_shape,
                                       default_size=224,
-                                      min_size=197,
+                                      min_size=32,
                                       data_format=K.image_data_format(),
                                       require_flatten=include_top,
                                       weights=weights)
@@ -231,6 +232,7 @@ def ResNet50(include_top=True, weights=None,
     # START OF MY CHANGES
     x = area_layers(x, num_layers=area1layers, num_kernels=64, axis=bn_axis, kernel_size=(7, 7))
     # END OF MY CHANGES
+    x = ZeroPadding2D(padding=(1, 1), name='pool1_pad')(x)
     x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
     x = conv_block(x, 3, [64, 64, 256], stage=2, block='a', strides=(1, 1))
@@ -253,10 +255,8 @@ def ResNet50(include_top=True, weights=None,
     x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
     x = identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
 
-    x = AveragePooling2D((7, 7), name='avg_pool')(x)
-
     if include_top:
-        x = Flatten()(x)
+        x = GlobalAveragePooling2D(name='avg_pool')(x)
         x = Dense(classes, activation='softmax', name='fc1000')(x)
     else:
         if pooling == 'avg':
