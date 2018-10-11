@@ -23,7 +23,7 @@ def start_training_generator(args):
     args.log_dir = os.path.join(args.save_dir, args.model_name)
     if not os.path.isdir(args.log_dir):
         os.mkdir(args.log_dir)
-    logging.basicConfig(filename=os.path.join(args.log_dir, 'experiment_info.log'), format='%(levelname)s: %(message)s', level=logging.DEBUG)
+    logging.basicConfig(filename=os.path.join(args.log_dir, 'experiment_info.log'), format='%(levelname)s: %(message)s', level=logging.INFO)
     logging.info('Preprocessing %s' % args.preprocessing)
     logging.info('Horizontal flip is %s' % args.horizontal_flip)
     logging.info('Vertical flip is %s' % args.vertical_flip)
