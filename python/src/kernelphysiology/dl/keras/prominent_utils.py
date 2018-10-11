@@ -34,13 +34,19 @@ def contrast_augmented_preprocessing(img, contrast_range, preprocessing_function
     return img
 
 
+def get_input_shape(target_size):
+    # check the input shape
+    if K.image_data_format() == 'channels_last':
+        input_shape = (*target_size, 3)
+    elif K.image_data_format() == 'channels_first':
+        input_shape = (3, *target_size)
+    return input_shape
+
+
 def test_prominent_prepares(args):
     args.target_size = (args.target_size, args.target_size)
     # check the input shape
-    if K.image_data_format() == 'channels_last':
-        args.input_shape = (*args.target_size, 3)
-    elif K.image_data_format() == 'channels_first':
-        args.input_shape = (3, *args.target_size)
+    args.input_shape = get_input_shape(args.target_size)
 
     output_file = None
     if os.path.isdir(args.network_name):

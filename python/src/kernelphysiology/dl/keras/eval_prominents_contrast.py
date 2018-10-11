@@ -22,6 +22,7 @@ from kernelphysiology.dl.keras.imagenet import imagenet_train
 
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
 from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function, get_top_k_accuracy
+from kernelphysiology.dl.keras.prominent_utils import get_input_shape
 from kernelphysiology.utils.imutils import adjust_contrast
 
 
@@ -57,44 +58,58 @@ if __name__ == "__main__":
             # which architecture
             # if passed by name we assume the original architectures
             # TODO: make the arguments nicer so in this case no preprocessing can be passed
+            # TODO: very ugly work around for target size and input shape
             if network_name == 'resnet50':
-                args.input_shape = (224, 224)
+                args.target_size = (224, 224)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.resnet50.ResNet50(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'inception_v3':
-                args.input_shape = (299, 299)
+                args.target_size = (299, 299)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.inception_v3.InceptionV3(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'inception_resnet_v2':
-                args.input_shape = (299, 299)
+                args.target_size = (299, 299)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.inception_resnet_v2.InceptionResNetV2(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'xception':
-                args.input_shape = (299, 299)
+                args.target_size = (299, 299)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.xception.Xception(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'vgg16':
-                args.input_shape = (224, 224)
+                args.target_size = (224, 224)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.vgg16.VGG16(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'vgg19':
-                args.input_shape = (224, 224)
+                args.target_size = (224, 224)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.vgg19.VGG19(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'densenet121':
-                args.input_shape = (224, 224)
+                args.target_size = (224, 224)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.densenet.DenseNet121(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'densenet169':
-                args.input_shape = (224, 224)
+                args.target_size = (224, 224)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.densenet.DenseNet169(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'densenet201':
-                args.input_shape = (224, 224)
+                args.target_size = (224, 224)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.densenet.DenseNet201(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'mobilenet':
-                args.input_shape = (224, 224)
+                args.target_size = (224, 224)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.mobilenet.MobileNet(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'mobilenet_v2':
-                args.input_shape = (224, 224)
+                args.target_size = (224, 224)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.mobilenet_v2.MobileNetV2(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'nasnetmobile':
-                args.input_shape = (224, 224)
+                args.target_size = (224, 224)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.nasnet.NASNetMobile(input_shape=args.input_shape, weights='imagenet')
             elif network_name == 'nasnetlarge':
-                args.input_shape = (331, 331)
+                args.target_size = (331, 331)
+                args.input_shape = get_input_shape(args.target_size)
                 args.model = kmodels.nasnet.NASNetLarge(input_shape=args.input_shape, weights='imagenet')
             else:
                 args.model = keras.models.load_model(network_name, compile=False)
