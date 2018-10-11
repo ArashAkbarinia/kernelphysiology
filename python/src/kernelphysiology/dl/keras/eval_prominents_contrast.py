@@ -51,7 +51,57 @@ if __name__ == "__main__":
             preprocessing = args.preprocessings[j]
             current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast, preprocessing_function=get_preprocessing_function(preprocessing))
             args.validation_preprocessing_function = current_contrast_preprocessing
+
+            print('Processing network %s and contrast %f' % (network_name, contrast))
+
+            # which architecture
+            # if passed by name we assume the original architectures
+            # TODO: make the arguments nicer so in this case no preprocessing can be passed
+            if network_name == 'resnet50':
+                args.input_shape = (224, 224)
+                args.model = kmodels.resnet50.ResNet50(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'inception_v3':
+                args.input_shape = (299, 299)
+                args.model = kmodels.inception_v3.InceptionV3(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'inception_resnet_v2':
+                args.input_shape = (299, 299)
+                args.model = kmodels.inception_resnet_v2.InceptionResNetV2(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'xception':
+                args.input_shape = (299, 299)
+                args.model = kmodels.xception.Xception(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'vgg16':
+                args.input_shape = (224, 224)
+                args.model = kmodels.vgg16.VGG16(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'vgg19':
+                args.input_shape = (224, 224)
+                args.model = kmodels.vgg19.VGG19(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'densenet121':
+                args.input_shape = (224, 224)
+                args.model = kmodels.densenet.DenseNet121(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'densenet169':
+                args.input_shape = (224, 224)
+                args.model = kmodels.densenet.DenseNet169(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'densenet201':
+                args.input_shape = (224, 224)
+                args.model = kmodels.densenet.DenseNet201(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'mobilenet':
+                args.input_shape = (224, 224)
+                args.model = kmodels.mobilenet.MobileNet(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'mobilenet_v2':
+                args.input_shape = (224, 224)
+                args.model = kmodels.mobilenet_v2.MobileNetV2(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'nasnetmobile':
+                args.input_shape = (224, 224)
+                args.model = kmodels.nasnet.NASNetMobile(input_shape=args.input_shape, weights='imagenet')
+            elif network_name == 'nasnetlarge':
+                args.input_shape = (331, 331)
+                args.model = kmodels.nasnet.NASNetLarge(input_shape=args.input_shape, weights='imagenet')
+            else:
+                args.model = keras.models.load_model(network_name, compile=False)
+
             # which dataset
+            # reading it after the model, because each might have their own
+            # specific size
             if dataset_name == 'cifar10':
                 args = cifar_train.prepare_cifar10_generators(args)
             elif dataset_name == 'cifar100':
@@ -62,39 +112,6 @@ if __name__ == "__main__":
                 args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
                 args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
                 args = imagenet_train.validation_generator(args)
-            print('Processing network %s and contrast %f' % (network_name, contrast))
-
-            # which architecture
-            # if passed by name we assume the original architectures
-            # TODO: make the arguments nicer so in this case no preprocessing can be passed
-            if network_name == 'resnet50':
-                args.model = kmodels.resnet50.ResNet50(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'inception_v3':
-                args.model = kmodels.inception_v3.InceptionV3(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'inception_resnet_v2':
-                args.model = kmodels.inception_resnet_v2.InceptionResNetV2(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'xception':
-                args.model = kmodels.xception.Xception(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'vgg16':
-                args.model = kmodels.vgg16.VGG16(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'vgg19':
-                args.model = kmodels.vgg19.VGG19(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'densenet121':
-                args.model = kmodels.densenet.DenseNet121(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'densenet169':
-                args.model = kmodels.densenet.DenseNet169(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'densenet201':
-                args.model = kmodels.densenet.DenseNet201(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'mobilenet':
-                args.model = kmodels.mobilenet.MobileNet(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'mobilenet_v2':
-                args.model = kmodels.mobilenet_v2.MobileNetV2(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'nasnetmobile':
-                args.model = kmodels.nasnet.NASNetMobile(input_shape=args.input_shape, weights='imagenet')
-            elif network_name == 'nasnetlarge':
-                args.model = kmodels.nasnet.NASNetLarge(input_shape=args.input_shape, weights='imagenet')
-            else:
-                args.model = keras.models.load_model(network_name, compile=False)
 
             top_k_acc = get_top_k_accuracy(args.top_k)
             metrics = ['accuracy', top_k_acc]
