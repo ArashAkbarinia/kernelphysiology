@@ -13,6 +13,7 @@ from functools import partial
 
 import keras
 from keras import backend as K
+from keras import applications as kmodels
 
 from kernelphysiology.dl.keras.cifar import cifar_train
 from kernelphysiology.dl.keras.stl import stl_train
@@ -74,15 +75,25 @@ def test_prominent_prepares(args):
 def get_preprocessing_function(preprocessing):
     # switch case of preprocessing functions
     if preprocessing == 'resnet50':
-        preprocessing_function = resnet50.preprocess_input
+        preprocessing_function = kmodels.resnet50.preprocess_input
     elif preprocessing == 'inception_v3':
-        preprocessing_function = inception_v3.preprocess_input
+        preprocessing_function = kmodels.inception_v3.preprocess_input
+    elif preprocessing == 'inception_resnet_v2':
+        preprocessing_function = kmodels.inception_resnet_v2.preprocess_input
+    elif preprocessing == 'xception':
+        preprocessing_function = kmodels.xception.preprocess_input
     elif preprocessing == 'vgg16':
-        preprocessing_function = vgg16.preprocess_input
+        preprocessing_function = kmodels.vgg16.preprocess_input
     elif preprocessing == 'vgg19':
-        preprocessing_function = vgg19.preprocess_input
+        preprocessing_function = kmodels.vgg19.preprocess_input
     elif preprocessing == 'densenet121' or preprocessing == 'densenet169' or preprocessing == 'densenet201':
-        preprocessing_function = densenet.preprocess_input
+        preprocessing_function = kmodels.densenet.preprocess_input
+    elif preprocessing == 'mobilenet':
+        preprocessing_function = kmodels.mobilenet.preprocess_input
+    elif preprocessing == 'mobilenet_v2':
+        preprocessing_function = kmodels.mobilenet_v2.preprocess_input
+    elif preprocessing == 'nasnetmobile' or preprocessing == 'nasnetlarge':
+        preprocessing_function = kmodels.nasnet.preprocess_input
     return preprocessing_function
 
 
