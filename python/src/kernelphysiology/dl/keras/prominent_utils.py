@@ -186,7 +186,7 @@ def common_arg_parser(description):
     # TODO: make the argument list nicer according to test or train ...
     parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 
-    parser.add_argument('--batch_size', type=int, default=48, help='Batch size (default: 64)')
+    parser.add_argument('--batch_size', type=int, default=48, help='Batch size (default: 32)')
     parser.add_argument('--target_size', type=int, default=224, help='Target size (default: 224)')
     parser.add_argument('--preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
     parser.add_argument('--top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
@@ -217,7 +217,9 @@ def train_arg_parser(argvs):
     parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
     parser.add_argument('--checkpoint_path', type=str, default=None, help='The path to a previous checkpoint to continue (default: None)')
 
-    parser.add_argument('--optimiser', type=str, default='sgd', help='The optimiser to be used (default: sgd)')
+    parser.add_argument('--optimiser', type=str, default='adam', help='The optimiser to be used (default: adam)')
+    parser.add_argument('--decay', type=float, default=1e-6, help='The decay weight parameter of optimiser (default: 1e-6)')
+
     parser.add_argument('--epochs', type=int, default=50, help='Number of epochs (default: 50)')
     parser.add_argument('--steps_per_epoch', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
     parser.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')
