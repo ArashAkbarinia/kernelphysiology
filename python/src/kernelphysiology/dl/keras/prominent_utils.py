@@ -154,9 +154,9 @@ def train_prominent_prepares(args):
     if args.validation_steps is None:
         args.validation_steps = args.validation_samples / args.batch_size
 
-    if args.load_weights:
+    if args.load_weights is not None:
         # which network
-        args = which_network(args, args.network_name)
+        args = which_network(args, args.load_weights)
     else:
         # which architecture
         args.model = which_architecture(args)
@@ -283,7 +283,7 @@ def train_arg_parser(argvs):
     parser.add_argument('--train_contrast', type=int, default=100, help='The level of contrast to be used at training (default: 100)')
 
     parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
-    parser.add_argument('--load_weights', action='store_true', default=False, help='Whether loading weights from a model (default: False)')
+    parser.add_argument('--load_weights', type=str, default=None, help='Whether loading weights from a model (default: None)')
 
     parser.add_argument('--optimiser', type=str, default='adam', help='The optimiser to be used (default: adam)')
     parser.add_argument('--decay', type=float, default=1e-6, help='The decay weight parameter of optimiser (default: 1e-6)')
