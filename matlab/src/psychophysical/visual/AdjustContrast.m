@@ -16,7 +16,7 @@ MinContrast = ContrastLevel - PixelDeviation;
 MaxContrast = ContrastLevel + PixelDeviation;
 
 PixelDeviation = (MaxContrast - MinContrast) .* rand(size(InputImage)) + MinContrast;
-ContrastLevel = ones(size(InputImage)) .* (ContrastLevel + PixelDeviation);
+ContrastLevel = ones(size(InputImage)) .* PixelDeviation;
 
 OutImage = (1 - ContrastLevel) ./ 2.0 + InputImage .* ContrastLevel;
 
