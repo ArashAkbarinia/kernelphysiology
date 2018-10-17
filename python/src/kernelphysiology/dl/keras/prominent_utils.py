@@ -152,8 +152,12 @@ def train_prominent_prepares(args):
     if args.validation_steps is None:
         args.validation_steps = args.validation_samples / args.batch_size
 
-    # which architecture
-    args.model = which_architecture(args)
+    if args.load_weights:
+        # which network
+        args = which_network(args, args.network_name)
+    else:
+        # which architecture
+        args.model = which_architecture(args)
 
     return args
 
@@ -266,6 +270,7 @@ def test_arg_parser(argvs):
 def train_arg_parser(argvs):
     parser = common_arg_parser('Training prominent nets of Keras.')
 
+    # better handling the parameters, e.g. pretrained ones are only for imagenet
     # TODO: remove unused arguments
     parser.add_argument('--area1layers', type=int, default=None, help='The number of layers in area 1 (default: None)')
     parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
@@ -276,12 +281,13 @@ def train_arg_parser(argvs):
     parser.add_argument('--train_contrast', type=int, default=100, help='The level of contrast to be used at training (default: 100)')
 
     parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
-    parser.add_argument('--checkpoint_path', type=str, default=None, help='The path to a previous checkpoint to continue (default: None)')
+    parser.add_argument('--load_weights', action='store_true', default=False, help='Whether loading weights from a model (default: False)')
 
     parser.add_argument('--optimiser', type=str, default='adam', help='The optimiser to be used (default: adam)')
     parser.add_argument('--decay', type=float, default=1e-6, help='The decay weight parameter of optimiser (default: 1e-6)')
 
     parser.add_argument('--epochs', type=int, default=50, help='Number of epochs (default: 50)')
+    parser.add_argument('--initial_epoch', type=int, default=0, help='The initial epoch number (default: 0)')
     parser.add_argument('--steps_per_epoch', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
     parser.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')
 
