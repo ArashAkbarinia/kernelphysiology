@@ -27,8 +27,8 @@ from kernelphysiology.dl.keras.models import densenet
 from kernelphysiology.utils.imutils import adjust_contrast
 
 
-def contrast_augmented_preprocessing(img, contrast_range, preprocessing_function=None):
-    img = adjust_contrast(img, np.random.uniform(*contrast_range)) * 255
+def contrast_augmented_preprocessing(img, contrast_range, local_contrast_variation=0, preprocessing_function=None):
+    img = adjust_contrast(img, np.random.uniform(*contrast_range), local_contrast_variation) * 255
     if preprocessing_function is not None:
         img = preprocessing_function(img)
     return img
@@ -125,9 +125,11 @@ def train_prominent_prepares(args):
         args.preprocessing = network_name
 
     if args.contrast_range is not None:
-        # TODO: better range handling for contrast
         contrast_range = np.array([args.contrast_range, 100]) / 100
-        current_contrast_preprocessing = lambda img : contrast_augmented_preprocessing(img, contrast_range=contrast_range, preprocessing_function=get_preprocessing_function(args.preprocessing))
+        current_contrast_preprocessing = lambda img: contrast_augmented_preprocessing(img,
+                                                                                      contrast_range=contrast_range,
+                                                                                      local_contrast_variation=args.local_contrast_variation,
+                                                                                      preprocessing_function=get_preprocessing_function(args.preprocessing))
         args.train_preprocessing_function = current_contrast_preprocessing
     else:
         args.train_preprocessing_function = get_preprocessing_function(args.preprocessing)
@@ -293,7 +295,8 @@ def train_arg_parser(argvs):
 
     parser.add_argument('--horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
     parser.add_argument('--vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
-    parser.add_argument('--contrast_range', type=float, default=None, help='Value perform contrast agumentation (default: None)')
+    parser.add_argument('--contrast_range', type=float, default=None, help='Value to perform contrast agumentation (default: None)')
+    parser.add_argument('--local_contrast_variation', type=float, default=0, help='Value to deviate local contrast augmentation (default: 0)')
     parser.add_argument('--zoom_range', type=float, default=0, help='Value for zoom agumentation (default: 0)')
     parser.add_argument('--width_shift_range', type=float, default=0, help='Value for width shift agumentation (default: 0)')
     parser.add_argument('--height_shift_range', type=float, default=0, help='Value for height shift agumentation (default: 0)')
