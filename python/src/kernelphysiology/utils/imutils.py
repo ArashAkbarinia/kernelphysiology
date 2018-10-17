@@ -29,11 +29,13 @@ def save_img(image, imgname, use_JPEG=False):
 #   IMAGE MANIPULATION
 ###########################################################
 
+
 def im2double(image):
     image = image.astype('float32')
     return image / 255
 
-def adjust_contrast(image, contrast_level):
+
+def adjust_contrast(image, contrast_level, pixel_variatoin=0):
     """Return the image scaled to a certain contrast level in [0, 1].
 
     parameters:
@@ -51,7 +53,13 @@ def adjust_contrast(image, contrast_level):
         if max_pixel > 1 and max_pixel <= 255:
             image = im2double(image)
 
-    return (1 - contrast_level) / 2.0 + image.dot(contrast_level)
+    min_contrast = contrast_level - pixel_variatoin
+    max_contrast = contrast_level + pixel_variatoin
+    
+    pixel_variatoin = np.random.uniform(low=min_contrast, high=max_contrast, size=image.shape)
+    contrast_level = np.ones(image.shape) * pixel_variatoin
+
+    return (1 - contrast_level) / 2.0 + np.multiply(image, contrast_level)
 
 
 def grayscale_contrast(image, contrast_level):
