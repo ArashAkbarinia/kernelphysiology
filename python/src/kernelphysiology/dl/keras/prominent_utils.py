@@ -153,12 +153,73 @@ def train_prominent_prepares(args):
         args.validation_steps = args.validation_samples / args.batch_size
 
     # which architecture
-    args.model = get_model(args)
+    args.model = which_architecture(args)
 
     return args
 
 
-def get_model(args):
+def which_network(args, network_name):
+    # if passed by name we assume the original architectures
+    # TODO: make the arguments nicer so in this case no preprocessing can be passed
+    # TODO: very ugly work around for target size and input shape
+    if network_name == 'resnet50':
+        args.target_size = (224, 224)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.resnet50.ResNet50(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'inception_v3':
+        args.target_size = (299, 299)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.inception_v3.InceptionV3(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'inception_resnet_v2':
+        args.target_size = (299, 299)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.inception_resnet_v2.InceptionResNetV2(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'xception':
+        args.target_size = (299, 299)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.xception.Xception(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'vgg16':
+        args.target_size = (224, 224)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.vgg16.VGG16(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'vgg19':
+        args.target_size = (224, 224)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.vgg19.VGG19(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'densenet121':
+        args.target_size = (224, 224)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.densenet.DenseNet121(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'densenet169':
+        args.target_size = (224, 224)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.densenet.DenseNet169(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'densenet201':
+        args.target_size = (224, 224)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.densenet.DenseNet201(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'mobilenet':
+        args.target_size = (224, 224)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.mobilenet.MobileNet(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'mobilenet_v2':
+        args.target_size = (224, 224)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.mobilenet_v2.MobileNetV2(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'nasnetmobile':
+        args.target_size = (224, 224)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.nasnet.NASNetMobile(input_shape=args.input_shape, weights='imagenet')
+    elif network_name == 'nasnetlarge':
+        args.target_size = (331, 331)
+        args.input_shape = get_input_shape(args.target_size)
+        args.model = kmodels.nasnet.NASNetLarge(input_shape=args.input_shape, weights='imagenet')
+    else:
+        args.model = keras.models.load_model(network_name, compile=False)
+    return args
+
+
+def which_architecture(args):
     # TODO: add other architectures of keras
     network_name = args.network_name
     if network_name == 'resnet50':
@@ -186,7 +247,7 @@ def common_arg_parser(description):
     # TODO: make the argument list nicer according to test or train ...
     parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 
-    parser.add_argument('--batch_size', type=int, default=48, help='Batch size (default: 32)')
+    parser.add_argument('--batch_size', type=int, default=32, help='Batch size (default: 32)')
     parser.add_argument('--target_size', type=int, default=224, help='Target size (default: 224)')
     parser.add_argument('--preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
     parser.add_argument('--top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
