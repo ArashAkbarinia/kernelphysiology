@@ -122,7 +122,7 @@ def resize_generator(x_data, y_data, target_size, batch_size=32, preprocessing_f
                                  zoom_range=zoom_range,
                                  width_shift_range=width_shift_range, height_shift_range=height_shift_range
                                  )
-    data_batches = datagen.flow(x_data, y_data, batch_size)
+    data_batches = datagen.flow(x_data, y_data, batch_size=batch_size)
     if target_size[0] != x_data.shape[2]:
         return (resize_iterator(data_batches, target_size), x_data.shape[0])
     else:

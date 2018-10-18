@@ -252,6 +252,7 @@ def common_arg_parser(description):
 
     # TODO: make the argument list nicer according to test or train ...
     parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
+    parser.add_argument('--workers', type=int, default=1, help='Number of workers for image generator (default: 1)')
 
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size (default: 32)')
     parser.add_argument('--target_size', type=int, default=224, help='Target size (default: 224)')
@@ -292,7 +293,6 @@ def train_arg_parser(argvs):
     parser.add_argument('--initial_epoch', type=int, default=0, help='The initial epoch number (default: 0)')
     parser.add_argument('--steps_per_epoch', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
     parser.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')
-    parser.add_argument('--workers', type=int, default=1, help='Number of workers for image generator (default: 1)')
 
     parser.add_argument('--horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
     parser.add_argument('--vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
