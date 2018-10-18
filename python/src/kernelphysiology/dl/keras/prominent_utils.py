@@ -292,6 +292,7 @@ def train_arg_parser(argvs):
     parser.add_argument('--initial_epoch', type=int, default=0, help='The initial epoch number (default: 0)')
     parser.add_argument('--steps_per_epoch', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
     parser.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')
+    parser.add_argument('--workers', type=int, default=1, help='Number of workers for image generator (default: 1)')
 
     parser.add_argument('--horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
     parser.add_argument('--vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
@@ -308,4 +309,10 @@ def check_args(parser, argvs):
     args = parser.parse_args(argvs)
     # TODO: more checking for GPUs
     os.environ["CUDA_VISIBLE_DEVICES"] = ', '.join(str(e) for e in args.gpus)
+
+    # workers
+    if args.workers > 1:
+        args.use_multiprocessing = True
+    else:
+        args.use_multiprocessing = False
     return args

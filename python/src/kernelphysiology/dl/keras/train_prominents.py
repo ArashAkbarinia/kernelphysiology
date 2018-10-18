@@ -81,11 +81,13 @@ def start_training_generator(args):
     if not parallel_model == None:
         parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
                                      validation_data=args.validation_generator, validation_steps=args.validation_steps,
-                                     callbacks=args.callbacks, initial_epoch=args.initial_epoch)
+                                     callbacks=args.callbacks, initial_epoch=args.initial_epoch,
+                                     workers=args.workers, use_multiprocessing=args.use_multiprocessing)
     else:
         model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
                             validation_data=args.validation_generator, validation_steps=args.validation_steps,
-                            callbacks=args.callbacks, initial_epoch=args.initial_epoch)
+                            callbacks=args.callbacks, initial_epoch=args.initial_epoch,
+                            workers=args.workers, use_multiprocessing=args.use_multiprocessing)
 
     # save model and weights
     model_name = args.model_name + '.h5'
