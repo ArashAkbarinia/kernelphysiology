@@ -23,7 +23,11 @@ def start_training_generator(args):
     args.log_dir = os.path.join(args.save_dir, args.model_name)
     if not os.path.isdir(args.log_dir):
         os.mkdir(args.log_dir)
-    logging.basicConfig(filename=os.path.join(args.log_dir, 'experiment_info.log'), format='%(levelname)s: %(message)s', level=logging.INFO)
+    logging.basicConfig(filename=os.path.join(args.log_dir, 'experiment_info.log'),
+                        filemode='w',
+                        format='%(levelname)s: %(message)s', level=logging.INFO)
+    # dumping the entire argument list
+    logging.info('%s' % args)
     logging.info('Preprocessing %s' % args.preprocessing)
     logging.info('Horizontal flip is %s' % args.horizontal_flip)
     logging.info('Vertical flip is %s' % args.vertical_flip)
@@ -113,6 +117,11 @@ def start_training_generator(args):
     model.save(model_path, include_optimizer=False)
 
 
+def create_dir(dir_path):
+    if not os.path.isdir(dir_path):
+        os.mkdir(dir_path)
+
+
 if __name__ == "__main__":
     start_stamp = time.time()
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
@@ -123,29 +132,22 @@ if __name__ == "__main__":
 
     dataset_name = args.dataset.lower()
     network_name = args.network_name.lower()
+    optimiser = args.optimiser.lower()
 
-    # FIXME make sure the directory exist
-    # preparing arguments
-    network_dir = os.path.join(commons.python_root, 'data/nets/%s/%s/%s/' % (''.join([i for i in dataset_name if not i.isdigit()]), dataset_name, network_name))
-    if not os.path.isdir(network_dir):
-        os.mkdir(network_dir)
+    # preparing directories
+    dataset_parent_path = os.path.join(commons.python_root, 'data/nets/%s/' % (''.join([i for i in dataset_name if not i.isdigit()])))
+    create_dir(dataset_parent_path)
+    dataset_child_path = os.path.join(dataset_parent_path, dataset_name)
+    create_dir(dataset_child_path)
+    network_parent_path = os.path.join(dataset_child_path, network_name)
+    create_dir(network_parent_path)
+    network_dir = os.path.join(network_parent_path, optimiser)
+    create_dir(network_dir)
     args.save_dir = os.path.join(network_dir, args.experiment_name)
-    if not os.path.isdir(args.save_dir):
-        os.mkdir(args.save_dir)
+    create_dir(args.save_dir)
 
     # preparing the name of the model
-    args.model_name = 'keras_%s_%s_area_%s_contrast_%d' % (dataset_name, network_name, args.area1layers, args.train_contrast)
-    if args.area1_batchnormalise:
-        args.model_name += '_bnr'
-    if args.area1_activation:
-        args.model_name += '_act'
-    if args.area1_reduction:
-        args.model_name += '_red'
-    if args.area1_dilation:
-        args.model_name += '_dil'
-    if args.add_dog:
-        args.model_name += '_dog'
-        args.dog_path = os.path.join(args.save_dir, 'dog.h5')
+    args.model_name = 'model_area_%s' % (args.area1layers)
 
     start_training_generator(args)
 

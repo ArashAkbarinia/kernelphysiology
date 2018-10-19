@@ -274,14 +274,7 @@ def train_arg_parser(argvs):
     parser = common_arg_parser('Training prominent nets of Keras.')
 
     # better handling the parameters, e.g. pretrained ones are only for imagenet
-    # TODO: remove unused arguments
     parser.add_argument('--area1layers', type=int, default=None, help='The number of layers in area 1 (default: None)')
-    parser.add_argument('--a1nb', dest='area1_batchnormalise', action='store_false', default=True, help='Whether to include batch normalisation between layers of area 1 (default: True)')
-    parser.add_argument('--a1na', dest='area1_activation', action='store_false', default=True, help='Whether to include activation between layers of area 1 (default: True)')
-    parser.add_argument('--a1reduction', dest='area1_reduction', action='store_true', default=False, help='Whether to include a reduction layer in area 1 (default: False)')
-    parser.add_argument('--a1dilation', dest='area1_dilation', action='store_true', default=False, help='Whether to include dilation in kernels in area 1 (default: False)')
-    parser.add_argument('--dog', dest='add_dog', action='store_true', default=False, help='Whether to add a DoG layer (default: False)')
-    parser.add_argument('--train_contrast', type=int, default=100, help='The level of contrast to be used at training (default: 100)')
 
     parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
     parser.add_argument('--load_weights', type=str, default=None, help='Whether loading weights from a model (default: None)')
