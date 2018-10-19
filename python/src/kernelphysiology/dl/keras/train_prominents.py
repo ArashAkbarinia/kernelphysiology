@@ -9,11 +9,12 @@ import time
 import datetime
 import sys
 import logging
+import numpy as np
 
 import tensorflow as tf
 import keras
 from keras.utils import multi_gpu_model
-from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau
+from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler
 
 from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_prominent_prepares
 from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
@@ -39,9 +40,9 @@ def start_training_generator(args):
     best_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_best.h5'), monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True)
     last_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_last.h5'), verbose=1, save_weights_only=True, save_best_only=False)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
-    # TODO: put a proper plateau
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=1e-3)
-    logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_lr))
+    # TODO: put a proper plateau as of now I guess is never called
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_delta=0.0001, min_lr=1e-3)
+    logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_delta=%f, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_delta, reduce_lr.min_lr))
     args.callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
 
     # TODO: add more optimisers and parametrise from argument line
@@ -79,13 +80,20 @@ def start_training_generator(args):
         else:
             lr = args.lr
         if args.decay is None:
-            decay = 1e-6
+            decay = 1e-4
         else:
             decay = args.decay
         rho = 0.9
         epsilon = 1.0
         opt = keras.optimizers.RMSprop(lr=lr, decay=decay, rho=rho, epsilon=epsilon)
         logging.info('Optimiser RMSprop lr=%f decay=%f rho=%f epsilon=%f' % (lr, decay, rho, epsilon))
+
+    if args.exp_decay is not None:
+        def exp_decay(epoch):
+           new_lr = lr * np.exp(-args.exp_decay * epoch)
+           return new_lr
+        args.callbacks.append(LearningRateScheduler(exp_decay))
+        logging.info('Exponential decay=%f' % (args.exp_decay))
 
     top_k_acc = get_top_k_accuracy(args.top_k)
     metrics = ['accuracy', top_k_acc]
