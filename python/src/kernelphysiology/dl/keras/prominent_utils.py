@@ -10,6 +10,7 @@ import datetime
 import time
 import numpy as np
 from functools import partial
+import warnings
 
 import keras
 from keras import backend as K
@@ -300,6 +301,9 @@ def train_arg_parser(argvs):
 
 
 def check_args(parser, argvs):
+    # NOTE: this is just in order to get rid of EXIF warnigns
+    warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
+
     args = parser.parse_args(argvs)
     # TODO: more checking for GPUs
     os.environ["CUDA_VISIBLE_DEVICES"] = ', '.join(str(e) for e in args.gpus)
