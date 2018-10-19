@@ -20,6 +20,12 @@ from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_pr
 from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
 
 
+def lr_metric_call_back(optimizer):
+    def lr(y_true, y_pred):
+        return optimizer.lr
+    return lr
+
+
 def start_training_generator(args):
     args.log_dir = os.path.join(args.save_dir, args.model_name)
     if not os.path.isdir(args.log_dir):
@@ -41,7 +47,7 @@ def start_training_generator(args):
     last_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_last.h5'), verbose=1, save_weights_only=True, save_best_only=False)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
     # TODO: put a proper plateau as of now I guess is never called
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_delta=0.0001, min_lr=1e-3)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_delta=0.01, min_lr=1e-7)
     logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_delta=%f, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_delta, reduce_lr.min_lr))
     args.callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
 
@@ -96,7 +102,8 @@ def start_training_generator(args):
         logging.info('Exponential decay=%f' % (args.exp_decay))
 
     top_k_acc = get_top_k_accuracy(args.top_k)
-    metrics = ['accuracy', top_k_acc]
+    lr_metric = lr_metric_call_back(opt)
+    metrics = ['accuracy', top_k_acc, lr_metric]
 
     model = args.model
     if len(args.gpus) == 1:
