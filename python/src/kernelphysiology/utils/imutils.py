@@ -3,6 +3,8 @@ from skimage.io import imread, imsave
 from scipy.misc import toimage
 import numpy as np
 
+import cv2
+
 #import wrapper as wr
 
 ###########################################################
@@ -31,8 +33,17 @@ def save_img(image, imgname, use_JPEG=False):
 
 
 def im2double(image):
-    image = image.astype('float32')
-    return image / 255
+    if image.dtype == 'uint8':
+        image = image.astype('float32')
+        return image / 255
+    else:
+        image = image.astype('float32')
+        max_pixel = np.max(image)
+        if max_pixel > 1 and max_pixel <= 255:
+            return image / 255
+        else:
+            # FIXME: not handling these cases
+            return image
 
 
 def adjust_contrast(image, contrast_level, pixel_variatoin=0):
@@ -46,12 +57,7 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0):
     assert(contrast_level >= 0.0), "contrast_level too low."
     assert(contrast_level <= 1.0), "contrast_level too high."
 
-    if image.dtype == 'uint8':
-        image = im2double(image)
-    else:
-        max_pixel = np.max(image)
-        if max_pixel > 1 and max_pixel <= 255:
-            image = im2double(image)
+    image = im2double(image)
 
     min_contrast = contrast_level - pixel_variatoin
     max_contrast = contrast_level + pixel_variatoin
@@ -87,6 +93,22 @@ def uniform_noise(image, width, contrast_level, rng):
     image = grayscale_contrast(image, contrast_level)
 
     return apply_uniform_noise(image, -width, width, rng)
+
+
+# TODO: we're returning everything in 0 to 1, should convert it back to the
+# original range
+def local_std(image, window_size=(5, 5)):
+    '''
+    Computing the local standard deviation of an image.
+    '''
+    image = im2double(image)
+
+    npixels = window_size[0] * window_size[1]
+    kernel = np.ones(window_size, np.float32) / npixels
+    # TODO: consider different border treatment
+    avg_image = cv2.filter2D(image, -1, kernel)
+    std_image =  cv2.filter2D((image - avg_image) ** 2, -1, kernel) ** 0.5
+    return (std_image, avg_image)
 
 
 ###########################################################
