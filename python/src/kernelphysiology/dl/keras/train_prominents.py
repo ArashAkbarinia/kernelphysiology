@@ -13,6 +13,7 @@ import numpy as np
 
 import tensorflow as tf
 import keras
+from keras import backend as K
 from keras.utils import multi_gpu_model
 from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler
 
@@ -22,7 +23,7 @@ from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
 
 def lr_metric_call_back(optimizer):
     def lr(y_true, y_pred):
-        return optimizer.lr
+        return optimizer.lr * (1. / (1. + optimizer.decay * K.cast(optimizer.iterations, K.dtype(optimizer.decay))))
     return lr
 
 
@@ -66,7 +67,6 @@ def start_training_generator(args):
         epsilon = None
         amsgrad = False
         opt = keras.optimizers.Adam(lr=lr, decay=decay, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon, amsgrad=amsgrad)
-        logging.info('Optimiser Adam lr=%f decay=%f beta_1=%f beta_2=%f epsilon=%s amsgrad=%s' % (lr, decay, beta_1, beta_2, epsilon, amsgrad))
     elif args.optimiser.lower() == 'sgd':
         if args.lr is None:
             lr = 1e-1
@@ -79,7 +79,6 @@ def start_training_generator(args):
         momentum = 0.9
         nesterov = False
         opt = keras.optimizers.SGD(lr=lr, decay=decay, momentum=momentum, nesterov=nesterov)
-        logging.info('Optimiser SGD lr=%f decay=%f momentum=%f nesterov=%s' % (lr, decay, momentum, nesterov))
     elif args.optimiser.lower() == 'rmsprop':
         if args.lr is None:
             lr = 0.045
@@ -92,7 +91,8 @@ def start_training_generator(args):
         rho = 0.9
         epsilon = 1.0
         opt = keras.optimizers.RMSprop(lr=lr, decay=decay, rho=rho, epsilon=epsilon)
-        logging.info('Optimiser RMSprop lr=%f decay=%f rho=%f epsilon=%f' % (lr, decay, rho, epsilon))
+
+    logging.info('Optimiser %s: %s' % (args.optimiser, opt.get_config()))
 
     if args.exp_decay is not None:
         def exp_decay(epoch):
