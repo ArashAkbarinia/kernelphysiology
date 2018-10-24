@@ -13,6 +13,8 @@ import warnings
 import multiprocessing.pool
 from keras_preprocessing import get_keras_submodule
 
+import cv2
+
 try:
     IteratorType = get_keras_submodule('utils').Sequence
 except ImportError:
@@ -465,7 +467,7 @@ def save_img(path,
 
 
 def load_img(path, grayscale=False, color_mode='rgb', target_size=None,
-             interpolation='nearest'):
+             interpolation='nearest', crop_centre=False):
     """Loads an image into PIL format.
 
     # Arguments
@@ -507,7 +509,9 @@ def load_img(path, grayscale=False, color_mode='rgb', target_size=None,
             img = img.convert('RGB')
     else:
         raise ValueError('color_mode must be "grayscale", "rbg", or "rgba"')
-    if target_size is not None:
+    if crop_centre:
+        img = crop_image_centre(img, target_size)
+    elif target_size is not None:
         width_height_tuple = (target_size[1], target_size[0])
         if img.size != width_height_tuple:
             if interpolation not in _PIL_INTERPOLATION_METHODS:
@@ -518,6 +522,22 @@ def load_img(path, grayscale=False, color_mode='rgb', target_size=None,
                         ", ".join(_PIL_INTERPOLATION_METHODS.keys())))
             resample = _PIL_INTERPOLATION_METHODS[interpolation]
             img = img.resize(width_height_tuple, resample)
+    return img
+
+
+# TODO: support other interpolation methods
+def crop_image_centre(img, target_size, min_side=256):
+    # resize
+    (height, width, _) = img.shape
+    new_height = height * min_side // min(img.shape[:2])
+    new_width = width * min_side // min(img.shape[:2])
+    img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+
+    # crop
+    (height, width, _) = img.shape
+    startx = width // 2 - (target_size[0] // 2)
+    starty = height // 2 - (target_size[1] // 2)
+    img = img[starty:starty+target_size[0], startx:startx+target_size[1]]
     return img
 
 
@@ -924,7 +944,8 @@ class ImageDataGenerator(object):
                             save_format='png',
                             follow_links=False,
                             subset=None,
-                            interpolation='nearest'):
+                            interpolation='nearest',
+                            crop_centre=False):
         """Takes the path to a directory & generates batches of augmented data.
 
         # Arguments
@@ -1010,7 +1031,8 @@ class ImageDataGenerator(object):
             save_format=save_format,
             follow_links=follow_links,
             subset=subset,
-            interpolation=interpolation)
+            interpolation=interpolation,
+            crop_centre=False)
 
     def flow_from_dataframe(self, dataframe, directory,
                             x_col="filename", y_col="class", has_ext=True,
@@ -1845,7 +1867,8 @@ class DirectoryIterator(Iterator):
                  follow_links=False,
                  subset=None,
                  interpolation='nearest',
-                 dtype='float32'):
+                 dtype='float32',
+                 crop_centre=False):
         super(DirectoryIterator, self).common_init(image_data_generator,
                                                    target_size,
                                                    color_mode,
@@ -1855,6 +1878,7 @@ class DirectoryIterator(Iterator):
                                                    save_format,
                                                    subset,
                                                    interpolation)
+        self.crop_centre = crop_centre
         self.directory = directory
         self.classes = classes
         if class_mode not in {'categorical', 'binary', 'sparse',
@@ -1920,7 +1944,8 @@ class DirectoryIterator(Iterator):
             img = load_img(os.path.join(self.directory, fname),
                            color_mode=self.color_mode,
                            target_size=self.target_size,
-                           interpolation=self.interpolation)
+                           interpolation=self.interpolation,
+                           crop_centre=self.crop_centre)
             x = img_to_array(img, data_format=self.data_format)
             # Pillow images should be closed after `load_img`,
             # but not PIL images.
