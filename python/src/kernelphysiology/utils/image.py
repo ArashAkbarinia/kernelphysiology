@@ -1032,7 +1032,7 @@ class ImageDataGenerator(object):
             follow_links=follow_links,
             subset=subset,
             interpolation=interpolation,
-            crop_centre=False)
+            crop_centre=crop_centre)
 
     def flow_from_dataframe(self, dataframe, directory,
                             x_col="filename", y_col="class", has_ext=True,
