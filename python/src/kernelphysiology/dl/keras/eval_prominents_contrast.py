@@ -23,8 +23,27 @@ from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function
 from kernelphysiology.dl.keras.prominent_utils import which_network
 from kernelphysiology.utils.imutils import adjust_contrast
 
+import cv2
 
-def contrast_preprocessing(img, contrast, preprocessing_function=None):
+
+def crop_centre_preprocessing(img, target_size, min_side=256):
+    # resize
+    (height, width, _) = img.shape
+    new_height = height * min_side // min(img.shape[:2])
+    new_width = width * min_side // min(img.shape[:2])
+    img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+
+    # crop
+    (height, width, _) = img.shape
+    startx = width // 2 - (target_size[0] // 2)
+    starty = height // 2 - (target_size[1] // 2)
+    img = img[starty:starty+target_size[0], startx:startx+target_size[1]]
+    return img
+
+
+def contrast_preprocessing(img, contrast, crop_centre=False, preprocessing_function=None):
+    if crop_centre:
+        img = crop_centre_preprocessing(img, target_size=args.target_size, min_side=256)
     img = adjust_contrast(img, contrast) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
@@ -50,7 +69,9 @@ if __name__ == "__main__":
         args = which_network(args, network_name)
         for i, contrast in enumerate(contrasts):
             preprocessing = args.preprocessings[j]
-            current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast, preprocessing_function=get_preprocessing_function(preprocessing))
+            current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast,
+                                                                                 crop_centre=args.crop_centre,
+                                                                                 preprocessing_function=get_preprocessing_function(preprocessing))
             args.validation_preprocessing_function = current_contrast_preprocessing
 
             print('Processing network %s and contrast %f' % (network_name, contrast))

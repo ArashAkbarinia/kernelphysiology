@@ -45,10 +45,6 @@ def get_input_shape(target_size):
 
 
 def test_prominent_prepares(args):
-    args.target_size = (args.target_size, args.target_size)
-    # check the input shape
-    args.input_shape = get_input_shape(args.target_size)
-
     output_file = None
     if os.path.isdir(args.network_name):
         dirname = args.network_name
@@ -113,13 +109,6 @@ def get_top_k_accuracy(k):
 def train_prominent_prepares(args):
     dataset_name = args.dataset.lower()
     network_name = args.network_name.lower()
-
-    args.target_size = (args.target_size, args.target_size)
-    # check the input shape
-    if K.image_data_format() == 'channels_last':
-        args.input_shape = (*args.target_size, 3)
-    elif K.image_data_format() == 'channels_first':
-        args.input_shape = (3, *args.target_size)
 
     # choosing the preprocessing function
     if not args.preprocessing:
@@ -257,6 +246,7 @@ def common_arg_parser(description):
 
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size (default: 32)')
     parser.add_argument('--target_size', type=int, default=224, help='Target size (default: 224)')
+    parser.add_argument('--crop_centre', action='store_true', default=False, help='Crop the image to its centre (default: False)')
     parser.add_argument('--preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
     parser.add_argument('--top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
 
@@ -308,6 +298,13 @@ def check_args(parser, argvs):
     args = parser.parse_args(argvs)
     # TODO: more checking for GPUs
     os.environ["CUDA_VISIBLE_DEVICES"] = ', '.join(str(e) for e in args.gpus)
+
+    args.target_size = (args.target_size, args.target_size)
+    # check the input shape
+    args.input_shape = get_input_shape(args.target_size)
+
+    # TODO: this is only for evaluation right now and should be only for imagenet
+    # if cropping we make target_size temporarily None
 
     # workers
     if args.workers > 1:

@@ -34,8 +34,13 @@ def prepare_imagenet(args):
 def validation_generator(args):
     args.num_classes = 1000
 
+    if args.crop_centre:
+        target_size = None
+    else:
+        target_size = args.target_size
+
     args.validation_generator = imagenet.validation_generator(args.validation_dir, batch_size=args.batch_size,
-                                                              target_size=args.target_size,
+                                                              target_size=target_size,
                                                               preprocessing_function=args.validation_preprocessing_function)
 
     return args
