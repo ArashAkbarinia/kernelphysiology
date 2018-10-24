@@ -91,6 +91,16 @@ def start_training_generator(args):
         rho = 0.9
         epsilon = 1.0
         opt = keras.optimizers.RMSprop(lr=lr, decay=decay, rho=rho, epsilon=epsilon)
+    elif args.optimiser.lower() == 'adagrad':
+        if args.lr is None:
+            lr = 1e-2
+        else:
+            lr = args.lr
+        if args.decay is None:
+            decay = 1e-5
+        else:
+            decay = args.decay
+        opt = keras.optimizers.Adagrad(lr=lr, epsilon=None, decay=decay)
 
     logging.info('Optimiser %s: %s' % (args.optimiser, opt.get_config()))
 
