@@ -1946,8 +1946,7 @@ class DirectoryIterator(Iterator):
             img = load_img(os.path.join(self.directory, fname),
                            color_mode=self.color_mode,
                            target_size=tmp_target_size,
-                           interpolation=self.interpolation,
-                           crop_centre=self.crop_centre)
+                           interpolation=self.interpolation)
             x = img_to_array(img, data_format=self.data_format)
             x = crop_image_centre(x, self.target_size)
             # Pillow images should be closed after `load_img`,
