@@ -524,18 +524,22 @@ def load_img(path, grayscale=False, color_mode='rgb', target_size=None,
 
 
 # TODO: support other interpolation methods
-def crop_image_centre(img, target_size, min_side=256):
+def crop_image_centre(img, target_size):
+    # NOTE: assuming only square images
+    min_side = target_size[0]
     # resize
     (height, width, _) = img.shape
     new_height = height * min_side // min(img.shape[:2])
     new_width = width * min_side // min(img.shape[:2])
-    img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+    img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
 
     # crop
     (height, width, _) = img.shape
-    startx = width // 2 - (target_size[0] // 2)
-    starty = height // 2 - (target_size[1] // 2)
-    img = img[starty:starty+target_size[0], startx:startx+target_size[1]]
+    left = (width - target_size[0]) // 2
+    top = (height - target_size[1]) // 2
+    right = (width + target_size[0]) // 2
+    bottom = (height + target_size[1]) // 2
+    img = img[top:bottom, left:right]
     return img
 
 
@@ -1948,7 +1952,8 @@ class DirectoryIterator(Iterator):
                            target_size=tmp_target_size,
                            interpolation=self.interpolation)
             x = img_to_array(img, data_format=self.data_format)
-            x = crop_image_centre(x, self.target_size)
+            if self.crop_centre:
+                x = crop_image_centre(x, self.target_size)
             # Pillow images should be closed after `load_img`,
             # but not PIL images.
             if hasattr(img, 'close'):
