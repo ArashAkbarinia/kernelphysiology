@@ -9,7 +9,7 @@ from __future__ import print_function
 
 import commons
 
-from keras.preprocessing.image import ImageDataGenerator
+from kernelphysiology.utils.image import ImageDataGenerator
 
 
 def train_generator(dirname, batch_size=32, target_size=(224, 224), preprocessing_function=None,
