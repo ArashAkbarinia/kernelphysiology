@@ -467,7 +467,7 @@ def save_img(path,
 
 
 def load_img(path, grayscale=False, color_mode='rgb', target_size=None,
-             interpolation='nearest', crop_centre=False):
+             interpolation='nearest'):
     """Loads an image into PIL format.
 
     # Arguments
@@ -509,9 +509,7 @@ def load_img(path, grayscale=False, color_mode='rgb', target_size=None,
             img = img.convert('RGB')
     else:
         raise ValueError('color_mode must be "grayscale", "rbg", or "rgba"')
-    if crop_centre:
-        img = crop_image_centre(img, target_size)
-    elif target_size is not None:
+    if target_size is not None:
         width_height_tuple = (target_size[1], target_size[0])
         if img.size != width_height_tuple:
             if interpolation not in _PIL_INTERPOLATION_METHODS:
@@ -1941,12 +1939,17 @@ class DirectoryIterator(Iterator):
         # build batch of image data
         for i, j in enumerate(index_array):
             fname = self.filenames[j]
+            if self.crop_centre:
+                tmp_target_size = None
+            else:
+                tmp_target_size = self.target_size
             img = load_img(os.path.join(self.directory, fname),
                            color_mode=self.color_mode,
-                           target_size=self.target_size,
+                           target_size=tmp_target_size,
                            interpolation=self.interpolation,
                            crop_centre=self.crop_centre)
             x = img_to_array(img, data_format=self.data_format)
+            x = crop_image_centre(x, self.target_size)
             # Pillow images should be closed after `load_img`,
             # but not PIL images.
             if hasattr(img, 'close'):
