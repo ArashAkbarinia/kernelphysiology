@@ -303,9 +303,6 @@ def check_args(parser, argvs):
     # check the input shape
     args.input_shape = get_input_shape(args.target_size)
 
-    # TODO: this is only for evaluation right now and should be only for imagenet
-    # if cropping we make target_size temporarily None
-
     # workers
     if args.workers > 1:
         args.use_multiprocessing = True
