@@ -39,7 +39,7 @@ def start_training_generator(args):
     logging.info('Preprocessing %s' % args.preprocessing)
     logging.info('Horizontal flip is %s' % args.horizontal_flip)
     logging.info('Vertical flip is %s' % args.vertical_flip)
-    logging.info('Contrast augmentation %s' % args.contrast_range)
+    logging.info('Contrast augmentation %s (%s)' % (args.contrast_range, args.local_contrast_variation))
     logging.info('Width shift range augmentation %f' % args.width_shift_range)
     logging.info('Height shift range augmentation %f' % args.height_shift_range)
     logging.info('Zoom range augmentation %f' % args.zoom_range)
