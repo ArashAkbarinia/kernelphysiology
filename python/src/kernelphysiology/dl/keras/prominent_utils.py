@@ -11,6 +11,7 @@ import time
 import numpy as np
 from functools import partial
 import warnings
+import socket
 
 import keras
 from keras import backend as K
@@ -61,7 +62,7 @@ def test_prominent_prepares(args):
                 networks.append(tokens[0])
                 preprocessings.append(tokens[1])
     else:
-        networks = args.network_name.lower()
+        networks = [args.network_name.lower()]
         preprocessings = [args.preprocessing]
 
     if not output_file:
@@ -127,17 +128,7 @@ def train_prominent_prepares(args):
     args.validation_preprocessing_function = get_preprocessing_function(args.preprocessing)
 
     # which dataset
-    if dataset_name == 'cifar10':
-        args = cifar_train.prepare_cifar10_generators(args)
-    elif dataset_name == 'cifar100':
-        args = cifar_train.prepare_cifar100_generators(args)
-    elif dataset_name == 'stl10':
-        args = stl_train.prepare_stl10_generators(args)
-    elif dataset_name == 'imagenet':
-        # TODO: make the path as a parameter
-        args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
-        args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
-        args = imagenet_train.prepare_imagenet(args)
+    args = which_dataset(args, dataset_name)
 
     if args.steps_per_epoch is None:
         args.steps_per_epoch = args.train_samples / args.batch_size
@@ -151,6 +142,22 @@ def train_prominent_prepares(args):
         # which architecture
         args.model = which_architecture(args)
 
+    return args
+
+
+def which_dataset(args, dataset_name):
+    if dataset_name == 'cifar10':
+        args = cifar_train.prepare_cifar10_generators(args)
+    elif dataset_name == 'cifar100':
+        args = cifar_train.prepare_cifar100_generators(args)
+    elif dataset_name == 'stl10':
+        args = stl_train.prepare_stl10_generators(args)
+    elif dataset_name == 'imagenet':
+        # TODO: this is not the nicest way to distinguish between train and validaiton
+        if hasattr(args, 'train_preprocessing_function'):
+            args = imagenet_train.prepare_imagenet(args)
+        else:
+            args = imagenet_train.validation_generator(args)
     return args
 
 
@@ -240,6 +247,10 @@ def common_arg_parser(description):
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
     parser.add_argument(dest='network_name', type=str, help='Which network to be used')
 
+    # TODO: this is just now for imagenet
+    parser.add_argument('--train_dir', type=str, default=None, help='The path to the train directory (default: None)')
+    parser.add_argument('--validation_dir', type=str, default=None, help='The path to the validation directory (default: None)')
+
     # TODO: make the argument list nicer according to test or train ...
     parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
     parser.add_argument('--workers', type=int, default=1, help='Number of workers for image generator (default: 1)')
@@ -308,4 +319,15 @@ def check_args(parser, argvs):
         args.use_multiprocessing = True
     else:
         args.use_multiprocessing = False
+
+    if args.dataset == 'imagenet':
+        # TODO: just for the ease of working in my machiens
+        if args.train_dir is None:
+            args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
+        if args.validation_dir is None:
+            if socket.gethostname() == 'awesome':
+                args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
+            else:
+                args.validation_dir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2012/raw-data/validation/'
+
     return args

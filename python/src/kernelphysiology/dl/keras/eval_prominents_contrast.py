@@ -20,7 +20,7 @@ from kernelphysiology.dl.keras.imagenet import imagenet_train
 
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
 from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function, get_top_k_accuracy
-from kernelphysiology.dl.keras.prominent_utils import which_network
+from kernelphysiology.dl.keras.prominent_utils import which_network, which_dataset
 from kernelphysiology.utils.imutils import adjust_contrast
 
 
@@ -59,16 +59,7 @@ if __name__ == "__main__":
             # which dataset
             # reading it after the model, because each might have their own
             # specific size
-            if dataset_name == 'cifar10':
-                args = cifar_train.prepare_cifar10_generators(args)
-            elif dataset_name == 'cifar100':
-                args = cifar_train.prepare_cifar100_generators(args)
-            elif dataset_name == 'stl10':
-                args = stl_train.prepare_stl10_generators(args)
-            elif dataset_name == 'imagenet':
-                args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
-                args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
-                args = imagenet_train.validation_generator(args)
+            args = which_dataset(args, dataset_name)
 
             top_k_acc = get_top_k_accuracy(args.top_k)
             metrics = ['accuracy', top_k_acc]
