@@ -48,9 +48,13 @@ def start_training_generator(args):
     last_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_last.h5'), verbose=1, save_weights_only=True, save_best_only=False)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
     # TODO: put a proper plateau as of now I guess is never called
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_delta=0.01, min_lr=1e-7)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_delta=0.01, min_lr=1e-10)
     logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_delta=%f, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_delta, reduce_lr.min_lr))
-    args.callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
+    callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
+
+    if args.log_period > 0:
+        period_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_{epoch:03d}.h5'), save_weights_only=True, period=args.log_period)
+        callbacks.append(period_checkpoint_logger)
 
     # TODO: add more optimisers and parametrise from argument line
     if args.optimiser.lower() == 'adam':
@@ -108,7 +112,7 @@ def start_training_generator(args):
         def exp_decay(epoch):
            new_lr = lr * np.exp(-args.exp_decay * epoch)
            return new_lr
-        args.callbacks.append(LearningRateScheduler(exp_decay))
+        callbacks.append(LearningRateScheduler(exp_decay))
         logging.info('Exponential decay=%f' % (args.exp_decay))
 
     top_k_acc = get_top_k_accuracy(args.top_k)
@@ -128,12 +132,12 @@ def start_training_generator(args):
     if not parallel_model == None:
         parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
                                      validation_data=args.validation_generator, validation_steps=args.validation_steps,
-                                     callbacks=args.callbacks, initial_epoch=args.initial_epoch,
+                                     callbacks=callbacks, initial_epoch=args.initial_epoch,
                                      workers=args.workers, use_multiprocessing=args.use_multiprocessing)
     else:
         model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
                             validation_data=args.validation_generator, validation_steps=args.validation_steps,
-                            callbacks=args.callbacks, initial_epoch=args.initial_epoch,
+                            callbacks=callbacks, initial_epoch=args.initial_epoch,
                             workers=args.workers, use_multiprocessing=args.use_multiprocessing)
 
     # save model and weights

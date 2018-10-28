@@ -288,6 +288,7 @@ def train_arg_parser(argvs):
 
     parser.add_argument('--epochs', type=int, default=50, help='Number of epochs (default: 50)')
     parser.add_argument('--initial_epoch', type=int, default=0, help='The initial epoch number (default: 0)')
+    parser.add_argument('--log_period', type=int, default=0, help='The period of logging the epochs weights (default: 0)')
     parser.add_argument('--steps_per_epoch', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
     parser.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')
 
