@@ -117,9 +117,10 @@ def train_prominent_prepares(args):
 
     if args.contrast_range is not None:
         contrast_range = np.array([args.contrast_range, 100]) / 100
+        local_contrast_variation = args.local_contrast_variation / 100
         current_contrast_preprocessing = lambda img: contrast_augmented_preprocessing(img,
                                                                                       contrast_range=contrast_range,
-                                                                                      local_contrast_variation=args.local_contrast_variation,
+                                                                                      local_contrast_variation=local_contrast_variation,
                                                                                       preprocessing_function=get_preprocessing_function(args.preprocessing))
         args.train_preprocessing_function = current_contrast_preprocessing
     else:
