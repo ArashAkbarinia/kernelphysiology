@@ -265,10 +265,18 @@ def common_arg_parser(description):
     return parser
 
 
+def activation_arg_parser(argvs):
+    parser = common_arg_parser('Analysing activation of prominent nets of Keras.')
+
+    parser.add_argument('--contrasts', nargs='+', type=int, default=[100], help='List of contrasts to be evaluated (default: [100])')
+
+    return check_args(parser, argvs)
+
+
 def test_arg_parser(argvs):
     parser = common_arg_parser('Test prominent nets of Keras for different contrasts.')
 
-    parser.add_argument('--contrasts', nargs='+', type=int, default=[50, 100], help='List of contrasts to be evaluated (default: [50, 100])')
+    parser.add_argument('--contrasts', nargs='+', type=int, default=[100], help='List of contrasts to be evaluated (default: [100])')
 
     return check_args(parser, argvs)
 
