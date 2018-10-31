@@ -22,9 +22,7 @@ from kernelphysiology.dl.keras.analysis.analysis_generator import multiple_model
 from kernelphysiology.utils.imutils import adjust_contrast
 
 
-def predict_network(args, args2):
-    model1 = args.model
-    model2 = args2.model
+def predict_network(model1, model2, args):
     if len(args.gpus) == 1:
         current_results = multiple_models_generator(model1, model2, generator=args.validation_generator,
                                                     verbose=1, workers=args.workers, use_multiprocessing=args.use_multiprocessing)
@@ -65,8 +63,6 @@ if __name__ == "__main__":
     dataset_name = args.dataset.lower()
 
     contrasts = np.array(args.contrasts) / 100
-    results_top1 = np.zeros((contrasts.shape[0], 1))
-    results_topk = np.zeros((contrasts.shape[0], 1))
 
     args1 = copy.deepcopy(args)
     args2 = copy.deepcopy(args)
@@ -76,26 +72,33 @@ if __name__ == "__main__":
     args1 = which_network(args1, network_name1)
     network_name2 = args.networks[1]
     args2 = which_network(args2, network_name2)
+
+    # the first and last layer are not of our interest
+    nlayers = len(args1.model.layers) - 2
+    results_top1 = np.zeros((contrasts.shape[0], nlayers))
+    results_topk = np.zeros((contrasts.shape[0], nlayers))
     for i, contrast in enumerate(contrasts):
-        args1.validation_preprocessing_function = get_network_preprocessing(contrast, args.preprocessings[0])
-        args2.validation_preprocessing_function = get_network_preprocessing(contrast, args.preprocessings[1])
+        # TODO: consider different preprocessing functoins
+        args.validation_preprocessing_function = get_network_preprocessing(contrast, args.preprocessings[0])
+#        args1.validation_preprocessing_function = get_network_preprocessing(contrast, args.preprocessings[0])
+#        args2.validation_preprocessing_function = get_network_preprocessing(contrast, args.preprocessings[1])
 
         print('Processing networks %s and %s with contrast %f' % (network_name1, network_name2, contrast))
 
         # which dataset
         # reading it after the model, because each might have their own
         # specific size
-        args1 = which_dataset(args1, dataset_name)
-        args2 = which_dataset(args2, dataset_name)
+        args = which_dataset(args, dataset_name)
 
-        # FIXME: the model is getting overwritten
-        args1.model = get_activations(args1.model, args1.model.layers[2])
-        args2.model = get_activations(args2.model, args2.model.layers[2])
-        current_results = predict_network(args1, args2)
-        np.savetxt(args.output_file + '_all.csv', current_results, delimiter=',')
-
-        results_top1[i, 0] = np.mean(current_results[:, 0])
-        results_topk[i, 0] = np.median(current_results[:, 0])
+        for j in range(nlayers):
+            # the first layer is input layer
+            model1 = get_activations(args1.model, args1.model.layers[j + 1])
+            model2 = get_activations(args2.model, args2.model.layers[j + 1])
+            current_results = predict_network(model1, model2, args)
+            np.savetxt('%s_layer_%03d_%s.csv' % (args.output_file, j,  args1.model.layers[j + 1].name), current_results, delimiter=',')
+    
+            results_top1[i, j] = np.mean(current_results[:, 0])
+            results_topk[i, j] = np.median(current_results[:, 0])
 
     # saving the results in a CSV format
     np.savetxt(args.output_file + '_top1.csv', results_top1, delimiter=',')

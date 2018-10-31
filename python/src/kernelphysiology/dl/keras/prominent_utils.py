@@ -45,11 +45,17 @@ def get_input_shape(target_size):
     return input_shape
 
 
+def create_dir(dir_path):
+    if not os.path.isdir(dir_path):
+        os.mkdir(dir_path)
+
 def test_prominent_prepares(args):
     output_file = None
     if os.path.isdir(args.network_name):
         dirname = args.network_name
-        output_file = os.path.join(dirname, 'contrast_results')
+        output_dir = os.path.join(dirname, args.experiment_name)
+        create_dir(output_dir)
+        output_file = os.path.join(output_dir, 'contrast_results')
         networks = sorted(glob.glob(dirname + '*.h5'))
         preprocessings = [args.preprocessing] * len(networks)
     elif os.path.isfile(args.network_name):
@@ -67,7 +73,9 @@ def test_prominent_prepares(args):
 
     if not output_file:
         current_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
-        output_file = 'contrast_results_' + current_time
+        output_dir = args.experiment_name
+        create_dir(output_dir)
+        output_file = os.path.join(output_dir, 'contrast_results' + current_time)
 
     args.networks = networks
     args.preprocessings = preprocessings
@@ -248,6 +256,8 @@ def common_arg_parser(description):
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
     parser.add_argument(dest='network_name', type=str, help='Which network to be used')
 
+    parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
+
     # TODO: this is just now for imagenet
     parser.add_argument('--train_dir', type=str, default=None, help='The path to the train directory (default: None)')
     parser.add_argument('--validation_dir', type=str, default=None, help='The path to the validation directory (default: None)')
@@ -287,7 +297,6 @@ def train_arg_parser(argvs):
     # better handling the parameters, e.g. pretrained ones are only for imagenet
     parser.add_argument('--area1layers', type=int, default=None, help='The number of layers in area 1 (default: None)')
 
-    parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
     parser.add_argument('--load_weights', type=str, default=None, help='Whether loading weights from a model (default: None)')
 
     parser.add_argument('--optimiser', type=str, default='adam', help='The optimiser to be used (default: adam)')
