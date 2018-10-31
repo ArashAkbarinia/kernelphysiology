@@ -14,10 +14,6 @@ import tensorflow as tf
 import keras
 from keras.utils import multi_gpu_model
 
-from kernelphysiology.dl.keras.cifar import cifar_train
-from kernelphysiology.dl.keras.stl import stl_train
-from kernelphysiology.dl.keras.imagenet import imagenet_train
-
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
 from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function, get_top_k_accuracy
 from kernelphysiology.dl.keras.prominent_utils import which_network, which_dataset
