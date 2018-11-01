@@ -127,6 +127,7 @@ def start_training_generator(args):
         with tf.device('/cpu:0'):
             model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
         parallel_model = multi_gpu_model(model, gpus=args.gpus)
+        # TODO: this compilation probably is not necessary
         parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
 
     if not parallel_model == None:

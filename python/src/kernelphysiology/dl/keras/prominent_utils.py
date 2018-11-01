@@ -103,7 +103,8 @@ def get_preprocessing_function(preprocessing):
     elif preprocessing == 'mobilenet':
         preprocessing_function = kmodels.mobilenet.preprocess_input
     elif preprocessing == 'mobilenet_v2':
-        preprocessing_function = kmodels.mobilenet_v2.preprocess_input
+        # FIXME: compatibility with version 2.2.0
+        preprocessing_function = kmodels.mobilenetv2.preprocess_input
     elif preprocessing == 'nasnetmobile' or preprocessing == 'nasnetlarge':
         preprocessing_function = kmodels.nasnet.preprocess_input
     return preprocessing_function
@@ -217,7 +218,8 @@ def which_network(args, network_name):
     elif network_name == 'mobilenet_v2':
         args.target_size = (224, 224)
         args.input_shape = get_input_shape(args.target_size)
-        args.model = kmodels.mobilenet_v2.MobileNetV2(input_shape=args.input_shape, weights='imagenet')
+        # FIXME: compatibility with version 2.2.0
+        args.model = kmodels.mobilenetv2.MobileNetV2(input_shape=args.input_shape, weights='imagenet')
     elif network_name == 'nasnetmobile':
         args.target_size = (224, 224)
         args.input_shape = get_input_shape(args.target_size)

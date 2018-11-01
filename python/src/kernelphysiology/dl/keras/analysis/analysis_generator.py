@@ -10,7 +10,6 @@ from __future__ import print_function
 import warnings
 import numpy as np
 
-from keras.engine.training_utils import iter_sequence_infinite
 from keras.utils.data_utils import Sequence
 from keras.utils.data_utils import GeneratorEnqueuer
 from keras.utils.data_utils import OrderedEnqueuer
@@ -19,7 +18,7 @@ from keras.utils.generic_utils import to_list
 
 from scipy.stats import pearsonr
 
-
+#FIXME: this is copied from version 2.2.0
 def multiple_models_generator(model1, model2, generator,
                       steps=None,
                       max_queue_size=10,
@@ -64,7 +63,7 @@ def multiple_models_generator(model1, model2, generator,
             output_generator = enqueuer.get()
         else:
             if is_sequence:
-                output_generator = iter_sequence_infinite(generator)
+                output_generator = iter(generator)
             else:
                 output_generator = generator
 
@@ -101,7 +100,8 @@ def multiple_models_generator(model1, model2, generator,
             for i in range(nimages):
                 (outs[i, 0], outs[i, 1]) = pearsonr(outs1[i, :], outs2[i, :])
 
-            outs = to_list(outs)
+            if not isinstance(outs, list):
+                outs = [outs]
 
             # FIXME: is it important the order of generator?
 
