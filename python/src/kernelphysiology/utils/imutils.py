@@ -68,6 +68,12 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0):
     return (1 - contrast_level) / 2.0 + np.multiply(image, contrast_level)
 
 
+def gaussian_blur(image, win_size):
+    image = im2double(image)
+    image = cv2.GaussianBlur(image, win_size, 0)
+    return image
+
+
 def grayscale_contrast(image, contrast_level):
     """Convert to grayscale. Adjust contrast.
 
