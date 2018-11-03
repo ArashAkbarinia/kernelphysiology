@@ -1,30 +1,7 @@
 from skimage.color import rgb2gray
-from skimage.io import imread, imsave
-from scipy.misc import toimage
 import numpy as np
 
 import cv2
-
-#import wrapper as wr
-
-###########################################################
-#   IMAGE IO
-###########################################################
-
-def imload_rgb(path):
-    """Load and return an RGB image in the range [0, 1]."""
-
-    return imread(path) / 255.0
-
-
-def save_img(image, imgname, use_JPEG=False):
-    """Save image as either .jpeg or .png"""
-
-    if use_JPEG:
-        imsave(imgname+".JPEG", image) 
-    else:
-        toimage(image,
-                cmin=0.0, cmax=1.0).save(imgname+".png")
 
 
 ###########################################################
@@ -68,6 +45,14 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0):
     return (1 - contrast_level) / 2.0 + np.multiply(image, contrast_level)
 
 
+def adjust_gamma(image, gamma):
+    image = im2double(image)
+    
+    image = image ** gamma
+    
+    return image
+
+
 def gaussian_blur(image, win_size):
     image = im2double(image)
     image = cv2.GaussianBlur(image, win_size, 0)
@@ -85,6 +70,24 @@ def grayscale_contrast(image, contrast_level):
     return adjust_contrast(rgb2gray(image), contrast_level)
 
 
+def uniform_noise_colour(image, width, contrast_level, rng):
+    """Convert to grayscale. Adjust contrast. Apply uniform noise.
+
+    parameters:
+    - image: a numpy.ndarray 
+    - width: a scalar indicating width of additive uniform noise
+             -> then noise will be in range [-width, width]
+    - contrast_level: a scalar in [0, 1]; with 1 -> full contrast
+    - rng: a np.random.RandomState(seed=XYZ) to make it reproducible
+    """
+
+    for i in range(image.shape[0]):
+        image[i,] = adjust_contrast(image[i,], contrast_level)
+        image[i,] = apply_uniform_noise(image[i,], -width, width, rng)
+
+    return image
+
+
 def uniform_noise(image, width, contrast_level, rng):
     """Convert to grayscale. Adjust contrast. Apply uniform noise.
 
@@ -99,6 +102,16 @@ def uniform_noise(image, width, contrast_level, rng):
     image = grayscale_contrast(image, contrast_level)
 
     return apply_uniform_noise(image, -width, width, rng)
+
+
+def s_p_noise(image, amount = 0.004, s_vs_p= 0.5):
+    (row, col, ch) = image.shape
+    out = np.copy(image)
+    # Salt mode
+    num_salt = np.ceil(amount * image.size * s_vs_p)
+    coords = [np.random.randint(0, i - 1, int(num_salt)) for i in image.shape]
+    out[coords] = 1
+    return out
 
 
 # TODO: we're returning everything in 0 to 1, should convert it back to the
@@ -174,21 +187,3 @@ def is_in_bounds(mat, low, high):
     """
 
     return np.all(np.logical_and(mat >= 0, mat <= 1))
-
-
-#def eidolon_partially_coherent_disarray(image, reach, coherence, grain):
-#    """Return parametrically distorted images (produced by Eidolon factory.
-#
-#    For more information on the effect of different distortions, please
-#    have a look at the paper: Koenderink et al., JoV 2017,
-#    Eidolons: Novel stimuli for vision research).
-#
-#    - image: a numpy.ndarray
-#    - reach: float, controlling the strength of the manipulation
-#    - coherence: a float within [0, 1] with 1 = full coherence
-#    - grain: float, controlling how fine-grained the distortion is
-#    """
-#
-#    return wr.partially_coherent_disarray(wr.data_to_pic(image),
-#                                          reach, coherence, grain)
-
