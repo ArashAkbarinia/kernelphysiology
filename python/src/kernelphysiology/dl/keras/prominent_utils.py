@@ -49,6 +49,7 @@ def create_dir(dir_path):
     if not os.path.isdir(dir_path):
         os.mkdir(dir_path)
 
+
 def test_prominent_prepares(args):
     output_file = None
     if os.path.isdir(args.network_name):
@@ -280,7 +281,7 @@ def common_arg_parser(description):
 def activation_arg_parser(argvs):
     parser = common_arg_parser('Analysing activation of prominent nets of Keras.')
 
-    parser.add_argument('--contrasts', nargs='+', type=int, default=[100], help='List of contrasts to be evaluated (default: [100])')
+    parser.add_argument('--contrasts', nargs='+', type=float, default=[100], help='List of contrasts to be evaluated (default: [100])')
 
     return check_args(parser, argvs)
 
@@ -288,7 +289,7 @@ def activation_arg_parser(argvs):
 def test_arg_parser(argvs):
     parser = common_arg_parser('Test prominent nets of Keras for different contrasts.')
 
-    parser.add_argument('--contrasts', nargs='+', type=int, default=[100], help='List of contrasts to be evaluated (default: [100])')
+    parser.add_argument('--contrasts', nargs='+', type=float, default=[100], help='List of contrasts to be evaluated (default: [100])')
 
     return check_args(parser, argvs)
 
@@ -312,6 +313,7 @@ def train_arg_parser(argvs):
     parser.add_argument('--steps_per_epoch', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
     parser.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')
 
+    parser.add_argument('--noshuffle', dest='shuffle', action='store_false', default=True, help='Whether to stop shuffling data (default: False)')
     parser.add_argument('--horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
     parser.add_argument('--vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
     parser.add_argument('--contrast_range', type=float, default=None, help='Value to perform contrast agumentation (default: None)')

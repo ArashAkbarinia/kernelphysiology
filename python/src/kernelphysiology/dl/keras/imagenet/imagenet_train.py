@@ -17,7 +17,7 @@ def prepare_imagenet(args):
     args.train_generator = imagenet.train_generator(args.train_dir, batch_size=args.batch_size,
                                                     target_size=args.target_size,
                                                     preprocessing_function=args.train_preprocessing_function,
-                                                    crop_centre=args.crop_centre,
+                                                    crop_centre=args.crop_centre, shuffle=args.shuffle,
                                                     horizontal_flip=args.horizontal_flip,
                                                     vertical_flip=args.vertical_flip,
                                                     zoom_range=args.zoom_range,
