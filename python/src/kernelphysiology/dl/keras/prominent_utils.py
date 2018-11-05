@@ -26,7 +26,18 @@ from kernelphysiology.dl.keras.models import inception_v3
 from kernelphysiology.dl.keras.models import vgg16, vgg19
 from kernelphysiology.dl.keras.models import densenet
 
-from kernelphysiology.utils.imutils import adjust_contrast
+from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur
+
+
+# unifying all augmentations here
+def augmentation_preprocessing(img, contrast_range, local_contrast_variation=0, gaussian_sigma=None, preprocessing_function=None):
+    img = adjust_contrast(img, np.random.uniform(*contrast_range), local_contrast_variation) * 255
+    if gaussian_sigma is not None:
+        win_size = (gaussian_sigma, gaussian_sigma)
+        img = gaussian_blur(img, win_size) * 255
+    if preprocessing_function is not None:
+        img = preprocessing_function(img)
+    return img
 
 
 def contrast_augmented_preprocessing(img, contrast_range, local_contrast_variation=0, preprocessing_function=None):
@@ -128,10 +139,10 @@ def train_prominent_prepares(args):
     if args.contrast_range is not None:
         contrast_range = np.array([args.contrast_range, 100]) / 100
         local_contrast_variation = args.local_contrast_variation / 100
-        current_contrast_preprocessing = lambda img: contrast_augmented_preprocessing(img,
-                                                                                      contrast_range=contrast_range,
-                                                                                      local_contrast_variation=local_contrast_variation,
-                                                                                      preprocessing_function=get_preprocessing_function(args.preprocessing))
+        current_contrast_preprocessing = lambda img: augmentation_preprocessing(img,
+                                                                                contrast_range=contrast_range, local_contrast_variation=local_contrast_variation,
+                                                                                gaussian_sigma=args.gaussian_sigma,
+                                                                                preprocessing_function=get_preprocessing_function(args.preprocessing))
         args.train_preprocessing_function = current_contrast_preprocessing
     else:
         args.train_preprocessing_function = get_preprocessing_function(args.preprocessing)
@@ -318,6 +329,7 @@ def train_arg_parser(argvs):
     parser.add_argument('--vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
     parser.add_argument('--contrast_range', type=float, default=None, help='Value to perform contrast agumentation (default: None)')
     parser.add_argument('--local_contrast_variation', type=float, default=0, help='Value to deviate local contrast augmentation (default: 0)')
+    parser.add_argument('--gaussian_sigma', type=float, default=None, help='Value to perform Gaussian blurring agumentation (default: None)')
     parser.add_argument('--zoom_range', type=float, default=0, help='Value for zoom agumentation (default: 0)')
     parser.add_argument('--width_shift_range', type=float, default=0, help='Value for width shift agumentation (default: 0)')
     parser.add_argument('--height_shift_range', type=float, default=0, help='Value for height shift agumentation (default: 0)')
