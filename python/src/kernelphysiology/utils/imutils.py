@@ -70,6 +70,13 @@ def grayscale_contrast(image, contrast_level):
     return adjust_contrast(rgb2gray(image), contrast_level)
 
 
+def adjust_illuminant(image, illuminant):
+    image = im2double(image)
+    for i in range(image.shape[2]):
+        image[:, :, i] = image[:, :, i] / illuminant[i]
+
+    return image
+
 def uniform_noise_colour(image, width, contrast_level, rng):
     """Convert to grayscale. Adjust contrast. Apply uniform noise.
 
@@ -81,9 +88,9 @@ def uniform_noise_colour(image, width, contrast_level, rng):
     - rng: a np.random.RandomState(seed=XYZ) to make it reproducible
     """
 
-    for i in range(image.shape[0]):
-        image[i,] = adjust_contrast(image[i,], contrast_level)
-        image[i,] = apply_uniform_noise(image[i,], -width, width, rng)
+    for i in range(image.shape[2]):
+        image[:, :, i] = adjust_contrast(image[:, :, i], contrast_level)
+        image[:, :, i] = apply_uniform_noise(image[:, :, i], -width, width, rng)
 
     return image
 
@@ -134,6 +141,7 @@ def local_std(image, window_size=(5, 5)):
 #   HELPER FUNCTIONS
 ###########################################################
 
+# FIXME: it overwrites the image
 def apply_uniform_noise(image, low, high, rng=None):
     """Apply uniform noise to an image, clip outside values to 0 and 1.
 
