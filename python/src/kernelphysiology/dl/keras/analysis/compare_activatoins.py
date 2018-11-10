@@ -92,13 +92,15 @@ if __name__ == "__main__":
 
         for j in range(nlayers):
             # the first layer is input layer
-            model1 = get_activations(args1.model, args1.model.layers[j + 1])
-            model2 = get_activations(args2.model, args2.model.layers[j + 1])
-            current_results = predict_network(model1, model2, args)
-            np.savetxt('%s_layer_%03d_%s.csv' % (args.output_file, j,  args1.model.layers[j + 1].name), current_results, delimiter=',')
+            # TODO: pass the vonvolutional layers as a parameter
+            if type(args1.model.layers[j + 1]) is keras.layers.convolutional.Conv2D:
+                model1 = get_activations(args1.model, args1.model.layers[j + 1])
+                model2 = get_activations(args2.model, args2.model.layers[j + 1])
+                current_results = predict_network(model1, model2, args)
+                np.savetxt('%s_layer_%03d_%s.csv' % (args.output_file, j,  args1.model.layers[j + 1].name), current_results, delimiter=',')
     
-            results_top1[i, j] = np.mean(current_results[:, 0])
-            results_topk[i, j] = np.median(current_results[:, 0])
+                results_top1[i, j] = np.mean(current_results[:, 0])
+                results_topk[i, j] = np.median(current_results[:, 0])
 
     # saving the results in a CSV format
     np.savetxt(args.output_file + '_top1.csv', results_top1, delimiter=',')
