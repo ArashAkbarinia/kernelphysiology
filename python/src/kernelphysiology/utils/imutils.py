@@ -88,8 +88,8 @@ def uniform_noise_colour(image, width, contrast_level, rng):
     - rng: a np.random.RandomState(seed=XYZ) to make it reproducible
     """
 
+    image = adjust_contrast(image, contrast_level)
     for i in range(image.shape[2]):
-        image[:, :, i] = adjust_contrast(image[:, :, i], contrast_level)
         image[:, :, i] = apply_uniform_noise(image[:, :, i], -width, width, rng)
 
     return image
