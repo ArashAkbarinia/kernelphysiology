@@ -26,16 +26,26 @@ from kernelphysiology.dl.keras.models import inception_v3
 from kernelphysiology.dl.keras.models import vgg16, vgg19
 from kernelphysiology.dl.keras.models import densenet
 
-from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur
+from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant
 
 
-# unifying all augmentations here
+# FIXME unifying all augmentations here
 def augmentation_preprocessing(img, contrast_range, local_contrast_variation=0, gaussian_sigma=None, preprocessing_function=None):
     img = adjust_contrast(img, np.random.uniform(*contrast_range), local_contrast_variation) * 255
     if gaussian_sigma is not None:
         win_size = (gaussian_sigma, gaussian_sigma)
         img = gaussian_blur(img, win_size) * 255
     if preprocessing_function is not None:
+        img = preprocessing_function(img)
+    return img
+
+
+# FIXME: move all preprocessing to one function
+def colour_constancy_augmented_preprocessing(img, illuminant_range, preprocessing_function=None):
+    # FIXME: make the augmentations smarter: e.g. half normal, half crazy illumiant
+    illuminant = np.random.uniform(*illuminant_range, 3)
+    img = adjust_illuminant(img, illuminant) * 255
+    if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
@@ -137,13 +147,13 @@ def train_prominent_prepares(args):
         args.preprocessing = network_name
 
     if args.contrast_range is not None:
-        contrast_range = np.array([args.contrast_range, 100]) / 100
-        local_contrast_variation = args.local_contrast_variation / 100
-        current_contrast_preprocessing = lambda img: augmentation_preprocessing(img,
-                                                                                contrast_range=contrast_range, local_contrast_variation=local_contrast_variation,
-                                                                                gaussian_sigma=args.gaussian_sigma,
+#        contrast_range = np.array([args.contrast_range, 100]) / 100
+#        local_contrast_variation = args.local_contrast_variation / 100
+        illuminant_range = np.array([args.illuminant_range, 1])
+        current_augmentation_preprocessing = lambda img: colour_constancy_augmented_preprocessing(img,
+                                                                                illuminant_range=illuminant_range,
                                                                                 preprocessing_function=get_preprocessing_function(args.preprocessing))
-        args.train_preprocessing_function = current_contrast_preprocessing
+        args.train_preprocessing_function = current_augmentation_preprocessing
     else:
         args.train_preprocessing_function = get_preprocessing_function(args.preprocessing)
     # we don't want contrast augmentation for validation set
@@ -332,12 +342,15 @@ def train_arg_parser(argvs):
     parser.add_argument('--noshuffle', dest='shuffle', action='store_false', default=True, help='Whether to stop shuffling data (default: False)')
     parser.add_argument('--horizontal_flip', action='store_true', default=False, help='Whether to perform horizontal flip data (default: False)')
     parser.add_argument('--vertical_flip', action='store_true', default=False, help='Whether to perform vertical flip (default: False)')
-    parser.add_argument('--contrast_range', type=float, default=None, help='Value to perform contrast agumentation (default: None)')
-    parser.add_argument('--local_contrast_variation', type=float, default=0, help='Value to deviate local contrast augmentation (default: 0)')
-    parser.add_argument('--gaussian_sigma', type=float, default=None, help='Value to perform Gaussian blurring agumentation (default: None)')
     parser.add_argument('--zoom_range', type=float, default=0, help='Value for zoom agumentation (default: 0)')
     parser.add_argument('--width_shift_range', type=float, default=0, help='Value for width shift agumentation (default: 0)')
     parser.add_argument('--height_shift_range', type=float, default=0, help='Value for height shift agumentation (default: 0)')
+
+    parser.add_argument('--contrast_range', type=float, default=None, help='Value to perform contrast agumentation (default: None)')
+    parser.add_argument('--local_contrast_variation', type=float, default=0, help='Value to deviate local contrast augmentation (default: 0)')
+    parser.add_argument('--illuminant_range', type=float, default=None, help='Value to perform illumination agumentation (default: None)')
+    parser.add_argument('--local_illuminant_variation', type=float, default=0, help='Value to deviate local illumination augmentation (default: 0)')
+    parser.add_argument('--gaussian_sigma', type=float, default=None, help='Value to perform Gaussian blurring agumentation (default: None)')
 
     return check_args(parser, argvs)
 
