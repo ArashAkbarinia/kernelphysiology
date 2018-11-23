@@ -42,7 +42,7 @@ def gamma_preprocessing(img, amount, preprocessing_function=None):
 
 
 def s_p_preprocessing(img, amount, preprocessing_function=None):
-    img = s_p_noise(img, amount) # * 255
+    img = s_p_noise(img, amount) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img

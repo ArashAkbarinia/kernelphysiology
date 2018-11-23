@@ -47,9 +47,7 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0):
 
 def adjust_gamma(image, gamma):
     image = im2double(image)
-    
     image = image ** gamma
-    
     return image
 
 
@@ -111,10 +109,9 @@ def uniform_noise(image, width, contrast_level, rng):
     return apply_uniform_noise(image, -width, width, rng)
 
 
-def s_p_noise(image, amount = 0.004, s_vs_p= 0.5):
+def s_p_noise(image, amount=0.004, s_vs_p=0.5):
     (row, col, ch) = image.shape
-    out = np.copy(image)
-    # Salt mode
+    out = im2double(image)
     num_salt = np.ceil(amount * image.size * s_vs_p)
     coords = [np.random.randint(0, i - 1, int(num_salt)) for i in image.shape]
     out[coords] = 1
@@ -141,7 +138,7 @@ def local_std(image, window_size=(5, 5)):
 #   HELPER FUNCTIONS
 ###########################################################
 
-# FIXME: it overwrites the image
+
 def apply_uniform_noise(image, low, high, rng=None):
     """Apply uniform noise to an image, clip outside values to 0 and 1.
 
