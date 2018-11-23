@@ -51,6 +51,7 @@ def adjust_gamma(image, gamma):
     return image
 
 
+# FIXME: according to a sigma rather than the window
 def gaussian_blur(image, win_size):
     image = im2double(image)
     image = cv2.GaussianBlur(image, win_size, 0)
@@ -75,42 +76,25 @@ def adjust_illuminant(image, illuminant):
 
     return image
 
-def uniform_noise_colour(image, width, contrast_level, rng):
-    """Convert to grayscale. Adjust contrast. Apply uniform noise.
 
+# FIXME: uniform noise and s_p noise should be identical with respect to percentage
+def uniform_noise(image, width, rng=np.random.RandomState(seed=1)):
+    '''
+    Convert to grayscale. Adjust contrast. Apply uniform noise.
     parameters:
     - image: a numpy.ndarray 
     - width: a scalar indicating width of additive uniform noise
              -> then noise will be in range [-width, width]
-    - contrast_level: a scalar in [0, 1]; with 1 -> full contrast
     - rng: a np.random.RandomState(seed=XYZ) to make it reproducible
-    """
-
-    image = adjust_contrast(image, contrast_level)
+    '''
+    image = im2double(image)
     for i in range(image.shape[2]):
         image[:, :, i] = apply_uniform_noise(image[:, :, i], -width, width, rng)
 
     return image
 
 
-def uniform_noise(image, width, contrast_level, rng):
-    """Convert to grayscale. Adjust contrast. Apply uniform noise.
-
-    parameters:
-    - image: a numpy.ndarray 
-    - width: a scalar indicating width of additive uniform noise
-             -> then noise will be in range [-width, width]
-    - contrast_level: a scalar in [0, 1]; with 1 -> full contrast
-    - rng: a np.random.RandomState(seed=XYZ) to make it reproducible
-    """
-
-    image = grayscale_contrast(image, contrast_level)
-
-    return apply_uniform_noise(image, -width, width, rng)
-
-
-def s_p_noise(image, amount=0.004, s_vs_p=0.5):
-    (row, col, ch) = image.shape
+def s_p_noise(image, amount, s_vs_p=0.5):
     out = im2double(image)
     num_salt = np.ceil(amount * image.size * s_vs_p)
     coords = [np.random.randint(0, i - 1, int(num_salt)) for i in image.shape]
@@ -175,11 +159,9 @@ def get_uniform_noise(low, high, nrow, ncol, rng=None):
     """
 
     if rng is None:
-        return np.random.uniform(low=low, high=high,
-                                 size=(nrow, ncol))
+        return np.random.uniform(low=low, high=high, size=(nrow, ncol))
     else:
-        return rng.uniform(low=low, high=high,
-                           size=(nrow, ncol))
+        return rng.uniform(low=low, high=high, size=(nrow, ncol))
 
 
 def is_in_bounds(mat, low, high):

@@ -17,12 +17,12 @@ from keras.utils import multi_gpu_model
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
 from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function, get_top_k_accuracy
 from kernelphysiology.dl.keras.prominent_utils import which_network, which_dataset
-from kernelphysiology.utils.imutils import uniform_noise_colour, gaussian_blur, s_p_noise
+from kernelphysiology.utils.imutils import uniform_noise, gaussian_blur, s_p_noise
 from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
 
 
 def uniform_noise_preprocessing(img, width, preprocessing_function=None):
-    img = uniform_noise_colour(img, width, 1, np.random.RandomState(seed=1)) * 255
+    img = uniform_noise(img, width, 1, np.random.RandomState(seed=1)) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -79,7 +79,8 @@ if __name__ == "__main__":
         image_manipulation_function = contrast_preprocessing
     elif args.gaussian_sigma is not None:
         image_manipulation_type = 'Gaussian'
-        image_manipulation_values = np.array(args.gaussian_sigma)
+        # FIXME: for now it's a window rather than sigma
+        image_manipulation_values = np.array(args.gaussian_sigma).astype('uint8')
         image_manipulation_function = gaussian_preprocessing
     elif args.s_p_noise is not None:
         image_manipulation_type = 'salt and pepper'
