@@ -107,7 +107,7 @@ data/
 *.*~
 
 # analysis files
-analysis/
+./analysis/
 
 # check point files
 CheckPoints/
