@@ -300,7 +300,12 @@ def activation_arg_parser(argvs):
 def test_arg_parser(argvs):
     parser = common_arg_parser('Test prominent nets of Keras for different contrasts.')
 
-    parser.add_argument('--contrasts', nargs='+', type=float, default=[100], help='List of contrasts to be evaluated (default: [100])')
+    image_degradation_group = parser.add_mutually_exclusive_group()
+    image_degradation_group.add_argument('--contrasts', nargs='+', type=float, default=None, help='List of contrasts to be evaluated (default: None)')
+    image_degradation_group.add_argument('--gaussian_sigma', nargs='+', type=float, default=None, help='List of Gaussian sigmas to be evaluated (default: None)')
+    image_degradation_group.add_argument('--s_p_noise', nargs='+', type=float, default=None, help='List of salt and pepper noise to be evaluated (default: None)')
+    image_degradation_group.add_argument('--uniform_noise', nargs='+', type=float, default=None, help='List of uniform noise to be evaluated (default: None)')
+    image_degradation_group.add_argument('--gammas', nargs='+', type=float, default=None, help='List of gammas to be evaluated (default: None)')
 
     return check_args(parser, argvs)
 

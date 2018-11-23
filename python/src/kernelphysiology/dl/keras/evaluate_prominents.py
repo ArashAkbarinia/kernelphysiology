@@ -1,5 +1,5 @@
 '''
-Testing a Keras model of CIFAR or STL against different levels of contrast.
+Testing a Keras model of vairous datasets for different image manipulations.
 '''
 
 
@@ -17,7 +17,8 @@ from keras.utils import multi_gpu_model
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
 from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function, get_top_k_accuracy
 from kernelphysiology.dl.keras.prominent_utils import which_network, which_dataset
-from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, s_p_noise, adjust_gamma, uniform_noise_colour, adjust_illuminant
+from kernelphysiology.utils.imutils import uniform_noise_colour, gaussian_blur, s_p_noise
+from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
 
 
 def uniform_noise_preprocessing(img, width, preprocessing_function=None):
@@ -72,29 +73,41 @@ if __name__ == "__main__":
 
     dataset_name = args.dataset.lower()
 
-    # FIXME: all types of noise
-    contrasts = np.array(args.contrasts) # / 100
-    results_top1 = np.zeros((contrasts.shape[0], len(args.networks)))
-    results_topk = np.zeros((contrasts.shape[0], len(args.networks)))
+    if args.contrasts is not None:
+        image_manipulation_type = 'contrast'
+        image_manipulation_values = np.array(args.contrasts) / 100
+        image_manipulation_function = contrast_preprocessing
+    elif args.gaussian_sigma is not None:
+        image_manipulation_type = 'Gaussian'
+        image_manipulation_values = np.array(args.gaussian_sigma)
+        image_manipulation_function = gaussian_preprocessing
+    elif args.s_p_noise is not None:
+        image_manipulation_type = 'salt and pepper'
+        image_manipulation_values = np.array(args.s_p_noise)
+        image_manipulation_function = s_p_preprocessing
+    elif args.uniform_noise is not None:
+        image_manipulation_type = 'uniform noise'
+        image_manipulation_values = np.array(args.uniform_noise)
+        image_manipulation_function = uniform_noise_preprocessing
+    elif args.gammas is not None:
+        image_manipulation_type = 'gamma'
+        image_manipulation_values = np.array(args.gammas)
+        image_manipulation_function = gamma_preprocessing
+
+    results_top1 = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
+    results_topk = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
+
     # maybe if only one preprocessing is used, the generators can be called only once
     for j, network_name in enumerate(args.networks):
         # w1hich architecture
         args = which_network(args, network_name)
-        for i, contrast in enumerate(contrasts):
+        for i, manipulation_value in enumerate(image_manipulation_values):
             preprocessing = args.preprocessings[j]
-#            current_contrast_preprocessing = lambda img : gaussian_preprocessing(img, win_size=(contrast, contrast),
-#                                                                                 preprocessing_function=get_preprocessing_function(preprocessing))
-#            current_contrast_preprocessing = lambda img : s_p_preprocessing(img, amount=contrast, 
-#                                                                            preprocessing_function=get_preprocessing_function(preprocessing))
-#            current_contrast_preprocessing = lambda img : gamma_preprocessing(img, amount=contrast, 
-#                                                                              preprocessing_function=get_preprocessing_function(preprocessing))
-            current_contrast_preprocessing = lambda img : colour_constancy_preprocessing(img, illuminant=(1, contrast, contrast), 
-                                                                                         preprocessing_function=get_preprocessing_function(preprocessing))
-#            current_contrast_preprocessing = lambda img : uniform_noise_preprocessing(img, width=contrast, 
-#                                                                                      preprocessing_function=get_preprocessing_function(preprocessing))
-            args.validation_preprocessing_function = current_contrast_preprocessing
+            current_manipulation_preprocessing = lambda img : image_manipulation_function(img, manipulation_value, 
+                                                                                          preprocessing_function=get_preprocessing_function(preprocessing))
+            args.validation_preprocessing_function = current_manipulation_preprocessing
 
-            print('Processing network %s and contrast %f' % (network_name, contrast))
+            print('Processing network %s and %s %f' % (network_name, image_manipulation_type, manipulation_value))
 
             # which dataset
             # reading it after the model, because each might have their own
