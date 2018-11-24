@@ -72,7 +72,7 @@ def grayscale_contrast(image, contrast_level):
 def adjust_illuminant(image, illuminant):
     image = im2double(image)
     for i in range(image.shape[2]):
-        image[:, :, i] = image[:, :, i] / illuminant[i]
+        image[:, :, i] = image[:, :, i] * illuminant[i]
 
     return image
 

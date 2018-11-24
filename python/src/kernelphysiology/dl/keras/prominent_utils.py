@@ -146,7 +146,7 @@ def train_prominent_prepares(args):
     if not args.preprocessing:
         args.preprocessing = network_name
 
-    if args.contrast_range is not None:
+    if args.illuminant_range is not None:
 #        contrast_range = np.array([args.contrast_range, 100]) / 100
 #        local_contrast_variation = args.local_contrast_variation / 100
         illuminant_range = np.array([args.illuminant_range, 1])
