@@ -29,6 +29,8 @@ def uniform_noise_preprocessing(img, width, preprocessing_function=None):
 
 
 def colour_constancy_preprocessing(img, illuminant, preprocessing_function=None):
+    # FIXME: for now it's only one channel, make it a loop for all channels
+    illuminant = (illuminant, 1, 1)
     img = adjust_illuminant(img, illuminant) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
@@ -94,6 +96,11 @@ if __name__ == "__main__":
         image_manipulation_type = 'gamma'
         image_manipulation_values = np.array(args.gammas)
         image_manipulation_function = gamma_preprocessing
+        # FIXME: for now it's only one channel, make it a loop for all channels
+    elif args.illuminants is not None:
+        image_manipulation_type = 'illuminants'
+        image_manipulation_values = np.array(args.illuminants)
+        image_manipulation_function = colour_constancy_preprocessing
 
     results_top1 = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
     results_topk = np.zeros((image_manipulation_values.shape[0], len(args.networks)))

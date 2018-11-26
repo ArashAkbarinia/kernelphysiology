@@ -316,6 +316,7 @@ def test_arg_parser(argvs):
     image_degradation_group.add_argument('--s_p_noise', nargs='+', type=float, default=None, help='List of salt and pepper noise to be evaluated (default: None)')
     image_degradation_group.add_argument('--uniform_noise', nargs='+', type=float, default=None, help='List of uniform noise to be evaluated (default: None)')
     image_degradation_group.add_argument('--gammas', nargs='+', type=float, default=None, help='List of gammas to be evaluated (default: None)')
+    image_degradation_group.add_argument('--illuminants', nargs='+', type=float, default=None, help='List of illuminations to be evaluated (default: None)')
 
     return check_args(parser, argvs)
 
