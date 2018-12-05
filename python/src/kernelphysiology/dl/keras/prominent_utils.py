@@ -28,24 +28,22 @@ from kernelphysiology.dl.keras.models import densenet
 
 from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant
 
-
-# FIXME unifying all augmentations here
-def augmentation_preprocessing(img, contrast_range, local_contrast_variation=0, gaussian_sigma=None, preprocessing_function=None):
-    img = adjust_contrast(img, np.random.uniform(*contrast_range), local_contrast_variation) * 255
-    if gaussian_sigma is not None:
-        win_size = (gaussian_sigma, gaussian_sigma)
-        img = gaussian_blur(img, win_size) * 255
-    if preprocessing_function is not None:
-        img = preprocessing_function(img)
-    return img
+import random
 
 
 # FIXME: move all preprocessing to one function
-def colour_constancy_augmented_preprocessing(img, illuminant_range, contrast_range, preprocessing_function=None):
+def colour_constancy_augmented_preprocessing(img, illuminant_range=None, contrast_range=None, gaussian_sigma=None, preprocessing_function=None):
     # FIXME: make the augmentations smarter: e.g. half normal, half crazy illumiant
-    illuminant = np.random.uniform(*illuminant_range, 3)
-    img = adjust_illuminant(img, illuminant) * 255
-    img = adjust_contrast(img, np.random.uniform(*contrast_range)) * 255
+    if gaussian_sigma is not None:
+        gw = random.randrange(gaussian_sigma[0], gaussian_sigma[1] + 1, 2)
+        if gw > 1:
+            win_size = (gw, gw)
+            img = gaussian_blur(img, win_size) * 255
+    if illuminant_range is not None:
+        illuminant = np.random.uniform(*illuminant_range, 3)
+        img = adjust_illuminant(img, illuminant) * 255
+    if contrast_range is not None:
+        img = adjust_contrast(img, np.random.uniform(*contrast_range)) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -151,8 +149,10 @@ def train_prominent_prepares(args):
         contrast_range = np.array([args.contrast_range, 100]) / 100
 #        local_contrast_variation = args.local_contrast_variation / 100
         illuminant_range = np.array([args.illuminant_range, 1])
+        gaussian_sigma = np.array([1, args.gaussian_sigma])
         current_augmentation_preprocessing = lambda img: colour_constancy_augmented_preprocessing(img,
                                                                                 illuminant_range=illuminant_range, contrast_range=contrast_range,
+                                                                                gaussian_sigma=gaussian_sigma,
                                                                                 preprocessing_function=get_preprocessing_function(args.preprocessing))
         args.train_preprocessing_function = current_augmentation_preprocessing
     else:
