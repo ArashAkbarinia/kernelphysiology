@@ -36,6 +36,7 @@ def initialise_with_dog(model, which_layers=[keras.layers.convolutional.Conv2D, 
             (rows, cols, chns, dpts) = weights[0].shape
             # FIXME: with all type of convolution
             if rows > 1:
+                print('initialising with doG', layer.name)
                 for d in range(dpts):
                     for c in range(chns):
                         sigmax1 = np.random.uniform(0, 5)
@@ -143,7 +144,7 @@ def start_training_generator(args):
 
     model = args.model
     if args.initialise is not None:
-        if args.initialise.tolower() == 'dog':
+        if args.initialise.lower == 'dog':
             model = initialise_with_dog(model)
     if len(args.gpus) == 1:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
