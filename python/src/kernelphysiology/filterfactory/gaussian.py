@@ -11,7 +11,7 @@ def gaussian_width(sigma, max_width=100, threshold=1e-4):
     return filter_width * 2 + 1
 
 
-def gaussian_kernel(sigmax, sigmay=None, meanx=0, meany=0, theta=0, width=None, threshold=1e-4):
+def gaussian_kernel2(sigmax, sigmay=None, meanx=0, meany=0, theta=0, width=None, threshold=1e-4):
     if sigmax == 0:
         return 1
     if sigmay is None:
