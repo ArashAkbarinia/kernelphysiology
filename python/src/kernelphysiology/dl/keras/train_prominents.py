@@ -20,11 +20,33 @@ from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau, Learn
 from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_prominent_prepares
 from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
 
+from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
+
 
 def lr_metric_call_back(optimizer):
     def lr(y_true, y_pred):
         return optimizer.lr * (1. / (1. + optimizer.decay * K.cast(optimizer.iterations, K.dtype(optimizer.decay))))
     return lr
+
+
+def initialise_with_dog(model, which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
+    for i, layer in enumerate(model.layers):
+        if type(layer) in which_layers:
+            weights = layer.get_weights()
+            (rows, cols, chns, dpts) = weights[0].shape
+            # FIXME: with all type of convolution
+            if rows > 1:
+                for d in range(dpts):
+                    for c in range(chns):
+                        sigmax1 = np.random.uniform(0, 5)
+                        g1 = gaussian_kernel2(sigmax=sigmax1, sigmay=None, meanx=0,
+                                              meany=0, theta=0, width=rows, threshold=1e-4)
+                        sigmax2 = np.random.uniform(0, 5)
+                        g2 = gaussian_kernel2(sigmax=sigmax2, sigmay=None, meanx=0,
+                                              meany=0, theta=0, width=rows, threshold=1e-4)
+                        weights[0][:, :, c, d] = g1 - g2
+                model.layers[i].set_weights(weights)
+    return model
 
 
 def start_training_generator(args):
@@ -120,6 +142,9 @@ def start_training_generator(args):
     metrics = ['accuracy', top_k_acc, lr_metric]
 
     model = args.model
+    if args.initialise is not None:
+        if args.initialise.tolower() == 'dog':
+            model = initialise_with_dog(model)
     if len(args.gpus) == 1:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
         parallel_model = None
