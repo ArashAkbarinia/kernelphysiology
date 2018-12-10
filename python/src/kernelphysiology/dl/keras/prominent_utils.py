@@ -149,7 +149,10 @@ def train_prominent_prepares(args):
         contrast_range = np.array([args.contrast_range, 100]) / 100
 #        local_contrast_variation = args.local_contrast_variation / 100
         illuminant_range = np.array([args.illuminant_range, 1])
-        gaussian_sigma = np.array([1, args.gaussian_sigma])
+        if args.gaussian_sigma is not None:
+            gaussian_sigma = np.array([1, args.gaussian_sigma])
+        else:
+            gaussian_sigma = None
         current_augmentation_preprocessing = lambda img: colour_constancy_augmented_preprocessing(img,
                                                                                 illuminant_range=illuminant_range, contrast_range=contrast_range,
                                                                                 gaussian_sigma=gaussian_sigma,
