@@ -326,7 +326,8 @@ def train_arg_parser(argvs):
     weights_group = parser.add_mutually_exclusive_group()
     weights_group.add_argument('--load_weights', type=str, default=None, help='Whether loading weights from a model (default: None)')
     weights_group.add_argument('--initialise', type=str, default=None, help='Whether using a specific initialisation of weights (default: None)')
-    parser.add_argument('--dog_sigma', type=float, default=5, help='Sigma of DoG initialisation (default: 5)')
+    parser.add_argument('--dog_sigma', type=float, default=1, help='Sigma of DoG initialisation (default: 1)')
+    parser.add_argument('--dog_surround', type=float, default=5, help='Surround enlargement in DoG initialisation (default: 5)')
 
     parser.add_argument('--optimiser', type=str, default='adam', help='The optimiser to be used (default: adam)')
     parser.add_argument('--lr', type=float, default=None, help='The learning rate parameter of optimiser (default: None)')
