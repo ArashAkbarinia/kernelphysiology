@@ -129,22 +129,30 @@ def train_prominent_prepares(args):
     if not args.preprocessing:
         args.preprocessing = network_name
 
+    # which augmentation we're handling
     if args.illuminant_range is not None:
-        contrast_range = np.array([args.contrast_range, 100]) / 100
-#        local_contrast_variation = args.local_contrast_variation / 100
         illuminant_range = np.array([args.illuminant_range, 1])
-        if args.gaussian_sigma is not None:
-            gaussian_sigma_range = np.array([0, args.gaussian_sigma])
-        else:
-            gaussian_sigma_range = None
-        current_augmentation_preprocessing = lambda img: augmented_preprocessing(img,
-                                                                                 illuminant_range=illuminant_range, contrast_range=contrast_range,
-                                                                                 gaussian_sigma_range=gaussian_sigma_range,
-                                                                                 preprocessing_function=get_preprocessing_function(args.preprocessing))
-        args.train_preprocessing_function = current_augmentation_preprocessing
     else:
-        args.train_preprocessing_function = get_preprocessing_function(args.preprocessing)
-    # we don't want contrast augmentation for validation set
+        illuminant_range = None
+    if args.contrast_range is not None:
+        contrast_range = np.array([args.contrast_range, 100]) / 100
+        # FIXME: add local variations
+#        local_contrast_variation = args.local_contrast_variation / 100
+    else:
+        contrast_range = None
+    if args.gaussian_sigma is not None:
+        gaussian_sigma_range = np.array([0, args.gaussian_sigma])
+    else:
+        gaussian_sigma_range = None
+
+    # creating the augmentation lambda
+    current_augmentation_preprocessing = lambda img: augmented_preprocessing(img,
+                                                                             illuminant_range=illuminant_range, contrast_range=contrast_range,
+                                                                             gaussian_sigma_range=gaussian_sigma_range,
+                                                                             preprocessing_function=get_preprocessing_function(args.preprocessing))
+    args.train_preprocessing_function = current_augmentation_preprocessing
+
+    # we don't want augmentation for validation set
     args.validation_preprocessing_function = get_preprocessing_function(args.preprocessing)
 
     # which dataset
