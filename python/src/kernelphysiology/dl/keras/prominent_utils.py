@@ -12,6 +12,7 @@ import numpy as np
 from functools import partial
 import warnings
 import socket
+import random
 
 import keras
 from keras import backend as K
@@ -28,11 +29,9 @@ from kernelphysiology.dl.keras.models import densenet
 
 from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant
 
-import random
 
-
-# FIXME: move all preprocessing to one function
-def colour_constancy_augmented_preprocessing(img, illuminant_range=None, contrast_range=None, gaussian_sigma=None, preprocessing_function=None):
+def augmented_preprocessing(img, illuminant_range=None, contrast_range=None,
+                            gaussian_sigma=None, preprocessing_function=None):
     # FIXME: make the augmentations smarter: e.g. half normal, half crazy illumiant
     if gaussian_sigma is not None:
         gw = random.randrange(gaussian_sigma[0], gaussian_sigma[1] + 1, 2)
@@ -44,13 +43,6 @@ def colour_constancy_augmented_preprocessing(img, illuminant_range=None, contras
         img = adjust_illuminant(img, illuminant) * 255
     if contrast_range is not None:
         img = adjust_contrast(img, np.random.uniform(*contrast_range)) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def contrast_augmented_preprocessing(img, contrast_range, local_contrast_variation=0, preprocessing_function=None):
-    img = adjust_contrast(img, np.random.uniform(*contrast_range), local_contrast_variation) * 255
     if preprocessing_function is not None:
         img = preprocessing_function(img)
     return img
@@ -153,10 +145,10 @@ def train_prominent_prepares(args):
             gaussian_sigma = np.array([1, args.gaussian_sigma])
         else:
             gaussian_sigma = None
-        current_augmentation_preprocessing = lambda img: colour_constancy_augmented_preprocessing(img,
-                                                                                illuminant_range=illuminant_range, contrast_range=contrast_range,
-                                                                                gaussian_sigma=gaussian_sigma,
-                                                                                preprocessing_function=get_preprocessing_function(args.preprocessing))
+        current_augmentation_preprocessing = lambda img: augmented_preprocessing(img,
+                                                                                 illuminant_range=illuminant_range, contrast_range=contrast_range,
+                                                                                 gaussian_sigma=gaussian_sigma,
+                                                                                 preprocessing_function=get_preprocessing_function(args.preprocessing))
         args.train_preprocessing_function = current_augmentation_preprocessing
     else:
         args.train_preprocessing_function = get_preprocessing_function(args.preprocessing)
