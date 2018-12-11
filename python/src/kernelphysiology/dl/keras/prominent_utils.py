@@ -328,6 +328,11 @@ def train_arg_parser(argvs):
     weights_group.add_argument('--initialise', type=str, default=None, help='Whether using a specific initialisation of weights (default: None)')
     parser.add_argument('--dog_sigma', type=float, default=1, help='Sigma of DoG initialisation (default: 1)')
     parser.add_argument('--dog_surround', type=float, default=5, help='Surround enlargement in DoG initialisation (default: 5)')
+    parser.add_argument('--g_sigmax', type=float, default=1, help='Sigma-x of Gaussian initialisation (default: 1)')
+    parser.add_argument('--g_sigmay', type=float, default=None, help='Sigma-y of Gaussian initialisation (default: None)')
+    parser.add_argument('--g_meanx', type=float, default=0, help='Mean-x of Gaussian initialisation (default: 0)')
+    parser.add_argument('--g_meany', type=float, default=0, help='Mean-y of Gaussian initialisation (default: 0)')
+    parser.add_argument('--g_theta', type=float, default=0, help='Theta of Gaussian initialisation (default: 0)')
 
     parser.add_argument('--optimiser', type=str, default='adam', help='The optimiser to be used (default: adam)')
     parser.add_argument('--lr', type=float, default=None, help='The learning rate parameter of optimiser (default: None)')

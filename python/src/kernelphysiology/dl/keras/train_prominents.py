@@ -31,6 +31,32 @@ def lr_metric_call_back(optimizer):
     return lr
 
 
+def initialise_with_gaussian(model, sigmax, sigmay=None, meanx=0, meany=0, theta=0,
+                             which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
+    for i, layer in enumerate(model.layers):
+        if type(layer) in which_layers:
+            weights = layer.get_weights()
+            (rows, cols, chns, dpts) = weights[0].shape
+            # FIXME: with all type of convolution
+            if rows > 1:
+                print('initialising with doG', layer.name)
+                for d in range(dpts):
+                    for c in range(chns):
+                        sigmax_dc = np.random.uniform(0, sigmax)
+                        if sigmay is not None:
+                            sigmay_dc = np.random.uniform(0, sigmay)
+                        else:
+                            sigmay_dc = None
+                        meanx_dc = np.random.uniform(-meanx, meanx)
+                        meany_dc = np.random.uniform(-meany, meany)
+                        theta_dc = np.random.uniform(-theta, theta)
+                        g_kernel = gaussian_kernel2(sigmax=sigmax_dc, sigmay=sigmay_dc, meanx=meanx_dc,
+                                              meany=meany_dc, theta=theta_dc, width=rows, threshold=1e-4)
+                        weights[0][:, :, c, d] = g_kernel
+                model.layers[i].set_weights(weights)
+    return model
+
+
 def initialise_with_dog(model, dog_sigma, dog_surround, which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
     for i, layer in enumerate(model.layers):
         if type(layer) in which_layers:
@@ -149,6 +175,9 @@ def start_training_generator(args):
     if args.initialise is not None:
         if args.initialise.lower() == 'dog':
             model = initialise_with_dog(model, dog_sigma=args.dog_sigma, dog_surround=args.dog_surround)
+        if args.initialise.lower() == 'gaussian':
+            model = initialise_with_gaussian(model, sigmax=args.g_sigmax, sigmay=args.g_sigmay,
+                                             meanx=args.g_meanx, meany=args.g_meany, theta=args.g_theta)
 
     if len(args.gpus) == 1:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
