@@ -31,7 +31,7 @@ def lr_metric_call_back(optimizer):
     return lr
 
 
-def initialise_with_dog(model, which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
+def initialise_with_dog(model, dog_sigma, which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
     for i, layer in enumerate(model.layers):
         if type(layer) in which_layers:
             weights = layer.get_weights()
@@ -41,10 +41,10 @@ def initialise_with_dog(model, which_layers=[keras.layers.convolutional.Conv2D, 
                 print('initialising with doG', layer.name)
                 for d in range(dpts):
                     for c in range(chns):
-                        sigmax1 = np.random.uniform(0, 5)
+                        sigmax1 = np.random.uniform(0, dog_sigma)
                         g1 = gaussian_kernel2(sigmax=sigmax1, sigmay=None, meanx=0,
                                               meany=0, theta=0, width=rows, threshold=1e-4)
-                        sigmax2 = np.random.uniform(0, 5)
+                        sigmax2 = np.random.uniform(0, dog_sigma * 2)
                         g2 = gaussian_kernel2(sigmax=sigmax2, sigmay=None, meanx=0,
                                               meany=0, theta=0, width=rows, threshold=1e-4)
                         weights[0][:, :, c, d] = g1 - g2
@@ -148,7 +148,7 @@ def start_training_generator(args):
     # initialising the network with specific weights
     if args.initialise is not None:
         if args.initialise.lower() == 'dog':
-            model = initialise_with_dog(model)
+            model = initialise_with_dog(model, dog_sigma=args.dog_sigma)
 
     if len(args.gpus) == 1:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
