@@ -12,7 +12,6 @@ import numpy as np
 from functools import partial
 import warnings
 import socket
-import random
 
 import keras
 from keras import backend as K
@@ -32,13 +31,10 @@ from kernelphysiology.utils.path_utils import create_dir
 
 
 def augmented_preprocessing(img, illuminant_range=None, contrast_range=None,
-                            gaussian_sigma=None, preprocessing_function=None):
+                            gaussian_sigma_range=None, preprocessing_function=None):
     # FIXME: make the augmentations smarter: e.g. half normal, half crazy illumiant
-    if gaussian_sigma is not None:
-        gw = random.randrange(gaussian_sigma[0], gaussian_sigma[1] + 1, 2)
-        if gw > 1:
-            win_size = (gw, gw)
-            img = gaussian_blur(img, win_size) * 255
+    if gaussian_sigma_range is not None:
+        img = gaussian_blur(img, np.random.uniform(*gaussian_sigma_range)) * 255
     if illuminant_range is not None:
         illuminant = np.random.uniform(*illuminant_range, 3)
         img = adjust_illuminant(img, illuminant) * 255
@@ -138,12 +134,12 @@ def train_prominent_prepares(args):
 #        local_contrast_variation = args.local_contrast_variation / 100
         illuminant_range = np.array([args.illuminant_range, 1])
         if args.gaussian_sigma is not None:
-            gaussian_sigma = np.array([1, args.gaussian_sigma])
+            gaussian_sigma_range = np.array([0, args.gaussian_sigma])
         else:
-            gaussian_sigma = None
+            gaussian_sigma_range = None
         current_augmentation_preprocessing = lambda img: augmented_preprocessing(img,
                                                                                  illuminant_range=illuminant_range, contrast_range=contrast_range,
-                                                                                 gaussian_sigma=gaussian_sigma,
+                                                                                 gaussian_sigma_range=gaussian_sigma_range,
                                                                                  preprocessing_function=get_preprocessing_function(args.preprocessing))
         args.train_preprocessing_function = current_augmentation_preprocessing
     else:

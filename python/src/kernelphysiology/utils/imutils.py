@@ -3,10 +3,7 @@ import numpy as np
 
 import cv2
 
-
-###########################################################
-#   IMAGE MANIPULATION
-###########################################################
+from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 
 
 def im2double(image):
@@ -51,10 +48,14 @@ def adjust_gamma(image, gamma):
     return image
 
 
-# FIXME: according to a sigma rather than the window
-def gaussian_blur(image, win_size):
+def gaussian_blur(image, sigmax, sigmay=None, meanx=0, meany=0, theta=0):
+    '''
+    Blurring the image with a Gaussian kernel.
+    '''
     image = im2double(image)
-    image = cv2.GaussianBlur(image, win_size, 0)
+    g_kernel = gaussian_kernel2(sigmax=sigmax, sigmay=sigmay, meanx=meanx,
+                                meany=meany, theta=theta)
+    image = cv2.filter2D(image, -1, g_kernel)
     return image
 
 
@@ -116,11 +117,6 @@ def local_std(image, window_size=(5, 5)):
     avg_image = cv2.filter2D(image, -1, kernel)
     std_image =  cv2.filter2D((image - avg_image) ** 2, -1, kernel) ** 0.5
     return (std_image, avg_image)
-
-
-###########################################################
-#   HELPER FUNCTIONS
-###########################################################
 
 
 def apply_uniform_noise(image, low, high, rng=None):

@@ -51,8 +51,8 @@ def s_p_preprocessing(img, amount, preprocessing_function=None):
     return img
 
 
-def gaussian_preprocessing(img, win_size, preprocessing_function=None):
-    img = gaussian_blur(img, win_size) * 255
+def gaussian_preprocessing(img, sigma, preprocessing_function=None):
+    img = gaussian_blur(img, sigma) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -81,8 +81,7 @@ if __name__ == "__main__":
         image_manipulation_function = contrast_preprocessing
     elif args.gaussian_sigma is not None:
         image_manipulation_type = 'Gaussian'
-        # FIXME: for now it's a window rather than sigma
-        image_manipulation_values = np.array(args.gaussian_sigma).astype('uint8')
+        image_manipulation_values = np.array(args.gaussian_sigma)
         image_manipulation_function = gaussian_preprocessing
     elif args.s_p_noise is not None:
         image_manipulation_type = 'salt and pepper'
