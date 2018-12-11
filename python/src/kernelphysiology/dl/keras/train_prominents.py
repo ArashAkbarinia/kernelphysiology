@@ -145,9 +145,11 @@ def start_training_generator(args):
     metrics = ['accuracy', top_k_acc, lr_metric]
 
     model = args.model
+    # initialising the network with specific weights
     if args.initialise is not None:
         if args.initialise.lower() == 'dog':
             model = initialise_with_dog(model)
+
     if len(args.gpus) == 1:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
         parallel_model = None

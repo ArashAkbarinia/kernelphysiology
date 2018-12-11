@@ -319,13 +319,14 @@ def train_arg_parser(argvs):
     # better handling the parameters, e.g. pretrained ones are only for imagenet
     parser.add_argument('--area1layers', type=int, default=None, help='The number of layers in area 1 (default: None)')
 
-    parser.add_argument('--load_weights', type=str, default=None, help='Whether loading weights from a model (default: None)')
+    weights_group = parser.add_mutually_exclusive_group()
+    weights_group.add_argument('--load_weights', type=str, default=None, help='Whether loading weights from a model (default: None)')
+    weights_group.add_argument('--initialise', type=str, default=None, help='Whether using a specific initialisation of weights (default: None)')
 
     parser.add_argument('--optimiser', type=str, default='adam', help='The optimiser to be used (default: adam)')
     parser.add_argument('--lr', type=float, default=None, help='The learning rate parameter of optimiser (default: None)')
     parser.add_argument('--decay', type=float, default=None, help='The decay weight parameter of optimiser (default: None)')
     parser.add_argument('--exp_decay', type=float, default=None, help='The exponential decay (default: None)')
-    parser.add_argument('--initialise', type=str, default=None, help='Whether using a specific initialisation of weights (default: None)')
 
     parser.add_argument('--epochs', type=int, default=50, help='Number of epochs (default: 50)')
     parser.add_argument('--initial_epoch', type=int, default=0, help='The initial epoch number (default: 0)')
