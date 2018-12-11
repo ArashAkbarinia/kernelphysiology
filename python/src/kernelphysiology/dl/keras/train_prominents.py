@@ -196,7 +196,12 @@ if __name__ == "__main__":
     create_dir(network_parent_path)
     network_dir = os.path.join(network_parent_path, optimiser)
     create_dir(network_dir)
-    args.save_dir = os.path.join(network_dir, args.experiment_name)
+    if args.load_weights is not None:
+        f_s_dir = os.path.join(network_dir, 'fine_tune')
+    else:
+        f_s_dir = os.path.join(network_dir, 'scratch')
+    create_dir(f_s_dir)
+    args.save_dir = os.path.join(f_s_dir, args.experiment_name)
     create_dir(args.save_dir)
 
     # preparing the name of the model
