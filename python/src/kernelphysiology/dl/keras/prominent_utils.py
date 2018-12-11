@@ -28,6 +28,7 @@ from kernelphysiology.dl.keras.models import vgg16, vgg19
 from kernelphysiology.dl.keras.models import densenet
 
 from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant
+from kernelphysiology.utils.path_utils import create_dir
 
 
 def augmented_preprocessing(img, illuminant_range=None, contrast_range=None,
@@ -55,11 +56,6 @@ def get_input_shape(target_size):
     elif K.image_data_format() == 'channels_first':
         input_shape = (3, *target_size)
     return input_shape
-
-
-def create_dir(dir_path):
-    if not os.path.isdir(dir_path):
-        os.mkdir(dir_path)
 
 
 def test_prominent_prepares(args):

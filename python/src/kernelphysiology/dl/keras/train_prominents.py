@@ -22,6 +22,8 @@ from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
 
 from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 
+from kernelphysiology.utils.path_utils import create_dir
+
 
 def lr_metric_call_back(optimizer):
     def lr(y_true, y_pred):
@@ -171,11 +173,6 @@ def start_training_generator(args):
     model_name = args.model_name + '.h5'
     model_path = os.path.join(args.save_dir, model_name)
     model.save(model_path, include_optimizer=False)
-
-
-def create_dir(dir_path):
-    if not os.path.isdir(dir_path):
-        os.mkdir(dir_path)
 
 
 if __name__ == "__main__":
