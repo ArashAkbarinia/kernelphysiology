@@ -57,7 +57,8 @@ def initialise_with_gaussian(model, sigmax, sigmay=None, meanx=0, meany=0, theta
     return model
 
 
-def initialise_with_dog(model, dog_sigma, dog_surround, which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
+def initialise_with_dog(model, dog_sigma, dog_surround, op,
+                        which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
     for i, layer in enumerate(model.layers):
         if type(layer) in which_layers:
             weights = layer.get_weights()
@@ -73,7 +74,9 @@ def initialise_with_dog(model, dog_sigma, dog_surround, which_layers=[keras.laye
                         sigmax2 = np.random.uniform(0, dog_sigma * dog_surround)
                         g2 = gaussian_kernel2(sigmax=sigmax2, sigmay=None, meanx=0,
                                               meany=0, theta=0, width=rows, threshold=1e-4)
-                        weights[0][:, :, c, d] = g1 - g2
+
+                        wg2 = np.random.uniform(*op)
+                        weights[0][:, :, c, d] = g1 + wg2 * g2
                 model.layers[i].set_weights(weights)
     return model
 
@@ -174,7 +177,11 @@ def start_training_generator(args):
     # initialising the network with specific weights
     if args.initialise is not None:
         if args.initialise.lower() == 'dog':
-            model = initialise_with_dog(model, dog_sigma=args.dog_sigma, dog_surround=args.dog_surround)
+            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(-1, 0))
+        if args.initialise.lower() == 'sog':
+            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(0, +1))
+        if args.initialise.lower() == 'dogsog' or args.initialise.lower() == 'sogdog':
+            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(-1, +1))
         if args.initialise.lower() == 'gaussian':
             model = initialise_with_gaussian(model, sigmax=args.g_sigmax, sigmay=args.g_sigmay,
                                              meanx=args.g_meanx, meany=args.g_meany, theta=args.g_theta)
