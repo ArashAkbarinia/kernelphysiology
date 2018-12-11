@@ -94,12 +94,17 @@ def multiple_models_generator(model1, model2, generator,
             outs2 = model2.predict_on_batch(x)
 
             nimages = outs1.shape[0]
-            outs1 = np.reshape(outs1, (nimages, -1))
-            outs2 = np.reshape(outs2, (nimages, -1))
+#            outs1 = np.reshape(outs1, (nimages, -1))
+#            outs2 = np.reshape(outs2, (nimages, -1))
 
-            outs = np.zeros((nimages, 2))
+            kernels = [27, 129, 138, 155, 195, 260, 301, 368, 406, 462, 482, 511]
+            outs = np.zeros((nimages, len(kernels)))
             for i in range(nimages):
-                (outs[i, 0], outs[i, 1]) = pearsonr(outs1[i, :], outs2[i, :])
+                for k_ind, k in enumerate(kernels):
+#                    (outs[i, k_ind], _) = pearsonr(outs1[i, :, :, k].flatten(), outs2[i, :, :, k].flatten())
+                    outs[i, k_ind] = np.mean(outs1[i, :, :, k].flatten() - outs2[i, :, :, k].flatten())
+#            import pdb
+#            pdb.set_trace()
 
             if not isinstance(outs, list):
                 outs = [outs]

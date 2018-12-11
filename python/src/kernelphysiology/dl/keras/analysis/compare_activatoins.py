@@ -93,18 +93,19 @@ if __name__ == "__main__":
         for j in range(nlayers):
             # the first layer is input layer
             # TODO: pass the vonvolutional layers as a parameter
-            if type(args1.model.layers[j + 1]) is keras.layers.convolutional.Conv2D:
+            if type(args1.model.layers[j + 1]) is keras.layers.convolutional.Conv2D and args1.model.layers[j + 1].name == 'res3c_branch2c':
+                print('layer', args1.model.layers[j + 1].name)
                 model1 = get_activations(args1.model, args1.model.layers[j + 1])
                 model2 = get_activations(args2.model, args2.model.layers[j + 1])
                 current_results = predict_network(model1, model2, args)
                 np.savetxt('%s_layer_%03d_%s.csv' % (args.output_file, j,  args1.model.layers[j + 1].name), current_results, delimiter=',')
     
-                results_top1[i, j] = np.mean(current_results[:, 0])
-                results_topk[i, j] = np.median(current_results[:, 0])
-
-    # saving the results in a CSV format
-    np.savetxt(args.output_file + '_top1.csv', results_top1, delimiter=',')
-    np.savetxt(args.output_file + '_top%d.csv' % args.top_k, results_topk, delimiter=',')
+#                results_top1[i, j] = np.mean(current_results[:, 0])
+#                results_topk[i, j] = np.median(current_results[:, 0])
+#
+#    # saving the results in a CSV format
+#    np.savetxt(args.output_file + '_top1.csv', results_top1, delimiter=',')
+#    np.savetxt(args.output_file + '_top%d.csv' % args.top_k, results_topk, delimiter=',')
 
     finish_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
     print('Finishing at: ' + finish_time)
