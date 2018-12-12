@@ -39,7 +39,7 @@ def initialise_with_gaussian(model, sigmax, sigmay=None, meanx=0, meany=0, theta
             (rows, cols, chns, dpts) = weights[0].shape
             # FIXME: with all type of convolution
             if rows > 1:
-                print('initialising with doG', layer.name)
+                print('initialising with Gaussian', layer.name)
                 for d in range(dpts):
                     for c in range(chns):
                         sigmax_dc = np.random.uniform(0, sigmax)
@@ -51,7 +51,7 @@ def initialise_with_gaussian(model, sigmax, sigmay=None, meanx=0, meany=0, theta
                         meany_dc = np.random.uniform(-meany, meany)
                         theta_dc = np.random.uniform(-theta, theta)
                         g_kernel = gaussian_kernel2(sigmax=sigmax_dc, sigmay=sigmay_dc, meanx=meanx_dc,
-                                              meany=meany_dc, theta=theta_dc, width=rows, threshold=1e-4)
+                                                    meany=meany_dc, theta=theta_dc, width=rows, threshold=1e-4)
                         weights[0][:, :, c, d] = g_kernel
                 model.layers[i].set_weights(weights)
     return model
@@ -65,7 +65,7 @@ def initialise_with_dog(model, dog_sigma, dog_surround, op,
             (rows, cols, chns, dpts) = weights[0].shape
             # FIXME: with all type of convolution
             if rows > 1:
-                print('initialising with doG', layer.name)
+                print('initialising with ToG', layer.name)
                 for d in range(dpts):
                     for c in range(chns):
                         sigmax1 = np.random.uniform(0, dog_sigma)
@@ -74,8 +74,10 @@ def initialise_with_dog(model, dog_sigma, dog_surround, op,
                         sigmax2 = np.random.uniform(0, dog_sigma * dog_surround)
                         g2 = gaussian_kernel2(sigmax=sigmax2, sigmay=None, meanx=0,
                                               meany=0, theta=0, width=rows, threshold=1e-4)
-
-                        wg2 = np.random.uniform(*op)
+                        if type(op) is tuple:
+                            wg2 = np.random.uniform(*op)
+                        else:
+                            wg2 = op
                         weights[0][:, :, c, d] = g1 + wg2 * g2
                 model.layers[i].set_weights(weights)
     return model
@@ -177,12 +179,16 @@ def start_training_generator(args):
     # initialising the network with specific weights
     if args.initialise is not None:
         if args.initialise.lower() == 'dog':
+            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=-1)
+        elif args.initialise.lower() == 'randdog':
             model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(-1, 0))
-        if args.initialise.lower() == 'sog':
+        elif args.initialise.lower() == 'sog':
+            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=+1)
+        elif args.initialise.lower() == 'randsog':
             model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(0, +1))
-        if args.initialise.lower() == 'dogsog' or args.initialise.lower() == 'sogdog':
+        elif args.initialise.lower() == 'dogsog' or args.initialise.lower() == 'sogdog':
             model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(-1, +1))
-        if args.initialise.lower() == 'gaussian':
+        elif args.initialise.lower() == 'gaussian':
             model = initialise_with_gaussian(model, sigmax=args.g_sigmax, sigmay=args.g_sigmay,
                                              meanx=args.g_meanx, meany=args.g_meany, theta=args.g_theta)
 
