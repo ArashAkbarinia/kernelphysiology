@@ -255,7 +255,12 @@ def which_architecture(args):
     # TODO: add other architectures of keras
     network_name = args.network_name
     if network_name == 'resnet50':
-        model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+        if args.dataset == 'cifar10':
+            # FIXME: make it more generic
+            from kernelphysiology.dl.keras.models import resnet
+            model = resnet.resnet_v1(input_shape=args.input_shape, depth=3*6+2)
+        else:
+            model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'inception_v3':
         model = inception_v3.InceptionV3(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'vgg16':
