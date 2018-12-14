@@ -343,6 +343,7 @@ def train_arg_parser(argvs):
     parser.add_argument('--lr', type=float, default=None, help='The learning rate parameter of optimiser (default: None)')
     parser.add_argument('--decay', type=float, default=None, help='The decay weight parameter of optimiser (default: None)')
     parser.add_argument('--exp_decay', type=float, default=None, help='The exponential decay (default: None)')
+    parser.add_argument('--lr_schedule', type=str, default=None, help='The custom learning rate scheduler (default: None)')
 
     parser.add_argument('--epochs', type=int, default=50, help='Number of epochs (default: 50)')
     parser.add_argument('--initial_epoch', type=int, default=0, help='The initial epoch number (default: 0)')

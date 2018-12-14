@@ -119,7 +119,7 @@ def start_training_generator(args):
         else:
             lr = args.lr
         if args.decay is None:
-            decay = 1e-6
+            decay = 0#1e-6
         else:
             decay = args.decay
         beta_1 = 0.9
@@ -133,7 +133,7 @@ def start_training_generator(args):
         else:
             lr = args.lr
         if args.decay is None:
-            decay = 1e-4
+            decay = 0#1e-4
         else:
             decay = args.decay
         momentum = 0.9
@@ -145,7 +145,7 @@ def start_training_generator(args):
         else:
             lr = args.lr
         if args.decay is None:
-            decay = 1e-4
+            decay = 0#1e-4
         else:
             decay = args.decay
         rho = 0.9
@@ -157,7 +157,7 @@ def start_training_generator(args):
         else:
             lr = args.lr
         if args.decay is None:
-            decay = 1e-5
+            decay = 0#1e-5
         else:
             decay = args.decay
         opt = keras.optimizers.Adagrad(lr=lr, epsilon=None, decay=decay)
@@ -170,6 +170,31 @@ def start_training_generator(args):
            return new_lr
         callbacks.append(LearningRateScheduler(exp_decay))
         logging.info('Exponential decay=%f' % (args.exp_decay))
+    if args.lr_schedule is not None:
+        def lr_schedule(epoch):
+            """Learning Rate Schedule
+        
+            Learning rate is scheduled to be reduced after 80, 120, 160, 180 epochs.
+            Called automatically every epoch as part of callbacks during training.
+        
+            # Arguments
+                epoch (int): The number of epochs
+        
+            # Returns
+                lr (float32): learning rate
+            """
+            lr = 1e-3
+            if epoch > 180:
+                lr *= 0.5e-3
+            elif epoch > 160:
+                lr *= 1e-3
+            elif epoch > 120:
+                lr *= 1e-2
+            elif epoch > 80:
+                lr *= 1e-1
+            print('Learning rate: ', lr)
+            return lr
+        callbacks.append(LearningRateScheduler(lr_schedule))
 
     top_k_acc = get_top_k_accuracy(args.top_k)
     lr_metric = lr_metric_call_back(opt)
