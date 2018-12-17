@@ -236,18 +236,19 @@ def start_training_generator(args):
             """
             if epoch < 81:
                 # FXIME: better handling ot this
-                return lr * (1 - 1e-6)
-            lr = 1e-3
+                new_lr = lr
+                return new_lr
+            new_lr = 1e-3
             if epoch > 180:
-                lr *= 0.5e-3
+                new_lr *= 0.5e-3
             elif epoch > 160:
-                lr *= 1e-3
+                new_lr *= 1e-3
             elif epoch > 120:
-                lr *= 1e-2
+                new_lr *= 1e-2
             elif epoch > 80:
-                lr *= 1e-1
-            print('Learning rate: ', lr)
-            return lr
+                new_lr *= 1e-1
+            print('Learning rate: ', new_lr)
+            return new_lr
         callbacks.append(LearningRateScheduler(lr_schedule))
 
     top_k_acc = get_top_k_accuracy(args.top_k)
