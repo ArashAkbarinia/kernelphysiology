@@ -12,6 +12,7 @@ import numpy as np
 from functools import partial
 import warnings
 import socket
+import math
 
 import keras
 from keras import backend as K
@@ -338,6 +339,9 @@ def train_arg_parser(argvs):
     parser.add_argument('--g_meanx', type=float, default=0, help='Mean-x of Gaussian initialisation (default: 0)')
     parser.add_argument('--g_meany', type=float, default=0, help='Mean-y of Gaussian initialisation (default: 0)')
     parser.add_argument('--g_theta', type=float, default=0, help='Theta of Gaussian initialisation (default: 0)')
+    parser.add_argument('--gg_sigma', type=float, default=1, help='Sigma of Gaussian gradient initialisation (default: 1)')
+    parser.add_argument('--gg_theta', type=float, default=math.pi/2, help='Theta of Gaussian gradient initialisation (default: 1)')
+    parser.add_argument('--gg_seta', type=float, default=1, help='Seta of Gaussian gradient initialisation (default: 1)')
 
     parser.add_argument('--optimiser', type=str, default='adam', help='The optimiser to be used (default: adam)')
     parser.add_argument('--lr', type=float, default=None, help='The learning rate parameter of optimiser (default: None)')

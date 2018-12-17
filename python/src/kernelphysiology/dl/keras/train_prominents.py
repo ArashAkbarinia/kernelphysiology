@@ -20,7 +20,7 @@ from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau, Learn
 from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_prominent_prepares
 from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
 
-from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
+from kernelphysiology.filterfactory.gaussian import gaussian_kernel2, gaussian2_gradient1
 
 from kernelphysiology.utils.path_utils import create_dir
 
@@ -53,6 +53,26 @@ def initialise_with_gaussian(model, sigmax, sigmay=None, meanx=0, meany=0, theta
                         g_kernel = gaussian_kernel2(sigmax=sigmax_dc, sigmay=sigmay_dc, meanx=meanx_dc,
                                                     meany=meany_dc, theta=theta_dc, width=rows, threshold=1e-4)
                         weights[0][:, :, c, d] = g_kernel
+                model.layers[i].set_weights(weights)
+    return model
+
+
+def initialise_with_gaussian_gradient1(model, sigma, theta, seta,
+                                      which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
+    for i, layer in enumerate(model.layers):
+        if type(layer) in which_layers:
+            weights = layer.get_weights()
+            (rows, cols, chns, dpts) = weights[0].shape
+            # FIXME: with all type of convolution
+            if rows > 1:
+                print('initialising with Gaussian gradient 1', layer.name)
+                for d in range(dpts):
+                    for c in range(chns):
+                        sigma_dc = np.random.uniform(0, sigma)
+                        theta_dc = np.random.uniform(-theta, theta)
+                        seta_dc = np.random.uniform(0, seta)
+                        g1_kernel = gaussian2_gradient1 (sigma=sigma_dc, theta=theta_dc, seta=seta_dc, width=rows, threshold=1e-4)
+                        weights[0][:, :, c, d] = g1_kernel
                 model.layers[i].set_weights(weights)
     return model
 
@@ -119,7 +139,7 @@ def start_training_generator(args):
         else:
             lr = args.lr
         if args.decay is None:
-            decay = 0#1e-6
+            decay = 0
         else:
             decay = args.decay
         beta_1 = 0.9
@@ -133,7 +153,7 @@ def start_training_generator(args):
         else:
             lr = args.lr
         if args.decay is None:
-            decay = 0#1e-4
+            decay = 0
         else:
             decay = args.decay
         momentum = 0.9
@@ -145,7 +165,7 @@ def start_training_generator(args):
         else:
             lr = args.lr
         if args.decay is None:
-            decay = 0#1e-4
+            decay = 0
         else:
             decay = args.decay
         rho = 0.9
@@ -157,7 +177,7 @@ def start_training_generator(args):
         else:
             lr = args.lr
         if args.decay is None:
-            decay = 0#1e-5
+            decay = 0
         else:
             decay = args.decay
         opt = keras.optimizers.Adagrad(lr=lr, epsilon=None, decay=decay)
@@ -213,6 +233,8 @@ def start_training_generator(args):
             model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(0, +1))
         elif args.initialise.lower() == 'dogsog' or args.initialise.lower() == 'sogdog':
             model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(-1, +1))
+        elif args.initialise.lower() == 'g1':
+            model = initialise_with_gaussian_gradient1(model, sigma=args.gg_sigma, theta=args.gg_theta, seta=args.gg_seta)
         elif args.initialise.lower() == 'gaussian':
             model = initialise_with_gaussian(model, sigmax=args.g_sigmax, sigmay=args.g_sigmay,
                                              meanx=args.g_meanx, meany=args.g_meany, theta=args.g_theta)
