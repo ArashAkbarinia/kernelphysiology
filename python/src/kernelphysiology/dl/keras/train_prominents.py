@@ -68,16 +68,13 @@ def initialise_with_gaussian_gradient1(model, sigma, theta, seta,
                 print('initialising with Gaussian gradient 1', layer.name)
                 for d in range(dpts):
                     for c in range(chns):
-                        sigma_dc = np.random.uniform(0, sigma)
-                        theta_dc = np.random.uniform(-theta, theta)
-                        seta_dc = np.random.uniform(0, seta)
-                        g1_kernel = gaussian2_gradient1 (sigma=sigma_dc, theta=theta_dc, seta=seta_dc, width=rows, threshold=1e-4)
-                        weights[0][:, :, c, d] = g1_kernel
+                        weights_dc = random_g1(sigma=sigma, theta=theta, seta=seta, width=rows)
+                        weights[0][:, :, c, d] = weights_dc
                 model.layers[i].set_weights(weights)
     return model
 
 
-def initialise_with_dog(model, dog_sigma, dog_surround, op,
+def initialise_with_tog(model, tog_sigma, tog_surround, op,
                         which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
     for i, layer in enumerate(model.layers):
         if type(layer) in which_layers:
@@ -88,17 +85,51 @@ def initialise_with_dog(model, dog_sigma, dog_surround, op,
                 print('initialising with ToG', layer.name)
                 for d in range(dpts):
                     for c in range(chns):
-                        sigmax1 = np.random.uniform(0, dog_sigma)
-                        g1 = gaussian_kernel2(sigmax=sigmax1, sigmay=None, meanx=0,
-                                              meany=0, theta=0, width=rows, threshold=1e-4)
-                        sigmax2 = np.random.uniform(0, dog_sigma * dog_surround)
-                        g2 = gaussian_kernel2(sigmax=sigmax2, sigmay=None, meanx=0,
-                                              meany=0, theta=0, width=rows, threshold=1e-4)
-                        if type(op) is tuple:
-                            wg2 = np.random.uniform(*op)
-                        else:
-                            wg2 = op
-                        weights[0][:, :, c, d] = g1 + wg2 * g2
+                        weights_dc = random_tog(tog_sigma, tog_surround, op=op, width=rows)
+                        weights[0][:, :, c, d] = weights_dc
+                model.layers[i].set_weights(weights)
+    return model
+
+
+def random_tog(tog_sigma, tog_surround, op, width):
+    sigmax1 = np.random.uniform(0, tog_sigma)
+    g1 = gaussian_kernel2(sigmax=sigmax1, sigmay=None, meanx=0,
+                          meany=0, theta=0, width=width, threshold=1e-4)
+    sigmax2 = np.random.uniform(0, tog_sigma * tog_surround)
+    g2 = gaussian_kernel2(sigmax=sigmax2, sigmay=None, meanx=0,
+                          meany=0, theta=0, width=width, threshold=1e-4)
+    if type(op) is tuple:
+        wg2 = np.random.uniform(*op)
+    else:
+        wg2 = op
+    return g1 + wg2 * g2
+
+
+def random_g1(sigma, theta, seta, width):
+    sigma_dc = np.random.uniform(0, sigma)
+    theta_dc = np.random.uniform(-theta, theta)
+    seta_dc = np.random.uniform(0, seta)
+    g1_kernel = gaussian2_gradient1 (sigma=sigma_dc, theta=theta_dc, seta=seta_dc, width=width, threshold=1e-4)
+    return g1_kernel
+
+
+def initialise_with_g1g2(model, args,
+                        which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
+    for i, layer in enumerate(model.layers):
+        if type(layer) in which_layers:
+            weights = layer.get_weights()
+            (rows, cols, chns, dpts) = weights[0].shape
+            # FIXME: with all type of convolution
+            if rows > 1:
+                print('initialising with ToG', layer.name)
+                for d in range(dpts):
+                    for c in range(chns):
+                        g1g2 = np.random.randint(2)
+                        if g1g2 == 0:
+                            weights_dc = random_tog(args.tog_sigma, args.tog_surround, op=args.tog_op, width=rows)
+                        elif g1g2 == 1:
+                            weights_dc = random_g1(args.gg_sigma, args.gg_theta, args.gg_seta, width=rows)
+                        weights[0][:, :, c, d] = weights_dc
                 model.layers[i].set_weights(weights)
     return model
 
@@ -224,17 +255,20 @@ def start_training_generator(args):
     # initialising the network with specific weights
     if args.initialise is not None:
         if args.initialise.lower() == 'dog':
-            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=-1)
+            model = initialise_with_tog(model, tog_sigma=args.tog_sigma, tog_surround=args.tog_surround, op=-1)
         elif args.initialise.lower() == 'randdog':
-            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(-1, 0))
+            model = initialise_with_tog(model, tog_sigma=args.tog_sigma, tog_surround=args.tog_surround, op=(-1, 0))
         elif args.initialise.lower() == 'sog':
-            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=+1)
+            model = initialise_with_tog(model, tog_sigma=args.tog_sigma, tog_surround=args.tog_surround, op=+1)
         elif args.initialise.lower() == 'randsog':
-            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(0, +1))
+            model = initialise_with_tog(model, tog_sigma=args.tog_sigma, tog_surround=args.tog_surround, op=(0, +1))
         elif args.initialise.lower() == 'dogsog' or args.initialise.lower() == 'sogdog':
-            model = initialise_with_dog(model, dog_sigma=args.tog_sigma, dog_surround=args.tog_surround, op=(-1, +1))
+            model = initialise_with_tog(model, tog_sigma=args.tog_sigma, tog_surround=args.tog_surround, op=(-1, +1))
         elif args.initialise.lower() == 'g1':
             model = initialise_with_gaussian_gradient1(model, sigma=args.gg_sigma, theta=args.gg_theta, seta=args.gg_seta)
+        elif args.initialise.lower() == 'g1g2':
+            args.tog_op = -1
+            model = initialise_with_g1g2(model, args=args)
         elif args.initialise.lower() == 'gaussian':
             model = initialise_with_gaussian(model, sigmax=args.g_sigmax, sigmay=args.g_sigmay,
                                              meanx=args.g_meanx, meany=args.g_meany, theta=args.g_theta)
