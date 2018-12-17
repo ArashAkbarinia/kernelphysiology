@@ -234,6 +234,9 @@ def start_training_generator(args):
             # Returns
                 lr (float32): learning rate
             """
+            if epoch < 81:
+                # FXIME: better handling ot this
+                return lr * (1 - 1e-6)
             lr = 1e-3
             if epoch > 180:
                 lr *= 0.5e-3
@@ -243,9 +246,6 @@ def start_training_generator(args):
                 lr *= 1e-2
             elif epoch > 80:
                 lr *= 1e-1
-            else:
-                # FXIME: better handling ot this
-                lr *= 1e-6
             print('Learning rate: ', lr)
             return lr
         callbacks.append(LearningRateScheduler(lr_schedule))
