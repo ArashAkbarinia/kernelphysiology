@@ -44,3 +44,24 @@ def gaussian_kernel2(sigmax, sigmay=None, meanx=0, meany=0, theta=0, width=None,
     kernel /= kernel.sum()
 
     return kernel
+
+
+def gaussian2_gradient1(sigma, theta, seta=0.5, width=None, threshold=1e-4):
+    if width is None:
+        width = gaussian_width(sigma=sigma, max_width=100, threshold=threshold)
+
+    ct = math.cos(theta)
+    st = math.sin(theta)
+    sigma2 = sigma ** 2
+    seta2 = seta ** 2
+
+    kernel = np.zeros((width, width))
+    half_width = width / 2
+    fw = np.floor(half_width).astype('int')
+    cw = np.ceil(half_width).astype('int')
+    for row, i in enumerate(range(-fw, cw)):
+        for col, j in enumerate(range(-fw, cw)):
+            x = i * ct + j * st
+            y = -j * st + j * ct
+            kernel[row, col] = -x * np.exp(-((x ** 2) + (y ** 2) * seta2) / (2 * sigma2)) / (math.pi * sigma2)
+    return kernel
