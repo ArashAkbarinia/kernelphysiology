@@ -121,7 +121,7 @@ def initialise_with_g1g2(model, args,
             (rows, cols, chns, dpts) = weights[0].shape
             # FIXME: with all type of convolution
             if rows > 1:
-                print('initialising with ToG', layer.name)
+                print('initialising with G1G2', layer.name)
                 for d in range(dpts):
                     for c in range(chns):
                         g1g2 = np.random.randint(2)
@@ -243,6 +243,9 @@ def start_training_generator(args):
                 lr *= 1e-2
             elif epoch > 80:
                 lr *= 1e-1
+            else:
+                # FXIME: better handling ot this
+                lr *= 1e-6
             print('Learning rate: ', lr)
             return lr
         callbacks.append(LearningRateScheduler(lr_schedule))
