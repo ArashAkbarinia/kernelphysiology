@@ -9,10 +9,8 @@ import time
 import datetime
 import sys
 import logging
-import numpy as np
 
 import tensorflow as tf
-import keras
 from keras import backend as K
 from keras.utils import multi_gpu_model
 from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler
@@ -21,6 +19,8 @@ from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_pr
 from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
 
 from kernelphysiology.dl.keras.initialisations.initialise import initialse_weights
+from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, get_default_lrs
+from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule
 
 from kernelphysiology.utils.path_utils import create_dir
 
@@ -60,93 +60,16 @@ def start_training_generator(args):
         period_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_{epoch:03d}.h5'), save_weights_only=True, period=args.log_period)
         callbacks.append(period_checkpoint_logger)
 
-    # TODO: add more optimisers and parametrise from argument line
-    if args.optimiser.lower() == 'adam':
-        if args.lr is None:
-            lr = 1e-3
-        else:
-            lr = args.lr
-        if args.decay is None:
-            decay = 0
-        else:
-            decay = args.decay
-        beta_1 = 0.9
-        beta_2 = 0.999
-        epsilon = None
-        amsgrad = False
-        opt = keras.optimizers.Adam(lr=lr, decay=decay, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon, amsgrad=amsgrad)
-    elif args.optimiser.lower() == 'sgd':
-        if args.lr is None:
-            lr = 1e-1
-        else:
-            lr = args.lr
-        if args.decay is None:
-            decay = 0
-        else:
-            decay = args.decay
-        momentum = 0.9
-        nesterov = False
-        opt = keras.optimizers.SGD(lr=lr, decay=decay, momentum=momentum, nesterov=nesterov)
-    elif args.optimiser.lower() == 'rmsprop':
-        if args.lr is None:
-            lr = 0.045
-        else:
-            lr = args.lr
-        if args.decay is None:
-            decay = 0
-        else:
-            decay = args.decay
-        rho = 0.9
-        epsilon = 1.0
-        opt = keras.optimizers.RMSprop(lr=lr, decay=decay, rho=rho, epsilon=epsilon)
-    elif args.optimiser.lower() == 'adagrad':
-        if args.lr is None:
-            lr = 1e-2
-        else:
-            lr = args.lr
-        if args.decay is None:
-            decay = 0
-        else:
-            decay = args.decay
-        opt = keras.optimizers.Adagrad(lr=lr, epsilon=None, decay=decay)
+    args.lr = get_default_lrs(optimiser_name=args.optimiser)
+    opt = set_optimisation(args)
 
     logging.info('Optimiser %s: %s' % (args.optimiser, opt.get_config()))
 
     if args.exp_decay is not None:
-        def exp_decay(epoch):
-           new_lr = lr * np.exp(-args.exp_decay * epoch)
-           return new_lr
-        callbacks.append(LearningRateScheduler(exp_decay))
+        callbacks.append(LearningRateScheduler(exp_decay, args.lr, args.exp_decay))
         logging.info('Exponential decay=%f' % (args.exp_decay))
     if args.lr_schedule is not None:
-        def lr_schedule(epoch):
-            """Learning Rate Schedule
-        
-            Learning rate is scheduled to be reduced after 80, 120, 160, 180 epochs.
-            Called automatically every epoch as part of callbacks during training.
-        
-            # Arguments
-                epoch (int): The number of epochs
-        
-            # Returns
-                lr (float32): learning rate
-            """
-            if epoch < 81:
-                # FXIME: better handling ot this
-                new_lr = lr
-                return new_lr
-            new_lr = 1e-3
-            if epoch > 180:
-                new_lr *= 0.5e-3
-            elif epoch > 160:
-                new_lr *= 1e-3
-            elif epoch > 120:
-                new_lr *= 1e-2
-            elif epoch > 80:
-                new_lr *= 1e-1
-            print('Learning rate: ', new_lr)
-            return new_lr
-        callbacks.append(LearningRateScheduler(lr_schedule))
+        callbacks.append(LearningRateScheduler(lr_schedule, args.lr))
 
     top_k_acc = get_top_k_accuracy(args.top_k)
     lr_metric = lr_metric_call_back(opt)
