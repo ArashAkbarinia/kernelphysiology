@@ -6,7 +6,7 @@ Train a simple DNN on CIFAR 10 or 100.
 from kernelphysiology.dl.keras.cifar import cifar10
 from kernelphysiology.dl.keras.cifar import cifar100
 
-from kernelphysiology.dl.keras.utils import get_generators
+from kernelphysiology.dl.keras.utils import get_generators, get_validatoin_generator
 
 
 def prepare_cifar10(args):
@@ -28,6 +28,16 @@ def prepare_cifar10_generators(args):
     return args
 
 
+def cifar10_validatoin_generator(args):
+    args.num_classes = 10
+
+    # The data, split between train and test sets:
+    (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+
+    args = get_validatoin_generator(args, x_test, y_test)
+    return args
+
+
 def prepare_cifar100(args):
     args.num_classes = 100
 
@@ -44,4 +54,14 @@ def prepare_cifar100_generators(args):
     (x_train, y_train), (x_test, y_test) = cifar100.load_data()
 
     args = get_generators(args, x_train, y_train, x_test, y_test)
+    return args
+
+
+def cifar100_validatoin_generator(args):
+    args.num_classes = 100
+
+    # The data, split between train and test sets:
+    (x_train, y_train), (x_test, y_test) = cifar100.load_data()
+
+    args = get_validatoin_generator(args, x_test, y_test)
     return args

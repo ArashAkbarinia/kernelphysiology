@@ -176,13 +176,15 @@ def train_prominent_prepares(args):
 
 def which_dataset(args, dataset_name):
     if dataset_name == 'cifar10':
-        # TODO: not the nicest solution
-        args.train_preprocessing_function = args.validation_preprocessing_function
-        args = cifar_train.prepare_cifar10_generators(args)
+        if hasattr(args, 'train_preprocessing_function'):
+            args = cifar_train.prepare_cifar10_generators(args)
+        else:
+            args = cifar_train.cifar10_validatoin_generator(args)
     elif dataset_name == 'cifar100':
-        # TODO: not the nicest solution
-        args.train_preprocessing_function = args.validation_preprocessing_function
-        args = cifar_train.prepare_cifar100_generators(args)
+        if hasattr(args, 'train_preprocessing_function'):
+            args = cifar_train.prepare_cifar100_generators(args)
+        else:
+            args = cifar_train.cifar100_validatoin_generator(args)
     elif dataset_name == 'stl10':
         # TODO: not the nicest solution
         args.train_preprocessing_function = args.validation_preprocessing_function

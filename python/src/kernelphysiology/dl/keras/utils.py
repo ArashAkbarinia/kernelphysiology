@@ -100,6 +100,13 @@ class ResizeGenerator(keras.utils.Sequence):
         return (x_batch, y_batch)
 
 
+def get_validatoin_generator(args, x_test, y_test):
+    (args.validation_generator, args.validation_samples) = resize_generator(x_test, y_test, batch_size=args.batch_size,
+                                            target_size=args.target_size, preprocessing_function=args.validation_preprocessing_function)
+
+    return args
+
+
 def get_generators(args, x_train, y_train, x_test, y_test):
     (args.train_generator, args.train_samples) = resize_generator(x_train, y_train, batch_size=args.batch_size,
                                             target_size=args.target_size, preprocessing_function=args.train_preprocessing_function,
