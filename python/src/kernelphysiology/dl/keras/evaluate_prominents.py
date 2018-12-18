@@ -112,7 +112,7 @@ if __name__ == "__main__":
         image_manipulation_function = gaussian_noise_preprocessing
     elif args.poisson_noise:
         image_manipulation_type = 'Poisson noise'
-        image_manipulation_values = 0
+        image_manipulation_values = [0]
         image_manipulation_function = poisson_noise_preprocessing
     elif args.gammas is not None:
         image_manipulation_type = 'gamma'
