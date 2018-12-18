@@ -186,9 +186,10 @@ def which_dataset(args, dataset_name):
         else:
             args = cifar_train.cifar100_validatoin_generator(args)
     elif dataset_name == 'stl10':
-        # TODO: not the nicest solution
-        args.train_preprocessing_function = args.validation_preprocessing_function
-        args = stl_train.prepare_stl10_generators(args)
+        if hasattr(args, 'train_preprocessing_function'):
+            args = stl_train.prepare_stl10_generators(args)
+        else:
+            args = stl_train.stl10_validation_generator(args)
     elif dataset_name == 'imagenet':
         # TODO: this is not the nicest way to distinguish between train and validaiton
         if hasattr(args, 'train_preprocessing_function'):
