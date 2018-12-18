@@ -19,7 +19,7 @@ from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_pr
 from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
 
 from kernelphysiology.dl.keras.initialisations.initialise import initialse_weights
-from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, get_default_lrs
+from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, get_default_lrs, get_default_decays
 from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule
 
 from kernelphysiology.utils.path_utils import create_dir
@@ -60,7 +60,10 @@ def start_training_generator(args):
         period_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_{epoch:03d}.h5'), save_weights_only=True, period=args.log_period)
         callbacks.append(period_checkpoint_logger)
 
-    args.lr = get_default_lrs(optimiser_name=args.optimiser)
+    if args.lr is None:
+        args.lr = get_default_lrs(optimiser_name=args.optimiser)
+    if args.decay is None:
+        args.decay = get_default_decays(optimiser_name=args.optimiser)
     opt = set_optimisation(args)
 
     logging.info('Optimiser %s: %s' % (args.optimiser, opt.get_config()))

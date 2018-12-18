@@ -7,6 +7,19 @@ import keras
 import numpy as np
 
 
+def get_default_decays(optimiser_name):
+    # TODO: add more optimisers and parametrise from argument line
+    if optimiser_name == 'adam':
+        decay = 0
+    elif optimiser_name == 'sgd':
+        decay = 0
+    elif optimiser_name == 'rmsprop':
+        decay = 0
+    elif optimiser_name == 'adagrad':
+        decay = 0
+    return decay
+
+
 def get_default_lrs(optimiser_name):
     # TODO: add more optimisers and parametrise from argument line
     if optimiser_name == 'adam':
@@ -23,37 +36,22 @@ def get_default_lrs(optimiser_name):
 def set_optimisation(args):
     # TODO: add more optimisers and parametrise from argument line
     lr = args.lr
+    decay = args.decay
     if args.optimiser.lower() == 'adam':
-        if args.decay is None:
-            decay = 0
-        else:
-            decay = args.decay
         beta_1 = 0.9
         beta_2 = 0.999
         epsilon = None
         amsgrad = False
         opt = keras.optimizers.Adam(lr=lr, decay=decay, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon, amsgrad=amsgrad)
     elif args.optimiser.lower() == 'sgd':
-        if args.decay is None:
-            decay = 0
-        else:
-            decay = args.decay
         momentum = 0.9
         nesterov = False
         opt = keras.optimizers.SGD(lr=lr, decay=decay, momentum=momentum, nesterov=nesterov)
     elif args.optimiser.lower() == 'rmsprop':
-        if args.decay is None:
-            decay = 0
-        else:
-            decay = args.decay
         rho = 0.9
         epsilon = 1.0
         opt = keras.optimizers.RMSprop(lr=lr, decay=decay, rho=rho, epsilon=epsilon)
     elif args.optimiser.lower() == 'adagrad':
-        if args.decay is None:
-            decay = 0
-        else:
-            decay = args.decay
         opt = keras.optimizers.Adagrad(lr=lr, epsilon=None, decay=decay)
     return opt
 
