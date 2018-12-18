@@ -8,11 +8,27 @@ import math
 import keras
 import cv2
 from keras import backend as K
+from functools import partial
 from PIL import Image as pil_image
 
 from keras.preprocessing.image import ImageDataGenerator
 
 from kernelphysiology.utils.imutils import adjust_contrast
+
+
+def get_top_k_accuracy(k):
+    top_k_acc = partial(keras.metrics.top_k_categorical_accuracy, k=k)
+    top_k_acc.__name__ = 'top_%d_acc' % k
+    return top_k_acc
+
+
+def get_input_shape(target_size):
+    # check the input shape
+    if K.image_data_format() == 'channels_last':
+        input_shape = (*target_size, 3)
+    elif K.image_data_format() == 'channels_first':
+        input_shape = (3, *target_size)
+    return input_shape
 
 
 def get_conv2ds(model, topn=math.inf):

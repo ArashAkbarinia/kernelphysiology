@@ -16,7 +16,7 @@ from keras.utils import multi_gpu_model
 from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler
 
 from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_prominent_prepares
-from kernelphysiology.dl.keras.prominent_utils import get_top_k_accuracy
+from kernelphysiology.dl.keras.utils import get_top_k_accuracy
 
 from kernelphysiology.dl.keras.initialisations.initialise import initialse_weights
 from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, get_default_lrs, get_default_decays

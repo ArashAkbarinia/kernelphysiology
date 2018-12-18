@@ -15,8 +15,8 @@ import keras
 from keras.utils import multi_gpu_model
 
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
-from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function, get_top_k_accuracy
-from kernelphysiology.dl.keras.prominent_utils import which_network, which_dataset
+from kernelphysiology.dl.keras.utils import get_top_k_accuracy
+from kernelphysiology.dl.keras.models.utils import which_network, which_dataset, get_preprocessing_function
 from kernelphysiology.utils.imutils import uniform_noise, gaussian_blur, s_p_noise
 from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
 
