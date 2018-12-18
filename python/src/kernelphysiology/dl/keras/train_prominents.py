@@ -38,6 +38,7 @@ def start_training_generator(args):
     logging.basicConfig(filename=os.path.join(args.log_dir, 'experiment_info.log'),
                         filemode='w',
                         format='%(levelname)s: %(message)s', level=logging.INFO)
+    # TODO: better logging
     # dumping the entire argument list
     logging.info('%s' % args)
     logging.info('Preprocessing %s' % args.preprocessing)
@@ -48,6 +49,7 @@ def start_training_generator(args):
     logging.info('Height shift range augmentation %f' % args.height_shift_range)
     logging.info('Zoom range augmentation %f' % args.zoom_range)
 
+    # loggers
     best_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_best.h5'), monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True)
     last_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_last.h5'), verbose=1, save_weights_only=True, save_best_only=False)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
@@ -60,6 +62,7 @@ def start_training_generator(args):
         period_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_{epoch:03d}.h5'), save_weights_only=True, period=args.log_period)
         callbacks.append(period_checkpoint_logger)
 
+    # optimisation
     if args.lr is None:
         args.lr = get_default_lrs(optimiser_name=args.optimiser)
     if args.decay is None:
@@ -74,6 +77,7 @@ def start_training_generator(args):
     if args.lr_schedule is not None:
         callbacks.append(LearningRateScheduler(lr_schedule, args.lr))
 
+    # metrics
     top_k_acc = get_top_k_accuracy(args.top_k)
     lr_metric = lr_metric_call_back(opt)
     metrics = ['accuracy', top_k_acc, lr_metric]
