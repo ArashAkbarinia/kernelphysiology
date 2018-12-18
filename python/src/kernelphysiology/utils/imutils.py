@@ -1,4 +1,11 @@
+'''
+Utility functoins for image processing.
+'''
+
+
+from skimage.util import random_noise
 from skimage.color import rgb2gray
+
 import numpy as np
 
 import cv2
@@ -78,28 +85,27 @@ def adjust_illuminant(image, illuminant):
     return image
 
 
-# FIXME: uniform noise and s_p noise should be identical with respect to percentage
-def uniform_noise(image, width, rng=np.random.RandomState(seed=1)):
-    '''
-    Convert to grayscale. Adjust contrast. Apply uniform noise.
-    parameters:
-    - image: a numpy.ndarray 
-    - width: a scalar indicating width of additive uniform noise
-             -> then noise will be in range [-width, width]
-    - rng: a np.random.RandomState(seed=XYZ) to make it reproducible
-    '''
-    image = im2double(image)
-    for i in range(image.shape[2]):
-        image[:, :, i] = apply_uniform_noise(image[:, :, i], -width, width, rng)
-
-    return image
-
-
-def s_p_noise(image, amount, s_vs_p=0.5):
+def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True):
     out = im2double(image)
-    num_salt = np.ceil(amount * image.size * s_vs_p)
-    coords = [np.random.randint(0, i - 1, int(num_salt)) for i in image.shape]
-    out[coords] = 1
+    out = random_noise(out, mode='s&p', seed=seed, clip=clip, salt_vs_pepper=salt_vs_pepper, amount=amount)
+    return out
+
+
+def speckle_noise(image, var, seed=None, clip=True):
+    out = im2double(image)
+    out = random_noise(out, mode='speckle', seed=seed, clip=clip, var=var)
+    return out
+
+
+def gaussian_noise(image, var, seed=None, clip=True):
+    out = im2double(image)
+    out = random_noise(out, mode='gaussian', seed=seed, clip=clip, var=var)
+    return out
+
+
+def poisson_noise(image, seed=None, clip=True):
+    out = im2double(image)
+    out = random_noise(out, mode='poisson', seed=seed, clip=clip)
     return out
 
 
@@ -117,56 +123,3 @@ def local_std(image, window_size=(5, 5)):
     avg_image = cv2.filter2D(image, -1, kernel)
     std_image =  cv2.filter2D((image - avg_image) ** 2, -1, kernel) ** 0.5
     return (std_image, avg_image)
-
-
-def apply_uniform_noise(image, low, high, rng=None):
-    """Apply uniform noise to an image, clip outside values to 0 and 1.
-
-    parameters:
-    - image: a numpy.ndarray 
-    - low: lower bound of noise within [low, high)
-    - high: upper bound of noise within [low, high)
-    - rng: a np.random.RandomState(seed=XYZ) to make it reproducible
-    """
-
-    nrow = image.shape[0]
-    ncol = image.shape[1]
-
-    image = image + get_uniform_noise(low, high, nrow, ncol, rng)
-
-    #clip values
-    image = np.where(image < 0, 0, image)
-    image = np.where(image > 1, 1, image)
-
-    assert is_in_bounds(image, 0, 1), "values <0 or >1 occurred"
-
-    return image
-
-
-def get_uniform_noise(low, high, nrow, ncol, rng=None):
-    """Return uniform noise within [low, high) of size (nrow, ncol).
-
-    parameters:
-    - low: lower bound of noise within [low, high)
-    - high: upper bound of noise within [low, high)
-    - nrow: number of rows of desired noise
-    - ncol: number of columns of desired noise
-    - rng: a np.random.RandomState(seed=XYZ) to make it reproducible
-    """
-
-    if rng is None:
-        return np.random.uniform(low=low, high=high, size=(nrow, ncol))
-    else:
-        return rng.uniform(low=low, high=high, size=(nrow, ncol))
-
-
-def is_in_bounds(mat, low, high):
-    """Return wether all values in 'mat' fall between low and high.
-
-    parameters:
-    - mat: a numpy.ndarray 
-    - low: lower bound (inclusive)
-    - high: upper bound (inclusive)
-    """
-
-    return np.all(np.logical_and(mat >= 0, mat <= 1))

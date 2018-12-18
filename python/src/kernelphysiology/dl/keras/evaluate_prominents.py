@@ -17,12 +17,34 @@ from keras.utils import multi_gpu_model
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser, which_dataset
 from kernelphysiology.dl.keras.utils import get_top_k_accuracy
 from kernelphysiology.dl.keras.models.utils import which_network, get_preprocessing_function
-from kernelphysiology.utils.imutils import uniform_noise, gaussian_blur, s_p_noise
+from kernelphysiology.utils.imutils import gaussian_blur, gaussian_noise
+from kernelphysiology.utils.imutils import s_p_noise, speckle_noise, poisson_noise
 from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
 
 
-def uniform_noise_preprocessing(img, width, preprocessing_function=None):
-    img = uniform_noise(img, width, 1, np.random.RandomState(seed=1)) * 255
+def speckle_noise_preprocessing(img, var, preprocessing_function=None):
+    img = speckle_noise(img, var) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
+def s_p_noise_preprocessing(img, amount, preprocessing_function=None):
+    img = s_p_noise(img, amount) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
+def poisson_noise_preprocessing(img, _, preprocessing_function=None):
+    img = poisson_noise(img) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
+def gaussian_noise_preprocessing(img, var, preprocessing_function=None):
+    img = gaussian_noise(img, var) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -39,13 +61,6 @@ def colour_constancy_preprocessing(img, illuminant, preprocessing_function=None)
 
 def gamma_preprocessing(img, amount, preprocessing_function=None):
     img = adjust_gamma(img, amount) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def s_p_preprocessing(img, amount, preprocessing_function=None):
-    img = s_p_noise(img, amount) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -86,11 +101,19 @@ if __name__ == "__main__":
     elif args.s_p_noise is not None:
         image_manipulation_type = 'salt and pepper'
         image_manipulation_values = np.array(args.s_p_noise)
-        image_manipulation_function = s_p_preprocessing
-    elif args.uniform_noise is not None:
-        image_manipulation_type = 'uniform noise'
-        image_manipulation_values = np.array(args.uniform_noise)
-        image_manipulation_function = uniform_noise_preprocessing
+        image_manipulation_function = s_p_noise_preprocessing
+    elif args.speckle_noise is not None:
+        image_manipulation_type = 'speckle noise'
+        image_manipulation_values = np.array(args.speckle_noise)
+        image_manipulation_function = speckle_noise_preprocessing
+    elif args.gaussian_noise is not None:
+        image_manipulation_type = 'Gaussian noise'
+        image_manipulation_values = np.array(args.gaussian_noise)
+        image_manipulation_function = gaussian_noise_preprocessing
+    elif args.poisson_noise:
+        image_manipulation_type = 'Poisson noise'
+        image_manipulation_values = 0
+        image_manipulation_function = poisson_noise_preprocessing
     elif args.gammas is not None:
         image_manipulation_type = 'gamma'
         image_manipulation_values = np.array(args.gammas)

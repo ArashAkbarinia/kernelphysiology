@@ -192,7 +192,9 @@ def test_arg_parser(argvs):
     image_degradation_group.add_argument('--contrasts', nargs='+', type=float, default=None, help='List of contrasts to be evaluated (default: None)')
     image_degradation_group.add_argument('--gaussian_sigma', nargs='+', type=float, default=None, help='List of Gaussian sigmas to be evaluated (default: None)')
     image_degradation_group.add_argument('--s_p_noise', nargs='+', type=float, default=None, help='List of salt and pepper noise to be evaluated (default: None)')
-    image_degradation_group.add_argument('--uniform_noise', nargs='+', type=float, default=None, help='List of uniform noise to be evaluated (default: None)')
+    image_degradation_group.add_argument('--speckle_noise', nargs='+', type=float, default=None, help='List of speckle noise to be evaluated (default: None)')
+    image_degradation_group.add_argument('--gaussian_noise', nargs='+', type=float, default=None, help='List of Gaussian noise to be evaluated (default: None)')
+    image_degradation_group.add_argument('--poisson_noise', action='store_true', default=False, help='Poisson noise to be evaluated (default: False)')
     image_degradation_group.add_argument('--gammas', nargs='+', type=float, default=None, help='List of gammas to be evaluated (default: None)')
     image_degradation_group.add_argument('--illuminants', nargs='+', type=float, default=None, help='List of illuminations to be evaluated (default: None)')
 
