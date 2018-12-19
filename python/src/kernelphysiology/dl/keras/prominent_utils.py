@@ -18,7 +18,7 @@ from kernelphysiology.dl.keras.stl import stl_train
 from kernelphysiology.dl.keras.imagenet import imagenet_train
 
 from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant
-from kernelphysiology.utils.imutils import s_p_noise
+from kernelphysiology.utils.imutils import s_p_noise, gaussian_noise
 from kernelphysiology.utils.path_utils import create_dir
 
 from kernelphysiology.dl.keras.models.utils import which_architecture, which_network
@@ -29,6 +29,7 @@ from kernelphysiology.dl.keras.utils import get_input_shape
 
 def augmented_preprocessing(img, illuminant_range=None, contrast_range=None,
                             gaussian_sigma_range=None, salt_pepper_range=None,
+                            gaussian_noise_range=None,
                             preprocessing_function=None):
     # FIXME: make the augmentations smarter: e.g. half normal, half crazy illumiant
     if gaussian_sigma_range is not None:
@@ -40,6 +41,8 @@ def augmented_preprocessing(img, illuminant_range=None, contrast_range=None,
         img = adjust_contrast(img, np.random.uniform(*contrast_range)) * 255
     if salt_pepper_range is not None:
         img = s_p_noise(img, np.random.uniform(*salt_pepper_range)) * 255
+    if gaussian_noise_range is not None:
+        img = gaussian_noise(img, np.random.uniform(*gaussian_noise_range)) * 255
     if preprocessing_function is not None:
         img = preprocessing_function(img)
     return img
@@ -105,12 +108,19 @@ def train_prominent_prepares(args):
         gaussian_sigma_range = None
     if args.s_p_amount is not None:
         salt_pepper_range = np.array([0, args.s_p_amount])
+    else:
+        salt_pepper_range = None
+    if args.gaussian_amount is not None:
+        gaussian_noise_range = np.array([0, args.gaussian_amount])
+    else:
+        gaussian_noise_range = None
 
     # creating the augmentation lambda
     current_augmentation_preprocessing = lambda img: augmented_preprocessing(img,
                                                                              illuminant_range=illuminant_range, contrast_range=contrast_range,
                                                                              gaussian_sigma_range=gaussian_sigma_range,
                                                                              salt_pepper_range=salt_pepper_range,
+                                                                             gaussian_noise_range=gaussian_noise_range,
                                                                              preprocessing_function=get_preprocessing_function(args.preprocessing))
     args.train_preprocessing_function = current_augmentation_preprocessing
 
@@ -253,6 +263,7 @@ def train_arg_parser(argvs):
     parser.add_argument('--local_illuminant_variation', type=float, default=0, help='Value to deviate local illumination augmentation (default: 0)')
     parser.add_argument('--gaussian_sigma', type=float, default=None, help='Value to perform Gaussian blurring agumentation (default: None)')
     parser.add_argument('--s_p_amount', type=float, default=None, help='Value to perform salt&pepper agumentation (default: None)')
+    parser.add_argument('--gaussian_amount', type=float, default=None, help='Value to perform Gaussian noise agumentation (default: None)')
 
     return check_args(parser, argvs)
 
