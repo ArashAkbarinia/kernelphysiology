@@ -9,6 +9,7 @@ import time
 import datetime
 import sys
 import logging
+from functools import partial
 
 import tensorflow as tf
 from keras import backend as K
@@ -54,7 +55,7 @@ def start_training_generator(args):
     last_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_last.h5'), verbose=1, save_weights_only=True, save_best_only=False)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
     # TODO: put a proper plateau as of now I guess is never called
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_delta=0.01, min_lr=1e-10)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_delta=0.001, min_lr=0.5e-6, cooldown=0)
     logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_delta=%f, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_delta, reduce_lr.min_lr))
     callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
 
@@ -72,10 +73,12 @@ def start_training_generator(args):
     logging.info('Optimiser %s: %s' % (args.optimiser, opt.get_config()))
 
     if args.exp_decay is not None:
-        callbacks.append(LearningRateScheduler(exp_decay, args.lr, args.exp_decay))
+        exp_decay_lambda = partial(exp_decay, lr=args.lr, exp_decay=args.exp_decay)
+        callbacks.append(LearningRateScheduler(exp_decay_lambda))
         logging.info('Exponential decay=%f' % (args.exp_decay))
     if args.lr_schedule is not None:
-        callbacks.append(LearningRateScheduler(lr_schedule, args.lr))
+        lr_schedule_lambda = partial(lr_schedule, lr=args.lr)
+        callbacks.append(LearningRateScheduler(lr_schedule_lambda))
 
     # metrics
     top_k_acc = get_top_k_accuracy(args.top_k)
