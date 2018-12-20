@@ -14,6 +14,8 @@ import warnings
 import socket
 import math
 
+import commons
+
 from kernelphysiology.dl.keras.cifar import cifar_train
 from kernelphysiology.dl.keras.stl import stl_train
 from kernelphysiology.dl.keras.imagenet import imagenet_train
@@ -148,23 +150,22 @@ def train_prominent_prepares(args):
 
 def which_dataset(args, dataset_name):
     if dataset_name == 'cifar10':
-        if hasattr(args, 'train_preprocessing_function'):
+        if args.script_type == 'training':
             args = cifar_train.prepare_cifar10_generators(args)
         else:
             args = cifar_train.cifar10_validatoin_generator(args)
     elif dataset_name == 'cifar100':
-        if hasattr(args, 'train_preprocessing_function'):
+        if args.script_type == 'training':
             args = cifar_train.prepare_cifar100_generators(args)
         else:
             args = cifar_train.cifar100_validatoin_generator(args)
     elif dataset_name == 'stl10':
-        if hasattr(args, 'train_preprocessing_function'):
+        if args.script_type == 'training':
             args = stl_train.prepare_stl10_generators(args)
         else:
             args = stl_train.stl10_validation_generator(args)
     elif dataset_name == 'imagenet':
-        # TODO: this is not the nicest way to distinguish between train and validaiton
-        if hasattr(args, 'train_preprocessing_function'):
+        if args.script_type == 'training':
             args = imagenet_train.prepare_imagenet(args)
         else:
             args = imagenet_train.validation_generator(args)
@@ -178,11 +179,11 @@ def common_arg_parser(description):
 
     parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
 
-    # TODO: this is just now for imagenet
-    parser.add_argument('--train_dir', type=str, default=None, help='The path to the train directory (default: None)')
-    parser.add_argument('--validation_dir', type=str, default=None, help='The path to the validation directory (default: None)')
+    data_dir_group = parser.add_argument_group('data path')
+    data_dir_group.add_argument('--data_dir', type=str, default=None, help='The path to the data directory (default: None)')
+    data_dir_group.add_argument('--train_dir', type=str, default=None, help='The path to the train directory (default: None)')
+    data_dir_group.add_argument('--validation_dir', type=str, default=None, help='The path to the validation directory (default: None)')
 
-    # TODO: make the argument list nicer according to test or train ...
     parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
     parser.add_argument('--workers', type=int, default=1, help='Number of workers for image generator (default: 1)')
 
@@ -324,8 +325,9 @@ def check_args(parser, argvs, script_type):
     else:
         args.use_multiprocessing = False
 
+    # handling the paths
     if args.dataset == 'imagenet':
-        # TODO: just for the ease of working in my machiens
+        # NOTE: just for the ease of working in my machiens
         if args.train_dir is None:
             args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
         if args.validation_dir is None:
@@ -333,5 +335,16 @@ def check_args(parser, argvs, script_type):
                 args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
             else:
                 args.validation_dir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2012/raw-data/validation/'
+    elif args.dataset == 'cifar10':
+        if args.data_dir is None:
+            args.data_dir = os.path.join(commons.python_root, 'data/datasets/cifar/cifar10/')
+    elif args.dataset == 'cifar100':
+        if args.data_dir is None:
+            args.data_dir = os.path.join(commons.python_root, 'data/datasets/cifar/cifar100/')
+    elif args.dataset == 'stl10':
+        if args.data_dir is None:
+            args.data_dir = os.path.join(commons.python_root, 'data/datasets/stl/stl10/')
+    else:
+        sys.exit('Unsupported dataset %s' % (args.dataset))
 
     return args
