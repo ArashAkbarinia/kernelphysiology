@@ -3,7 +3,7 @@ Train a simple DNN on STL 10.
 '''
 
 
-from kernelphysiology.dl.keras.stl import stl10
+from kernelphysiology.dl.keras.datasets.stl import stl10
 
 from kernelphysiology.dl.keras.utils import get_generators, get_validatoin_generator
 

@@ -3,8 +3,8 @@ Train a simple DNN on CIFAR 10 or 100.
 '''
 
 
-from kernelphysiology.dl.keras.cifar import cifar10
-from kernelphysiology.dl.keras.cifar import cifar100
+from kernelphysiology.dl.keras.datasets.cifar import cifar10
+from kernelphysiology.dl.keras.datasets.cifar import cifar100
 
 from kernelphysiology.dl.keras.utils import get_generators, get_validatoin_generator
 

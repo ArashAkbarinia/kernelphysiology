@@ -8,7 +8,7 @@ from __future__ import division
 from __future__ import print_function
 
 
-from kernelphysiology.dl.keras.imagenet import imagenet
+from kernelphysiology.dl.keras.datasets.imagenet import imagenet
 
 
 def prepare_imagenet(args):
