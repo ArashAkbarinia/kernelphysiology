@@ -13,8 +13,8 @@ import numpy as np
 import warnings
 import math
 
-from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant
-from kernelphysiology.utils.imutils import s_p_noise, gaussian_noise
+from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant, adjust_gamma
+from kernelphysiology.utils.imutils import s_p_noise, gaussian_noise, speckle_noise, poisson_noise
 from kernelphysiology.utils.path_utils import create_dir
 
 from kernelphysiology.dl.keras.datasets.utils import get_default_dataset_paths, which_dataset
@@ -27,7 +27,8 @@ from kernelphysiology.dl.keras.utils import get_input_shape
 
 def augmented_preprocessing(img, illuminant_range=None, contrast_range=None,
                             gaussian_sigma_range=None, salt_pepper_range=None,
-                            gaussian_noise_range=None,
+                            gaussian_noise_range=None, poisson_range=False,
+                            speckle_range=None, gamma_range=None,
                             preprocessing_function=None):
     # FIXME: make the augmentations smarter: e.g. half normal, half crazy illumiant
     if gaussian_sigma_range is not None:
@@ -37,8 +38,14 @@ def augmented_preprocessing(img, illuminant_range=None, contrast_range=None,
         img = adjust_illuminant(img, illuminant) * 255
     if contrast_range is not None:
         img = adjust_contrast(img, np.random.uniform(*contrast_range)) * 255
+    if gamma_range is not None:
+        img = adjust_gamma(img, np.random.uniform(*gamma_range)) * 255
     if salt_pepper_range is not None:
         img = s_p_noise(img, np.random.uniform(*salt_pepper_range)) * 255
+    if poisson_range:
+        img = poisson_noise(img) * 255
+    if speckle_range is not None:
+        img = speckle_noise(img, np.random.uniform(*speckle_range)) * 255
     if gaussian_noise_range is not None:
         img = gaussian_noise(img, np.random.uniform(*gaussian_noise_range)) * 255
     if preprocessing_function is not None:
@@ -95,9 +102,9 @@ def train_prominent_prepares(args):
     else:
         illuminant_range = None
     if args.contrast_range is not None:
-        contrast_range = np.array([args.contrast_range, 100]) / 100
+        contrast_range = np.array([args.contrast_range, 1])
         # FIXME: add local variations
-#        local_contrast_variation = args.local_contrast_variation / 100
+#        local_contrast_variation = args.local_contrast_variation
     else:
         contrast_range = None
     if args.gaussian_sigma is not None:
@@ -112,13 +119,25 @@ def train_prominent_prepares(args):
         gaussian_noise_range = np.array([0, args.gaussian_amount])
     else:
         gaussian_noise_range = None
+    if args.speckle_amount is not None:
+        speckle_range = np.array([0, args.speckle_amount])
+    else:
+        speckle_range = None
+    if args.gamma_range is not None:
+        gamma_range = np.array(args.gamma_range[0:2])
+    else:
+        gamma_range = None
 
     # creating the augmentation lambda
     current_augmentation_preprocessing = lambda img: augmented_preprocessing(img,
-                                                                             illuminant_range=illuminant_range, contrast_range=contrast_range,
+                                                                             illuminant_range=illuminant_range,
+                                                                             contrast_range=contrast_range,
                                                                              gaussian_sigma_range=gaussian_sigma_range,
                                                                              salt_pepper_range=salt_pepper_range,
                                                                              gaussian_noise_range=gaussian_noise_range,
+                                                                             poisson_range=args.poisson_noise,
+                                                                             speckle_range=speckle_range,
+                                                                             gamma_range=gamma_range,
                                                                              preprocessing_function=get_preprocessing_function(args.preprocessing))
     args.train_preprocessing_function = current_augmentation_preprocessing
 
@@ -243,6 +262,9 @@ def train_arg_parser(argvs):
     our_augmentation_group.add_argument('--gaussian_sigma', type=float, default=None, help='Gaussian blurring upper limit (default: None)')
     our_augmentation_group.add_argument('--s_p_amount', type=float, default=None, help='Salt&pepper upper limit (default: None)')
     our_augmentation_group.add_argument('--gaussian_amount', type=float, default=None, help='Gaussian noise upper limit (default: None)')
+    our_augmentation_group.add_argument('--speckle_amount', type=float, default=None, help='Speckle noise upper limit (default: None)')
+    our_augmentation_group.add_argument('--gamma_range', nargs='+', type=float, default=None, help='Gamma lower and upper limits (default: None)')
+    our_augmentation_group.add_argument('--poisson_noise', action='store_true', default=False, help='Poisson noise (default: False)')
 
     return check_args(parser, argvs, 'training')
 
