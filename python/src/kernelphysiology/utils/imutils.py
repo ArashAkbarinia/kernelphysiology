@@ -42,11 +42,10 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0):
 
     min_contrast = contrast_level - pixel_variatoin
     max_contrast = contrast_level + pixel_variatoin
-    
-    pixel_variatoin = np.random.uniform(low=min_contrast, high=max_contrast, size=image.shape)
-    contrast_level = np.ones(image.shape) * pixel_variatoin
 
-    return (1 - contrast_level) / 2.0 + np.multiply(image, contrast_level)
+    contrast_level_mat = np.random.uniform(low=min_contrast, high=max_contrast, size=image.shape)
+
+    return (1 - contrast_level_mat) / 2.0 + np.multiply(image, contrast_level_mat)
 
 
 def adjust_gamma(image, gamma):
@@ -77,10 +76,14 @@ def grayscale_contrast(image, contrast_level):
     return adjust_contrast(rgb2gray(image), contrast_level)
 
 
-def adjust_illuminant(image, illuminant):
+def adjust_illuminant(image, illuminant, pixel_variatoin=0):
     image = im2double(image)
+
     for i in range(image.shape[2]):
-        image[:, :, i] = image[:, :, i] * illuminant[i]
+        min_illuminant = illuminant[i] - pixel_variatoin
+        max_illuminant = illuminant[i] + pixel_variatoin
+        illuminant_i = np.random.uniform(low=min_illuminant, high=max_illuminant, size=image[:,:,i].shape)
+        image[:, :, i] = image[:, :, i] * illuminant_i
 
     return image
 
