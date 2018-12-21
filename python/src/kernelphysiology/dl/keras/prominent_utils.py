@@ -25,7 +25,8 @@ from kernelphysiology.dl.keras.models.utils import get_preprocessing_function
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
-def augmented_preprocessing(img, illuminant_range=None, contrast_range=None,
+def augmented_preprocessing(img, illuminant_range=None, illuminant_variation=0,
+                            contrast_range=None, contrast_variation=0,
                             gaussian_sigma_range=None, salt_pepper_range=None,
                             gaussian_noise_range=None, poisson_range=False,
                             speckle_range=None, gamma_range=None,
@@ -35,9 +36,9 @@ def augmented_preprocessing(img, illuminant_range=None, contrast_range=None,
         img = gaussian_blur(img, np.random.uniform(*gaussian_sigma_range)) * 255
     if illuminant_range is not None:
         illuminant = np.random.uniform(*illuminant_range, 3)
-        img = adjust_illuminant(img, illuminant) * 255
+        img = adjust_illuminant(img, illuminant, illuminant_variation) * 255
     if contrast_range is not None:
-        img = adjust_contrast(img, np.random.uniform(*contrast_range)) * 255
+        img = adjust_contrast(img, np.random.uniform(*contrast_range), contrast_variation) * 255
     if gamma_range is not None:
         img = adjust_gamma(img, np.random.uniform(*gamma_range)) * 255
     if salt_pepper_range is not None:
@@ -103,8 +104,6 @@ def train_prominent_prepares(args):
         illuminant_range = None
     if args.contrast_range is not None:
         contrast_range = np.array([args.contrast_range, 1])
-        # FIXME: add local variations
-#        local_contrast_variation = args.local_contrast_variation
     else:
         contrast_range = None
     if args.gaussian_sigma is not None:
@@ -130,8 +129,8 @@ def train_prominent_prepares(args):
 
     # creating the augmentation lambda
     current_augmentation_preprocessing = lambda img: augmented_preprocessing(img,
-                                                                             illuminant_range=illuminant_range,
-                                                                             contrast_range=contrast_range,
+                                                                             illuminant_range=illuminant_range, illuminant_variation=args.local_illuminant_variation,
+                                                                             contrast_range=contrast_range, contrast_variation=args.local_contrast_variation,
                                                                              gaussian_sigma_range=gaussian_sigma_range,
                                                                              salt_pepper_range=salt_pepper_range,
                                                                              gaussian_noise_range=gaussian_noise_range,
