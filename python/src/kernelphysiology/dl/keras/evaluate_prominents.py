@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     if args.contrasts is not None:
         image_manipulation_type = 'contrast'
-        image_manipulation_values = np.array(args.contrasts) / 100
+        image_manipulation_values = np.array(args.contrasts)
         image_manipulation_function = contrast_preprocessing
     elif args.gaussian_sigma is not None:
         image_manipulation_type = 'Gaussian'
