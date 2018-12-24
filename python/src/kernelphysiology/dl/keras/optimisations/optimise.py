@@ -77,7 +77,7 @@ def lr_schedule(epoch, lr):
         # FXIME: better handling ot this
         new_lr = lr
         return new_lr
-    new_lr = 1e-3
+    new_lr = lr
     if epoch > 180:
         new_lr *= 0.5e-3
     elif epoch > 160:
