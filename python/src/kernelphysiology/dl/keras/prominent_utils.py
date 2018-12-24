@@ -25,30 +25,37 @@ from kernelphysiology.dl.keras.models.utils import get_preprocessing_function
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
-def augmented_preprocessing(img, illuminant_range=None, illuminant_variation=0,
+def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
+                            illuminant_range=None, illuminant_variation=0,
                             contrast_range=None, contrast_variation=0,
                             gaussian_sigma_range=None, salt_pepper_range=None,
                             gaussian_noise_range=None, poisson_range=False,
                             speckle_range=None, gamma_range=None,
                             preprocessing_function=None):
-    # FIXME: make the augmentations smarter: e.g. half normal, half crazy illumiant
-    if gaussian_sigma_range is not None:
-        img = gaussian_blur(img, np.random.uniform(*gaussian_sigma_range)) * 255
-    if illuminant_range is not None:
-        illuminant = np.random.uniform(*illuminant_range, 3)
-        img = adjust_illuminant(img, illuminant, illuminant_variation) * 255
-    if contrast_range is not None:
-        img = adjust_contrast(img, np.random.uniform(*contrast_range), contrast_variation) * 255
-    if gamma_range is not None:
-        img = adjust_gamma(img, np.random.uniform(*gamma_range)) * 255
-    if salt_pepper_range is not None:
-        img = s_p_noise(img, np.random.uniform(*salt_pepper_range)) * 255
-    if poisson_range:
-        img = poisson_noise(img) * 255
-    if speckle_range is not None:
-        img = speckle_noise(img, np.random.uniform(*speckle_range)) * 255
-    if gaussian_noise_range is not None:
-        img = gaussian_noise(img, np.random.uniform(*gaussian_noise_range)) * 255
+    if num_augmentation is None or num_augmentation == 0:
+        order_augmentatoin = ['blur', 'illuminant', 'contrast', 'gamma', 's_p', 'poisson', 'speckle', 'gaussian']
+    else:
+        rand_inds = [np.random.randint(0, augmentation_types.shape[0], size=num_augmentation)]
+        order_augmentatoin = augmentation_types[rand_inds]
+
+    for aug_type in order_augmentatoin:
+        if aug_type == 'blur' and gaussian_sigma_range is not None:
+            img = gaussian_blur(img, np.random.uniform(*gaussian_sigma_range)) * 255
+        elif aug_type == 'illuminant' and illuminant_range is not None:
+            illuminant = np.random.uniform(*illuminant_range, 3)
+            img = adjust_illuminant(img, illuminant, illuminant_variation) * 255
+        elif aug_type == 'contrast' and contrast_range is not None:
+            img = adjust_contrast(img, np.random.uniform(*contrast_range), contrast_variation) * 255
+        elif aug_type == 'gamma' and gamma_range is not None:
+            img = adjust_gamma(img, np.random.uniform(*gamma_range)) * 255
+        elif aug_type == 's_p' and salt_pepper_range is not None:
+            img = s_p_noise(img, np.random.uniform(*salt_pepper_range)) * 255
+        elif aug_type == 'poisson' and poisson_range:
+            img = poisson_noise(img) * 255
+        elif aug_type == 'speckle' and speckle_range is not None:
+            img = speckle_noise(img, np.random.uniform(*speckle_range)) * 255
+        elif aug_type == 'gaussian' and gaussian_noise_range is not None:
+            img = gaussian_noise(img, np.random.uniform(*gaussian_noise_range)) * 255
     if preprocessing_function is not None:
         img = preprocessing_function(img)
     return img
@@ -89,6 +96,64 @@ def test_prominent_prepares(args):
     return args
 
 
+def prepare_train_augmentation(args):
+    if args.num_augmentation is not None:
+        augmentation_types = []
+        if args.illuminant_range is not None:
+            illuminant_range = np.array([args.illuminant_range, 1])
+            augmentation_types.append('iluuminant')
+        else:
+            illuminant_range = None
+        if args.contrast_range is not None:
+            contrast_range = np.array([args.contrast_range, 1])
+            augmentation_types.append('contrast')
+        else:
+            contrast_range = None
+        if args.gaussian_sigma is not None:
+            gaussian_sigma_range = np.array([0, args.gaussian_sigma])
+            augmentation_types.append('blur')
+        else:
+            gaussian_sigma_range = None
+        if args.s_p_amount is not None:
+            salt_pepper_range = np.array([0, args.s_p_amount])
+            augmentation_types.append('s_p')
+        else:
+            salt_pepper_range = None
+        if args.gaussian_amount is not None:
+            gaussian_noise_range = np.array([0, args.gaussian_amount])
+            augmentation_types.append('gaussian')
+        else:
+            gaussian_noise_range = None
+        if args.speckle_amount is not None:
+            speckle_range = np.array([0, args.speckle_amount])
+            augmentation_types.append('speckle')
+        else:
+            speckle_range = None
+        if args.gamma_range is not None:
+            gamma_range = np.array(args.gamma_range[0:2])
+            augmentation_types.append('gamma')
+        else:
+            gamma_range = None
+        augmentation_types = np.array(augmentation_types)
+
+        # creating the augmentation lambda
+        current_augmentation_preprocessing = lambda img: augmented_preprocessing(img, augmentation_types=augmentation_types, num_augmentation=args.num_augmentation,
+                                                                                 illuminant_range=illuminant_range, illuminant_variation=args.local_illuminant_variation,
+                                                                                 contrast_range=contrast_range, contrast_variation=args.local_contrast_variation,
+                                                                                 gaussian_sigma_range=gaussian_sigma_range,
+                                                                                 salt_pepper_range=salt_pepper_range,
+                                                                                 gaussian_noise_range=gaussian_noise_range,
+                                                                                 poisson_range=args.poisson_noise,
+                                                                                 speckle_range=speckle_range,
+                                                                                 gamma_range=gamma_range,
+                                                                                 preprocessing_function=get_preprocessing_function(args.preprocessing))
+    else:
+        current_augmentation_preprocessing = get_preprocessing_function(args.preprocessing)
+
+    args.train_preprocessing_function = current_augmentation_preprocessing
+    return args
+
+
 def train_prominent_prepares(args):
     dataset_name = args.dataset.lower()
     network_name = args.network_name.lower()
@@ -98,47 +163,7 @@ def train_prominent_prepares(args):
         args.preprocessing = network_name
 
     # which augmentation we're handling
-    if args.illuminant_range is not None:
-        illuminant_range = np.array([args.illuminant_range, 1])
-    else:
-        illuminant_range = None
-    if args.contrast_range is not None:
-        contrast_range = np.array([args.contrast_range, 1])
-    else:
-        contrast_range = None
-    if args.gaussian_sigma is not None:
-        gaussian_sigma_range = np.array([0, args.gaussian_sigma])
-    else:
-        gaussian_sigma_range = None
-    if args.s_p_amount is not None:
-        salt_pepper_range = np.array([0, args.s_p_amount])
-    else:
-        salt_pepper_range = None
-    if args.gaussian_amount is not None:
-        gaussian_noise_range = np.array([0, args.gaussian_amount])
-    else:
-        gaussian_noise_range = None
-    if args.speckle_amount is not None:
-        speckle_range = np.array([0, args.speckle_amount])
-    else:
-        speckle_range = None
-    if args.gamma_range is not None:
-        gamma_range = np.array(args.gamma_range[0:2])
-    else:
-        gamma_range = None
-
-    # creating the augmentation lambda
-    current_augmentation_preprocessing = lambda img: augmented_preprocessing(img,
-                                                                             illuminant_range=illuminant_range, illuminant_variation=args.local_illuminant_variation,
-                                                                             contrast_range=contrast_range, contrast_variation=args.local_contrast_variation,
-                                                                             gaussian_sigma_range=gaussian_sigma_range,
-                                                                             salt_pepper_range=salt_pepper_range,
-                                                                             gaussian_noise_range=gaussian_noise_range,
-                                                                             poisson_range=args.poisson_noise,
-                                                                             speckle_range=speckle_range,
-                                                                             gamma_range=gamma_range,
-                                                                             preprocessing_function=get_preprocessing_function(args.preprocessing))
-    args.train_preprocessing_function = current_augmentation_preprocessing
+    args = prepare_train_augmentation(args)
 
     # we don't want augmentation for validation set
     args.validation_preprocessing_function = get_preprocessing_function(args.preprocessing)
@@ -254,6 +279,7 @@ def train_arg_parser(argvs):
     keras_augmentation_group.add_argument('--height_shift_range', type=float, default=0, help='Range of height shift (default: 0)')
 
     our_augmentation_group = parser.add_argument_group('our augmentation')
+    our_augmentation_group.add_argument('--num_augmentation', type=int, default=None, help='Number of types at each instance (default: None)')
     our_augmentation_group.add_argument('--contrast_range', type=float, default=None, help='Contrast lower limit (default: None)')
     our_augmentation_group.add_argument('--local_contrast_variation', type=float, default=0, help='Contrast local variation (default: 0)')
     our_augmentation_group.add_argument('--illuminant_range', type=float, default=None, help='Lower illuminant limit (default: None)')
