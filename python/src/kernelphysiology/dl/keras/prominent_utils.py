@@ -25,6 +25,11 @@ from kernelphysiology.dl.keras.models.utils import get_preprocessing_function
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
+def convert_to_uni8(img):
+    img = img *255
+    return img.astype('uint8')
+
+
 def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
                             illuminant_range=None, illuminant_variation=0,
                             contrast_range=None, contrast_variation=0,
@@ -40,22 +45,22 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
 
     for aug_type in order_augmentatoin:
         if aug_type == 'blur' and gaussian_sigma_range is not None:
-            img = gaussian_blur(img, np.random.uniform(*gaussian_sigma_range)) * 255
+            img = convert_to_uni8(gaussian_blur(img, np.random.uniform(*gaussian_sigma_range)))
         elif aug_type == 'illuminant' and illuminant_range is not None:
             illuminant = np.random.uniform(*illuminant_range, 3)
-            img = adjust_illuminant(img, illuminant, illuminant_variation) * 255
+            img = convert_to_uni8(adjust_illuminant(img, illuminant, illuminant_variation))
         elif aug_type == 'contrast' and contrast_range is not None:
-            img = adjust_contrast(img, np.random.uniform(*contrast_range), contrast_variation) * 255
+            img = convert_to_uni8(adjust_contrast(img, np.random.uniform(*contrast_range), contrast_variation))
         elif aug_type == 'gamma' and gamma_range is not None:
-            img = adjust_gamma(img, np.random.uniform(*gamma_range)) * 255
+            img = convert_to_uni8(adjust_gamma(img, np.random.uniform(*gamma_range)))
         elif aug_type == 's_p' and salt_pepper_range is not None:
-            img = s_p_noise(img, np.random.uniform(*salt_pepper_range)) * 255
+            img = convert_to_uni8(s_p_noise(img, np.random.uniform(*salt_pepper_range)))
         elif aug_type == 'poisson' and poisson_range:
-            img = poisson_noise(img) * 255
+            img = convert_to_uni8(poisson_noise(img))
         elif aug_type == 'speckle' and speckle_range is not None:
-            img = speckle_noise(img, np.random.uniform(*speckle_range)) * 255
+            img = convert_to_uni8(speckle_noise(img, np.random.uniform(*speckle_range)))
         elif aug_type == 'gaussian' and gaussian_noise_range is not None:
-            img = gaussian_noise(img, np.random.uniform(*gaussian_noise_range)) * 255
+            img = convert_to_uni8(gaussian_noise(img, np.random.uniform(*gaussian_noise_range)))
     if preprocessing_function is not None:
         img = preprocessing_function(img)
     return img
@@ -213,7 +218,7 @@ def common_arg_parser(description):
 def activation_arg_parser(argvs):
     parser = common_arg_parser('Analysing activation of prominent nets of Keras.')
 
-    parser.add_argument('--contrasts', nargs='+', type=float, default=[100], help='List of contrasts to be evaluated (default: [100])')
+    parser.add_argument('--contrasts', nargs='+', type=float, default=[1], help='List of contrasts to be evaluated (default: [1])')
 
     return check_args(parser, argvs, 'activation')
 
