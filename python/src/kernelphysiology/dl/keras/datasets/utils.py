@@ -45,7 +45,7 @@ def get_default_dataset_paths(args):
         if args.train_dir is None:
             args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
         if args.validation_dir is None:
-            if socket.gethostname() == 'awesome':
+            if socket.gethostname() == 'awesome' or socket.gethostname() == 'nickel':
                 args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
             else:
                 args.validation_dir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2012/raw-data/validation/'
