@@ -80,14 +80,13 @@ def which_network(args, network_name):
 def which_architecture(args):
     # TODO: add other architectures of keras
     network_name = args.network_name
+    if network_name == 'resnet20':
+        # FIXME: make it more generic
+        # FIXME: add initialiser to ass architectures
+        from kernelphysiology.dl.keras.models import resnet
+        model = resnet.resnet_v1(input_shape=args.input_shape, depth=3*6+2, kernel_initializer=args.initialise)
     if network_name == 'resnet50':
-        if args.dataset == 'cifar10':
-            # FIXME: make it more generic
-            # FIXME: add initialiser to ass architectures
-            from kernelphysiology.dl.keras.models import resnet
-            model = resnet.resnet_v1(input_shape=args.input_shape, depth=3*6+2, kernel_initializer=args.initialise)
-        else:
-            model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+        model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'inception_v3':
         model = inception_v3.InceptionV3(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'vgg16':
@@ -105,7 +104,7 @@ def which_architecture(args):
 
 def get_preprocessing_function(preprocessing):
     # switch case of preprocessing functions
-    if preprocessing == 'resnet50':
+    if preprocessing == 'resnet50' or preprocessing == 'resnet20':
         preprocessing_function = kmodels.resnet50.preprocess_input
     elif preprocessing == 'inception_v3':
         preprocessing_function = kmodels.inception_v3.preprocess_input
