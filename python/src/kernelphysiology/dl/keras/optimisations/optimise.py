@@ -101,7 +101,7 @@ def lr_schedule_arash(epoch, lr):
     # Returns
         lr (float32): learning rate
     '''
-    if epoch < 81:
+    if epoch < 41:
         # FXIME: better handling ot this
         new_lr = lr
         return new_lr
