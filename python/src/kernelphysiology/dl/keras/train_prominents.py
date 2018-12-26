@@ -21,7 +21,7 @@ from kernelphysiology.dl.keras.utils import get_top_k_accuracy
 
 from kernelphysiology.dl.keras.initialisations.initialise import initialse_weights
 from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, get_default_lrs, get_default_decays
-from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule
+from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule_resnet, lr_schedule_arash
 
 from kernelphysiology.utils.path_utils import create_dir
 
@@ -77,7 +77,10 @@ def start_training_generator(args):
         callbacks.append(LearningRateScheduler(exp_decay_lambda))
         logging.info('Exponential decay=%f' % (args.exp_decay))
     if args.lr_schedule is not None:
-        lr_schedule_lambda = partial(lr_schedule, lr=args.lr)
+        if args.lr_schedule == 'resnet':
+            lr_schedule_lambda = partial(lr_schedule_resnet, lr=args.lr)
+        elif args.lr_schedule == 'arash':
+            lr_schedule_lambda = partial(lr_schedule_arash, lr=args.lr)
         callbacks.append(LearningRateScheduler(lr_schedule_lambda))
 
     # metrics

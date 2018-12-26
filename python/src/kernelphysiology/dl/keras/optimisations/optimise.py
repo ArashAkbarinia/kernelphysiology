@@ -61,7 +61,7 @@ def exp_decay(epoch, lr, exp_decay):
    return new_lr
 
 
-def lr_schedule(epoch, lr):
+def lr_schedule_resnet(epoch, lr):
     '''Learning Rate Schedule
 
     Learning rate is scheduled to be reduced after 80, 120, 160, 180 epochs.
@@ -85,5 +85,33 @@ def lr_schedule(epoch, lr):
     elif epoch > 120:
         new_lr *= 1e-2
     elif epoch > 80:
+        new_lr *= 1e-1
+    return new_lr
+
+
+def lr_schedule_arash(epoch, lr):
+    '''Learning Rate Schedule
+
+    Learning rate is scheduled to be reduced after 80, 120, 160, 180 epochs.
+    Called automatically every epoch as part of callbacks during training.
+
+    # Arguments
+        epoch (int): The number of epochs
+
+    # Returns
+        lr (float32): learning rate
+    '''
+    if epoch < 81:
+        # FXIME: better handling ot this
+        new_lr = lr
+        return new_lr
+    new_lr = lr
+    if epoch > 160:
+        new_lr *= 0.5e-3
+    elif epoch > 120:
+        new_lr *= 1e-3
+    elif epoch > 80:
+        new_lr *= 1e-2
+    elif epoch > 40:
         new_lr *= 1e-1
     return new_lr
