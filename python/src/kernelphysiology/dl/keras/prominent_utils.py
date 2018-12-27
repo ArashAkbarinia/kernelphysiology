@@ -83,7 +83,10 @@ def test_prominent_prepares(args):
             for line in lines:
                 tokens = line.strip().split(',')
                 networks.append(tokens[0])
-                preprocessings.append(tokens[1])
+                if len(tokens) > 1:
+                    preprocessings.append(tokens[1])
+                else:
+                    preprocessings.append(args.preprocessing)
     else:
         networks = [args.network_name.lower()]
         preprocessings = [args.preprocessing]
