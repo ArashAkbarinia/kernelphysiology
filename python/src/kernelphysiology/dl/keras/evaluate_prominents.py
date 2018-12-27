@@ -154,7 +154,7 @@ if __name__ == "__main__":
                 # the compilation being necessary is a bug of keras
                 args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
                 current_results = args.model.evaluate_generator(generator=args.validation_generator, verbose=1,
-                                                                validation_steps=args.validation_steps,
+                                                                steps=args.validation_steps,
                                                                 workers=args.workers, use_multiprocessing=args.use_multiprocessing)
             else:
                 with tf.device('/cpu:0'):
@@ -162,7 +162,7 @@ if __name__ == "__main__":
                 parallel_model = multi_gpu_model(args.model, gpus=args.gpus)
                 parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
                 current_results = parallel_model.evaluate_generator(generator=args.validation_generator, verbose=1,
-                                                                    validation_steps=args.validation_steps,
+                                                                    steps=args.validation_steps,
                                                                     workers=args.workers, use_multiprocessing=args.use_multiprocessing)
             results_top1[i, j] = current_results[1]
             results_topk[i, j] = current_results[2]
