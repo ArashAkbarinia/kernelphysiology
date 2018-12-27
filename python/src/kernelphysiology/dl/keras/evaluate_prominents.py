@@ -144,6 +144,8 @@ if __name__ == "__main__":
             # reading it after the model, because each might have their own
             # specific size
             args = which_dataset(args, dataset_name)
+            if args.validation_steps is None:
+                args.validation_steps = args.validation_samples / args.batch_size
 
             top_k_acc = get_top_k_accuracy(args.top_k)
             metrics = ['accuracy', top_k_acc]
