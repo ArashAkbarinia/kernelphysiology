@@ -115,3 +115,23 @@ def lr_schedule_arash(epoch, lr):
     elif epoch > 40:
         new_lr *= 1e-1
     return new_lr
+
+
+def lr_schedule_file(epoch, file_path):
+    '''Learning Rate Schedule
+
+    Learning rate is scheduled to be reduced after 80, 120, 160, 180 epochs.
+    Called automatically every epoch as part of callbacks during training.
+
+    # Arguments
+        epoch (int): The number of epochs
+
+    # Returns
+        lr (float32): learning rate
+    '''
+    with open(file_path) as f:
+        lines = f.readlines()
+        for line in lines:
+            tokens = line.strip().split(',')
+            new_lr = float(tokens[0])
+    return new_lr
