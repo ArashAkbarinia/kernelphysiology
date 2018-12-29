@@ -54,8 +54,9 @@ def start_training_generator(args):
     best_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_best.h5'), monitor='val_loss', verbose=1, save_weights_only=True, save_best_only=True)
     last_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_last.h5'), verbose=1, save_weights_only=True, save_best_only=False)
     csv_logger = CSVLogger(os.path.join(args.log_dir, 'log.csv'), append=False, separator=';')
-    # TODO: put a proper plateau as of now I guess is never called
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_delta=0.001, min_lr=0.5e-6, cooldown=0)
+    reduce_lr = ReduceLROnPlateau(monitor=args.plateau_monitor, factor=args.plateau_factor,
+                                  patience=args.plateau_patience, min_delta=args.plateau_min_delta,
+                                  min_lr=args.plateau_min_lr, cooldown=0)
     logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_delta=%f, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_delta, reduce_lr.min_lr))
     callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
 

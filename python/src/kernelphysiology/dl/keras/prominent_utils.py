@@ -276,6 +276,13 @@ def train_arg_parser(argvs):
     optimisation_group.add_argument('--epochs', type=int, default=50, help='Number of epochs (default: 50)')
     optimisation_group.add_argument('--initial_epoch', type=int, default=0, help='The initial epoch number (default: 0)')
 
+    plateau_group = parser.add_argument_group('plateau')
+    plateau_group.add_argument('--plateau_monitor', type=str, default='val_loss', help='The monitor metric (default: val_loss)')
+    plateau_group.add_argument('--plateau_factor', type=float, default=0.1, help='The reduction factor (default: 0.1)')
+    plateau_group.add_argument('--plateau_patience', type=float, default=5, help='The patience (default: 5)')
+    plateau_group.add_argument('--plateau_min_delta', type=float, default=0.001, help='The min_delta (default: 0.001)')
+    plateau_group.add_argument('--plateau_min_lr', type=float, default=0.5e-6, help='The min_lr (default: 0.5e-6)')
+
     logging_group = parser.add_argument_group('logging')
     logging_group.add_argument('--log_period', type=int, default=0, help='The period of logging the epochs weights (default: 0)')
     logging_group.add_argument('--steps_per_epoch', type=int, default=None, help='Number of steps per epochs (default: number of samples divided by the batch size)')
