@@ -264,8 +264,8 @@ def train_arg_parser(argvs):
     initialisation_group.add_argument('--g_meany', type=float, default=0, help='Mean-y of Gaussian (default: 0)')
     initialisation_group.add_argument('--g_theta', type=float, default=0, help='Theta of Gaussian (default: 0)')
     initialisation_group.add_argument('--gg_sigma', type=float, default=1, help='Sigma of Gaussian gradient (default: 1)')
-    initialisation_group.add_argument('--gg_theta', type=float, default=math.pi/2, help='Theta of Gaussian gradient (default: 1)')
-    initialisation_group.add_argument('--gg_seta', type=float, default=1, help='Seta of Gaussian gradient (default: 1)')
+    initialisation_group.add_argument('--gg_theta', type=float, default=math.pi/2, help='Theta of Gaussian gradient (default: pi/2)')
+    initialisation_group.add_argument('--gg_seta', type=float, default=0.5, help='Seta of Gaussian gradient (default: 0.5)')
 
     optimisation_group = parser.add_argument_group('optimisation')
     optimisation_group.add_argument('--optimiser', type=str, default='adam', help='The optimiser to be used (default: adam)')
