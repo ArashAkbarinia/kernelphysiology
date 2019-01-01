@@ -5,6 +5,7 @@ Helper functions to initialise weights.
 
 from kernelphysiology.dl.keras.initialisations.gaussian import initialise_with_gaussian, initialise_with_tog
 from kernelphysiology.dl.keras.initialisations.gaussian import initialise_with_g1g2, initialise_with_gaussian_gradient1
+from kernelphysiology.dl.keras.initialisations.gaussian import initialise_with_all
 
 
 def initialse_weights(model, args):
@@ -27,4 +28,7 @@ def initialse_weights(model, args):
         elif args.initialise.lower() == 'gaussian':
             model = initialise_with_gaussian(model, sigmax=args.g_sigmax, sigmay=args.g_sigmay,
                                              meanx=args.g_meanx, meany=args.g_meany, theta=args.g_theta)
+        elif args.initialise.lower() == 'all':
+            args.tog_op = -1
+            model = initialise_with_all(model, args=args)
     return model
