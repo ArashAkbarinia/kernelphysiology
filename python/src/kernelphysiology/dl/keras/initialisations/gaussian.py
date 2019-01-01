@@ -92,7 +92,7 @@ def random_g1(sigma, theta, seta, width):
 
 
 def initialise_with_g1g2(model, args,
-                        which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
+                         which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
     for i, layer in enumerate(model.layers):
         if type(layer) in which_layers:
             weights = layer.get_weights()
@@ -107,6 +107,30 @@ def initialise_with_g1g2(model, args,
                             weights_dc = random_tog(args.tog_sigma, args.tog_surround, op=args.tog_op, width=rows)
                         elif g1g2 == 1:
                             weights_dc = random_g1(args.gg_sigma, args.gg_theta, args.gg_seta, width=rows)
+                        weights[0][:, :, c, d] = weights_dc
+                model.layers[i].set_weights(weights)
+    return model
+
+
+# FIXME: better pass of arguments, right now, it's only g1, g2 and nothing
+def initialise_with_all(model, args,
+                        which_layers=[keras.layers.convolutional.Conv2D, keras.layers.DepthwiseConv2D]):
+    for i, layer in enumerate(model.layers):
+        if type(layer) in which_layers:
+            weights = layer.get_weights()
+            (rows, cols, chns, dpts) = weights[0].shape
+            # FIXME: with all type of convolution
+            if rows > 1:
+                print('initialising with G1G2', layer.name)
+                for d in range(dpts):
+                    for c in range(chns):
+                        g1g2 = np.random.randint(3)
+                        if g1g2 == 0:
+                            weights_dc = random_tog(args.tog_sigma, args.tog_surround, op=args.tog_op, width=rows)
+                        elif g1g2 == 1:
+                            weights_dc = random_g1(args.gg_sigma, args.gg_theta, args.gg_seta, width=rows)
+                        elif g1g2 == 2:
+                            continue
                         weights[0][:, :, c, d] = weights_dc
                 model.layers[i].set_weights(weights)
     return model
