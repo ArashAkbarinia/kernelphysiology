@@ -256,6 +256,7 @@ def train_arg_parser(argvs):
     weights_group = initialisation_group.add_mutually_exclusive_group()
     weights_group.add_argument('--load_weights', type=str, default=None, help='Whether loading weights from a model (default: None)')
     weights_group.add_argument('--initialise', type=str, default=None, help='Whether using a specific initialisation of weights (default: None)')
+    initialisation_group.add_argument('--same_channels', action='store_true', default=False, help='Identical initial weights for channels of a kernel (default: False)')
     initialisation_group.add_argument('--tog_sigma', type=float, default=1, help='Sigma of ToG (default: 1)')
     initialisation_group.add_argument('--tog_surround', type=float, default=5, help='Surround enlargement in ToG (default: 5)')
     initialisation_group.add_argument('--g_sigmax', type=float, default=1, help='Sigma-x of Gaussian (default: 1)')

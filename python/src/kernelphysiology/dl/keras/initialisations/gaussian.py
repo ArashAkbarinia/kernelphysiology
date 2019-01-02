@@ -124,13 +124,17 @@ def initialise_with_all(model, args,
                 print('initialising with G1G2', layer.name)
                 for d in range(dpts):
                     for c in range(chns):
-                        g1g2 = np.random.randint(3)
-                        if g1g2 == 0:
-                            weights_dc = random_tog(args.tog_sigma, args.tog_surround, op=args.tog_op, width=rows)
-                        elif g1g2 == 1:
-                            weights_dc = random_g1(args.gg_sigma, args.gg_theta, args.gg_seta, width=rows)
-                        elif g1g2 == 2:
-                            continue
+                        # FIXME: is it necessary this same channels?
+                        if c > 0 and args.same_channels:
+                            g1g2 = np.random.randint(3)
+                            if g1g2 == 0:
+                                weights_dc = random_tog(args.tog_sigma, args.tog_surround, op=args.tog_op, width=rows)
+                            elif g1g2 == 1:
+                                weights_dc = random_g1(args.gg_sigma, args.gg_theta, args.gg_seta, width=rows)
+                            elif g1g2 == 2:
+                                continue
+                        else:
+                            weights_dc = weights[0][:, :, 0, d]
                         weights[0][:, :, c, d] = weights_dc
                 model.layers[i].set_weights(weights)
     return model
