@@ -39,6 +39,18 @@ def which_dataset(args, dataset_name):
     return args
 
 
+def get_default_num_classes(dataset):
+    if dataset == 'imagenet':
+        num_classes = 1000
+    elif dataset == 'cifar10' or dataset == 'stl10':
+        num_classes = 10
+    elif dataset == 'cifar100':
+        num_classes = 100
+    else:
+        sys.exit('Default num_classes is not defined for dataset %s' % (dataset))
+    return num_classes
+
+
 def get_default_target_size(dataset):
     if dataset == 'imagenet':
         target_size = 224
