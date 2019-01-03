@@ -17,7 +17,7 @@ from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjus
 from kernelphysiology.utils.imutils import s_p_noise, gaussian_noise, speckle_noise, poisson_noise
 from kernelphysiology.utils.path_utils import create_dir
 
-from kernelphysiology.dl.keras.datasets.utils import get_default_dataset_paths, which_dataset
+from kernelphysiology.dl.keras.datasets.utils import get_default_dataset_paths, get_default_target_size, which_dataset
 
 from kernelphysiology.dl.keras.models.utils import which_architecture, which_network
 from kernelphysiology.dl.keras.models.utils import get_preprocessing_function
@@ -323,12 +323,9 @@ def check_args(parser, argvs, script_type):
 
     # setting the target size
     if args.target_size is None:
-        if args.dataset == 'imagenet':
-            args.target_size = 224
-        elif args.dataset == 'cifar10' or args.dataset == 'cifar100' or args.dataset == 'stl10':
-            args.target_size = 32
-        else:
-            sys.exit('target_size is required for dataset %s' % (args.dataset))
+        args.target_size = get_default_target_size(args.dataset)
+    # check the input shape
+    args.input_shape = get_input_shape(args.target_size)
 
     # setting the batch size
     if args.batch_size is None:
@@ -351,10 +348,6 @@ def check_args(parser, argvs, script_type):
 
     # TODO: more checking for GPUs
     os.environ["CUDA_VISIBLE_DEVICES"] = ', '.join(str(e) for e in args.gpus)
-
-    args.target_size = (args.target_size, args.target_size)
-    # check the input shape
-    args.input_shape = get_input_shape(args.target_size)
 
     # workers
     if args.workers > 1:

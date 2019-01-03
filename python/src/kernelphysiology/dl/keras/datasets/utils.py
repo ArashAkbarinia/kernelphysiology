@@ -39,6 +39,18 @@ def which_dataset(args, dataset_name):
     return args
 
 
+def get_default_target_size(dataset):
+    if dataset == 'imagenet':
+        target_size = 224
+    elif dataset == 'cifar10' or dataset == 'cifar100' or dataset == 'stl10':
+        target_size = 32
+    else:
+        sys.exit('Default target_size is not defined for dataset %s' % (dataset))
+
+    target_size = (target_size, target_size)
+    return target_size
+
+
 def get_default_dataset_paths(args):
     if args.dataset == 'imagenet':
         # NOTE: just for the ease of working in my machiens
