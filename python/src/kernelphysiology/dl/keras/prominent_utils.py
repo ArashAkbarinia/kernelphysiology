@@ -40,7 +40,10 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
     if num_augmentation is None:
         order_augmentatoin = []
     elif num_augmentation == 0:
-        order_augmentatoin = ['blur', 'illuminant', 'contrast', 'gamma', 's_p', 'poisson', 'speckle', 'gaussian']
+        colour_augmentatoin = np.array(['blur', 'illuminant', 'contrast', 'gamma'])
+        noise_augmentatoin = np.array(['s_p', 'poisson', 'speckle', 'gaussian'])
+        order_augmentatoin = [*colour_augmentatoin[np.random.randint(0, colour_augmentatoin.shape[0], size=1)],
+                              *noise_augmentatoin[np.random.randint(0, noise_augmentatoin.shape[0], size=1)]]
     else:
         rand_inds = np.random.randint(0, augmentation_types.shape[0], size=num_augmentation)
         order_augmentatoin = augmentation_types[rand_inds]
