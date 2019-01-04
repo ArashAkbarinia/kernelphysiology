@@ -26,7 +26,7 @@ from kernelphysiology.dl.keras.utils import get_input_shape
 
 
 def convert_to_uni8(img):
-    img = img *255
+    img = img * 255
     return img.astype('uint8')
 
 
@@ -37,7 +37,9 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
                             gaussian_noise_range=None, poisson_range=False,
                             speckle_range=None, gamma_range=None,
                             preprocessing_function=None):
-    if num_augmentation is None or num_augmentation == 0:
+    if num_augmentation is None:
+        order_augmentatoin = []
+    elif num_augmentation == 0:
         order_augmentatoin = ['blur', 'illuminant', 'contrast', 'gamma', 's_p', 'poisson', 'speckle', 'gaussian']
     else:
         rand_inds = np.random.randint(0, augmentation_types.shape[0], size=num_augmentation)
@@ -318,7 +320,6 @@ def check_args(parser, argvs, script_type):
     warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 
     args = parser.parse_args(argvs)
-
     args.script_type = script_type
 
     # setting the target size
