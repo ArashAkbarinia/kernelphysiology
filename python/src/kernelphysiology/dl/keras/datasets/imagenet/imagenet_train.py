@@ -40,5 +40,6 @@ def validation_generator(args):
                                                               target_size=args.target_size,
                                                               preprocessing_function=args.validation_preprocessing_function,
                                                               crop_centre=args.crop_centre)
+    args.validation_samples = args.validation_generator.samples
 
     return args
