@@ -147,6 +147,8 @@ def prepare_train_augmentation(args):
             augmentation_types.append('gamma')
         else:
             gamma_range = None
+        if args.poisson_noise is not None:
+            augmentation_types.append('poisson')
         augmentation_types = np.array(augmentation_types)
 
         # creating the augmentation lambda
