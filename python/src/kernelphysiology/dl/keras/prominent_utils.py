@@ -361,6 +361,6 @@ def check_training_args(parser, argvs):
         if not augmentation_types:
             sys.exit('When num_augmentation flag is used, at least one sort of augmentation should be specified')
         else:
-            augmentation_types = np.array(augmentation_types)
+            args.augmentation_types = np.array(augmentation_types)
 
     return args
