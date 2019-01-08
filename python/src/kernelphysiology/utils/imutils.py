@@ -124,7 +124,7 @@ def random_occlusion(image, object_instances=1, object_ratio=0.05):
         start = (rand_row, rand_col)
         # FIXME: if backend shape is different
         (rr, cc) = rectangle(start, extent=extent, shape=out.shape[0:2])
-        out[rr, cc, :] = 1
+        out[rr.astype('int64'), cc.astype('int64'), :] = 1
     return out
 
 
