@@ -540,6 +540,8 @@ def crop_image_centre(img, target_size):
     right = (width + target_size[0]) // 2
     bottom = (height + target_size[1]) // 2
     img = img[top:bottom, left:right]
+    # FIXME: only for 8 bit images
+    img = np.minimum(img, 255)
     return img
 
 
