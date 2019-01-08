@@ -21,6 +21,14 @@ from kernelphysiology.dl.keras.datasets.utils import which_dataset
 from kernelphysiology.utils.imutils import gaussian_blur, gaussian_noise
 from kernelphysiology.utils.imutils import s_p_noise, speckle_noise, poisson_noise
 from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
+from kernelphysiology.utils.imutils import random_occlusion
+
+
+def occlusion_preprocessing(img, var, preprocessing_function=None):
+    img = random_occlusion(img, object_instances=1, object_ratio=var) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
 
 
 def speckle_noise_preprocessing(img, var, preprocessing_function=None):
@@ -91,6 +99,7 @@ if __name__ == "__main__":
 
     dataset_name = args.dataset.lower()
 
+    # TODO: betetr handling of functions that can take more than one element
     if args.contrasts is not None:
         image_manipulation_type = 'contrast'
         image_manipulation_values = np.array(args.contrasts)
@@ -124,6 +133,10 @@ if __name__ == "__main__":
         image_manipulation_type = 'illuminants'
         image_manipulation_values = np.array(args.illuminants)
         image_manipulation_function = colour_constancy_preprocessing
+    elif args.occlusion is not None:
+        image_manipulation_type = 'occlusion'
+        image_manipulation_values = np.array(args.occlusion)
+        image_manipulation_function = occlusion_preprocessing
 
     results_top1 = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
     results_topk = np.zeros((image_manipulation_values.shape[0], len(args.networks)))

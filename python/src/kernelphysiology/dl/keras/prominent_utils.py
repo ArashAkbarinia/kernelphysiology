@@ -205,6 +205,7 @@ def test_arg_parser(argvs):
     image_degradation_group.add_argument('--poisson_noise', action='store_true', default=False, help='Poisson noise to be evaluated (default: False)')
     image_degradation_group.add_argument('--gammas', nargs='+', type=float, default=None, help='List of gammas to be evaluated (default: None)')
     image_degradation_group.add_argument('--illuminants', nargs='+', type=float, default=None, help='List of illuminations to be evaluated (default: None)')
+    image_degradation_group.add_argument('--occlusion', nargs='+', type=float, default=None, help='List of occlusions to be evaluated (default: None)')
 
     logging_group = parser.add_argument_group('logging')
     logging_group.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')
