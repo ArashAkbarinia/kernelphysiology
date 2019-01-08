@@ -5,6 +5,7 @@ Utility functoins for image processing.
 
 from skimage.util import random_noise
 from skimage.color import rgb2gray
+from skimage.draw import rectangle
 
 import numpy as np
 
@@ -109,6 +110,21 @@ def gaussian_noise(image, var, seed=None, clip=True):
 def poisson_noise(image, seed=None, clip=True):
     out = im2double(image)
     out = random_noise(out, mode='poisson', seed=seed, clip=clip)
+    return out
+
+
+# TODO: add other shapes as well
+def random_occlusion(image, object_instances=1, object_ratio=0.05):
+    out = im2double(image)
+    (rows, cols, chns) = out.shape
+    extent = (round(rows * object_ratio), round(cols * object_ratio))
+    for i in range(object_instances):
+        rand_row = np.random.randint(0+extent[0], rows-extent[0])
+        rand_col = np.random.randint(0+extent[1], cols-extent[1])
+        start = (rand_row, rand_col)
+        # FIXME: if backend shape is different
+        (rr, cc) = rectangle(start, extent=extent, shape=out.shape[0:2])
+        out[rr, cc, :] = 1
     return out
 
 
