@@ -558,6 +558,9 @@ def crop_image_random(img, target_size):
     # some of the images are smaller than target_size, that is why
     if start_x <= 0 or start_y <= 0:
         img = resize_to_min_side(img, target_size)
+        (height, width, _) = img.shape
+        start_x = width - dx + 1
+        start_y = height - dy + 1
 
     x = np.random.randint(0, start_x)
     y = np.random.randint(0, start_y)
