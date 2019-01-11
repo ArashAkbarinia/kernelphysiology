@@ -291,6 +291,8 @@ def check_args(parser, argvs, script_type):
     # setting the target size
     if args.target_size is None:
         args.target_size = get_default_target_size(args.dataset)
+    else:
+        args.target_size = (args.target_size, args.target_size)
     # check the input shape
     args.input_shape = get_input_shape(args.target_size)
 
