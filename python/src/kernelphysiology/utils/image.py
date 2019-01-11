@@ -523,8 +523,7 @@ def load_img(path, grayscale=False, color_mode='rgb', target_size=None,
     return img
 
 
-# TODO: support other interpolation methods
-def crop_image_centre(img, target_size):
+def resize_to_min_side(img, target_size):
     # NOTE: assuming only square images
     min_side = target_size[0]
     # resize
@@ -532,7 +531,13 @@ def crop_image_centre(img, target_size):
     new_height = height * min_side // min(img.shape[:2])
     new_width = width * min_side // min(img.shape[:2])
     img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+    # FIXME: only for 8 bit images
+    img = np.minimum(img, 255)
+    return img
 
+# TODO: support other interpolation methods
+def crop_image_centre(img, target_size):
+    img = resize_to_min_side(img, target_size)
     # crop
     (height, width, _) = img.shape
     left = (width - target_size[0]) // 2
@@ -540,18 +545,24 @@ def crop_image_centre(img, target_size):
     right = (width + target_size[0]) // 2
     bottom = (height + target_size[1]) // 2
     img = img[top:bottom, left:right]
-    # FIXME: only for 8 bit images
-    img = np.minimum(img, 255)
     return img
+
 
 # NOTE: image_data_format is 'channel_last'
 def crop_image_random(img, target_size):
     (height, width, _) = img.shape
     # NOTE: assuming only square images
     (dy, dx) = target_size
-    x = np.random.randint(0, width-dx+1)
-    y = np.random.randint(0, height-dy+1)
-    return img[y:(y+dy), x:(x+dx), :]
+    start_x = width - dx + 1
+    start_y = height - dy + 1
+    # some of the images are smaller than target_size, that is why
+    if start_x <= 0 or start_y <= 0:
+        img = resize_to_min_side(img, target_size)
+
+    x = np.random.randint(0, start_x)
+    y = np.random.randint(0, start_y)
+    img = img[y:(y+dy), x:(x+dx), :]
+    return img
 
 
 def list_pictures(directory, ext='jpg|jpeg|bmp|png|ppm'):
@@ -1954,10 +1965,10 @@ class DirectoryIterator(Iterator):
         # build batch of image data
         for i, j in enumerate(index_array):
             fname = self.filenames[j]
-            if self.crop_type != 'none':
-                tmp_target_size = None
-            else:
+            if self.crop_type == 'none':
                 tmp_target_size = self.target_size
+            else:
+                tmp_target_size = None
             img = load_img(os.path.join(self.directory, fname),
                            color_mode=self.color_mode,
                            target_size=tmp_target_size,
