@@ -17,7 +17,7 @@ def prepare_imagenet(args):
     args.train_generator = imagenet.train_generator(args.train_dir, batch_size=args.batch_size,
                                                     target_size=args.target_size,
                                                     preprocessing_function=args.train_preprocessing_function,
-                                                    crop_centre=args.crop_centre, shuffle=args.shuffle,
+                                                    crop_type=args.crop_type, shuffle=args.shuffle,
                                                     horizontal_flip=args.horizontal_flip,
                                                     vertical_flip=args.vertical_flip,
                                                     zoom_range=args.zoom_range,
@@ -27,7 +27,7 @@ def prepare_imagenet(args):
     args.validation_generator = imagenet.validation_generator(args.validation_dir, batch_size=args.batch_size,
                                                               target_size=args.target_size,
                                                               preprocessing_function=args.validation_preprocessing_function,
-                                                              crop_centre=args.crop_centre)
+                                                              crop_type=args.crop_type)
     args.validation_samples = args.validation_generator.samples
 
     return args
@@ -39,7 +39,7 @@ def validation_generator(args):
     args.validation_generator = imagenet.validation_generator(args.validation_dir, batch_size=args.batch_size,
                                                               target_size=args.target_size,
                                                               preprocessing_function=args.validation_preprocessing_function,
-                                                              crop_centre=args.crop_centre)
+                                                              crop_type=args.crop_type)
     args.validation_samples = args.validation_generator.samples
 
     return args

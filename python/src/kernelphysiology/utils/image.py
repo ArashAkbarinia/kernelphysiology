@@ -544,6 +544,15 @@ def crop_image_centre(img, target_size):
     img = np.minimum(img, 255)
     return img
 
+# NOTE: image_data_format is 'channel_last'
+def crop_image_random(img, target_size):
+    (height, width, _) = img.shape
+    # NOTE: assuming only square images
+    (dy, dx) = target_size
+    x = np.random.randint(0, width-dx+1)
+    y = np.random.randint(0, height-dy+1)
+    return img[y:(y+dy), x:(x+dx), :]
+
 
 def list_pictures(directory, ext='jpg|jpeg|bmp|png|ppm'):
     return [os.path.join(root, f)
@@ -949,7 +958,7 @@ class ImageDataGenerator(object):
                             follow_links=False,
                             subset=None,
                             interpolation='nearest',
-                            crop_centre=False):
+                            crop_type='random'):
         """Takes the path to a directory & generates batches of augmented data.
 
         # Arguments
@@ -1036,7 +1045,7 @@ class ImageDataGenerator(object):
             follow_links=follow_links,
             subset=subset,
             interpolation=interpolation,
-            crop_centre=crop_centre)
+            crop_type=crop_type)
 
     def flow_from_dataframe(self, dataframe, directory,
                             x_col="filename", y_col="class", has_ext=True,
@@ -1872,7 +1881,7 @@ class DirectoryIterator(Iterator):
                  subset=None,
                  interpolation='nearest',
                  dtype='float32',
-                 crop_centre=False):
+                 crop_type='random'):
         super(DirectoryIterator, self).common_init(image_data_generator,
                                                    target_size,
                                                    color_mode,
@@ -1882,7 +1891,7 @@ class DirectoryIterator(Iterator):
                                                    save_format,
                                                    subset,
                                                    interpolation)
-        self.crop_centre = crop_centre
+        self.crop_type = crop_type
         self.directory = directory
         self.classes = classes
         if class_mode not in {'categorical', 'binary', 'sparse',
@@ -1945,7 +1954,7 @@ class DirectoryIterator(Iterator):
         # build batch of image data
         for i, j in enumerate(index_array):
             fname = self.filenames[j]
-            if self.crop_centre:
+            if self.crop_type != 'none':
                 tmp_target_size = None
             else:
                 tmp_target_size = self.target_size
@@ -1954,8 +1963,10 @@ class DirectoryIterator(Iterator):
                            target_size=tmp_target_size,
                            interpolation=self.interpolation)
             x = img_to_array(img, data_format=self.data_format)
-            if self.crop_centre:
+            if self.crop_type == 'centre':
                 x = crop_image_centre(x, self.target_size)
+            elif self.crop_type == 'random':
+                 x = crop_image_random(x, self.target_size)
             # Pillow images should be closed after `load_img`,
             # but not PIL images.
             if hasattr(img, 'close'):

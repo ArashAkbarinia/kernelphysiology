@@ -178,7 +178,7 @@ def common_arg_parser(description):
 
     parser.add_argument('--batch_size', type=int, default=None, help='Batch size (default: according to dataset)')
     parser.add_argument('--target_size', type=int, default=None, help='Target size (default: according to dataset)')
-    parser.add_argument('--crop_centre', action='store_true', default=False, help='Crop the image to its centre (default: False)')
+    parser.add_argument('--crop_type', type=str, default='random', choices=['random','centre','none'], help='What type of crop (default: random)')
     parser.add_argument('--preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
     parser.add_argument('--top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
 
