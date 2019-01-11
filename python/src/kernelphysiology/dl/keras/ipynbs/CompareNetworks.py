@@ -18,7 +18,8 @@ import sys
 # In[2]:
 
 
-network_paths = sys.argv[1]
+os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
+network_paths = sys.argv[2]
 
 networks = []
 paths = []
@@ -103,6 +104,6 @@ for i in range(num_networks-1):
         network_comparison[i, j] = ij_compare.mean()
         network_comparison[j, i] = network_comparison[i, j]
         for k in range(num_layers):
-            np.savetxt('network_comparison%02d.csv' % k, network_comparison_layers[:,:,k], delimiter=',')      
+            np.savetxt('network_comparison%02d.csv' % k, network_comparison_layers[:,:,k], delimiter=',')
         np.savetxt('network_comparison_kernel_max.csv', network_comparison, delimiter=',')
 
