@@ -30,7 +30,7 @@ with open(network_paths) as f:
         if os.path.isfile(tokens[0]):
             paths.append(tokens[0])
             network = keras.models.load_model(tokens[0])
-            networks.append(network)
+            networks.append(network.layers)
         else:
             print(tokens[0])
 
@@ -41,8 +41,8 @@ with open(network_paths) as f:
 def compare_networks(network_i, network_j, which_layers):
     ij_compare = []
     for l in which_layers:
-        layer_i = network_i.layers[l]
-        layer_j = network_j.layers[l]
+        layer_i = network_i[l]
+        layer_j = network_j[l]
         weights_i = layer_i.get_weights()[0]
         weights_j = layer_j.get_weights()[0]
 
