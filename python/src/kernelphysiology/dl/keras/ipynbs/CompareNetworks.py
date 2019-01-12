@@ -29,8 +29,6 @@ with open(network_paths) as f:
         tokens = line.strip().split(',')
         if os.path.isfile(tokens[0]):
             paths.append(tokens[0])
-            network = keras.models.load_model(tokens[0])
-            networks.append(network.layers)
         else:
             print(tokens[0])
 
@@ -85,25 +83,36 @@ for l, layer in enumerate(network_i.layers):
     if callable(invert_op) and layer.get_weights():
         which_layers.append(l)
         num_layers += 1
-network_comparison = np.zeros((num_networks, num_networks))
-network_comparison_layers = np.zeros((num_networks, num_networks, num_layers))
+network_comparison = np.zeros((num_networks, num_networks)) - 1
+network_comparison_layers = np.zeros((num_networks, num_networks, num_layers)) - 1
+
+
+# In[0]:
+for k in range(num_layers):
+    if os.path.isfile('results/network_comparison%02d.csv' % k):
+        network_comparison_layers[:,:,k] = np.loadtxt('results/network_comparison%02d.csv' % k, delimiter=',')
+if os.path.isfile('results/network_comparison_kernel_max.csv'):
+    network_comparison = np.loadtxt('results/network_comparison_kernel_max.csv', delimiter=',')
 
 
 # In[10]:
 
 
 for i in range(num_networks-1):
-    network_i = networks[i]
+#    network_i = networks[i]
+    network_i = keras.models.load_model(paths[i]).layers
     for j in range(i+1, num_networks):
-        print('Processing networks %d %d' % (i, j))
-        network_j = networks[j]
-        ij_compare = compare_networks(network_i, network_j, which_layers)
-        ij_compare = np.array(ij_compare)
-        network_comparison_layers[i, j, :] = ij_compare
-        network_comparison_layers[j, i, :] = network_comparison_layers[i, j, :]
-        network_comparison[i, j] = ij_compare.mean()
-        network_comparison[j, i] = network_comparison[i, j]
-        for k in range(num_layers):
-            np.savetxt('network_comparison%02d.csv' % k, network_comparison_layers[:,:,k], delimiter=',')
-        np.savetxt('network_comparison_kernel_max.csv', network_comparison, delimiter=',')
+        if network_comparison[i, j] == -1:
+            print('Processing networks %d %d' % (i, j))
+    #        network_j = networks[j]
+            network_j = keras.models.load_model(paths[j]).layers
+            ij_compare = compare_networks(network_i, network_j, which_layers)
+            ij_compare = np.array(ij_compare)
+            network_comparison_layers[i, j, :] = ij_compare
+            network_comparison_layers[j, i, :] = network_comparison_layers[i, j, :]
+            network_comparison[i, j] = ij_compare.mean()
+            network_comparison[j, i] = network_comparison[i, j]
+            for k in range(num_layers):
+                np.savetxt('results/network_comparison%02d.csv' % k, network_comparison_layers[:,:,k], delimiter=',')
+            np.savetxt('results/network_comparison_kernel_max.csv', network_comparison, delimiter=',')
 
