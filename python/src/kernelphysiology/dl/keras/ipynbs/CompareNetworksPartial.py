@@ -107,6 +107,12 @@ if os.path.isfile(args.output_folder + '/network_comparison_kernel_max.csv'):
 # In[10]:
 
 
+for i in range(num_networks):
+    for j in range(num_networks):
+        if i == j:
+            network_comparison[j, i] = -1
+            network_comparison_layers[i, j, :] = -1
+
 chunk_size = 20
 for c1 in range(0, num_networks, chunk_size):
     networks = [0] * num_networks
@@ -115,7 +121,7 @@ for c1 in range(0, num_networks, chunk_size):
         networks[c2] = keras.models.load_model(paths[c2])
     for i in range(c1, c1+chunk_size-1):
         network_i = networks[i].layers
-        for j in range(c1+1, c1+chunk_size):
+        for j in range(i+1, c1+chunk_size):
             if network_comparison[i, j] == -1:
                 print('Processing networks %d %d' % (i, j))
                 network_j = networks[j].layers
