@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser(description='Comparing all networks ina round r
 parser.add_argument('--network_paths', type=str, help='Which network to be used')
 parser.add_argument('--output_folder', type=str, help='The folder to write the results')
 parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
+parser.add_argument('--load_models', action='store_true', default=False, help='Load all the models into memory (default: False)')
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -37,6 +38,8 @@ with open(network_paths) as f:
         tokens = line.strip().split(',')
         if os.path.isfile(tokens[0]):
             paths.append(tokens[0])
+            if args.load_models:
+                networks.append(keras.models.load_model(tokens[0]))
         else:
             print(tokens[0])
 
@@ -107,13 +110,17 @@ if os.path.isfile(args.output_folder + '/network_comparison_kernel_max.csv'):
 
 
 for i in range(num_networks-1):
-#    network_i = networks[i]
-    network_i = keras.models.load_model(paths[i]).layers
+    if args.load_models:
+        network_i = networks[i].layers
+    else:
+        network_i = keras.models.load_model(paths[i]).layers
     for j in range(i+1, num_networks):
         if network_comparison[i, j] == -1:
             print('Processing networks %d %d' % (i, j))
-    #        network_j = networks[j]
-            network_j = keras.models.load_model(paths[j]).layers
+            if args.load_models:
+                network_j = networks[j].layers
+            else:
+                network_j = keras.models.load_model(paths[j]).layers
             ij_compare = compare_networks(network_i, network_j, which_layers)
             ij_compare = np.array(ij_compare)
             network_comparison_layers[i, j, :] = ij_compare
