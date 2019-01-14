@@ -24,7 +24,7 @@ parser.add_argument('--network_paths', type=str, help='Which network to be used'
 parser.add_argument('--output_folder', type=str, help='The folder to write the results')
 parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 
-args = parser.parse_args(sys.argv)
+args = parser.parse_args(sys.argv[1:])
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ', '.join(str(e) for e in args.gpus)
 network_paths = args.network_paths
