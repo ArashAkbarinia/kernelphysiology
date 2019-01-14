@@ -13,13 +13,21 @@ import matplotlib.pyplot as plt
 import os
 import math
 import sys
+import argparse
 
 
 # In[2]:
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
-network_paths = sys.argv[2]
+parser = argparse.ArgumentParser(description='Comparing all networks ina round robin fashion.')
+parser.add_argument('--network_paths', type=str, help='Which network to be used')
+parser.add_argument('--output_folder', type=str, help='The folder to write the results')
+parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
+
+args = parser.parse_args(sys.argv)
+
+os.environ["CUDA_VISIBLE_DEVICES"] = ', '.join(str(e) for e in args.gpus)
+network_paths = args.network_paths
 
 networks = []
 paths = []
@@ -89,10 +97,10 @@ network_comparison_layers = np.zeros((num_networks, num_networks, num_layers)) -
 
 # In[0]:
 for k in range(num_layers):
-    if os.path.isfile('results/network_comparison%02d.csv' % k):
-        network_comparison_layers[:,:,k] = np.loadtxt('results/network_comparison%02d.csv' % k, delimiter=',')
-if os.path.isfile('results/network_comparison_kernel_max.csv'):
-    network_comparison = np.loadtxt('results/network_comparison_kernel_max.csv', delimiter=',')
+    if os.path.isfile(args.output_folder + '/network_comparison%02d.csv' % k):
+        network_comparison_layers[:,:,k] = np.loadtxt(args.output_folder + '/network_comparison%02d.csv' % k, delimiter=',')
+if os.path.isfile(args.output_folder + '/network_comparison_kernel_max.csv'):
+    network_comparison = np.loadtxt(args.output_folder + '/network_comparison_kernel_max.csv', delimiter=',')
 
 
 # In[10]:
@@ -113,6 +121,6 @@ for i in range(num_networks-1):
             network_comparison[i, j] = ij_compare.mean()
             network_comparison[j, i] = network_comparison[i, j]
             for k in range(num_layers):
-                np.savetxt('results/network_comparison%02d.csv' % k, network_comparison_layers[:,:,k], delimiter=',')
-            np.savetxt('results/network_comparison_kernel_max.csv', network_comparison, delimiter=',')
+                np.savetxt(args.output_folder + '/network_comparison%02d.csv' % k, network_comparison_layers[:,:,k], delimiter=',')
+            np.savetxt(args.output_folder + '/network_comparison_kernel_max.csv', network_comparison, delimiter=',')
 
