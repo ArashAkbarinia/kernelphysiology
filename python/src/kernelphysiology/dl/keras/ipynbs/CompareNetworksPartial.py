@@ -56,7 +56,7 @@ def compare_networks(network_i, network_j, which_layers):
         ijw_compare = []
         # convolutional layer
         if len(weights_i.shape) > 2:
-            takens = np.zeros((weights_i.shape[3]))
+            takens = np.zeros((weights_i.shape[3])) - 1
             for w_i in range(weights_i.shape[3]):
                 r_max = 0
                 kernel_i = weights_i[:,:,:,w_i]
