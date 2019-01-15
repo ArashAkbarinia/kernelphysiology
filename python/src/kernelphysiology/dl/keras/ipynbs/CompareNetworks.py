@@ -58,9 +58,9 @@ def compare_networks(network_i, network_j, which_layers):
         ijw_compare = []
         # convolutional layer
         if len(weights_i.shape) > 2:
-            r_max = 0
             takens = np.zeros((weights_i.shape[3]))
             for w_i in range(weights_i.shape[3]):
+                r_max = 0
                 kernel_i = weights_i[:,:,:,w_i]
                 for w_j in range(weights_j.shape[3]):
                     if w_j in takens:
@@ -91,7 +91,7 @@ network_i = keras.models.load_model(paths[0])
 which_layers = []
 for l, layer in enumerate(network_i.layers):
     invert_op = getattr(layer, "get_weights", None)
-    if callable(invert_op) and layer.get_weights():
+    if type(layer) is keras.layers.Conv2D and callable(invert_op) and layer.get_weights():
         which_layers.append(l)
         num_layers += 1
 network_comparison = np.zeros((num_networks, num_networks)) - 1
