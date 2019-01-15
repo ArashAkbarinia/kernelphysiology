@@ -178,7 +178,6 @@ def common_arg_parser(description):
 
     parser.add_argument('--batch_size', type=int, default=None, help='Batch size (default: according to dataset)')
     parser.add_argument('--target_size', type=int, default=None, help='Target size (default: according to dataset)')
-    parser.add_argument('--crop_type', type=str, default='random', choices=['random','centre','none'], help='What type of crop (default: random)')
     parser.add_argument('--preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
     parser.add_argument('--top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
 
@@ -195,6 +194,7 @@ def activation_arg_parser(argvs):
 
 def test_arg_parser(argvs):
     parser = common_arg_parser('Test prominent nets of Keras for different contrasts.')
+    parser.add_argument('--crop_type', type=str, default='none', choices=['random', 'centre','none'], help='What type of crop (default: none)')
 
     image_degradation_group = parser.add_mutually_exclusive_group()
     image_degradation_group.add_argument('--contrasts', nargs='+', type=float, default=None, help='List of contrasts to be evaluated (default: None)')
@@ -215,6 +215,7 @@ def test_arg_parser(argvs):
 
 def train_arg_parser(argvs):
     parser = common_arg_parser('Training prominent nets of Keras.')
+    parser.add_argument('--crop_type', type=str, default='random', choices=['random', 'centre','none'], help='What type of crop (default: random)')
 
     # better handling the parameters, e.g. pretrained ones are only for imagenet
     architecture_group = parser.add_argument_group('architecture')
