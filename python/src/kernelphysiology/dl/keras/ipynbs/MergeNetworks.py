@@ -97,14 +97,14 @@ def get_weights(network,
 
 # In[4]:
 
-which_layers = [keras.layers.convolutional.Conv2D]
+layer_type = [keras.layers.convolutional.Conv2D]
 
 for th_value in args.thresholds:
     network_src = keras.models.load_model(args.network_src)
     network_des = keras.models.load_model(args.network_des)
 
-    (all_weights_src, layer_names) = get_weights(network_src, which_layers=which_layers)
-    (all_weights_des, layer_names) = get_weights(network_des, which_layers=which_layers)
+    (all_weights_src, layer_names) = get_weights(network_src, which_layers=layer_type)
+    (all_weights_des, layer_names) = get_weights(network_des, which_layers=layer_type)
 
     corr_metric_src_des = compute_metric(all_weights_src, all_weights_des, metric='pearsonr')
     threshold_src_des = get_kernels_metric_threshold(corr_metric_src_des, layer_names, th_value)
