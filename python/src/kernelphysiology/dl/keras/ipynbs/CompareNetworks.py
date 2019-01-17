@@ -70,10 +70,12 @@ def compare_networks(network_i, network_j, which_layers, metric):
                     kernel_j = weights_j[:,:,:,w_j]
                     if metric == 'pearsonr':
                         (r, _) = pearsonr(kernel_i.flatten(), kernel_j.flatten())
+                        if math.isnan(r):
+                            r = 0
                     elif metric == 'cosine':
                         r = cosine(kernel_i.flatten(), kernel_j.flatten())
-                    if math.isnan(r):
-                        r = 0
+                        if math.isinf(r):
+                            r = math.pi / 2
                     if r > r_max:
                         r_max = r
                         takens[w_i] = w_j
