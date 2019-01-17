@@ -7,14 +7,16 @@
 import cv2
 import keras
 import numpy as np
-from scipy.stats import pearsonr
-from sklearn.metrics import mutual_info_score, normalized_mutual_info_score
+
 import matplotlib.pyplot as plt
 import os
 import math
 import sys
 import argparse
+
+from scipy.stats import pearsonr
 from scipy.spatial.distance import cosine
+from sklearn.metrics import mutual_info_score, normalized_mutual_info_score
 
 
 # In[2]:
@@ -76,6 +78,8 @@ def compare_networks(network_i, network_j, which_layers, metric):
                         r = cosine(kernel_i.flatten(), kernel_j.flatten())
                         if math.isinf(r):
                             r = math.pi / 2
+                    elif metric == 'mutual_info':
+                        r = mutual_info_score(kernel_i.flatten(), kernel_j.flatten())
                     if r > r_max:
                         r_max = r
                         takens[w_i] = w_j
