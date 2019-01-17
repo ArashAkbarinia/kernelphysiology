@@ -14,6 +14,7 @@ import os
 import math
 import sys
 import argparse
+from scipy.spatial.distance import cosine
 
 
 # In[2]:
@@ -24,6 +25,7 @@ parser.add_argument('--network_paths', type=str, help='Which network to be used'
 parser.add_argument('--output_folder', type=str, help='The folder to write the results')
 parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 parser.add_argument('--load_models', action='store_true', default=False, help='Load all the models into memory (default: False)')
+parser.add_argument('--metric', type=str, default='pearsonr', help='The metric used for similarity.')
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -47,7 +49,7 @@ with open(network_paths) as f:
 # In[9]:
 
 
-def compare_networks(network_i, network_j, which_layers):
+def compare_networks(network_i, network_j, which_layers, metric):
     ij_compare = []
     for l in which_layers:
         layer_i = network_i[l]
@@ -66,7 +68,10 @@ def compare_networks(network_i, network_j, which_layers):
                     if w_j in takens:
                         continue
                     kernel_j = weights_j[:,:,:,w_j]
-                    (r, _) = pearsonr(kernel_i.flatten(), kernel_j.flatten())
+                    if metric == 'pearsonr':
+                        (r, _) = pearsonr(kernel_i.flatten(), kernel_j.flatten())
+                    elif metric == 'cosine':
+                        r = cosine(kernel_i.flatten(), kernel_j.flatten())
                     if math.isnan(r):
                         r = 0
                     if r > r_max:
@@ -121,7 +126,7 @@ for i in range(num_networks-1):
                 network_j = networks[j].layers
             else:
                 network_j = keras.models.load_model(paths[j]).layers
-            ij_compare = compare_networks(network_i, network_j, which_layers)
+            ij_compare = compare_networks(network_i, network_j, which_layers, args.metric)
             ij_compare = np.array(ij_compare)
             network_comparison_layers[i, j, :] = ij_compare
             network_comparison_layers[j, i, :] = network_comparison_layers[i, j, :]
