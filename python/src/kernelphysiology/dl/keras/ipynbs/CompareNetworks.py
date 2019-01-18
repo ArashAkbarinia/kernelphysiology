@@ -28,6 +28,8 @@ parser.add_argument('--output_folder', type=str, help='The folder to write the r
 parser.add_argument('--gpus', nargs='+', type=int, default=[0], help='List of GPUs to be used (default: [0])')
 parser.add_argument('--load_models', action='store_true', default=False, help='Load all the models into memory (default: False)')
 parser.add_argument('--metric', type=str, default='pearsonr', help='The metric used for similarity.')
+parser.add_argument('--plane', type=int, default=None, help='Slicing the kernel matrix to planes (default: None)')
+
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -51,6 +53,33 @@ with open(network_paths) as f:
 # In[9]:
 
 
+def compare_kernels(kernel_i, kernel_j, metric, plane):
+    if metric == 'pearsonr':
+        if plane is None:
+            (r, _) = pearsonr(kernel_i.flatten(), kernel_j.flatten())
+            if math.isnan(r):
+                r = 0
+        else:
+            slices_corr = []
+            for p in range(kernel_i.shape[plane]):
+                if plane == 0:
+                    (r, _) = pearsonr(kernel_i[p,:,:].flatten(), kernel_j[p,:,:].flatten())
+                elif plane == 1:
+                    (r, _) = pearsonr(kernel_i[:,p,:].flatten(), kernel_j[:,p,:].flatten())
+                elif plane == 2:
+                    (r, _) = pearsonr(kernel_i[:,:,p].flatten(), kernel_j[:,:,p].flatten())
+                if math.isnan(r):
+                        r = 0
+                slices_corr.append(r)
+            r = np.array(slices_corr).mean()
+    elif metric == 'cosine':
+        r = cosine(kernel_i.flatten(), kernel_j.flatten())
+        if math.isinf(r):
+            r = math.pi / 2
+    elif metric == 'mutual_info':
+        r = mutual_info_score(kernel_i.flatten(), kernel_j.flatten())
+    return r
+
 def compare_networks(network_i, network_j, which_layers, metric):
     ij_compare = []
     for l in which_layers:
@@ -70,16 +99,8 @@ def compare_networks(network_i, network_j, which_layers, metric):
                     if w_j in takens:
                         continue
                     kernel_j = weights_j[:,:,:,w_j]
-                    if metric == 'pearsonr':
-                        (r, _) = pearsonr(kernel_i.flatten(), kernel_j.flatten())
-                        if math.isnan(r):
-                            r = 0
-                    elif metric == 'cosine':
-                        r = cosine(kernel_i.flatten(), kernel_j.flatten())
-                        if math.isinf(r):
-                            r = math.pi / 2
-                    elif metric == 'mutual_info':
-                        r = mutual_info_score(kernel_i.flatten(), kernel_j.flatten())
+                    r = compare_kernels(kernel_i, kernel_j, metric, args.plane)
+
                     if r > r_max:
                         r_max = r
                         takens[w_i] = w_j
