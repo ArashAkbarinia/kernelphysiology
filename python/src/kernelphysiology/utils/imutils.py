@@ -40,6 +40,7 @@ def create_mask_image(image, mask_radius=None):
         image_mask = 1 - image_mask
     else:
         image_mask = np.zeros(image.shape, np.uint8)
+    return image_mask
 
 
 def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
