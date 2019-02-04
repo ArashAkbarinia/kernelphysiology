@@ -8,6 +8,7 @@ from skimage.color import rgb2gray
 from skimage.draw import rectangle
 
 import numpy as np
+import math
 
 import cv2
 
@@ -28,7 +29,20 @@ def im2double(image):
             return image
 
 
-def adjust_contrast(image, contrast_level, pixel_variatoin=0):
+def create_mask_image(image, mask_radius=None):
+    if mask_radius is not None:
+        image_mask = np.zeros(image.shape, np.uint8)
+        (rows, cols, chns) = image.shape
+        smaller_side = np.minimum(rows, cols)
+        mask_radius = int(math.floor(mask_radius * smaller_side))
+        centre = (int(math.floor(rows / 2)), int(math.floor(cols / 2)))
+        image_mask = cv2.circle(image_mask, centre, mask_radius, (1, 1, 1), -1)
+        image_mask = 1 - image_mask
+    else:
+        image_mask = np.zeros(image.shape, np.uint8)
+
+
+def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
     """Return the image scaled to a certain contrast level in [0, 1].
 
     parameters:
@@ -40,33 +54,20 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0):
     assert(contrast_level <= 1.0), "contrast_level too high."
 
     image = im2double(image)
+    image_org = image.copy()
+    image_mask = create_mask_image(image, mask_radius)
 
     min_contrast = contrast_level - pixel_variatoin
     max_contrast = contrast_level + pixel_variatoin
 
     contrast_level_mat = np.random.uniform(low=min_contrast, high=max_contrast, size=image.shape)
 
-    return (1 - contrast_level_mat) / 2.0 + np.multiply(image, contrast_level_mat)
+    image_contrast = (1 - contrast_level_mat) / 2.0 + np.multiply(image, contrast_level_mat)
+    output = image_org * image_mask + image_contrast * (1 - image_mask)
+    return output
 
 
-def adjust_gamma(image, gamma):
-    image = im2double(image)
-    image = image ** gamma
-    return image
-
-
-def gaussian_blur(image, sigmax, sigmay=None, meanx=0, meany=0, theta=0):
-    '''
-    Blurring the image with a Gaussian kernel.
-    '''
-    image = im2double(image)
-    g_kernel = gaussian_kernel2(sigmax=sigmax, sigmay=sigmay, meanx=meanx,
-                                meany=meany, theta=theta)
-    image = cv2.filter2D(image, -1, g_kernel)
-    return image
-
-
-def grayscale_contrast(image, contrast_level):
+def grayscale_contrast(image, contrast_level, mask_radius=None):
     """Convert to grayscale. Adjust contrast.
 
     parameters:
@@ -74,11 +75,38 @@ def grayscale_contrast(image, contrast_level):
     - contrast_level: a scalar in [0, 1]; with 1 -> full contrast
     """
 
-    return adjust_contrast(rgb2gray(image), contrast_level)
+    return adjust_contrast(rgb2gray(image), contrast_level, mask_radius=mask_radius)
 
 
-def adjust_illuminant(image, illuminant, pixel_variatoin=0):
+def adjust_gamma(image, gamma, mask_radius=None):
     image = im2double(image)
+    image_org = image.copy()
+    image_mask = create_mask_image(image, mask_radius)
+
+    image_gamma = image ** gamma
+    output = image_org * image_mask + image_gamma * (1 - image_mask)
+    return output
+
+
+def gaussian_blur(image, sigmax, sigmay=None, meanx=0, meany=0, theta=0, mask_radius=None):
+    '''
+    Blurring the image with a Gaussian kernel.
+    '''
+    image = im2double(image)
+    image_org = image.copy()
+    image_mask = create_mask_image(image, mask_radius)
+
+    g_kernel = gaussian_kernel2(sigmax=sigmax, sigmay=sigmay, meanx=meanx,
+                                meany=meany, theta=theta)
+    image_blur = cv2.filter2D(image, -1, g_kernel)
+    output = image_org * image_mask + image_blur * (1 - image_mask)
+    return output
+
+
+def adjust_illuminant(image, illuminant, pixel_variatoin=0, mask_radius=None):
+    image = im2double(image)
+    image_org = image.copy()
+    image_mask = create_mask_image(image, mask_radius)
 
     for i in range(image.shape[2]):
         min_illuminant = illuminant[i] - pixel_variatoin
@@ -86,31 +114,48 @@ def adjust_illuminant(image, illuminant, pixel_variatoin=0):
         illuminant_i = np.random.uniform(low=min_illuminant, high=max_illuminant, size=image[:,:,i].shape)
         image[:, :, i] = image[:, :, i] * illuminant_i
 
-    return image
+    output = image_org * image_mask + image * (1 - image_mask)
+    return output
 
 
-def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True):
+def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True, mask_radius=None):
     out = im2double(image)
-    out = random_noise(out, mode='s&p', seed=seed, clip=clip, salt_vs_pepper=salt_vs_pepper, amount=amount)
-    return out
+    image_org = image.copy()
+    image_mask = create_mask_image(image, mask_radius)
+
+    image_noise = random_noise(out, mode='s&p', seed=seed, clip=clip, salt_vs_pepper=salt_vs_pepper, amount=amount)
+    output = image_org * image_mask + image_noise * (1 - image_mask)
+    return output
 
 
-def speckle_noise(image, var, seed=None, clip=True):
+def speckle_noise(image, var, seed=None, clip=True, mask_radius=None):
     out = im2double(image)
-    out = random_noise(out, mode='speckle', seed=seed, clip=clip, var=var)
-    return out
+    image_org = image.copy()
+    image_mask = create_mask_image(image, mask_radius)
+
+    image_noise = random_noise(out, mode='speckle', seed=seed, clip=clip, var=var)
+    output = image_org * image_mask + image_noise * (1 - image_mask)
+    return output
 
 
-def gaussian_noise(image, var, seed=None, clip=True):
+def gaussian_noise(image, var, seed=None, clip=True, mask_radius=None):
     out = im2double(image)
-    out = random_noise(out, mode='gaussian', seed=seed, clip=clip, var=var)
-    return out
+    image_org = image.copy()
+    image_mask = create_mask_image(image, mask_radius)
+
+    image_noise = random_noise(out, mode='gaussian', seed=seed, clip=clip, var=var)
+    output = image_org * image_mask + image_noise * (1 - image_mask)
+    return output
 
 
-def poisson_noise(image, seed=None, clip=True):
+def poisson_noise(image, seed=None, clip=True, mask_radius=None):
     out = im2double(image)
-    out = random_noise(out, mode='poisson', seed=seed, clip=clip)
-    return out
+    image_org = image.copy()
+    image_mask = create_mask_image(image, mask_radius)
+
+    image_noise = random_noise(out, mode='poisson', seed=seed, clip=clip)
+    output = image_org * image_mask + image_noise * (1 - image_mask)
+    return output
 
 
 # TODO: add other shapes as well
