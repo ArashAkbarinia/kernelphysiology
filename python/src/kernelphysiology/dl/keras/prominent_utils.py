@@ -36,7 +36,7 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
                             gaussian_sigma_range=None, salt_pepper_range=None,
                             gaussian_noise_range=None, poisson_range=False,
                             speckle_range=None, gamma_range=None,
-                            preprocessing_function=None):
+                            mask_radius=None, preprocessing_function=None):
     if num_augmentation is None:
         order_augmentatoin = []
     elif num_augmentation == 0:
@@ -50,22 +50,22 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
 
     for aug_type in order_augmentatoin:
         if aug_type == 'blur' and gaussian_sigma_range is not None:
-            img = convert_to_uni8(gaussian_blur(img, np.random.uniform(*gaussian_sigma_range)))
+            img = convert_to_uni8(gaussian_blur(img, np.random.uniform(*gaussian_sigma_range), mask_radius=mask_radius))
         elif aug_type == 'illuminant' and illuminant_range is not None:
             illuminant = np.random.uniform(*illuminant_range, 3)
-            img = convert_to_uni8(adjust_illuminant(img, illuminant, illuminant_variation))
+            img = convert_to_uni8(adjust_illuminant(img, illuminant, illuminant_variation, mask_radius=mask_radius))
         elif aug_type == 'contrast' and contrast_range is not None:
-            img = convert_to_uni8(adjust_contrast(img, np.random.uniform(*contrast_range), contrast_variation))
+            img = convert_to_uni8(adjust_contrast(img, np.random.uniform(*contrast_range), contrast_variation, mask_radius=mask_radius))
         elif aug_type == 'gamma' and gamma_range is not None:
-            img = convert_to_uni8(adjust_gamma(img, np.random.uniform(*gamma_range)))
+            img = convert_to_uni8(adjust_gamma(img, np.random.uniform(*gamma_range), mask_radius=mask_radius))
         elif aug_type == 's_p' and salt_pepper_range is not None:
-            img = convert_to_uni8(s_p_noise(img, np.random.uniform(*salt_pepper_range)))
+            img = convert_to_uni8(s_p_noise(img, np.random.uniform(*salt_pepper_range), mask_radius=mask_radius))
         elif aug_type == 'poisson' and poisson_range:
-            img = convert_to_uni8(poisson_noise(img))
+            img = convert_to_uni8(poisson_noise(img), mask_radius=mask_radius)
         elif aug_type == 'speckle' and speckle_range is not None:
-            img = convert_to_uni8(speckle_noise(img, np.random.uniform(*speckle_range)))
+            img = convert_to_uni8(speckle_noise(img, np.random.uniform(*speckle_range), mask_radius=mask_radius))
         elif aug_type == 'gaussian' and gaussian_noise_range is not None:
-            img = convert_to_uni8(gaussian_noise(img, np.random.uniform(*gaussian_noise_range)))
+            img = convert_to_uni8(gaussian_noise(img, np.random.uniform(*gaussian_noise_range), mask_radius=mask_radius))
     if preprocessing_function is not None:
         img = preprocessing_function(img)
     return img
@@ -195,6 +195,7 @@ def activation_arg_parser(argvs):
 def test_arg_parser(argvs):
     parser = common_arg_parser('Test prominent nets of Keras for different contrasts.')
     parser.add_argument('--crop_type', type=str, default='none', choices=['random', 'centre','none'], help='What type of crop (default: none)')
+   parser.add_argument('--mask_radius', type=float, default=None, help='Apply image destortion to this radius from centre (default: None)')
 
     image_degradation_group = parser.add_mutually_exclusive_group()
     image_degradation_group.add_argument('--contrasts', nargs='+', type=float, default=None, help='List of contrasts to be evaluated (default: None)')

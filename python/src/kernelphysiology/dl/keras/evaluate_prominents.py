@@ -24,66 +24,66 @@ from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust
 from kernelphysiology.utils.imutils import random_occlusion
 
 
-def occlusion_preprocessing(img, var, preprocessing_function=None):
+def occlusion_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
     img = random_occlusion(img, object_instances=1, object_ratio=var) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def speckle_noise_preprocessing(img, var, preprocessing_function=None):
-    img = speckle_noise(img, var) * 255
+def speckle_noise_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
+    img = speckle_noise(img, var, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def s_p_noise_preprocessing(img, amount, preprocessing_function=None):
-    img = s_p_noise(img, amount) * 255
+def s_p_noise_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+    img = s_p_noise(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def poisson_noise_preprocessing(img, _, preprocessing_function=None):
-    img = poisson_noise(img) * 255
+def poisson_noise_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+    img = poisson_noise(img, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def gaussian_noise_preprocessing(img, var, preprocessing_function=None):
-    img = gaussian_noise(img, var) * 255
+def gaussian_noise_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
+    img = gaussian_noise(img, var, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def colour_constancy_preprocessing(img, illuminant, preprocessing_function=None):
+def colour_constancy_preprocessing(img, illuminant, mask_radius=None, preprocessing_function=None):
     # FIXME: for now it's only one channel, make it a loop for all channels
     illuminant = (illuminant, 1, 1)
-    img = adjust_illuminant(img, illuminant) * 255
+    img = adjust_illuminant(img, illuminant, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def gamma_preprocessing(img, amount, preprocessing_function=None):
-    img = adjust_gamma(img, amount) * 255
+def gamma_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+    img = adjust_gamma(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def gaussian_preprocessing(img, sigma, preprocessing_function=None):
-    img = gaussian_blur(img, sigma) * 255
+def gaussian_preprocessing(img, sigma, mask_radius=None, preprocessing_function=None):
+    img = gaussian_blur(img, sigma, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def contrast_preprocessing(img, contrast, preprocessing_function=None):
-    img = adjust_contrast(img, contrast) * 255
+def contrast_preprocessing(img, contrast, mask_radius=None, preprocessing_function=None):
+    img = adjust_contrast(img, contrast, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -147,7 +147,7 @@ if __name__ == "__main__":
         args = which_network(args, network_name)
         for i, manipulation_value in enumerate(image_manipulation_values):
             preprocessing = args.preprocessings[j]
-            current_manipulation_preprocessing = lambda img : image_manipulation_function(img, manipulation_value, 
+            current_manipulation_preprocessing = lambda img : image_manipulation_function(img, manipulation_value, mask_radius=args.mask_radius,
                                                                                           preprocessing_function=get_preprocessing_function(preprocessing))
             args.validation_preprocessing_function = current_manipulation_preprocessing
 
