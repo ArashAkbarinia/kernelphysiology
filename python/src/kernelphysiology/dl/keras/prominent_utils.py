@@ -195,7 +195,7 @@ def activation_arg_parser(argvs):
 def test_arg_parser(argvs):
     parser = common_arg_parser('Test prominent nets of Keras for different contrasts.')
     parser.add_argument('--crop_type', type=str, default='none', choices=['random', 'centre','none'], help='What type of crop (default: none)')
-   parser.add_argument('--mask_radius', type=float, default=None, help='Apply image destortion to this radius from centre (default: None)')
+    parser.add_argument('--mask_radius', type=float, default=None, help='Apply image destortion to this radius from centre (default: None)')
 
     image_degradation_group = parser.add_mutually_exclusive_group()
     image_degradation_group.add_argument('--contrasts', nargs='+', type=float, default=None, help='List of contrasts to be evaluated (default: None)')
