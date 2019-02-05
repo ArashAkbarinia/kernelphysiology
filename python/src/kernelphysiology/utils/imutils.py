@@ -30,14 +30,16 @@ def im2double(image):
 
 
 def create_mask_image(image, mask_radius=None):
-    if mask_radius is not None:
+    if mask_radius is not None and mask_radius != 0:
         image_mask = np.zeros(image.shape, np.uint8)
+        radius_sign = np.sign(mask_radius)
         (rows, cols, chns) = image.shape
         smaller_side = np.minimum(rows, cols)
         mask_radius = int(math.floor(mask_radius * smaller_side))
         centre = (int(math.floor(rows / 2)), int(math.floor(cols / 2)))
         image_mask = cv2.circle(image_mask, centre, mask_radius, (1, 1, 1), -1)
-        image_mask = 1 - image_mask
+        if radius_sign == 1:
+            image_mask = 1 - image_mask
     else:
         image_mask = np.zeros(image.shape, np.uint8)
     return image_mask

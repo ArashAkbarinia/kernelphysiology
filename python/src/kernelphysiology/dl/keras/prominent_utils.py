@@ -49,6 +49,9 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
         order_augmentatoin = augmentation_types[rand_inds]
 
     for aug_type in order_augmentatoin:
+        if mask_radius is not None:
+            mask_radius = np.sign(mask_radius) * np.random.uniform(np.array([0, abs(mask_radius)]))
+
         if aug_type == 'blur' and gaussian_sigma_range is not None:
             img = convert_to_uni8(gaussian_blur(img, np.random.uniform(*gaussian_sigma_range), mask_radius=mask_radius))
         elif aug_type == 'illuminant' and illuminant_range is not None:
@@ -121,6 +124,7 @@ def prepare_train_augmentation(args):
                                                                                  poisson_range=args.poisson_noise,
                                                                                  speckle_range=args.speckle_amount,
                                                                                  gamma_range=args.gamma_range,
+                                                                                 mask_radius=args.mask_radius,
                                                                                  preprocessing_function=get_preprocessing_function(args.preprocessing))
     else:
         current_augmentation_preprocessing = get_preprocessing_function(args.preprocessing)
@@ -279,6 +283,7 @@ def train_arg_parser(argvs):
     our_augmentation_group.add_argument('--speckle_amount', type=float, default=None, help='Speckle noise upper limit (default: None)')
     our_augmentation_group.add_argument('--gamma_range', nargs='+', type=float, default=None, help='Gamma lower and upper limits (default: None)')
     our_augmentation_group.add_argument('--poisson_noise', action='store_true', default=False, help='Poisson noise (default: False)')
+    our_augmentation_group.add_argument('--mask_radius', type=float, default=None, help='Augmentation within this radius (default: None)')
 
     return check_training_args(parser, argvs)
 
