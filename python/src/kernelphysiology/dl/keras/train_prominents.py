@@ -125,7 +125,7 @@ def start_training_generator(args):
     model = initialse_weights(model, args)
     # set which layers are trainable or untrainable
     model = handle_trainability(model, args)
-    model.summary(print_fn=logger.info)
+    model.summary(print_fn=logging.info)
 
     if len(args.gpus) == 1:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
