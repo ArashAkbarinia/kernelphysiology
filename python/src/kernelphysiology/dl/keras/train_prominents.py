@@ -39,6 +39,7 @@ def read_trainability(layer_arg):
             lines = f.readlines()
             for line in lines:
                 layers.append(line.strip())
+        return layers
     else:
         return layer_arg
 
