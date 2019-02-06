@@ -39,7 +39,7 @@ def create_mask_image(image, mask_radius=None):
         (rows, cols, chns) = image.shape
         smaller_side = np.minimum(rows, cols)
         mask_radius = int(math.floor(mask_radius * smaller_side))
-        if amask_radius > 3:
+        if mask_radius > 3:
             centre = (int(math.floor(rows / 2)), int(math.floor(cols / 2)))
             image_mask = cv2.circle(image_mask, centre, mask_radius, (1, 1, 1), -1)
             if radius_sign == 1:
