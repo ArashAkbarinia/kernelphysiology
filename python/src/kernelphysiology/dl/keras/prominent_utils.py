@@ -50,7 +50,7 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
 
     for aug_type in order_augmentatoin:
         if mask_radius is not None:
-            mask_radius = np.sign(mask_radius) * np.random.uniform(np.array([0, abs(mask_radius)]))
+            mask_radius = np.sign(mask_radius) * np.random.uniform(0, abs(mask_radius))
 
         if aug_type == 'blur' and gaussian_sigma_range is not None:
             img = convert_to_uni8(gaussian_blur(img, np.random.uniform(*gaussian_sigma_range), mask_radius=mask_radius))
