@@ -225,6 +225,8 @@ def train_arg_parser(argvs):
     # better handling the parameters, e.g. pretrained ones are only for imagenet
     architecture_group = parser.add_argument_group('architecture')
     architecture_group.add_argument('--area1layers', type=int, default=None, help='The number of layers in area 1 (default: None)')
+
+    trainable_group = architecture_group.add_argument_group('layers')
     trainable_group = trainable_group.add_mutually_exclusive_group()
     trainable_group.add_argument('--trainable_layers', type=str, default=None, help='Which layerst to train (default: all layers)')
     trainable_group.add_argument('--untrainable_layers', type=str, default=None, help='Which layerst not to train (default: None)')
