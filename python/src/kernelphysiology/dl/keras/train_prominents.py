@@ -32,6 +32,34 @@ def lr_metric_call_back(optimizer):
     return lr
 
 
+def read_trainability(layer_arg):
+    if os.path.isfile(layer_arg):
+        layers = []
+        with open(layer_arg) as f:
+            lines = f.readlines()
+            for line in lines:
+                layers.append(line.strip())
+    else:
+        return layer_arg
+
+
+def handle_trainability(model, args):
+    if args.trainable_layers is not None:
+        layers = read_trainability(args.trainable_layers)
+        trainable_bool = True
+    elif args.untrainable_layers is not None:
+        layers = read_trainability(args.untrainable_layers)
+        trainable_bool = False
+    else:
+        return model
+    for layer in model.layers:
+        if layer.name in layers:
+            layer.trainable = trainable_bool
+        else:
+            layer.trainable = not trainable_bool
+    return model
+
+
 def start_training_generator(args):
     args.log_dir = os.path.join(args.save_dir, args.model_name)
     if not os.path.isdir(args.log_dir):
@@ -94,6 +122,9 @@ def start_training_generator(args):
     model = args.model
     # initialising the network with specific weights
     model = initialse_weights(model, args)
+    # set which layers are trainable or untrainable
+    model = handle_trainability(model, args)
+    model.summary(print_fn=logger.info)
 
     if len(args.gpus) == 1:
         model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
