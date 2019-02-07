@@ -124,41 +124,41 @@ def adjust_illuminant(image, illuminant, pixel_variatoin=0, mask_radius=None):
 
 
 def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True, mask_radius=None):
-    out = im2double(image)
+    image = im2double(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(out, mode='s&p', seed=seed, clip=clip, salt_vs_pepper=salt_vs_pepper, amount=amount)
+    image_noise = random_noise(image, mode='s&p', seed=seed, clip=clip, salt_vs_pepper=salt_vs_pepper, amount=amount)
     output = image_org * image_mask + image_noise * (1 - image_mask)
     return output
 
 
 def speckle_noise(image, var, seed=None, clip=True, mask_radius=None):
-    out = im2double(image)
+    image = im2double(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(out, mode='speckle', seed=seed, clip=clip, var=var)
+    image_noise = random_noise(image, mode='speckle', seed=seed, clip=clip, var=var)
     output = image_org * image_mask + image_noise * (1 - image_mask)
     return output
 
 
 def gaussian_noise(image, var, seed=None, clip=True, mask_radius=None):
-    out = im2double(image)
+    image = im2double(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(out, mode='gaussian', seed=seed, clip=clip, var=var)
+    image_noise = random_noise(image, mode='gaussian', seed=seed, clip=clip, var=var)
     output = image_org * image_mask + image_noise * (1 - image_mask)
     return output
 
 
 def poisson_noise(image, seed=None, clip=True, mask_radius=None):
-    out = im2double(image)
+    image = im2double(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(out, mode='poisson', seed=seed, clip=clip)
+    image_noise = random_noise(image, mode='poisson', seed=seed, clip=clip)
     output = image_org * image_mask + image_noise * (1 - image_mask)
     return output
 
