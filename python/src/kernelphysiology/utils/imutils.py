@@ -4,7 +4,7 @@ Utility functoins for image processing.
 
 
 from skimage.util import random_noise
-from skimage.color import rgb2gray
+from skimage.color import rgb2gray, rgb2lab, lab2rgb
 from skimage.draw import rectangle
 
 import numpy as np
@@ -45,6 +45,50 @@ def create_mask_image(image, mask_radius=None):
             if radius_sign == 1:
                 image_mask = 1 - image_mask
     return image_mask
+
+
+def reduce_red_green(image, amount):
+    assert(amount >= 0.0), 'amount too low.
+    assert(amount <= 1.0), 'amount too high.'
+
+    image = im2double(image)
+    image_lab = rgb2lab(image)
+    image_lab[:, :, 1] *= amount
+    output = lab2rgb(image_lab)
+    return output
+
+
+def reduce_yellow_blue(image, amount):
+    assert(amount >= 0.0), 'amount too low.
+    assert(amount <= 1.0), 'amount too high.'
+
+    image = im2double(image)
+    image_lab = rgb2lab(image)
+    image_lab[:, :, 2] *= amount
+    output = lab2rgb(image_lab)
+    return output
+
+
+def reduce_chromacity(image, amount):
+    assert(amount >= 0.0), 'amount too low.
+    assert(amount <= 1.0), 'amount too high.'
+
+    image = im2double(image)
+    image_lab = rgb2lab(image)
+    image_lab[:, :, 1:3] *= amount
+    output = lab2rgb(image_lab)
+    return output
+
+
+def reduce_lightness(image, amount):
+    assert(amount >= 0.0), 'amount too low.
+    assert(amount <= 1.0), 'amount too high.'
+
+    image = im2double(image)
+    image_lab = rgb2lab(image)
+    image_lab[:, :, 0] = ((1 - amount) / 2 + np.multiply(im_lab[:, :, 0] / 100, amount)) * 100
+    output = lab2rgb(image_lab)
+    return output
 
 
 def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
