@@ -48,7 +48,7 @@ def create_mask_image(image, mask_radius=None):
 
 
 def reduce_red_green(image, amount):
-    assert(amount >= 0.0), 'amount too low.
+    assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
 
     image = im2double(image)
@@ -59,7 +59,7 @@ def reduce_red_green(image, amount):
 
 
 def reduce_yellow_blue(image, amount):
-    assert(amount >= 0.0), 'amount too low.
+    assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
 
     image = im2double(image)
@@ -70,7 +70,7 @@ def reduce_yellow_blue(image, amount):
 
 
 def reduce_chromacity(image, amount):
-    assert(amount >= 0.0), 'amount too low.
+    assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
 
     image = im2double(image)
@@ -81,7 +81,7 @@ def reduce_chromacity(image, amount):
 
 
 def reduce_lightness(image, amount):
-    assert(amount >= 0.0), 'amount too low.
+    assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
 
     image = im2double(image)
@@ -99,8 +99,8 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
     - contrast_level: a scalar in [0, 1]; with 1 -> full contrast
     """
 
-    assert(contrast_level >= 0.0), "contrast_level too low."
-    assert(contrast_level <= 1.0), "contrast_level too high."
+    assert(contrast_level >= 0.0), 'contrast_level too low.'
+    assert(contrast_level <= 1.0), 'contrast_level too high.'
 
     image = im2double(image)
     image_org = image.copy()
