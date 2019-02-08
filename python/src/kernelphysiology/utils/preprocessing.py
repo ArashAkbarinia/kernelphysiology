@@ -87,3 +87,45 @@ def contrast_preprocessing(img, contrast, mask_radius=None, preprocessing_functi
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
+
+
+def which_preprocessing(args):
+    # TODO: betetr handling of functions that can take more than one element
+    if args.contrasts is not None:
+        image_manipulation_type = 'contrast'
+        image_manipulation_values = np.array(args.contrasts)
+        image_manipulation_function = contrast_preprocessing
+    elif args.gaussian_sigma is not None:
+        image_manipulation_type = 'Gaussian'
+        image_manipulation_values = np.array(args.gaussian_sigma)
+        image_manipulation_function = gaussian_preprocessing
+    elif args.s_p_noise is not None:
+        image_manipulation_type = 'salt and pepper'
+        image_manipulation_values = np.array(args.s_p_noise)
+        image_manipulation_function = s_p_noise_preprocessing
+    elif args.speckle_noise is not None:
+        image_manipulation_type = 'speckle noise'
+        image_manipulation_values = np.array(args.speckle_noise)
+        image_manipulation_function = speckle_noise_preprocessing
+    elif args.gaussian_noise is not None:
+        image_manipulation_type = 'Gaussian noise'
+        image_manipulation_values = np.array(args.gaussian_noise)
+        image_manipulation_function = gaussian_noise_preprocessing
+    elif args.poisson_noise:
+        image_manipulation_type = 'Poisson noise'
+        image_manipulation_values = np.array([0])
+        image_manipulation_function = poisson_noise_preprocessing
+    elif args.gammas is not None:
+        image_manipulation_type = 'gamma'
+        image_manipulation_values = np.array(args.gammas)
+        image_manipulation_function = gamma_preprocessing
+        # FIXME: for now it's only one channel, make it a loop for all channels
+    elif args.illuminants is not None:
+        image_manipulation_type = 'illuminants'
+        image_manipulation_values = np.array(args.illuminants)
+        image_manipulation_function = colour_constancy_preprocessing
+    elif args.occlusion is not None:
+        image_manipulation_type = 'occlusion'
+        image_manipulation_values = np.array(args.occlusion)
+        image_manipulation_function = occlusion_preprocessing
+    return (image_manipulation_type, image_manipulation_values, image_manipulation_function)

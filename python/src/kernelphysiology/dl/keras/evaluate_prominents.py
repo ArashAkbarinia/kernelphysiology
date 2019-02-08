@@ -22,7 +22,7 @@ from kernelphysiology.utils.imutils import gaussian_blur, gaussian_noise
 from kernelphysiology.utils.imutils import s_p_noise, speckle_noise, poisson_noise
 from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
 from kernelphysiology.utils.imutils import random_occlusion
-from kernelphysiology.utils import preprocessing
+from kernelphysiology.utils.preprocessing import which_preprocessing
 
 
 if __name__ == "__main__":
@@ -35,44 +35,7 @@ if __name__ == "__main__":
 
     dataset_name = args.dataset.lower()
 
-    # TODO: betetr handling of functions that can take more than one element
-    if args.contrasts is not None:
-        image_manipulation_type = 'contrast'
-        image_manipulation_values = np.array(args.contrasts)
-        image_manipulation_function = preprocessing.contrast_preprocessing
-    elif args.gaussian_sigma is not None:
-        image_manipulation_type = 'Gaussian'
-        image_manipulation_values = np.array(args.gaussian_sigma)
-        image_manipulation_function = preprocessing.gaussian_preprocessing
-    elif args.s_p_noise is not None:
-        image_manipulation_type = 'salt and pepper'
-        image_manipulation_values = np.array(args.s_p_noise)
-        image_manipulation_function = preprocessing.s_p_noise_preprocessing
-    elif args.speckle_noise is not None:
-        image_manipulation_type = 'speckle noise'
-        image_manipulation_values = np.array(args.speckle_noise)
-        image_manipulation_function = preprocessing.speckle_noise_preprocessing
-    elif args.gaussian_noise is not None:
-        image_manipulation_type = 'Gaussian noise'
-        image_manipulation_values = np.array(args.gaussian_noise)
-        image_manipulation_function = preprocessing.gaussian_noise_preprocessing
-    elif args.poisson_noise:
-        image_manipulation_type = 'Poisson noise'
-        image_manipulation_values = np.array([0])
-        image_manipulation_function = preprocessing.poisson_noise_preprocessing
-    elif args.gammas is not None:
-        image_manipulation_type = 'gamma'
-        image_manipulation_values = np.array(args.gammas)
-        image_manipulation_function = preprocessing.gamma_preprocessing
-        # FIXME: for now it's only one channel, make it a loop for all channels
-    elif args.illuminants is not None:
-        image_manipulation_type = 'illuminants'
-        image_manipulation_values = np.array(args.illuminants)
-        image_manipulation_function = preprocessing.colour_constancy_preprocessing
-    elif args.occlusion is not None:
-        image_manipulation_type = 'occlusion'
-        image_manipulation_values = np.array(args.occlusion)
-        image_manipulation_function = preprocessing.occlusion_preprocessing
+    (image_manipulation_type, image_manipulation_values, image_manipulation_function) = which_preprocessing(args)
 
     results_top1 = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
     results_topk = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
