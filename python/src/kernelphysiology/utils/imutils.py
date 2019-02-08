@@ -47,7 +47,7 @@ def create_mask_image(image, mask_radius=None):
     return image_mask
 
 
-def reduce_red_green(image, amount):
+def reduce_red_green(image, amount, mask_radius=None):
     assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
 
@@ -58,7 +58,7 @@ def reduce_red_green(image, amount):
     return output
 
 
-def reduce_yellow_blue(image, amount):
+def reduce_yellow_blue(image, amount, mask_radius=None):
     assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
 
@@ -69,7 +69,7 @@ def reduce_yellow_blue(image, amount):
     return output
 
 
-def reduce_chromacity(image, amount):
+def reduce_chromacity(image, amount, mask_radius=None):
     assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
 
@@ -80,7 +80,7 @@ def reduce_chromacity(image, amount):
     return output
 
 
-def reduce_lightness(image, amount):
+def reduce_lightness(image, amount, mask_radius=None):
     assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
 

@@ -80,7 +80,7 @@ def test_prominent_prepares(args):
         dirname = args.network_name
         output_dir = os.path.join(dirname, args.experiment_name)
         create_dir(output_dir)
-        output_file = os.path.join(output_dir, 'contrast_results')
+        output_file = os.path.join(output_dir, 'results_')
         networks = sorted(glob.glob(dirname + '*.h5'))
         preprocessings = [args.preprocessing] * len(networks)
     elif os.path.isfile(args.network_name):
@@ -103,7 +103,7 @@ def test_prominent_prepares(args):
         current_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
         output_dir = args.experiment_name
         create_dir(output_dir)
-        output_file = os.path.join(output_dir, 'contrast_results' + current_time)
+        output_file = os.path.join(output_dir, 'results_' + current_time)
 
     args.networks = networks
     args.preprocessings = preprocessings
@@ -198,7 +198,7 @@ def activation_arg_parser(argvs):
 
 def test_arg_parser(argvs):
     parser = common_arg_parser('Test prominent nets of Keras for different contrasts.')
-    parser.add_argument('--crop_type', type=str, default='none', choices=['random', 'centre','none'], help='What type of crop (default: none)')
+    parser.add_argument('--crop_type', type=str, default='none', choices=['random', 'centre','none'], help='What type of crop (default: centre)')
     parser.add_argument('--mask_radius', type=float, default=None, help='Apply image destortion to this radius from centre (default: None)')
 
     image_degradation_group = parser.add_mutually_exclusive_group()
@@ -211,6 +211,10 @@ def test_arg_parser(argvs):
     image_degradation_group.add_argument('--gammas', nargs='+', type=float, default=None, help='List of gammas to be evaluated (default: None)')
     image_degradation_group.add_argument('--illuminants', nargs='+', type=float, default=None, help='List of illuminations to be evaluated (default: None)')
     image_degradation_group.add_argument('--occlusion', nargs='+', type=float, default=None, help='List of occlusions to be evaluated (default: None)')
+    image_degradation_group.add_argument('--chromacity', nargs='+', type=float, default=None, help='List of chromacity to be evaluated (default: None)')
+    image_degradation_group.add_argument('--red_green', nargs='+', type=float, default=None, help='List of red-green to be evaluated (default: None)')
+    image_degradation_group.add_argument('--yellow_blue', nargs='+', type=float, default=None, help='List of yellow-blue to be evaluated (default: None)')
+    image_degradation_group.add_argument('--lightness', nargs='+', type=float, default=None, help='List of lightness to be evaluated (default: None)')
 
     logging_group = parser.add_argument_group('logging')
     logging_group.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')
