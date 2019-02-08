@@ -14,46 +14,16 @@ import tensorflow as tf
 import keras
 from keras.utils import multi_gpu_model
 
-from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
-from kernelphysiology.dl.keras.prominent_utils import get_preprocessing_function, get_top_k_accuracy
-from kernelphysiology.dl.keras.prominent_utils import which_network, which_dataset
 from kernelphysiology.dl.keras.analysis.analysis_generator import predict_generator
-from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, s_p_noise, adjust_gamma, uniform_noise_colour
-
-
-def uniform_noise_preprocessing(img, width, preprocessing_function=None):
-    img = uniform_noise_colour(img, width, 1, np.random.RandomState(seed=1)) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def gamma_preprocessing(img, amount, preprocessing_function=None):
-    img = adjust_gamma(img, amount) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def s_p_preprocessing(img, amount, preprocessing_function=None):
-    img = s_p_noise(img, amount) # * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def gaussian_preprocessing(img, win_size, preprocessing_function=None):
-    img = gaussian_blur(img, win_size) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def contrast_preprocessing(img, contrast, preprocessing_function=None):
-    img = adjust_contrast(img, contrast) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
+from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
+from kernelphysiology.dl.keras.utils import get_top_k_accuracy
+from kernelphysiology.dl.keras.models.utils import which_network, get_preprocessing_function
+from kernelphysiology.dl.keras.datasets.utils import which_dataset
+from kernelphysiology.utils.imutils import gaussian_blur, gaussian_noise
+from kernelphysiology.utils.imutils import s_p_noise, speckle_noise, poisson_noise
+from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
+from kernelphysiology.utils.imutils import random_occlusion
+from kernelphysiology.utils.preprocessing import which_preprocessing
 
 
 def predict_network(args):
@@ -78,38 +48,33 @@ if __name__ == "__main__":
 
     dataset_name = args.dataset.lower()
 
-    # FIXME: all types of noise
-    contrasts = np.array(args.contrasts) / 100
-    results_top1 = np.zeros((contrasts.shape[0], len(args.networks)))
-    results_topk = np.zeros((contrasts.shape[0], len(args.networks)))
+    (image_manipulation_type, image_manipulation_values, image_manipulation_function) = which_preprocessing(args)
+
+    results_top1 = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
+    results_topk = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
+
     # maybe if only one preprocessing is used, the generators can be called only once
     for j, network_name in enumerate(args.networks):
         # w1hich architecture
         args = which_network(args, network_name)
-        for i, contrast in enumerate(contrasts):
+        for i, manipulation_value in enumerate(image_manipulation_values):
             preprocessing = args.preprocessings[j]
-#            current_contrast_preprocessing = lambda img : gaussian_preprocessing(img, win_size=(contrast, contrast),
-#                                                                                 preprocessing_function=get_preprocessing_function(preprocessing))
-#            current_contrast_preprocessing = lambda img : s_p_preprocessing(img, amount=contrast, 
-#                                                                            preprocessing_function=get_preprocessing_function(preprocessing))
-#            current_contrast_preprocessing = lambda img : gamma_preprocessing(img, amount=contrast, 
-#                                                                              preprocessing_function=get_preprocessing_function(preprocessing))
-#            current_contrast_preprocessing = lambda img : uniform_noise_preprocessing(img, width=contrast, 
-#                                                                                      preprocessing_function=get_preprocessing_function(preprocessing))
-            current_contrast_preprocessing = lambda img : contrast_preprocessing(img, contrast=contrast,
-                                                                                 preprocessing_function=get_preprocessing_function(preprocessing))
-            args.validation_preprocessing_function = current_contrast_preprocessing
+            current_manipulation_preprocessing = lambda img : image_manipulation_function(img, manipulation_value, mask_radius=args.mask_radius,
+                                                                                          preprocessing_function=get_preprocessing_function(preprocessing))
+            args.validation_preprocessing_function = current_manipulation_preprocessing
 
-            print('Processing network %s and contrast %f' % (network_name, contrast))
+            print('Processing network %s and %s %f' % (network_name, image_manipulation_type, manipulation_value))
 
             # which dataset
             # reading it after the model, because each might have their own
             # specific size
             args = which_dataset(args, dataset_name)
+            if args.validation_steps is None:
+                args.validation_steps = args.validation_samples / args.batch_size
 
             current_results = predict_network(args)
             current_results = np.array(current_results)
-            np.savetxt('%s_%d.csv' % (args.output_file, j), current_results, delimiter=',')
+            np.savetxt('%s_%s_%s_%s.csv' % (args.output_file, network_name, image_manipulation_type, str(manipulation_value)), current_results, delimiter=',')
 
             results_top1[i, j] = np.mean(current_results[:, 0])
             results_topk[i, j] = np.median(current_results[:, 0])
