@@ -22,71 +22,7 @@ from kernelphysiology.utils.imutils import gaussian_blur, gaussian_noise
 from kernelphysiology.utils.imutils import s_p_noise, speckle_noise, poisson_noise
 from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
 from kernelphysiology.utils.imutils import random_occlusion
-
-
-def occlusion_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
-    img = random_occlusion(img, object_instances=1, object_ratio=var) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def speckle_noise_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
-    img = speckle_noise(img, var, mask_radius=mask_radius) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def s_p_noise_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
-    img = s_p_noise(img, amount, mask_radius=mask_radius) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def poisson_noise_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
-    img = poisson_noise(img, mask_radius=mask_radius) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def gaussian_noise_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
-    img = gaussian_noise(img, var, mask_radius=mask_radius) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def colour_constancy_preprocessing(img, illuminant, mask_radius=None, preprocessing_function=None):
-    # FIXME: for now it's only one channel, make it a loop for all channels
-    illuminant = (illuminant, 1, 1)
-    img = adjust_illuminant(img, illuminant, mask_radius=mask_radius) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def gamma_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
-    img = adjust_gamma(img, amount, mask_radius=mask_radius) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def gaussian_preprocessing(img, sigma, mask_radius=None, preprocessing_function=None):
-    img = gaussian_blur(img, sigma, mask_radius=mask_radius) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
-
-
-def contrast_preprocessing(img, contrast, mask_radius=None, preprocessing_function=None):
-    img = adjust_contrast(img, contrast, mask_radius=mask_radius) * 255
-    if preprocessing_function:
-        img = preprocessing_function(img)
-    return img
+from kernelphysiology.utils import preprocessing
 
 
 if __name__ == "__main__":
@@ -103,40 +39,40 @@ if __name__ == "__main__":
     if args.contrasts is not None:
         image_manipulation_type = 'contrast'
         image_manipulation_values = np.array(args.contrasts)
-        image_manipulation_function = contrast_preprocessing
+        image_manipulation_function = preprocessing.contrast_preprocessing
     elif args.gaussian_sigma is not None:
         image_manipulation_type = 'Gaussian'
         image_manipulation_values = np.array(args.gaussian_sigma)
-        image_manipulation_function = gaussian_preprocessing
+        image_manipulation_function = preprocessing.gaussian_preprocessing
     elif args.s_p_noise is not None:
         image_manipulation_type = 'salt and pepper'
         image_manipulation_values = np.array(args.s_p_noise)
-        image_manipulation_function = s_p_noise_preprocessing
+        image_manipulation_function = preprocessing.s_p_noise_preprocessing
     elif args.speckle_noise is not None:
         image_manipulation_type = 'speckle noise'
         image_manipulation_values = np.array(args.speckle_noise)
-        image_manipulation_function = speckle_noise_preprocessing
+        image_manipulation_function = preprocessing.speckle_noise_preprocessing
     elif args.gaussian_noise is not None:
         image_manipulation_type = 'Gaussian noise'
         image_manipulation_values = np.array(args.gaussian_noise)
-        image_manipulation_function = gaussian_noise_preprocessing
+        image_manipulation_function = preprocessing.gaussian_noise_preprocessing
     elif args.poisson_noise:
         image_manipulation_type = 'Poisson noise'
         image_manipulation_values = np.array([0])
-        image_manipulation_function = poisson_noise_preprocessing
+        image_manipulation_function = preprocessing.poisson_noise_preprocessing
     elif args.gammas is not None:
         image_manipulation_type = 'gamma'
         image_manipulation_values = np.array(args.gammas)
-        image_manipulation_function = gamma_preprocessing
+        image_manipulation_function = preprocessing.gamma_preprocessing
         # FIXME: for now it's only one channel, make it a loop for all channels
     elif args.illuminants is not None:
         image_manipulation_type = 'illuminants'
         image_manipulation_values = np.array(args.illuminants)
-        image_manipulation_function = colour_constancy_preprocessing
+        image_manipulation_function = preprocessing.colour_constancy_preprocessing
     elif args.occlusion is not None:
         image_manipulation_type = 'occlusion'
         image_manipulation_values = np.array(args.occlusion)
-        image_manipulation_function = occlusion_preprocessing
+        image_manipulation_function = preprocessing.occlusion_preprocessing
 
     results_top1 = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
     results_topk = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
