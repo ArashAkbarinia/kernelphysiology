@@ -86,7 +86,7 @@ def reduce_lightness(image, amount, mask_radius=None):
 
     image = im2double(image)
     image_lab = rgb2lab(image)
-    image_lab[:, :, 0] = ((1 - amount) / 2 + np.multiply(im_lab[:, :, 0] / 100, amount)) * 100
+    image_lab[:, :, 0] = ((1 - amount) / 2 + np.multiply(image_lab[:, :, 0] / 100, amount)) * 100
     output = lab2rgb(image_lab)
     return output
 
