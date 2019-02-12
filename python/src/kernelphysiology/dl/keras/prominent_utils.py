@@ -82,10 +82,12 @@ def test_prominent_prepares(args):
         create_dir(output_dir)
         output_file = os.path.join(output_dir, 'results_')
         networks = sorted(glob.glob(dirname + '*.h5'))
+        network_names = []
         preprocessings = [args.preprocessing] * len(networks)
     elif os.path.isfile(args.network_name):
         networks = []
         preprocessings = []
+        network_names = []
         with open(args.network_name) as f:
             lines = f.readlines()
             for line in lines:
@@ -95,8 +97,12 @@ def test_prominent_prepares(args):
                     preprocessings.append(tokens[1])
                 else:
                     preprocessings.append(args.preprocessing)
+                # FIXME
+                if len(tokens) > 2:
+                    network_names.append(tokens[2])
     else:
         networks = [args.network_name.lower()]
+        network_names = [args.network_name.lower()]
         preprocessings = [args.preprocessing]
 
     if not output_file:
@@ -106,6 +112,7 @@ def test_prominent_prepares(args):
         output_file = os.path.join(output_dir, 'results_' + current_time)
 
     args.networks = networks
+    args.network_names = network_names
     args.preprocessings = preprocessings
     args.output_file = output_file
 

@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
             current_results = predict_network(args)
             current_results = np.array(current_results)
-            np.savetxt('%s_%s_%s_%s.csv' % (args.output_file, network_name, image_manipulation_type, str(manipulation_value)), current_results, delimiter=',')
+            np.savetxt('%s_%s_%s_%s.csv' % (args.output_file, args.network_names[j], image_manipulation_type, str(manipulation_value)), current_results, delimiter=',')
 
             results_top1[i, j] = np.mean(current_results[:, 0])
             results_topk[i, j] = np.median(current_results[:, 0])
