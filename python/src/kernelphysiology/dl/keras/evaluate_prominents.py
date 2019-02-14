@@ -18,10 +18,6 @@ from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, t
 from kernelphysiology.dl.keras.utils import get_top_k_accuracy
 from kernelphysiology.dl.keras.models.utils import which_network, get_preprocessing_function
 from kernelphysiology.dl.keras.datasets.utils import which_dataset
-from kernelphysiology.utils.imutils import gaussian_blur, gaussian_noise
-from kernelphysiology.utils.imutils import s_p_noise, speckle_noise, poisson_noise
-from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
-from kernelphysiology.utils.imutils import random_occlusion
 from kernelphysiology.utils.preprocessing import which_preprocessing
 
 
