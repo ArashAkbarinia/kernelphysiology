@@ -22,7 +22,8 @@ from kernelphysiology.utils.imutils import gaussian_blur, gaussian_noise
 from kernelphysiology.utils.imutils import s_p_noise, speckle_noise, poisson_noise
 from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
 from kernelphysiology.utils.imutils import random_occlusion, reduce_red_green, reduce_yellow_blue
-from kernelphysiology.utils.imutils import reduce_chromacity, reduce_lightness
+from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness
+from kernelphysiology.utils.imutils import invert_chromaticity, invert_colour_opponency, invert_lightness
 
 
 def occlusion_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
@@ -118,6 +119,27 @@ def lightness_preprocessing(img, amount, mask_radius=None, preprocessing_functio
     return img
 
 
+def invert_chromaticity_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+    img = invert_chromaticity(img, mask_radius=mask_radius) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
+def invert_opponency_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+    img = invert_colour_opponency(img, mask_radius=mask_radius) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
+def invert_lightness_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+    img = invert_lightness(img, mask_radius=mask_radius) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
 def which_preprocessing(args):
     # TODO: betetr handling of functions that can take more than one element
     if args.contrasts is not None:
@@ -166,11 +188,23 @@ def which_preprocessing(args):
         image_manipulation_values = np.array(args.yellow_blue)
         image_manipulation_function = yellow_blue_preprocessing
     elif args.chromacity is not None:
-        image_manipulation_type = 'chromacity'
+        image_manipulation_type = 'chromaticity'
         image_manipulation_values = np.array(args.chromacity)
         image_manipulation_function = chromacity_preprocessing
     elif args.lightness is not None:
         image_manipulation_type = 'lightness'
         image_manipulation_values = np.array(args.lightness)
         image_manipulation_function = lightness_preprocessing
+    elif args.invert_chromaticity:
+        image_manipulation_type = 'invert_chromaticity'
+        image_manipulation_values = np.array([0])
+        image_manipulation_function = invert_chromaticity_preprocessing
+    elif args.invert_opponency:
+        image_manipulation_type = 'invert_opponency'
+        image_manipulation_values = np.array([0])
+        image_manipulation_function = invert_opponency_preprocessing
+    elif args.invert_lightness:
+        image_manipulation_type = 'invert_lightness'
+        image_manipulation_values = np.array([0])
+        image_manipulation_function = invert_lightness_preprocessing
     return (image_manipulation_type, image_manipulation_values, image_manipulation_function)
