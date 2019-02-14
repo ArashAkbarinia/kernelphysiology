@@ -187,7 +187,7 @@ def which_preprocessing(args):
         image_manipulation_type = 'yellow_blue'
         image_manipulation_values = np.array(args.yellow_blue)
         image_manipulation_function = yellow_blue_preprocessing
-    elif args.chromacity is not None:
+    elif args.chromaticity is not None:
         image_manipulation_type = 'chromaticity'
         image_manipulation_values = np.array(args.chromacity)
         image_manipulation_function = chromacity_preprocessing
