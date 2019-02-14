@@ -47,6 +47,32 @@ def create_mask_image(image, mask_radius=None):
     return image_mask
 
 
+def invert_colour_opponency(image, mask_radius=None):
+    image = im2double(image)
+    image_lab = rgb2lab(image)
+    rg = image_lab[:, :, 1].copy()
+    image_lab[:, :, 1] = image_lab[:, :, 2].copy()
+    image_lab[:, :, 2] = rg
+    output = lab2rgb(image_lab)
+    return output
+
+
+def invert_chromaticity(image, mask_radius=None):
+    image = im2double(image)
+    image_lab = rgb2lab(image)
+    image_lab[:, :, 1:3] *= -1
+    output = lab2rgb(image_lab)
+    return output
+
+
+def invert_lightness(image, mask_radius=None):
+    image = im2double(image)
+    image_lab = rgb2lab(image)
+    image_lab[:, :, 0] = 100 - image_lab[:, :, 0]
+    output = lab2rgb(image_lab)
+    return output
+
+
 def reduce_red_green(image, amount, mask_radius=None):
     assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
@@ -69,7 +95,7 @@ def reduce_yellow_blue(image, amount, mask_radius=None):
     return output
 
 
-def reduce_chromacity(image, amount, mask_radius=None):
+def reduce_chromaticity(image, amount, mask_radius=None):
     assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
 
@@ -236,3 +262,12 @@ def local_std(image, window_size=(5, 5)):
     avg_image = cv2.filter2D(image, -1, kernel)
     std_image =  cv2.filter2D((image - avg_image) ** 2, -1, kernel) ** 0.5
     return (std_image, avg_image)
+
+
+def normalise_channel(x, low=0, high=1, minv=None, maxv=None):
+    if minv is None:
+        minv = x.min()
+    if maxv is None:
+        maxv = x.max()
+    output = low + (x - minv) * (high  - low) / (maxv - minv)
+    return output
