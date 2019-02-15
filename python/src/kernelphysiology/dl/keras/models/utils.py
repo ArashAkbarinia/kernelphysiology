@@ -11,6 +11,7 @@ from kernelphysiology.dl.keras.models import resnet50
 from kernelphysiology.dl.keras.models import inception_v3
 from kernelphysiology.dl.keras.models import vgg16, vgg19
 from kernelphysiology.dl.keras.models import densenet
+from kernelphysiology.dl.keras.models import mrcnn
 
 from kernelphysiology.dl.keras.datasets.utils import get_default_target_size, get_default_num_classes
 
@@ -34,7 +35,7 @@ def export_weights_to_model(weights_path, model_path, architecture, dataset, are
     model.save(model_path)
 
 
-def which_network(args, network_name):
+def which_network_classification(args, network_name):
     # if passed by name we assume the original architectures
     # TODO: make the arguments nicer so in this case no preprocessing can be passed
     # TODO: very ugly work around for target size and input shape
@@ -93,6 +94,25 @@ def which_network(args, network_name):
         args.model = kmodels.nasnet.NASNetLarge(input_shape=args.input_shape, weights='imagenet')
     else:
         args.model = keras.models.load_model(network_name, compile=False)
+    return args
+
+
+def which_network_detection(args, network_name):
+    log_dir = '/home/arash/Software/repositories/'
+    model = mrcnn.MaskRCNN(mode='inference', config=args.config, model_dir=log_dir)
+    #FIXME the path
+    model_path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/coco/mask_rcnn_coco.h5'
+    model.load_weights(model_path, by_name=True)
+    args.model = model
+    return args
+
+
+def which_network(args, network_name, task_type):
+    # FIXME: network should be acosiated to dataset
+    if task_type == 'classification':
+        args = which_network_classification(args, network_name)
+    elif task_type == 'detection':
+        args = which_network_detection(args, network_name)
     return args
 
 

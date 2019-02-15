@@ -8,9 +8,6 @@ import commons
 import socket
 import sys
 import os
-import numpy as np
-import skimage
-import logging
 
 from kernelphysiology.dl.keras.datasets.cifar import cifar_train
 from kernelphysiology.dl.keras.datasets.stl import stl_train
@@ -62,7 +59,7 @@ def get_default_num_classes(dataset):
 def get_default_target_size(dataset):
     if dataset == 'imagenet':
         target_size = 224
-    elif dataset == 'cifar10' or dataset == 'cifar100' or dataset == 'stl10':
+    elif 'cifar' in dataset or 'stl' in dataset:
         target_size = 32
     else:
         sys.exit('Default target_size is not defined for dataset %s' % (dataset))
@@ -92,14 +89,11 @@ def get_default_dataset_paths(args):
             args.data_dir = os.path.join(commons.python_root, 'data/datasets/stl/stl10/')
     if args.dataset == 'coco':
         # NOTE: just for the ease of working in my machiens
-        # FIXME
-        if args.train_dir is None:
-            args.train_dir = '/home/arash/Software/coco'
-        if args.validation_dir is None:
+        if args.data_dir is None:
             if socket.gethostname() == 'awesome' or socket.gethostname() == 'nickel':
-                args.validation_dir = '/home/arash/Software/coco/'
+                args.data_dir = '/home/arash/Software/coco/'
             else:
-                args.validation_dir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2012/raw-data/validation/'           
+                args.validation_dir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/coco/'           
     else:
         sys.exit('Unsupported dataset %s' % (args.dataset))
     return args

@@ -191,11 +191,13 @@ def common_arg_parser(description):
     parser.add_argument('--target_size', type=int, default=None, help='Target size (default: according to dataset)')
     parser.add_argument('--preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
     parser.add_argument('--top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
+    parser.add_argument('--task_type', type=str, default=None, help='The task to prform by network (default: None)')
 
     return parser
 
 
 def activation_arg_parser(argvs):
+    # FIXME: update activation pipeline
     parser = common_arg_parser('Analysing activation of prominent nets of Keras.')
 
     parser.add_argument('--contrasts', nargs='+', type=float, default=[1], help='List of contrasts to be evaluated (default: [1])')
@@ -314,6 +316,9 @@ def check_args(parser, argvs, script_type):
     args = parser.parse_args(argvs)
     args.script_type = script_type
 
+    # setting task type
+    args.task_type = check_task_type(args.dataset, args.task_type)
+
     # setting the target size
     if args.target_size is None:
         args.target_size = get_default_target_size(args.dataset)
@@ -331,7 +336,7 @@ def check_args(parser, argvs, script_type):
                 args.batch_size = 64
             if args.script_type == 'activation':
                 args.batch_size = 32
-        elif args.dataset == 'cifar10' or args.dataset == 'cifar100' or args.dataset == 'stl10':
+        elif 'cifar' in args.dataset or 'stl' in args.dataset:
             if args.script_type == 'training':
                 args.batch_size = 256
             if args.script_type == 'testing':
@@ -393,3 +398,15 @@ def check_training_args(parser, argvs):
             args.augmentation_types = np.array(augmentation_types)
 
     return args
+
+
+def check_task_type(dataset, task_type=None):
+    if 'imagenet' in dataset or 'cifar' in dataset or 'stl' in dataset:
+        if task_type is not None and task_type != 'classification':
+            warnings.warn('Invalid task_type %s: %s only supports classification' % (task_type, dataset))
+        task_type = 'classification'
+    elif 'coco' in dataset:
+        # TODO: ass other tasks as well
+        task_type = 'detection'
+        
+    return task_type

@@ -21,6 +21,37 @@ from kernelphysiology.dl.keras.datasets.utils import which_dataset
 from kernelphysiology.utils.preprocessing import which_preprocessing
 
 
+def evaluate_classification(args):
+    if args.validation_steps is None:
+        args.validation_steps = args.validation_samples / args.batch_size
+
+    top_k_acc = get_top_k_accuracy(args.top_k)
+    metrics = ['accuracy', top_k_acc]
+    opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
+    if len(args.gpus) == 1:
+        # the compilation being necessary is a bug of keras
+        args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+        current_results = args.model.evaluate_generator(generator=args.validation_generator, verbose=1,
+                                                        steps=args.validation_steps,
+                                                        workers=args.workers, use_multiprocessing=args.use_multiprocessing)
+    else:
+        with tf.device('/cpu:0'):
+            args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+        parallel_model = multi_gpu_model(args.model, gpus=args.gpus)
+        parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+        current_results = parallel_model.evaluate_generator(generator=args.validation_generator, verbose=1,
+                                                            steps=args.validation_steps,
+                                                            workers=args.workers, use_multiprocessing=args.use_multiprocessing)
+    return current_results
+
+
+def evaluate_detection(args):
+    # FIXME move it
+    # FIXME apecify which model is for which dataset
+    from kernelphysiology.dl.keras.datasets.coco.evaluation import evaluate_coco
+    evaluate_coco(args.model, args.dataset_val, args.coco, 'bbox', limit=10)
+
+
 if __name__ == "__main__":
     start_stamp = time.time()
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
@@ -33,12 +64,13 @@ if __name__ == "__main__":
 
     (image_manipulation_type, image_manipulation_values, image_manipulation_function) = which_preprocessing(args)
 
-    results_top1 = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
-    results_topk = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
+    if args.task_type == 'classification':
+        results_top1 = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
+        results_topk = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
 
     # maybe if only one preprocessing is used, the generators can be called only once
     for j, network_name in enumerate(args.networks):
-        # w1hich architecture
+        # which network
         args = which_network(args, network_name)
         for i, manipulation_value in enumerate(image_manipulation_values):
             preprocessing = args.preprocessings[j]
@@ -52,34 +84,18 @@ if __name__ == "__main__":
             # reading it after the model, because each might have their own
             # specific size
             args = which_dataset(args, dataset_name)
-            if args.validation_steps is None:
-                args.validation_steps = args.validation_samples / args.batch_size
+            if args.task_type == 'classification':
+                current_results = evaluate_classification(args)
+                results_top1[i, j] = current_results[1]
+                results_topk[i, j] = current_results[2]
 
-            top_k_acc = get_top_k_accuracy(args.top_k)
-            metrics = ['accuracy', top_k_acc]
-            opt = keras.optimizers.SGD(lr=1e-1, momentum=0.9, decay=1e-4)
-            if len(args.gpus) == 1:
-                # the compilation being necessary is a bug of keras
-                args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
-                current_results = args.model.evaluate_generator(generator=args.validation_generator, verbose=1,
-                                                                steps=args.validation_steps,
-                                                                workers=args.workers, use_multiprocessing=args.use_multiprocessing)
-            else:
-                with tf.device('/cpu:0'):
-                    args.model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
-                parallel_model = multi_gpu_model(args.model, gpus=args.gpus)
-                parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
-                current_results = parallel_model.evaluate_generator(generator=args.validation_generator, verbose=1,
-                                                                    steps=args.validation_steps,
-                                                                    workers=args.workers, use_multiprocessing=args.use_multiprocessing)
-            results_top1[i, j] = current_results[1]
-            results_topk[i, j] = current_results[2]
-
-            # saving the results in a CSV format
-            # it's redundant to store the results as each loop, but this is
-            # good for when it crashes
-            np.savetxt(args.output_file + '_top1.csv', results_top1, delimiter=',')
-            np.savetxt(args.output_file + '_top%d.csv' % args.top_k, results_topk, delimiter=',')
+                # saving the results in a CSV format
+                # it's redundant to store the results as each loop, but this is
+                # good for when it crashes
+                np.savetxt(args.output_file + '_top1.csv', results_top1, delimiter=',')
+                np.savetxt(args.output_file + '_top%d.csv' % args.top_k, results_topk, delimiter=',')
+            elif args.task_type == 'detection':
+                evaluate_detection(args)
 
     finish_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
     print('Finishing at: ' + finish_time)

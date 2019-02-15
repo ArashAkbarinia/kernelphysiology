@@ -10,7 +10,6 @@ from __future__ import print_function
 import commons
 
 from kernelphysiology.dl.keras.datasets.coco.utils import CocoDataset, CocoConfig
-from kernelphysiology.dl.keras.datasets.coco.evaluation import evaluate_coco
 
 
 def train_config(args):
@@ -77,19 +76,5 @@ def validation_config(args):
     args.validation_set = dataset_val
     args.config = config
     args.coco = coco
-
-    # FIXME move it
-    # FIXME apecify which model is for which dataset
-    from kernelphysiology.dl.keras.models import mrcnn as modellib
-    import os
-    args.save_dir = '/home/arash/Software/repositories/'
-    args.model_name = 'mrcnn'
-    args.log_dir = os.path.join(args.save_dir, args.model_name)
-    if not os.path.isdir(args.log_dir):
-        os.mkdir(args.log_dir)
-    model = modellib.MaskRCNN(mode='inference', config=config, model_dir=args.log_dir)
-    model_path = '/home/arash/Software/repositories/Mask_RCNN/mask_rcnn_coco.h5'
-    model.load_weights(model_path, by_name=True)
-    evaluate_coco(model, dataset_val, coco, 'bbox', limit=10)
 
     return args
