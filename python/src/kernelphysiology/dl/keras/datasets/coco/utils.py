@@ -4,9 +4,7 @@ Adapted from code originally written by Waleed Abdulla.
 '''
 
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+import commons
 
 import os
 import numpy as np
@@ -17,10 +15,10 @@ import shutil
 from pycocotools.coco import COCO
 from pycocotools import mask as maskUtils
 
-from kernelphysiology.dl.keras.datasets.utils import Dataset, Config
+from kernelphysiology.dl.keras.datasets import configs
 
 
-class CocoConfig(Config):
+class CocoConfig(configs.Config):
     """Configuration for training on MS COCO.
     Derives from the base Config class and overrides values specific
     to the COCO dataset.
@@ -39,7 +37,7 @@ class CocoConfig(Config):
     NUM_CLASSES = 1 + 80  # COCO has 80 classes
 
 
-class CocoDataset(Dataset):
+class CocoDataset(configs.Dataset):
     def load_coco(self, dataset_dir, subset, year=2017, class_ids=None,
                   class_map=None, return_coco=False, auto_download=False):
         """Load a subset of the COCO dataset.

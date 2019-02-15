@@ -27,7 +27,7 @@ def validation_config(args):
     config = InferenceConfig()
 
     dataset_val = CocoDataset()
-    val_type= 'val2017'
+    val_type= 'val'
     coco = dataset_val.load_coco(args.validation_dir, val_type, year=2017, return_coco=True, auto_download=False)
     dataset_val.prepare()
     args.validation_set = dataset_val
@@ -37,7 +37,13 @@ def validation_config(args):
     # FIXME move it
     # FIXME apecify which model is for which dataset
     from kernelphysiology.dl.keras.models import mrcnn as modellib
-    model = modellib.MaskRCNN(mode='inference', config=config, model_dir=args.logs)
+    import os
+    args.save_dir = '/home/arash/Software/repositories/'
+    args.model_name = 'mrcnn'
+    args.log_dir = os.path.join(args.save_dir, args.model_name)
+    if not os.path.isdir(args.log_dir):
+        os.mkdir(args.log_dir)
+    model = modellib.MaskRCNN(mode='inference', config=config, model_dir=args.log_dir)
     model_path = '/home/arash/Software/repositories/Mask_RCNN/mask_rcnn_coco.h5'
     model.load_weights(model_path, by_name=True)
     evaluate_coco(model, dataset_val, coco, 'bbox', limit=10)
