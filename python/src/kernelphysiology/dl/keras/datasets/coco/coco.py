@@ -28,13 +28,13 @@ def train_config(args):
     # Training dataset. Use the training set and 35K from the
     # validation set, as as in the Mask RCNN paper.
     dataset_train = CocoDataset()
-    dataset_train.load_coco(args.validation_dir, 'train', year=2017, auto_download=False)
+    dataset_train.load_coco(args.data_dir, 'train', year=2017, auto_download=False)
     dataset_train.prepare()
 
     # Validation dataset
     dataset_val = CocoDataset()
     val_type = 'val'
-    dataset_val.load_coco(args.validation_dir, val_type, year=2017, auto_download=False)
+    dataset_val.load_coco(args.data_dir, val_type, year=2017, auto_download=False)
     dataset_val.prepare()
 
     # Image Augmentation
@@ -71,7 +71,7 @@ def validation_config(args):
 
     dataset_val = CocoDataset()
     val_type= 'val'
-    coco = dataset_val.load_coco(args.validation_dir, val_type, year=2017, return_coco=True, auto_download=False)
+    coco = dataset_val.load_coco(args.data_dir, val_type, year=2017, return_coco=True, auto_download=False)
     dataset_val.prepare()
     args.validation_set = dataset_val
     args.config = config
