@@ -49,7 +49,7 @@ def evaluate_detection(args):
     # FIXME move it
     # FIXME apecify which model is for which dataset
     from kernelphysiology.dl.keras.datasets.coco.evaluation import evaluate_coco
-    evaluate_coco(args.model, args.dataset_val, args.coco, 'bbox', limit=10)
+    evaluate_coco(args.model, args.validation_set, args.coco, 'bbox', limit=10)
 
 
 if __name__ == "__main__":
@@ -70,6 +70,9 @@ if __name__ == "__main__":
 
     # maybe if only one preprocessing is used, the generators can be called only once
     for j, network_name in enumerate(args.networks):
+        # FIXME: reading the place of dataset
+        if args.task_type == 'detection':
+            args = which_dataset(args, dataset_name)
         # which network
         args = which_network(args, network_name, args.task_type)
         for i, manipulation_value in enumerate(image_manipulation_values):
@@ -83,8 +86,8 @@ if __name__ == "__main__":
             # which dataset
             # reading it after the model, because each might have their own
             # specific size
-            args = which_dataset(args, dataset_name)
             if args.task_type == 'classification':
+                args = which_dataset(args, dataset_name)
                 current_results = evaluate_classification(args)
                 results_top1[i, j] = current_results[1]
                 results_topk[i, j] = current_results[2]
