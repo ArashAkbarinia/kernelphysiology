@@ -87,7 +87,7 @@ def get_default_dataset_paths(args):
     elif args.dataset == 'stl10':
         if args.data_dir is None:
             args.data_dir = os.path.join(commons.python_root, 'data/datasets/stl/stl10/')
-    if args.dataset == 'coco':
+    elif args.dataset == 'coco':
         # NOTE: just for the ease of working in my machiens
         if args.data_dir is None:
             if socket.gethostname() == 'awesome' or socket.gethostname() == 'nickel':
