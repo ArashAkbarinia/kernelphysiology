@@ -105,8 +105,8 @@ def which_network_detection(args, network_name):
         model_path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/coco/mask_rcnn_coco.h5'
         model.load_weights(model_path, by_name=True)
     elif network_name == 'retinanet':
-        model_path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/coco/resnet50_coco_v2.1.0.h5'
-        model.load_weights(model_path, by_name=False)
+        model_path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/coco/retinanet_resnet50_coco_v2.h5'
+        model = keras.models.load_model(model_path)
     args.model = model
     return args
 
