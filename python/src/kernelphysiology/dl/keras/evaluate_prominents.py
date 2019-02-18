@@ -103,7 +103,7 @@ if __name__ == "__main__":
                 np.savetxt(args.output_file + '_top%d.csv' % args.top_k, results_topk, delimiter=',')
             elif args.task_type == 'detection':
                 current_results = evaluate_detection(args)
-                results_summary[i, :, j] = current_results
+                results_summary[i, j, :] = current_results
                 for k in range(num_results_report):
                     np.savetxt('%s_%02d.csv' % (args.output_file, k), results_summary[:, :, k], delimiter=',')
 
