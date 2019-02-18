@@ -98,11 +98,15 @@ def which_network_classification(args, network_name):
 
 
 def which_network_detection(args, network_name):
-    log_dir = '/home/arash/Software/repositories/'
-    model = mrcnn.MaskRCNN(mode='inference', config=args.config, model_dir=log_dir)
-    #FIXME the path
-    model_path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/coco/mask_rcnn_coco.h5'
-    model.load_weights(model_path, by_name=True)
+    if network_name == 'mrcnn':
+        log_dir = '/home/arash/Software/repositories/'
+        model = mrcnn.MaskRCNN(mode='inference', config=args.config, model_dir=log_dir)
+        #FIXME the path
+        model_path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/coco/mask_rcnn_coco.h5'
+        model.load_weights(model_path, by_name=True)
+    elif network_name == 'retinanet':
+        model_path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/coco/resnet50_coco_v2.1.0.h5'
+        model.load_weights(model_path, by_name=False)
     args.model = model
     return args
 
@@ -145,7 +149,7 @@ def get_preprocessing_function(preprocessing):
     # by default no preprocessing function
     preprocessing_function = None
     # switch case of preprocessing functions
-    if preprocessing == 'resnet50' or preprocessing == 'resnet20':
+    if 'resnet' in preprocessing or 'retinanet' in preprocessing:
         preprocessing_function = kmodels.resnet50.preprocess_input
     elif preprocessing == 'inception_v3':
         preprocessing_function = kmodels.inception_v3.preprocess_input
@@ -157,14 +161,14 @@ def get_preprocessing_function(preprocessing):
         preprocessing_function = kmodels.vgg16.preprocess_input
     elif preprocessing == 'vgg19':
         preprocessing_function = kmodels.vgg19.preprocess_input
-    elif preprocessing == 'densenet121' or preprocessing == 'densenet169' or preprocessing == 'densenet201':
+    elif 'densenet' in preprocessing:
         preprocessing_function = kmodels.densenet.preprocess_input
     elif preprocessing == 'mobilenet':
         preprocessing_function = kmodels.mobilenet.preprocess_input
     elif preprocessing == 'mobilenet_v2':
         # FIXME: compatibility with version 2.2.0
         preprocessing_function = kmodels.mobilenetv2.preprocess_input
-    elif preprocessing == 'nasnetmobile' or preprocessing == 'nasnetlarge':
+    elif 'nasnet' in preprocessing:
         preprocessing_function = kmodels.nasnet.preprocess_input
     elif preprocessing == 'mrcnn':
         preprocessing_function = None
