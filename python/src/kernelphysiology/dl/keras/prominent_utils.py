@@ -231,6 +231,7 @@ def test_arg_parser(argvs):
     image_degradation_group.add_argument('--invert_chromaticity', action='store_true', default=False, help='Inverting chromaticity to be evaluated (default: None)')
     image_degradation_group.add_argument('--invert_opponency', action='store_true', default=False, help='Inverting colour opponency to be evaluated (default: None)')
     image_degradation_group.add_argument('--invert_lightness', action='store_true', default=False, help='Inverting lightness to be evaluated (default: None)')
+    image_degradation_group.add_argument('--rotate_hue', nargs='+', type=float, default=None, help='Rotating hues to be evaluated (default: None)')
 
     logging_group = parser.add_argument_group('logging')
     logging_group.add_argument('--validation_steps', type=int, default=None, help='Number of steps for validations (default: number of samples divided by the batch size)')

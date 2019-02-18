@@ -73,6 +73,43 @@ def invert_lightness(image, mask_radius=None):
     return output
 
 
+# FIXME: move to colour spacs
+def cart2sph(x,y,z):
+    XsqPlusYsq = x**2 + y**2
+    r = np.sqrt(XsqPlusYsq + z**2)               # r
+    elev = np.arctan(z/np.sqrt(XsqPlusYsq))     # theta
+    az = np.arctan2(y,x)                           # phi
+    return np.array([r, az, elev])
+
+
+## Rotation matrix along the x axis (luminance axis)
+def rotation(X, teta): # rotation of a an image coded in color one opponent space around achromatic axis 
+    RM = np.array([[1,0,0],[0,np.cos(teta),-np.sin(teta)],[0,np.sin(teta),np.cos(teta)]])
+    return np.dot(X, RM.T)
+
+
+def rgb2pca(x):
+    M = np.array([[ 0.66666,  1,  -0.5],[ 0.66666,  0,  1],[ 0.66666,  -1,  -0.5]])
+    return np.dot(x, M)
+
+
+def pca2rgb(x):
+    M = np.array([[ 0.66666,  1,  -0.5],[ 0.66666,  0,  1],[ 0.66666,  -1,  -0.5]])
+    return np.dot(x, np.linalg.inv(M))
+
+
+def rotate_hue(image, hue_angle, mask_radius=None, norm_fact=0.4):
+    hue_angle = math.radians(hue_angle)
+    image = im2double(image) - 0.5
+    im_pca = rgb2pca(image)
+
+    # FIXME: this is a trick to avoid getting out of gamma
+    norm = norm_fact / np.amax(np.absolute(im_pca))
+
+    output = pca2rgb(rotation(im_pca * norm, hue_angle)) + 0.5
+    return output
+
+
 def reduce_red_green(image, amount, mask_radius=None):
     assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'

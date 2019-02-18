@@ -3,26 +3,13 @@ Preprocessing functions.
 '''
 
 
-import commons
-
-import sys
 import numpy as np
-import time
-import datetime
 
-import tensorflow as tf
-import keras
-from keras.utils import multi_gpu_model
-
-from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
-from kernelphysiology.dl.keras.utils import get_top_k_accuracy
-from kernelphysiology.dl.keras.models.utils import which_network, get_preprocessing_function
-from kernelphysiology.dl.keras.datasets.utils import which_dataset
 from kernelphysiology.utils.imutils import gaussian_blur, gaussian_noise
 from kernelphysiology.utils.imutils import s_p_noise, speckle_noise, poisson_noise
 from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
 from kernelphysiology.utils.imutils import random_occlusion, reduce_red_green, reduce_yellow_blue
-from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness
+from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness, rotate_hue
 from kernelphysiology.utils.imutils import invert_chromaticity, invert_colour_opponency, invert_lightness
 
 
@@ -106,7 +93,7 @@ def yellow_blue_preprocessing(img, amount, mask_radius=None, preprocessing_funct
 
 
 def chromacity_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
-    img = reduce_chromacity(img, amount, mask_radius=mask_radius) * 255
+    img = reduce_chromaticity(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -135,6 +122,13 @@ def invert_opponency_preprocessing(img, _, mask_radius=None, preprocessing_funct
 
 def invert_lightness_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
     img = invert_lightness(img, mask_radius=mask_radius) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
+def rotate_hue_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+    img = rotate_hue(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -207,4 +201,8 @@ def which_preprocessing(args):
         image_manipulation_type = 'invert_lightness'
         image_manipulation_values = np.array([0])
         image_manipulation_function = invert_lightness_preprocessing
+    elif args.rotate_hue is not None:
+        image_manipulation_type = 'rotate_hue'
+        image_manipulation_values = np.array(args.rotate_hue)
+        image_manipulation_function = rotate_hue_preprocessing
     return (image_manipulation_type, image_manipulation_values, image_manipulation_function)
