@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # maybe if only one preprocessing is used, the generators can be called only once
     for j, network_name in enumerate(args.networks):
         # w1hich architecture
-        args = which_network(args, network_name)
+        args = which_network(args, network_name, args.task_type)
         for i, manipulation_value in enumerate(image_manipulation_values):
             preprocessing = args.preprocessings[j]
             current_manipulation_preprocessing = lambda img : image_manipulation_function(img, manipulation_value, mask_radius=args.mask_radius,
