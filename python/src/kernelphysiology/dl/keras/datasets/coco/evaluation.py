@@ -27,17 +27,17 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
             mask = masks[:, :, i]
 
             result = {
-                "image_id": image_id,
-                "category_id": dataset.get_source_class_id(class_id, "coco"),
-                "bbox": [bbox[1], bbox[0], bbox[3] - bbox[1], bbox[2] - bbox[0]],
-                "score": score,
-                "segmentation": maskUtils.encode(np.asfortranarray(mask))
+                'image_id': image_id,
+                'category_id': dataset.get_source_class_id(class_id, 'coco'),
+                'bbox': [bbox[1], bbox[0], bbox[3] - bbox[1], bbox[2] - bbox[0]],
+                'score': score,
+                'segmentation': maskUtils.encode(np.asfortranarray(mask))
             }
             results.append(result)
     return results
 
 
-def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=None, preprocessing_function=None):
+def evaluate_coco(model, dataset, coco, eval_type='bbox', limit=None, image_ids=None, preprocessing_function=None):
     """Runs official COCO evaluation.
     dataset: A Dataset object with valiadtion data
     eval_type: "bbox" or "segm" for bounding box or segmentation evaluation
@@ -47,11 +47,11 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
     image_ids = image_ids or dataset.image_ids
 
     # Limit to a subset
-    if limit:
+    if limit is not None:
         image_ids = image_ids[:limit]
 
     # Get corresponding COCO image IDs.
-    coco_image_ids = [dataset.image_info[id]["id"] for id in image_ids]
+    coco_image_ids = [dataset.image_info[id]['id'] for id in image_ids]
 
     t_prediction = 0
     t_start = time.time()
@@ -71,9 +71,9 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
         # Convert results to COCO format
         # Cast masks to uint8 because COCO tools errors out on bool
         image_results = build_coco_results(dataset, coco_image_ids[i:i + 1],
-                                           r["rois"], r["class_ids"],
-                                           r["scores"],
-                                           r["masks"].astype(np.uint8))
+                                           r['rois'], r['class_ids'],
+                                           r['scores'],
+                                           r['masks'].astype(np.uint8))
         results.extend(image_results)
 
     # Load results. This modifies results with additional attributes.
@@ -88,3 +88,4 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
 
     print('Prediction time: {}. Average {}/image'.format(t_prediction, t_prediction / len(image_ids)))
     print('Total time: ', time.time() - t_start)
+    return cocoEval.stats
