@@ -103,6 +103,9 @@ def test_prominent_prepares(args):
     else:
         networks = [args.network_name.lower()]
         network_names = [args.network_name.lower()]
+        # choosing the preprocessing function
+        if not args.preprocessing:
+            args.preprocessing = args.network_name.lower()
         preprocessings = [args.preprocessing]
 
     if not output_file:
