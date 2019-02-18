@@ -49,7 +49,7 @@ def evaluate_detection(args):
     # FIXME move it
     # FIXME apecify which model is for which dataset
     from kernelphysiology.dl.keras.datasets.coco.evaluation import evaluate_coco
-    evaluate_coco(args.model, args.validation_set, args.coco, 'bbox', limit=10)
+    evaluate_coco(args.model, args.validation_set, args.coco, 'bbox', limit=10, preprocessing_function=args.validation_preprocessing_function)
 
 
 if __name__ == "__main__":

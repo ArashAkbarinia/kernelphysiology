@@ -70,8 +70,7 @@ def validation_config(args):
     config = InferenceConfig()
 
     dataset_val = CocoDataset()
-    val_type= 'val'
-    coco = dataset_val.load_coco(args.data_dir, val_type, year=2017, return_coco=True, auto_download=False)
+    coco = dataset_val.load_coco(args.data_dir, 'val', year=2017, return_coco=True, auto_download=False)
     dataset_val.prepare()
     args.validation_set = dataset_val
     args.config = config

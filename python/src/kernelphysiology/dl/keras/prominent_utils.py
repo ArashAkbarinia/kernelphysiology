@@ -164,7 +164,7 @@ def train_prominent_prepares(args):
 
     if args.load_weights is not None:
         # which network
-        args = which_network(args, args.load_weights)
+        args = which_network(args, args.load_weights, args.task_type)
     else:
         # which architecture
         args.model = which_architecture(args)
@@ -406,7 +406,6 @@ def check_task_type(dataset, task_type=None):
             warnings.warn('Invalid task_type %s: %s only supports classification' % (task_type, dataset))
         task_type = 'classification'
     elif 'coco' in dataset:
-        # TODO: ass other tasks as well
+        # TODO: add other tasks as well
         task_type = 'detection'
-        
     return task_type

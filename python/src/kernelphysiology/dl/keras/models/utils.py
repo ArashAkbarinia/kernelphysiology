@@ -142,6 +142,8 @@ def which_architecture(args):
 
 
 def get_preprocessing_function(preprocessing):
+    # by default no preprocessing function
+    preprocessing_function = None
     # switch case of preprocessing functions
     if preprocessing == 'resnet50' or preprocessing == 'resnet20':
         preprocessing_function = kmodels.resnet50.preprocess_input
@@ -164,4 +166,6 @@ def get_preprocessing_function(preprocessing):
         preprocessing_function = kmodels.mobilenetv2.preprocess_input
     elif preprocessing == 'nasnetmobile' or preprocessing == 'nasnetlarge':
         preprocessing_function = kmodels.nasnet.preprocess_input
+    elif preprocessing == 'mrcnn':
+        preprocessing_function = None
     return preprocessing_function

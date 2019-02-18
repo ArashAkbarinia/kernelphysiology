@@ -37,7 +37,7 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
     return results
 
 
-def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=None):
+def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=None, preprocessing_function=None):
     """Runs official COCO evaluation.
     dataset: A Dataset object with valiadtion data
     eval_type: "bbox" or "segm" for bounding box or segmentation evaluation
@@ -60,6 +60,8 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
     for i, image_id in enumerate(image_ids):
         # Load image
         image = dataset.load_image(image_id)
+        if preprocessing_function is not None:
+            image = preprocessing_function(image)
 
         # Run detection
         t = time.time()
@@ -84,6 +86,5 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
     cocoEval.accumulate()
     cocoEval.summarize()
 
-    print("Prediction time: {}. Average {}/image".format(
-        t_prediction, t_prediction / len(image_ids)))
-    print("Total time: ", time.time() - t_start)
+    print('Prediction time: {}. Average {}/image'.format(t_prediction, t_prediction / len(image_ids)))
+    print('Total time: ', time.time() - t_start)
