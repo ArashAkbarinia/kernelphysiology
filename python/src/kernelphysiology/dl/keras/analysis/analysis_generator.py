@@ -135,13 +135,13 @@ def multiple_models_generator(model1, model2, generator,
 
 
 # TODO: move me to correct place
-def top_k_accuracy(y_true, y_pred, k=1):
+def top_k_accuracy(y_true, y_pred, true_inds, k=1):
     '''
     From: https://github.com/chainer/chainer/issues/606
     Expects both y_true and y_pred to be one-hot encoded.
     '''
     argsorted_y = np.argsort(y_pred)[:,-k:]
-    return np.any(argsorted_y.T == y_true.argmax(axis=1), axis=0)
+    return np.any(argsorted_y.T == true_inds, axis=0)
 
 
 # TODO: better support of different metrics
@@ -218,9 +218,10 @@ def predict_generator(model, generator,
 
             y_pred = model.predict_on_batch(x)
             # comùting accuracy and label and setting it to output
+            true_inds = y.argmax(axis=1)
             outs = np.zeros((y_pred.shape[0], 3))
-            outs[:, 0] = top_k_accuracy(y, y_pred)
-            outs[:, 1] = top_k_accuracy(y, y_pred, metrics)
+            outs[:, 0] = top_k_accuracy(y, y_pred, true_inds)
+            outs[:, 1] = top_k_accuracy(y, y_pred, true_inds, metrics)
             outs[:, 2] = np.argmax(y_pred, axis=1)
 
             if not isinstance(outs, list):
