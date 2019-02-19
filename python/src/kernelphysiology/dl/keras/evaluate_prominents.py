@@ -49,7 +49,7 @@ def evaluate_classification(args):
 def evaluate_detection(args):
     # FIXME move it
     # FIXME apecify which model is for which dataset
-    current_results = evaluate_coco(args.model, args.validation_set, args.coco, 'bbox', limit=args.image_limit, preprocessing_function=args.validation_preprocessing_function)
+    current_results = evaluate_coco(args.model, args.validation_set, args.coco, ['bbox', 'segm'], limit=args.image_limit, preprocessing_function=args.validation_preprocessing_function)
     return current_results
 
 
@@ -70,7 +70,8 @@ if __name__ == "__main__":
         results_topk = np.zeros((image_manipulation_values.shape[0], len(args.networks)))
     elif args.task_type == 'detection':
         num_results_report = 12
-        results_summary = np.zeros((image_manipulation_values.shape[0], len(args.networks), num_results_report))
+        results_bbox = np.zeros((image_manipulation_values.shape[0], len(args.networks), num_results_report))
+        results_segm = np.zeros((image_manipulation_values.shape[0], len(args.networks), num_results_report))
 
     # maybe if only one preprocessing is used, the generators can be called only once
     for j, network_name in enumerate(args.networks):
@@ -103,9 +104,11 @@ if __name__ == "__main__":
                 np.savetxt(args.output_file + '_top%d.csv' % args.top_k, results_topk, delimiter=',')
             elif args.task_type == 'detection':
                 current_results = evaluate_detection(args)
-                results_summary[i, j, :] = current_results
+                results_bbox[i, j, :] = current_results[0]
+                results_segm[i, j, :] = current_results[1]
                 for k in range(num_results_report):
-                    np.savetxt('%s_%02d.csv' % (args.output_file, k), results_summary[:, :, k], delimiter=',')
+                    np.savetxt('%s_bbox%02d.csv' % (args.output_file, k), results_bbox[:, :, k], delimiter=',')
+                    np.savetxt('%s_segm%02d.csv' % (args.output_file, k), results_segm[:, :, k], delimiter=',')
 
     finish_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
     print('Finishing at: ' + finish_time)
