@@ -19,7 +19,7 @@ from keras.utils.generic_utils import to_list
 from scipy.stats import pearsonr
 
 
-#FIXME: this is copied from version 2.2.0
+# FIXME: it's broken this generator
 def multiple_models_generator(model1, model2, generator,
                       steps=None,
                       max_queue_size=10,
@@ -144,12 +144,14 @@ def top_k_accuracy(y_true, y_pred, k=1):
     return np.any(argsorted_y.T == y_true.argmax(axis=1), axis=0)
 
 
+# TODO: better support of different metrics
 def predict_generator(model, generator,
                       steps=None,
                       max_queue_size=10,
                       workers=1,
                       use_multiprocessing=False,
-                      verbose=0):
+                      verbose=0,
+                      metrics=5):
     """See docstring for `Model.predict_generator`."""
 #    model._make_predict_function()
 
@@ -215,10 +217,11 @@ def predict_generator(model, generator,
                 x = generator_output
 
             y_pred = model.predict_on_batch(x)
-            # TODO: for now only top 1 and top 5
-            outs = np.zeros((y_pred.shape[0], 2))
+            # comùting accuracy and label and setting it to output
+            outs = np.zeros((y_pred.shape[0], 3))
             outs[:, 0] = top_k_accuracy(y, y_pred)
-            outs[:, 1] = top_k_accuracy(y, y_pred, 5)
+            outs[:, 1] = top_k_accuracy(y, y_pred, metrics)
+            outs[:, 2] = np.argmax(y_pred, axis=1)
 
             if not isinstance(outs, list):
                 outs = [outs]
