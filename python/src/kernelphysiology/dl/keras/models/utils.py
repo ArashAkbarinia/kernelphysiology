@@ -7,7 +7,7 @@ import keras
 
 from keras import applications as kmodels
 
-from kernelphysiology.dl.keras.models import resnet50
+from kernelphysiology.dl.keras.models import resnet50, visual_netex
 from kernelphysiology.dl.keras.models import inception_v3
 from kernelphysiology.dl.keras.models import vgg16, vgg19
 from kernelphysiology.dl.keras.models import densenet
@@ -98,9 +98,9 @@ def which_network_classification(args, network_name):
 
 
 def which_network_detection(args, network_name):
+    log_dir = '/home/arash/Software/repositories/'
+    model = mrcnn.MaskRCNN(mode='inference', config=args.config, model_dir=log_dir)
     if network_name == 'mrcnn':
-        log_dir = '/home/arash/Software/repositories/'
-        model = mrcnn.MaskRCNN(mode='inference', config=args.config, model_dir=log_dir)
         #FIXME the path
         model_path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/coco/mask_rcnn_coco.h5'
         model.load_weights(model_path, by_name=True)
@@ -109,7 +109,7 @@ def which_network_detection(args, network_name):
         sys.path += ['/home/arash/Software/repositories/keras-retinanet/']
         from keras_retinanet.models import load_model as retina_load_model
         model_path = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/coco/retinanet_resnet50_coco_v2.h5'
-        model = retina_load_model(model_path)
+        model.keras_model = retina_load_model(model_path)
     args.model = model
     return args
 
@@ -126,7 +126,9 @@ def which_network(args, network_name, task_type):
 def which_architecture(args):
     # TODO: add other architectures of keras
     network_name = args.network_name
-    if network_name == 'resnet20':
+    if network_name == 'visual_netex':
+        model = visual_netex.VisualNetex(input_shape=args.input_shape, classes=args.num_classes)
+    elif network_name == 'resnet20':
         # FIXME: make it more generic
         # FIXME: add initialiser to ass architectures args.initialise
         from kernelphysiology.dl.keras.models import resnet
@@ -152,7 +154,9 @@ def get_preprocessing_function(preprocessing):
     # by default no preprocessing function
     preprocessing_function = None
     # switch case of preprocessing functions
-    if 'resnet' in preprocessing or 'retinanet' in preprocessing:
+    if preprocessing == 'visual_netex':
+        preprocessing_function = visual_netex.preprocess_input
+    elif 'resnet' in preprocessing or 'retinanet' in preprocessing:
         preprocessing_function = kmodels.resnet50.preprocess_input
     elif preprocessing == 'inception_v3':
         preprocessing_function = kmodels.inception_v3.preprocess_input

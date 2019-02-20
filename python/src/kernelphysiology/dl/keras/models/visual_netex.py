@@ -11,6 +11,7 @@ import os
 import warnings
 import math
 import numpy as np
+import string
 
 import keras
 from keras.layers import Input
@@ -19,7 +20,7 @@ from keras.layers.core import Lambda
 from keras.layers import Dense
 from keras.layers import Activation
 from keras.layers import Flatten
-from keras.layers import Conv2D
+from keras.layers import Conv2D, DepthwiseConv2D
 from keras.layers import MaxPooling2D
 from keras.layers import AveragePooling2D
 from keras.layers import GlobalAveragePooling2D
@@ -46,28 +47,35 @@ LGN_POPULATION = 32
 # TODO: As much as 95% of input in the LGN comes from the visual cortex
 
 
+class LayerContainer:
+    num_kernels = 0
+    rf_size = (3, 3)
+    strides = (1, 1)
+    activation_type = 'relu'
+    kernel_constraint = None
+    kernel_initializer = None
+    kernel_function = Conv2D
+    name = None
+
+    def __init__(self, name, kernel_initializer='he_normal'):
+        self.name = name
+        self.kernel_initializer = kernel_initializer
+
+
 def koniocellular(s_cone, rf_size=(3, 3), num_konio=math.ceil(0.8 * LGN_POPULATION),
                   kernel_initializer='he_normal'):
     # little known about them, a lot of speculation
-    if K.image_data_format() == 'channels_last':
-        bn_axis = 3
-    else:
-        bn_axis = 1
-    x = s_cone
-    kernel_constraint = None
-    name = 'koniocellular_cells'
-    activation_type = 'relu'
 
-    x = Conv2D(num_konio, rf_size, strides=(1, 1), kernel_constraint=kernel_constraint,
-               kernel_initializer=kernel_initializer, padding='same', name=name+'_conv')(x)
-    x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
-    x = Activation(activation_type, name=name+'_'+activation_type)(x)
+    l_konio = LayerContainer('koniocellular_cells', kernel_initializer)
+    l_konio.rf_size = rf_size
+    l_konio.num_kernels = num_konio
+    x = conv_norm_rect(s_cone, l_konio)
 
     # output of koniocellular contains 6 layers
-    name = 'lgn_k'
-    x = Conv2D(6, (1, 1), strides=(1, 1), name=name+'_conv')(x)
-    x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
-    x = Activation(activation_type, name=name+'_'+activation_type)(x)
+    l_lgn_k = LayerContainer('lgn_k', kernel_initializer)
+    l_lgn_k.rf_size = (1, 1)
+    l_lgn_k.num_kernels = 6
+    x = conv_norm_rect(x, l_lgn_k)
 
     return x
 
@@ -75,32 +83,22 @@ def koniocellular(s_cone, rf_size=(3, 3), num_konio=math.ceil(0.8 * LGN_POPULATI
 def parvocellular(lm_cones, rf_size=(3, 3), num_midget=math.ceil(0.8 * RGC_POPULATION),
                   num_parvo=math.ceil(0.8 * LGN_POPULATION), kernel_initializer='he_normal'):
     # about 80% of RGCs (at least 20 types) are midget cells
-    if K.image_data_format() == 'channels_last':
-        bn_axis = 3
-    else:
-        bn_axis = 1
-    x = lm_cones
-    kernel_constraint = None
-    name = 'midget_cells'
-    activation_type = 'relu'
 
-    x = Conv2D(num_midget, rf_size, strides=(1, 1), kernel_constraint=kernel_constraint,
-               kernel_initializer=kernel_initializer, padding='same', name=name+'_conv')(x)
-    x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
-    x = Activation(activation_type, name=name+'_'+activation_type)(x)
+    l_midget = LayerContainer('midget_cells', kernel_initializer)
+    l_midget.rf_size = rf_size
+    l_midget.num_kernels = num_midget
+    x = conv_norm_rect(lm_cones, l_midget)
 
     # parvocellular cells in lgn
-    name = 'parvocellular_cells'
-    x = Conv2D(num_parvo, rf_size, strides=(1, 1), kernel_constraint=kernel_constraint,
-               kernel_initializer=kernel_initializer, padding='same', name=name+'_conv')(x)
-    x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
-    x = Activation(activation_type, name=name+'_'+activation_type)(x)
+    l_parvo = LayerContainer('parvocellular_cells', kernel_initializer)
+    l_parvo.num_kernels = num_parvo
+    x = conv_norm_rect(x, l_parvo)
 
     # output of parvocellular contains 4 layers
-    name = 'lgn_p'
-    x = Conv2D(4, (1, 1), strides=(1, 1), name=name+'_conv')(x)
-    x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
-    x = Activation(activation_type, name=name+'_'+activation_type)(x)
+    l_lgn_p = LayerContainer('lgn_p', kernel_initializer)
+    l_lgn_p.rf_size = (1, 1)
+    l_lgn_p.num_kernels = 4
+    x = conv_norm_rect(x, l_lgn_p)
 
     return x
 
@@ -108,88 +106,121 @@ def parvocellular(lm_cones, rf_size=(3, 3), num_midget=math.ceil(0.8 * RGC_POPUL
 def magnocellular(lms_cones, rf_size=(7, 7), num_parasol=math.ceil(0.1 * RGC_POPULATION),
                   num_magno=math.ceil(0.1 * LGN_POPULATION), kernel_initializer='he_normal'):
     # about 10% of RGCs (at least 20 types) are parasol cells
-    if K.image_data_format() == 'channels_last':
-        bn_axis = 3
-    else:
-        bn_axis = 1
-    x = lms_cones
-    kernel_constraint = keras.constraints.NonNeg()
-    name = 'parasol_cells'
-    activation_type = 'relu'
 
-    x = Conv2D(num_parasol, rf_size, strides=(1, 1), kernel_constraint=kernel_constraint,
-               kernel_initializer=kernel_initializer, padding='same', name=name+'_conv')(x)
-    x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
-    # NOTE: given weights are none negative, activatoin might not be necessary
-    x = Activation(activation_type, name=name+'_'+activation_type)(x)
+    l_parasol = LayerContainer('parasol_cells', kernel_initializer)
+    l_parasol.rf_size = rf_size
+    l_parasol.num_kernels = num_parasol
+    l_parasol.kernel_constraint = keras.constraints.NonNeg()
+    x = conv_norm_rect(lms_cones, l_parasol)
 
     # magnocellular cells in lgn
-    name = 'magnocellular_cells'
-    kernel_constraint = None
-    x = Conv2D(num_magno, rf_size, strides=(1, 1), kernel_constraint=kernel_constraint,
-               kernel_initializer=kernel_initializer, padding='same', name=name+'_conv')(x)
-    x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
-    x = Activation(activation_type, name=name+'_'+activation_type)(x)
+    l_magno = LayerContainer('magnocellular_cells', kernel_initializer)
+    l_magno.rf_size = rf_size
+    l_magno.num_kernels = num_magno
+    x = conv_norm_rect(x, l_magno)
 
     # output of magnocellular contains 2 layers
-    name = 'lgn_m'
-    x = Conv2D(2, (1, 1), strides=(1, 1), name=name+'_conv')(x)
-    x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
-    x = Activation(activation_type, name=name+'_'+activation_type)(x)
+    l_lgn_m = LayerContainer('lgn_m', kernel_initializer)
+    l_lgn_m.rf_size = (1, 1)
+    l_lgn_m.num_kernels = 2
+    x = conv_norm_rect(x, l_lgn_m)
 
     return x
 
 
-def v1_layer(lgn, name, rf_size=(3, 3), strides=(1, 1), kernel_constraint=None,
-             activation_type='relu', num_kernels=16, kernel_initializer='he_normal'):
-    # little known about them, a lot of speculation
-    x = lgn
-    name = 'v1_' + name
+def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3):
+    # The superficial layer 1 has very few neurons but many axons, dendrites
+    # and synapses
+    l1 = LayerContainer('l01_a%02d' % (area_number))
+    l1.num_kernels = num_neurons_low
+    l1.rf_size = (rf_size_low, rf_size_low)
+#    l1.kernel_function = DepthwiseConv2D
+    x1 = conv_norm_rect(x[0], l1)
 
-    x = rf_pattern(x, num_kernels, rf_size, name, strides=strides, activation_type=activation_type)
+    # Layers 2 and 3 consists of a dense array of cell bodies and many local
+    # dendritic interconnections. These layers appear to receive a direct input
+    # from the intercalated layers of the lateral geniculate as well
+    # (Fitzpatrick et al., 1983; Hendry and Yoshioka, 1994), and the outputs
+    # from layers 2 and 3 are sent to other cortical areas
+    l2 = LayerContainer('l02_a%02d' % (area_number))
+    l2.num_kernels = num_neurons_low * 2
+    if x[1] is not None:
+        x2i = Concatenate(name='l02i_a%02d' % (area_number))([x1, x[1]])
+    else:
+        x2i = x1
+    x2 = conv_norm_rect(x2i, l2)
 
-    return x
+    l3 = LayerContainer('l03_a%02d' % (area_number))
+    l3.num_kernels = num_neurons_low * 2
+    if x[2] is not None:
+        x3i = Concatenate(name='l03i_a%02d' % (area_number))([x2, x[2]])
+    else:
+        x3i = x1
+    x3 = conv_norm_rect(x3i, l3)
+
+    # Layer 4 has been subdivided into several parts.It contains small,
+    # irregularily shaped nerve cells
+    if x[3] is not None:
+        x4i = Concatenate(name='l04i_a%02d' % (area_number))([x3, x[3]])
+    else:
+        x4i = x1
+    x4s = []
+    size_var = [0, 2]
+    k = 0
+    for i in size_var:
+        for j in size_var:
+            l4 = LayerContainer('l04%s_a%02d' % (string.ascii_lowercase[k], area_number))
+            l4.num_kernels = num_neurons_low
+            l4.rf_size = (rf_size_low + i, rf_size_low + j)
+            x4s.append(conv_norm_rect(x4i, l4))
+            k += 1
+    x4 = Concatenate(name='l04s_a%02d' % (area_number))(x4s)
+
+    # Layer 5 contains relatively few cell bodies compared to the surrounding
+    # layers.
+    l5 = LayerContainer('l05_a%02d' % (area_number))
+    l5.num_kernels = num_neurons_low * 2
+    if x[4] is not None:
+        x5i = Concatenate(name='l05i_a%02d' % (area_number))([x4, x[4]])
+    else:
+        x5i = x1
+    x5 = conv_norm_rect(x5i, l5)
+
+    # Layer 6 is dense with cells and sends a large output back to the lateral
+    # geniculate nucleus (Toyoma, 1969).
+    l6 = LayerContainer('l06_a%02d' % (area_number))
+    l6.num_kernels = num_neurons_low * 2
+    if x[5] is not None:
+        x6i = Concatenate(name='l06i_a%02d' % (area_number))([x5, x[5]])
+    else:
+        x6i = x1
+    x6 = conv_norm_rect(x6i, l6)
+
+    x_all = Concatenate(name='column_a%02d' % (area_number))([x1, x2, x3, x4, x5, x6])
+    l_all = LayerContainer('area%02d' % (area_number))
+    l_all.num_kernels = num_neurons_low * 2
+    l_all.rf_size = (1, 1)
+    x = conv_norm_rect(x_all, l_all)
+    return (x, x1, x2, x3, x4, x5, x6)
 
 
-def v2_layer(v1, lgn_output, name, rf_size=(3, 3), strides=(1, 1), kernel_constraint=None,
-             activation_type='relu', num_kernels=16, kernel_initializer='he_normal'):
-    # little known about them, a lot of speculation
-    x_lgn = MaxPooling2D((3, 3), strides=(2, 2), padding='same', name='v2_lgn_'+name)(lgn_output)
-    x_v1 = MaxPooling2D((3, 3), strides=(2, 2), padding='same', name='v2_v1_'+name)(v1)
-    x = Concatenate()([x_lgn, x_v1])
-    name = 'v2_' + name
+def conv_norm_rect(x, layer_info):
+    num_kernels = layer_info.num_kernels
+    rf_size = layer_info.rf_size
+    strides = layer_info.strides
+    kernel_constraint = layer_info.kernel_constraint
+    kernel_initializer = layer_info.kernel_initializer
+    name = layer_info.name
+    activation_type = layer_info.activation_type
 
-    x = rf_pattern(x, num_kernels, rf_size, name, strides=strides, activation_type=activation_type)
-
-    return x
-
-
-def v4_layer(v2, lgn_output, rf_size=(3, 3), strides=(1, 1), kernel_constraint=None,
-             activation_type='relu', num_kernels=16, kernel_initializer='he_normal'):
-    # little known about them, a lot of speculation
-    x_lgn = MaxPooling2D((9, 9), strides=(4, 4), padding='same', name='v4_lgn')(lgn_output)
-    x_v2 = MaxPooling2D((3, 3), strides=(2, 2), padding='same', name='v4_v2')(v2)
-    x = Concatenate()([x_lgn, x_v2])
-    name = 'v4'
-
-    x = rf_pattern(x, num_kernels, rf_size, name, strides=strides, activation_type=activation_type)
-
-    return x
-
-
-def rf_pattern(x, num_kernels, rf_size, name, strides=(1, 1), activation_type='relu',
-               kernel_constraint=None, kernel_initializer='he_normal'):
     if K.image_data_format() == 'channels_last':
         bn_axis = 3
     else:
         bn_axis = 1
-    x = Conv2D(num_kernels, rf_size, strides=strides, kernel_constraint=kernel_constraint,
-               kernel_initializer=kernel_initializer, padding='same', name=name+'_conv')(x)
-    x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
-    x = Activation(activation_type, name=name+'_'+activation_type)(x)
-
-    name = name + '_depth'
-    x = Conv2D(4, (1, 1), strides=(1, 1), name=name+'_conv')(x)
+    x = layer_info.kernel_function(num_kernels, rf_size, strides=strides,
+                                   kernel_constraint=kernel_constraint,
+                                   kernel_initializer=kernel_initializer,
+                                   padding='same', name=name+'_conv')(x)
     x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
     x = Activation(activation_type, name=name+'_'+activation_type)(x)
 
@@ -212,16 +243,14 @@ def VisualNetex(include_top=True, weights=None,
         if include_top and classes != 1000:
             raise ValueError('If using `weights` as imagenet with `include_top`'
                              ' as true, `classes` should be 1000')
-        default_size = 224
     elif weights == 'cifar10':
         if include_top and classes != 10:
             raise ValueError('If using `weights` as cifar10 with `include_top`'
                              ' as true, `classes` should be 10')
-        default_size = 32
 
     # Determine proper input shape
     input_shape = _obtain_input_shape(input_shape,
-                                      default_size=32,
+                                      default_size=224,
                                       min_size=32,
                                       data_format=K.image_data_format(),
                                       require_flatten=include_top,
@@ -250,41 +279,27 @@ def VisualNetex(include_top=True, weights=None,
     m_stream = magnocellular(x_lms)
     k_stream = koniocellular(x_s)
 
-    k_v1_layers = []
-    m_v1_layers = []
-    p_v1_layers = []
     lgn_output = Concatenate()([p_stream, m_stream, k_stream])
-    for l in range(6):
-        k_l = Lambda(lambda x : x[:, :, :, l:l+1], name='k' + str(l))(k_stream)
-        if l < 2:
-            m_l = Lambda(lambda x : x[:, :, :, l:l+1], name='m' + str(l))(m_stream)
-            m_v1_layers.append(v1_layer(m_l, 'm' + str(l)))
-            k_pm = Concatenate(name='k' + str(l) + 'm')([k_l, m_l])
-        else:
-            p_l = Lambda(lambda x : x[:, :, :, l-2:l-1], name='p' + str(l-2))(p_stream)
-            p_v1_layers.append(v1_layer(p_l, 'p' + str(l-2)))
-            k_pm = Concatenate(name='k' + str(l) + 'p')([k_l, p_l])
-        k_v1_layers.append(v1_layer(k_pm, 'k' + str(l)))
+    stream = [lgn_output, None, None, lgn_output, None, None]
+    a0s = a1s = a2s = a3s = a4s = a5s = a6s = []
+    for area_number in [1, 2, 4]:
+        stream = visual_areas(stream, area_number, num_neurons_low=4, rf_size_low=3)
+#        k_l = Lambda(lambda x : x[:, :, :, l:l+1], name='k' + str(l))(k_stream)
+#        if l < 2:
+#            m_l = Lambda(lambda x : x[:, :, :, l:l+1], name='m' + str(l))(m_stream)
+#            m_v1_layers.append(v1_layer(m_l, 'm' + str(l)))
+#            k_pm = Concatenate(name='k' + str(l) + 'm')([k_l, m_l])
+#        else:
+#            p_l = Lambda(lambda x : x[:, :, :, l-2:l-1], name='p' + str(l-2))(p_stream)
+#            p_v1_layers.append(v1_layer(p_l, 'p' + str(l-2)))
+#            k_pm = Concatenate(name='k' + str(l) + 'p')([k_l, p_l])
+#        k_v1_layers.append(v1_layer(k_pm, 'k' + str(l)))
 
-    # v1 outputs
-    k_v1_out = Concatenate()([*k_v1_layers])
-    m_v1_out = Concatenate()([*m_v1_layers])
-    p_v1_out = Concatenate()([*p_v1_layers])
-
-    # v2 outputs
-    k_v2_out = v2_layer(k_v1_out, lgn_output, 'k')
-    m_v2_out = v2_layer(m_v1_out, lgn_output, 'm')
-    p_v2_out = v2_layer(p_v1_out, lgn_output, 'p')
-
-    v2 = Concatenate(name='v2_kmp')([k_v2_out, m_v2_out, p_v2_out])
-
-    # v4 outputs
-    v4 = v4_layer(v2, lgn_output)
-    x = v4
+    x = stream[0]
 
     if include_top:
         x = GlobalAveragePooling2D(name='avg_pool')(x)
-        x = Dense(classes, activation='softmax', name='fc1000')(x)
+        x = Dense(classes, activation='softmax', name='fc' + str(classes))(x)
     else:
         if pooling == 'avg':
             x = GlobalAveragePooling2D()(x)
@@ -333,6 +348,5 @@ def VisualNetex(include_top=True, weights=None,
     elif weights is not None:
         model.load_weights(weights)
 
-    model.summary()
-    keras.utils.vis_utils.plot_model(model, to_file='/home/arash/Desktop/visual_netx.png')
+    keras.utils.vis_utils.plot_model(model, to_file='/home/arash/Software/repositories/visual_netx.png')
     return model
