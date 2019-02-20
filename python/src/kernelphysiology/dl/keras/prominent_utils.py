@@ -180,7 +180,7 @@ def common_arg_parser(description):
     parser.add_argument(dest='dataset', type=str, help='Which dataset to be used')
     parser.add_argument(dest='network_name', type=str, help='Which network to be used')
 
-    parser.add_argument('--name', dest='experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
+    parser.add_argument('--experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
 
     data_dir_group = parser.add_argument_group('data path')
     data_dir_group.add_argument('--data_dir', type=str, default=None, help='The path to the data directory (default: None)')

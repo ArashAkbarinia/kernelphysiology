@@ -13,6 +13,13 @@ from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness
 from kernelphysiology.utils.imutils import invert_chromaticity, invert_colour_opponency, invert_lightness
 
 
+# TODO: make it nicer, too much duplicate code
+def nothing_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
 def occlusion_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
     img = random_occlusion(img, object_instances=1, object_ratio=var) * 255
     if preprocessing_function:
@@ -183,7 +190,7 @@ def which_preprocessing(args):
         image_manipulation_function = yellow_blue_preprocessing
     elif args.chromaticity is not None:
         image_manipulation_type = 'chromaticity'
-        image_manipulation_values = np.array(args.chromacity)
+        image_manipulation_values = np.array(args.chromaticity)
         image_manipulation_function = chromacity_preprocessing
     elif args.lightness is not None:
         image_manipulation_type = 'lightness'
@@ -205,4 +212,8 @@ def which_preprocessing(args):
         image_manipulation_type = 'rotate_hue'
         image_manipulation_values = np.array(args.rotate_hue)
         image_manipulation_function = rotate_hue_preprocessing
+    else:
+        image_manipulation_type = 'original'
+        image_manipulation_values = np.array([1])
+        image_manipulation_function = nothing_preprocessing
     return (image_manipulation_type, image_manipulation_values, image_manipulation_function)
