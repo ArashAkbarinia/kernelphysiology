@@ -48,8 +48,8 @@ LGN_POPULATION = 32
 
 
 class LayerContainer:
-    num_kernels = 0
-    rf_size = (3, 3)
+    num_kernels = 1
+    rf_size = (1, 1)
     strides = (1, 1)
     activation_type = 'relu'
     kernel_constraint = None
@@ -91,12 +91,12 @@ def parvocellular(lm_cones, rf_size=(3, 3), num_midget=math.ceil(0.8 * RGC_POPUL
 
     # parvocellular cells in lgn
     l_parvo = LayerContainer('parvocellular_cells', kernel_initializer)
+    l_parvo.rf_size = rf_size
     l_parvo.num_kernels = num_parvo
     x = conv_norm_rect(x, l_parvo)
 
     # output of parvocellular contains 4 layers
     l_lgn_p = LayerContainer('lgn_p', kernel_initializer)
-    l_lgn_p.rf_size = (1, 1)
     l_lgn_p.num_kernels = 4
     x = conv_norm_rect(x, l_lgn_p)
 
@@ -121,17 +121,16 @@ def magnocellular(lms_cones, rf_size=(7, 7), num_parasol=math.ceil(0.1 * RGC_POP
 
     # output of magnocellular contains 2 layers
     l_lgn_m = LayerContainer('lgn_m', kernel_initializer)
-    l_lgn_m.rf_size = (1, 1)
     l_lgn_m.num_kernels = 2
     x = conv_norm_rect(x, l_lgn_m)
 
     return x
 
 
-def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3):
+def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3, prefix=''):
     # The superficial layer 1 has very few neurons but many axons, dendrites
     # and synapses
-    l1 = LayerContainer('l01_a%02d' % (area_number))
+    l1 = LayerContainer('%sl01_a%02d' % (prefix, area_number))
     l1.num_kernels = num_neurons_low
     l1.rf_size = (rf_size_low, rf_size_low)
 #    l1.kernel_function = DepthwiseConv2D
@@ -142,18 +141,20 @@ def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3):
     # from the intercalated layers of the lateral geniculate as well
     # (Fitzpatrick et al., 1983; Hendry and Yoshioka, 1994), and the outputs
     # from layers 2 and 3 are sent to other cortical areas
-    l2 = LayerContainer('l02_a%02d' % (area_number))
+    l2 = LayerContainer('%sl02_a%02d' % (prefix, area_number))
     l2.num_kernels = num_neurons_low * 2
+    l2.rf_size = (rf_size_low, rf_size_low)
     if x[1] is not None:
-        x2i = Concatenate(name='l02i_a%02d' % (area_number))([x1, x[1]])
+        x2i = Concatenate(name='%sl02i_a%02d' % (prefix, area_number))([x1, x[1]])
     else:
         x2i = x1
     x2 = conv_norm_rect(x2i, l2)
 
-    l3 = LayerContainer('l03_a%02d' % (area_number))
+    l3 = LayerContainer('%sl03_a%02d' % (prefix, area_number))
     l3.num_kernels = num_neurons_low * 2
+    l3.rf_size = (rf_size_low, rf_size_low)
     if x[2] is not None:
-        x3i = Concatenate(name='l03i_a%02d' % (area_number))([x2, x[2]])
+        x3i = Concatenate(name='%sl03i_a%02d' % (prefix, area_number))([x2, x[2]])
     else:
         x3i = x1
     x3 = conv_norm_rect(x3i, l3)
@@ -161,7 +162,7 @@ def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3):
     # Layer 4 has been subdivided into several parts.It contains small,
     # irregularily shaped nerve cells
     if x[3] is not None:
-        x4i = Concatenate(name='l04i_a%02d' % (area_number))([x3, x[3]])
+        x4i = Concatenate(name='%sl04i_a%02d' % (prefix, area_number))([x3, x[3]])
     else:
         x4i = x1
     x4s = []
@@ -169,39 +170,40 @@ def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3):
     k = 0
     for i in size_var:
         for j in size_var:
-            l4 = LayerContainer('l04%s_a%02d' % (string.ascii_lowercase[k], area_number))
+            l4 = LayerContainer('%sl04%s_a%02d' % (prefix, string.ascii_lowercase[k], area_number))
             l4.num_kernels = num_neurons_low
             l4.rf_size = (rf_size_low + i, rf_size_low + j)
             x4s.append(conv_norm_rect(x4i, l4))
             k += 1
-    x4 = Concatenate(name='l04s_a%02d' % (area_number))(x4s)
+    x4 = Concatenate(name='%sl04s_a%02d' % (prefix, area_number))(x4s)
 
     # Layer 5 contains relatively few cell bodies compared to the surrounding
     # layers.
-    l5 = LayerContainer('l05_a%02d' % (area_number))
+    l5 = LayerContainer('%sl05_a%02d' % (prefix, area_number))
     l5.num_kernels = num_neurons_low * 2
+    l5.rf_size = (rf_size_low, rf_size_low)
     if x[4] is not None:
-        x5i = Concatenate(name='l05i_a%02d' % (area_number))([x4, x[4]])
+        x5i = Concatenate(name='%sl05i_a%02d' % (prefix, area_number))([x4, x[4]])
     else:
         x5i = x1
     x5 = conv_norm_rect(x5i, l5)
 
     # Layer 6 is dense with cells and sends a large output back to the lateral
     # geniculate nucleus (Toyoma, 1969).
-    l6 = LayerContainer('l06_a%02d' % (area_number))
+    l6 = LayerContainer('%sl06_a%02d' % (prefix, area_number))
     l6.num_kernels = num_neurons_low * 2
+    l6.rf_size = (rf_size_low, rf_size_low)
     if x[5] is not None:
-        x6i = Concatenate(name='l06i_a%02d' % (area_number))([x5, x[5]])
+        x6i = Concatenate(name='%sl06i_a%02d' % (prefix, area_number))([x5, x[5]])
     else:
         x6i = x1
     x6 = conv_norm_rect(x6i, l6)
 
-    x_all = Concatenate(name='column_a%02d' % (area_number))([x1, x2, x3, x4, x5, x6])
-    l_all = LayerContainer('area%02d' % (area_number))
+    x_all = Concatenate(name='%scolumn_a%02d' % (prefix, area_number))([x1, x2, x3, x4, x5, x6])
+    l_all = LayerContainer('%sarea%02d' % (prefix, area_number))
     l_all.num_kernels = num_neurons_low * 2
-    l_all.rf_size = (1, 1)
     x = conv_norm_rect(x_all, l_all)
-    return (x, x1, x2, x3, x4, x5, x6)
+    return [x, x1, x2, x3, x4, x5, x6]
 
 
 def conv_norm_rect(x, layer_info):
@@ -276,30 +278,33 @@ def VisualNetex(include_top=True, weights=None,
         x_s = Lambda(lambda x : x[2:3, :, :, :], name='s_cones')(img_input)
 
     p_stream = parvocellular(x_lm)
-    m_stream = magnocellular(x_lms)
-    k_stream = koniocellular(x_s)
-
-    lgn_output = Concatenate()([p_stream, m_stream, k_stream])
-    stream = [lgn_output, None, None, lgn_output, None, None]
-    a0s = a1s = a2s = a3s = a4s = a5s = a6s = []
+    stream = [p_stream, None, None, p_stream, None, None]
     for area_number in [1, 2, 4]:
-        stream = visual_areas(stream, area_number, num_neurons_low=4, rf_size_low=3)
-#        k_l = Lambda(lambda x : x[:, :, :, l:l+1], name='k' + str(l))(k_stream)
-#        if l < 2:
-#            m_l = Lambda(lambda x : x[:, :, :, l:l+1], name='m' + str(l))(m_stream)
-#            m_v1_layers.append(v1_layer(m_l, 'm' + str(l)))
-#            k_pm = Concatenate(name='k' + str(l) + 'm')([k_l, m_l])
-#        else:
-#            p_l = Lambda(lambda x : x[:, :, :, l-2:l-1], name='p' + str(l-2))(p_stream)
-#            p_v1_layers.append(v1_layer(p_l, 'p' + str(l-2)))
-#            k_pm = Concatenate(name='k' + str(l) + 'p')([k_l, p_l])
-#        k_v1_layers.append(v1_layer(k_pm, 'k' + str(l)))
+        stream = visual_areas(stream, area_number, num_neurons_low=2, rf_size_low=3, prefix='parvo_')
 
-    x = stream[0]
+    x_lms_fb = Concatenate(name='fb_lms')([x_lms, stream[0]])
+    m_stream = magnocellular(x_lms_fb)
+    x_s_fb = Concatenate(name='fb_s')([x_s, stream[0]])
+    k_stream = koniocellular(x_s_fb)
+
+    lgn_output = Concatenate(name='lgn_output')([stream[0], m_stream, k_stream])
+    stream = [lgn_output, None, None, lgn_output, None, None]
+    columns = [[], [], [], [], [], []]
+    for area_number in [1, 2, 4]:
+        stream = visual_areas(stream, area_number, num_neurons_low=4*area_number, rf_size_low=3)
+        for i in range(len(columns)):
+            columns[i].append(stream[i])
+
+    for i, area_out in enumerate(columns):
+        x_tmp = Concatenate(name='columns%02d' % (i))(area_out)
+        l_tmp = LayerContainer('columns%02d' % (i))
+        stream[i] = conv_norm_rect(x_tmp, l_tmp)
+
+    x = Concatenate(name='colapse_columns')(stream)
 
     if include_top:
         x = GlobalAveragePooling2D(name='avg_pool')(x)
-        x = Dense(classes, activation='softmax', name='fc' + str(classes))(x)
+        x = Dense(classes, activation='softmax', name='fc'+str(classes))(x)
     else:
         if pooling == 'avg':
             x = GlobalAveragePooling2D()(x)
