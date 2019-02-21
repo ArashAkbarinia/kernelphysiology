@@ -12,6 +12,7 @@ import logging
 from functools import partial
 
 import tensorflow as tf
+import keras
 from keras import backend as K
 from keras.utils import multi_gpu_model
 from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler
@@ -24,6 +25,14 @@ from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, g
 from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule_resnet, lr_schedule_arash, lr_schedule_file
 
 from kernelphysiology.utils.path_utils import create_dir
+
+
+class TimeHistory(keras.callbacks.Callback):
+    def on_epoch_begin(self, batch, logs):
+        self.epoch_time_start = time.time()
+
+    def on_epoch_end(self, batch, logs):
+        logs['epoch_time'] = time.time() - self.epoch_time_start
 
 
 def lr_metric_call_back(optimizer):
@@ -87,7 +96,8 @@ def start_training_generator(args):
                                   patience=args.plateau_patience, min_delta=args.plateau_min_delta,
                                   min_lr=args.plateau_min_lr, cooldown=0)
     logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_delta=%f, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_delta, reduce_lr.min_lr))
-    callbacks = [csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
+    time_callback = TimeHistory()
+    callbacks = [time_callback, csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
 
     if args.log_period > 0:
         period_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_{epoch:03d}.h5'), save_weights_only=True, period=args.log_period)
