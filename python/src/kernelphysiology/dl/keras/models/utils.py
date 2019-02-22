@@ -132,8 +132,15 @@ def which_architecture(args):
         # FIXME: make it more generic
         # FIXME: add initialiser to ass architectures args.initialise
         from kernelphysiology.dl.keras.models import resnet
-        model = resnet.resnet_v1(input_shape=args.input_shape, depth=3*6+2, kernel_initializer=None, num_classes=args.num_classes, pyramid_levels=args.pyramid_conv)
-    if network_name == 'resnet50':
+        model = resnet.resnet_v1(input_shape=args.input_shape, depth=3*6+2,
+                                 num_classes=args.num_classes, pyramid_levels=args.pyramid_conv, num_kernels=args.num_kernels)
+    elif network_name == 'resnet_v2':
+        # FIXME: make it more generic
+        # FIXME: add initialiser to ass architectures args.initialise
+        from kernelphysiology.dl.keras.models import resnet
+        model = resnet.resnet_v2(input_shape=args.input_shape, depth=3*6+2,
+                                 num_classes=args.num_classes, pyramid_levels=args.pyramid_conv, num_kernels=args.num_kernels)
+    elif network_name == 'resnet50':
         model = resnet50.ResNet50(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'inception_v3':
         model = inception_v3.InceptionV3(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
