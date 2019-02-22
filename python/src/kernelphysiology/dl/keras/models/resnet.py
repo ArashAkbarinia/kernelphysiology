@@ -16,6 +16,8 @@ from keras.layers import AveragePooling2D, Input, Flatten
 from keras.regularizers import l2
 from keras.models import Model
 
+from kernelphysiology.dl.keras.models import blocks
+
 
 def resnet_layer(inputs,
                  num_filters=16,
@@ -24,7 +26,9 @@ def resnet_layer(inputs,
                  activation='relu',
                  batch_normalization=True,
                  conv_first=True,
-                 kernel_initializer='he_normal'):
+                 kernel_initializer='he_normal',
+                 pyramid_levels=1,
+                 name_base=None):
     """2D Convolution-Batch Normalization-Activation stack builder
 
     # Arguments
@@ -40,30 +44,17 @@ def resnet_layer(inputs,
     # Returns
         x (tensor): tensor as input to the next layer
     """
-    conv = Conv2D(num_filters,
-                  kernel_size=kernel_size,
-                  strides=strides,
-                  padding='same',
-                  kernel_initializer=kernel_initializer,
-                  kernel_regularizer=l2(1e-4))
-
-    x = inputs
-    if conv_first:
-        x = conv(x)
-        if batch_normalization:
-            x = BatchNormalization()(x)
-        if activation is not None:
-            x = Activation(activation)(x)
-    else:
-        if batch_normalization:
-            x = BatchNormalization()(x)
-        if activation is not None:
-            x = Activation(activation)(x)
-        x = conv(x)
+    x = blocks.pyramid_block(inputs, num_filters, kernel_size, name_base,
+                             strides=strides,
+                             activation_type=activation,
+                             batch_normalization=batch_normalization,
+                             conv_first=conv_first,
+                             kernel_initializer=kernel_initializer,
+                             num_levels=pyramid_levels)
     return x
 
 
-def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal'):
+def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal', pyramid_levels=1):
     """ResNet Version 1 Model builder [a]
 
     Stacks of 2 x (3 x 3) Conv2D-BN-ReLU
@@ -142,7 +133,7 @@ def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
     return model
 
 
-def resnet_v2(input_shape, depth, num_classes=10, kernel_initializer='he_normal'):
+def resnet_v2(input_shape, depth, num_classes=10, kernel_initializer='he_normal', pyramid_levels=1):
     """ResNet Version 2 Model builder [b]
 
     Stacks of (1 x 1)-(3 x 3)-(1 x 1) BN-ReLU-Conv2D or also known as
