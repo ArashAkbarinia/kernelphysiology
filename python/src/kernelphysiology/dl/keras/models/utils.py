@@ -156,8 +156,6 @@ def get_preprocessing_function(preprocessing):
     # switch case of preprocessing functions
     if preprocessing == 'visual_netex':
         preprocessing_function = visual_netex.preprocess_input
-    elif 'resnet' in preprocessing or 'retinanet' in preprocessing:
-        preprocessing_function = kmodels.resnet50.preprocess_input
     elif preprocessing == 'inception_v3':
         preprocessing_function = kmodels.inception_v3.preprocess_input
     elif preprocessing == 'inception_resnet_v2':
@@ -168,8 +166,6 @@ def get_preprocessing_function(preprocessing):
         preprocessing_function = kmodels.vgg16.preprocess_input
     elif preprocessing == 'vgg19':
         preprocessing_function = kmodels.vgg19.preprocess_input
-    elif 'densenet' in preprocessing:
-        preprocessing_function = kmodels.densenet.preprocess_input
     elif preprocessing == 'mobilenet':
         preprocessing_function = kmodels.mobilenet.preprocess_input
     elif preprocessing == 'mobilenet_v2':
@@ -177,6 +173,10 @@ def get_preprocessing_function(preprocessing):
         preprocessing_function = kmodels.mobilenetv2.preprocess_input
     elif 'nasnet' in preprocessing:
         preprocessing_function = kmodels.nasnet.preprocess_input
+    elif 'densenet' in preprocessing:
+        preprocessing_function = kmodels.densenet.preprocess_input
+    elif 'resnet' in preprocessing or 'retinanet' in preprocessing:
+        preprocessing_function = kmodels.resnet50.preprocess_input
     elif preprocessing == 'mrcnn':
         preprocessing_function = None
     return preprocessing_function
