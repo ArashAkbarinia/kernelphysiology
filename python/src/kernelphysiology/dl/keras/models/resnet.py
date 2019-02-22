@@ -91,7 +91,7 @@ def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
     num_res_blocks = int((depth - 2) / 6)
 
     inputs = Input(shape=input_shape)
-    x = resnet_layer(inputs=inputs, kernel_initializer=kernel_initializer)
+    x = resnet_layer(inputs=inputs, kernel_initializer=kernel_initializer, pyramid_levels=pyramid_levels)
     # Instantiate the stack of residual units
     for stack in range(3):
         for res_block in range(num_res_blocks):
@@ -101,11 +101,13 @@ def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
             y = resnet_layer(inputs=x,
                              num_filters=num_filters,
                              strides=strides,
-                             kernel_initializer=kernel_initializer)
+                             kernel_initializer=kernel_initializer,
+                             pyramid_levels=pyramid_levels)
             y = resnet_layer(inputs=y,
                              num_filters=num_filters,
                              activation=None,
-                             kernel_initializer=kernel_initializer)
+                             kernel_initializer=kernel_initializer,
+                             pyramid_levels=pyramid_levels)
             if stack > 0 and res_block == 0:  # first layer but not first stack
                 # linear projection residual shortcut connection to match
                 # changed dims
@@ -115,7 +117,8 @@ def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
                                  strides=strides,
                                  activation=None,
                                  batch_normalization=False,
-                                 kernel_initializer=kernel_initializer)
+                                 kernel_initializer=kernel_initializer,
+                                 pyramid_levels=pyramid_levels)
             x = keras.layers.add([x, y])
             x = Activation('relu')(x)
         num_filters *= 2
@@ -171,7 +174,8 @@ def resnet_v2(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
     x = resnet_layer(inputs=inputs,
                      num_filters=num_filters_in,
                      conv_first=True,
-                     kernel_initializer=kernel_initializer)
+                     kernel_initializer=kernel_initializer,
+                     pyramid_levels=pyramid_levels)
 
     # Instantiate the stack of residual units
     for stage in range(3):
@@ -197,16 +201,19 @@ def resnet_v2(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
                              activation=activation,
                              batch_normalization=batch_normalization,
                              conv_first=False,
-                             kernel_initializer=kernel_initializer)
+                             kernel_initializer=kernel_initializer,
+                             pyramid_levels=pyramid_levels)
             y = resnet_layer(inputs=y,
                              num_filters=num_filters_in,
                              conv_first=False,
-                             kernel_initializer=kernel_initializer)
+                             kernel_initializer=kernel_initializer,
+                             pyramid_levels=pyramid_levels)
             y = resnet_layer(inputs=y,
                              num_filters=num_filters_out,
                              kernel_size=1,
                              conv_first=False,
-                             kernel_initializer=kernel_initializer)
+                             kernel_initializer=kernel_initializer,
+                             pyramid_levels=pyramid_levels)
             if res_block == 0:
                 # linear projection residual shortcut connection to match
                 # changed dims
@@ -216,7 +223,8 @@ def resnet_v2(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
                                  strides=strides,
                                  activation=None,
                                  batch_normalization=False,
-                                 kernel_initializer=kernel_initializer)
+                                 kernel_initializer=kernel_initializer,
+                                 pyramid_levels=pyramid_levels)
             x = keras.layers.add([x, y])
 
         num_filters_in = num_filters_out

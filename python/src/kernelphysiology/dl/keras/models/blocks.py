@@ -11,12 +11,23 @@ from keras.regularizers import l2
 from keras import backend as K
 
 
+# FIXME: kernel_size of tupple
 def pyramid_block(x, num_filters, kernel_size, name_base=None,
                   strides=(1, 1), padding='same',
                   kernel_constraint=None, kernel_initializer='he_normal',
                   activation_type='relu', conv_first=True,
                   batch_normalization=True,
                   num_levels=4):
+    if num_levels == 1 or kernel_size == 1:
+        x = conv_norm_rect(x, num_filters, kernel_size, name_base=name_base,
+                           strides=strides, padding=padding,
+                           kernel_constraint=kernel_constraint,
+                           kernel_initializer=kernel_initializer,
+                           activation_type=activation_type,
+                           conv_first=conv_first,
+                           batch_normalization=batch_normalization)
+        return x
+
     filters_level = round(num_filters / num_levels)
     f_0 = num_filters - (filters_level * num_levels)
 
@@ -29,6 +40,8 @@ def pyramid_block(x, num_filters, kernel_size, name_base=None,
         rf_size = kernel_size + (i * 2)
         if name_base is not None:
             name = '%s_%02d' % (name_base, i)
+        else:
+            name = None
         xi = conv_norm_rect(x, num_kernels, rf_size, name_base=name,
                             strides=strides, padding=padding,
                             kernel_constraint=kernel_constraint,
@@ -38,7 +51,7 @@ def pyramid_block(x, num_filters, kernel_size, name_base=None,
                             batch_normalization=batch_normalization)
         xis.append(xi)
     x = layers.Concatenate()(xis)
-    return 
+    return x
 
 
 # TODO: make common arguments

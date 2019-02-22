@@ -26,7 +26,7 @@ from keras.layers import AveragePooling2D
 from keras.layers import GlobalAveragePooling2D
 from keras.layers import GlobalMaxPooling2D
 from keras.layers import ZeroPadding2D
-from keras.layers import Concatenate, Average
+from keras.layers import Concatenate, Average, Add
 from keras.layers import BatchNormalization
 from keras.models import Model
 from keras import backend as K
@@ -44,6 +44,8 @@ WEIGHTS_PATH_NO_TOP = ''
 RGC_POPULATION = 32
 LGN_POPULATION = 32
 
+red_n = 1
+
 # TODO: As much as 95% of input in the LGN comes from the visual cortex
 
 
@@ -56,8 +58,12 @@ class LayerContainer:
     kernel_initializer = None
     kernel_function = Conv2D
     name = None
+    anonym_counter = 0
 
-    def __init__(self, name, kernel_initializer='he_normal'):
+    def __init__(self, name=None, kernel_initializer='he_normal'):
+        if name is None:
+            name = 'anonym%04d' % (LayerContainer.anonym_counter)
+            LayerContainer.anonym_counter += 1
         self.name = name
         self.kernel_initializer = kernel_initializer
 
@@ -145,7 +151,7 @@ def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3, prefix=''):
     l2.num_kernels = num_neurons_low * 2
     l2.rf_size = (rf_size_low, rf_size_low)
     if x[1] is not None:
-        x2i = Concatenate(name='%sl02i_a%02d' % (prefix, area_number))([x1, x[1]])
+        x2i = Add(name='%sl02i_a%02d' % (prefix, area_number))([reduce_to_n(x1, red_n), x[1]])
     else:
         x2i = x1
     x2 = conv_norm_rect(x2i, l2)
@@ -154,7 +160,7 @@ def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3, prefix=''):
     l3.num_kernels = num_neurons_low * 2
     l3.rf_size = (rf_size_low, rf_size_low)
     if x[2] is not None:
-        x3i = Concatenate(name='%sl03i_a%02d' % (prefix, area_number))([x2, x[2]])
+        x3i = Add(name='%sl03i_a%02d' % (prefix, area_number))([reduce_to_n(x2, red_n), x[2]])
     else:
         x3i = x1
     x3 = conv_norm_rect(x3i, l3)
@@ -162,7 +168,7 @@ def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3, prefix=''):
     # Layer 4 has been subdivided into several parts.It contains small,
     # irregularily shaped nerve cells
     if x[3] is not None:
-        x4i = Concatenate(name='%sl04i_a%02d' % (prefix, area_number))([x3, x[3]])
+        x4i = Add(name='%sl04i_a%02d' % (prefix, area_number))([reduce_to_n(x3, red_n), x[3]])
     else:
         x4i = x1
     x4s = []
@@ -175,7 +181,7 @@ def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3, prefix=''):
             l4.rf_size = (rf_size_low + i, rf_size_low + j)
             x4s.append(conv_norm_rect(x4i, l4))
             k += 1
-    x4 = Concatenate(name='%sl04s_a%02d' % (prefix, area_number))(x4s)
+    x4 = Add(name='%sl04s_a%02d' % (prefix, area_number))(x4s)
 
     # Layer 5 contains relatively few cell bodies compared to the surrounding
     # layers.
@@ -183,7 +189,7 @@ def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3, prefix=''):
     l5.num_kernels = num_neurons_low * 2
     l5.rf_size = (rf_size_low, rf_size_low)
     if x[4] is not None:
-        x5i = Concatenate(name='%sl05i_a%02d' % (prefix, area_number))([x4, x[4]])
+        x5i = Add(name='%sl05i_a%02d' % (prefix, area_number))([reduce_to_n(x4, red_n), x[4]])
     else:
         x5i = x1
     x5 = conv_norm_rect(x5i, l5)
@@ -194,7 +200,7 @@ def visual_areas(x, area_number, num_neurons_low=4, rf_size_low=3, prefix=''):
     l6.num_kernels = num_neurons_low * 2
     l6.rf_size = (rf_size_low, rf_size_low)
     if x[5] is not None:
-        x6i = Concatenate(name='%sl06i_a%02d' % (prefix, area_number))([x5, x[5]])
+        x6i = Add(name='%sl06i_a%02d' % (prefix, area_number))([reduce_to_n(x5, red_n), x[5]])
     else:
         x6i = x1
     x6 = conv_norm_rect(x6i, l6)
@@ -226,6 +232,13 @@ def conv_norm_rect(x, layer_info):
     x = BatchNormalization(axis=bn_axis, name=name+'_bn')(x)
     x = Activation(activation_type, name=name+'_'+activation_type)(x)
 
+    return x
+
+
+def reduce_to_n(x, n):
+    layer_info = LayerContainer()
+    layer_info.num_kernels = n
+    x = conv_norm_rect(x, layer_info)
     return x
 
 
@@ -277,30 +290,31 @@ def VisualNetex(include_top=True, weights=None,
         x_lm = Lambda(lambda x : x[0:2, :, :, :], name='l_m_cones')(img_input)
         x_s = Lambda(lambda x : x[2:3, :, :, :], name='s_cones')(img_input)
 
-    p_stream = parvocellular(x_lm)
-    stream = [p_stream, None, None, p_stream, None, None]
+    m_stream = magnocellular(x_lms)
+    stream = [m_stream, None, None, m_stream, None, None]
     for area_number in [1, 2, 4]:
         stream = visual_areas(stream, area_number, num_neurons_low=2, rf_size_low=3, prefix='parvo_')
 
-    x_lms_fb = Concatenate(name='fb_lms')([x_lms, stream[0]])
-    m_stream = magnocellular(x_lms_fb)
-    x_s_fb = Concatenate(name='fb_s')([x_s, stream[0]])
+    x_lm_fb = Add(name='fb_lm')([x_lm, reduce_to_n(stream[0], 2)])
+    p_stream = parvocellular(x_lm_fb)
+    x_s_fb = Add(name='fb_s')([x_s, reduce_to_n(stream[0], 1)])
     k_stream = koniocellular(x_s_fb)
 
-    lgn_output = Concatenate(name='lgn_output')([stream[0], m_stream, k_stream])
+    lgn_output = Concatenate(name='lgn_output')([stream[0], p_stream, k_stream])
     stream = [lgn_output, None, None, lgn_output, None, None]
     columns = [[], [], [], [], [], []]
     for area_number in [1, 2, 4]:
         stream = visual_areas(stream, area_number, num_neurons_low=4*area_number, rf_size_low=3)
         for i in range(len(columns)):
+            stream[i] = reduce_to_n(stream[i], red_n)
             columns[i].append(stream[i])
 
     for i, area_out in enumerate(columns):
-        x_tmp = Concatenate(name='columns%02d' % (i))(area_out)
+        x_tmp = Add(name='columns%02d' % (i))(area_out)
         l_tmp = LayerContainer('columns%02d' % (i))
         stream[i] = conv_norm_rect(x_tmp, l_tmp)
 
-    x = Concatenate(name='colapse_columns')(stream)
+    x = Add(name='colapse_columns')(stream)
 
     if include_top:
         x = GlobalAveragePooling2D(name='avg_pool')(x)
