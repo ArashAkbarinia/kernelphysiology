@@ -241,7 +241,7 @@ def test_arg_parser(argvs):
 
 def train_arg_parser(argvs):
     parser = common_arg_parser('Training prominent nets of Keras.')
-    parser.add_argument('--crop_type', type=str, default='random', choices=['random', 'centre','none'], help='What type of crop (default: random)')
+    parser.add_argument('--crop_type', type=str, default='random', choices=['random', 'centre', 'none'], help='What type of crop (default: random)')
 
     # better handling the parameters, e.g. pretrained ones are only for imagenet
     architecture_group = parser.add_argument_group('architecture')
@@ -257,7 +257,8 @@ def train_arg_parser(argvs):
     initialisation_group = parser.add_argument_group('initialisation')
     weights_group = initialisation_group.add_mutually_exclusive_group()
     weights_group.add_argument('--load_weights', type=str, default=None, help='Whether loading weights from a model (default: None)')
-    weights_group.add_argument('--initialise', type=str, default=None, help='Whether using a specific initialisation of weights (default: None)')
+    initialisation_choices = ['dog', 'randdog', 'sog', 'randsog', 'dogsog', 'g1', 'g2', 'gaussian', 'all']
+    weights_group.add_argument('--initialise', type=str, default=None, choices=initialisation_choices, help='Whether using a specific initialisation of weights (default: None)')
     initialisation_group.add_argument('--same_channels', action='store_true', default=False, help='Identical initial weights for channels of a kernel (default: False)')
     initialisation_group.add_argument('--tog_sigma', type=float, default=1, help='Sigma of ToG (default: 1)')
     initialisation_group.add_argument('--tog_surround', type=float, default=5, help='Surround enlargement in ToG (default: 5)')
