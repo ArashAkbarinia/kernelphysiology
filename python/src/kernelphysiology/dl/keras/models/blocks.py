@@ -13,14 +13,14 @@ from keras import backend as K
 
 # FIXME: kernel_size of tupple
 def pyramid_block(x, num_filters, kernel_size, name_base=None,
-                  strides=(1, 1), padding='same',
+                  strides=(1, 1), padding='same', dilation_rate=(1, 1),
                   kernel_constraint=None, kernel_initializer='he_normal',
                   activation_type='relu', conv_first=True,
                   batch_normalization=True,
                   num_levels=4):
     if num_levels == 1 or kernel_size == 1:
         x = conv_norm_rect(x, num_filters, kernel_size, name_base=name_base,
-                           strides=strides, padding=padding,
+                           strides=strides, padding=padding, dilation_rate=dilation_rate,
                            kernel_constraint=kernel_constraint,
                            kernel_initializer=kernel_initializer,
                            activation_type=activation_type,
@@ -43,7 +43,7 @@ def pyramid_block(x, num_filters, kernel_size, name_base=None,
         else:
             name = None
         xi = conv_norm_rect(x, num_kernels, rf_size, name_base=name,
-                            strides=strides, padding=padding,
+                            strides=strides, padding=padding, dilation_rate=dilation_rate,
                             kernel_constraint=kernel_constraint,
                             kernel_initializer=kernel_initializer,
                             activation_type=activation_type,
@@ -56,7 +56,7 @@ def pyramid_block(x, num_filters, kernel_size, name_base=None,
 
 # TODO: make common arguments
 def conv_norm_rect(x, num_kernels, rf_size, name_base, strides=(1, 1), padding='same',
-                   kernel_constraint=None, kernel_initializer='he_normal',
+                   dilation_rate=(1, 1), kernel_constraint=None, kernel_initializer='he_normal',
                    activation_type='relu', conv_first=True,
                    batch_normalization=True):
     if K.image_data_format() == 'channels_last':
@@ -74,10 +74,11 @@ def conv_norm_rect(x, num_kernels, rf_size, name_base, strides=(1, 1), padding='
 
     # TODO: is regualiser necessary
     conv = Conv2D(num_kernels, rf_size, strides=strides,
-               kernel_constraint=kernel_constraint,
-               kernel_initializer=kernel_initializer,
-               padding=padding, name=name_conv,
-               kernel_regularizer=l2(1e-4))
+                  dilation_rate=dilation_rate,
+                  kernel_constraint=kernel_constraint,
+                  kernel_initializer=kernel_initializer,
+                  padding=padding, name=name_conv,
+                  kernel_regularizer=l2(1e-4))
     if conv_first:
         x = conv(x)
         if batch_normalization:
