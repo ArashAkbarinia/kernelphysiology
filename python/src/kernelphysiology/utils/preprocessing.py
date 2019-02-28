@@ -11,6 +11,7 @@ from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust
 from kernelphysiology.utils.imutils import random_occlusion, reduce_red_green, reduce_yellow_blue
 from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness, rotate_hue
 from kernelphysiology.utils.imutils import invert_chromaticity, invert_colour_opponency, invert_lightness
+from kernelphysiology.utils.imutils import keep_blue_channel, keep_green_channel, keep_red_channel
 
 
 # TODO: make it nicer, too much duplicate code
@@ -141,6 +142,27 @@ def rotate_hue_preprocessing(img, amount, mask_radius=None, preprocessing_functi
     return img
 
 
+def keep_red_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+    img = keep_red_channel(img, amount, mask_radius=mask_radius) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
+def keep_green_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+    img = keep_green_channel(img, amount, mask_radius=mask_radius) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
+def keep_blue_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+    img = keep_blue_channel(img, amount, mask_radius=mask_radius) * 255
+    if preprocessing_function:
+        img = preprocessing_function(img)
+    return img
+
+
 def which_preprocessing(args):
     # TODO: betetr handling of functions that can take more than one element
     if args.contrasts is not None:
@@ -212,6 +234,18 @@ def which_preprocessing(args):
         image_manipulation_type = 'rotate_hue'
         image_manipulation_values = np.array(args.rotate_hue)
         image_manipulation_function = rotate_hue_preprocessing
+    elif args.keep_red is not None:
+        image_manipulation_type = 'keep_red'
+        image_manipulation_values = np.array(args.keep_red)
+        image_manipulation_function = keep_red_preprocessing
+    elif args.keep_green is not None:
+        image_manipulation_type = 'keep_green'
+        image_manipulation_values = np.array(args.keep_green)
+        image_manipulation_function = keep_green_preprocessing
+    elif args.keep_blue is not None:
+        image_manipulation_type = 'keep_blue'
+        image_manipulation_values = np.array(args.keep_blue)
+        image_manipulation_function = keep_blue_preprocessing
     else:
         image_manipulation_type = 'original'
         image_manipulation_values = np.array([1])

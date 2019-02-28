@@ -110,6 +110,36 @@ def rotate_hue(image, hue_angle, mask_radius=None, norm_fact=0.4):
     return output
 
 
+def keep_red_channel(image, amount, mask_radius=None):
+    assert(amount >= 0.0), 'amount too low.'
+    assert(amount <= 1.0), 'amount too high.'
+
+    output = im2double(image)
+    output[:, :, 1] *= amount
+    output[:, :, 2] *= amount
+    return output
+
+
+def keep_green_channel(image, amount, mask_radius=None):
+    assert(amount >= 0.0), 'amount too low.'
+    assert(amount <= 1.0), 'amount too high.'
+
+    output = im2double(image)
+    output[:, :, 0] *= amount
+    output[:, :, 2] *= amount
+    return output
+
+
+def keep_blue_channel(image, amount, mask_radius=None):
+    assert(amount >= 0.0), 'amount too low.'
+    assert(amount <= 1.0), 'amount too high.'
+
+    output = im2double(image)
+    output[:, :, 0] *= amount
+    output[:, :, 1] *= amount
+    return output
+
+
 def reduce_red_green(image, amount, mask_radius=None):
     assert(amount >= 0.0), 'amount too low.'
     assert(amount <= 1.0), 'amount too high.'
