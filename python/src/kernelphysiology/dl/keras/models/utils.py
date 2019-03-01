@@ -10,7 +10,7 @@ from keras import applications as kmodels
 from kernelphysiology.dl.keras.models import resnet50, visual_netex
 from kernelphysiology.dl.keras.models import inception_v3
 from kernelphysiology.dl.keras.models import vgg16, vgg19
-from kernelphysiology.dl.keras.models import densenet
+from kernelphysiology.dl.keras.models import densenet, alexnet
 from kernelphysiology.dl.keras.models import mrcnn
 
 from kernelphysiology.dl.keras.datasets.utils import get_default_target_size, get_default_num_classes
@@ -154,6 +154,8 @@ def which_architecture(args):
         model = densenet.DenseNet169(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'densenet201':
         model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+    elif network_name == 'alexnet':
+        model = alexnet.AlexNet(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     return model
 
 
@@ -163,6 +165,8 @@ def get_preprocessing_function(preprocessing):
     # switch case of preprocessing functions
     if preprocessing == 'visual_netex':
         preprocessing_function = visual_netex.preprocess_input
+    elif preprocessing == 'alexnet':
+        preprocessing_function = alexnet.preprocess_input
     elif preprocessing == 'inception_v3':
         preprocessing_function = kmodels.inception_v3.preprocess_input
     elif preprocessing == 'inception_resnet_v2':
