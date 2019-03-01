@@ -3,9 +3,10 @@ Common blocks for various architecture.
 '''
 
 
+import keras
 from keras import layers
 from keras.layers import Activation
-from keras.layers import Conv2D
+from keras.layers import Conv2D, DepthwiseConv2D
 from keras.layers import BatchNormalization
 from keras.regularizers import l2
 from keras import backend as K
@@ -92,4 +93,30 @@ def conv_norm_rect(x, num_kernels, rf_size, name_base, strides=(1, 1), padding='
             x = Activation(activation_type, name=name_rect)(x)
         x = conv(x)
 
+    return x
+
+
+def local_contrast(x, rf_size=(3, 3), dilation_rate=(1, 1)):
+    # TODO: support one dimensinal rf_size
+    if K.image_data_format() == 'channels_last':
+        bn_axis = 3
+    else:
+        bn_axis = 1
+    input_channels = x._keras_shape[bn_axis]
+    num_pixels = rf_size[0] * rf_size[1] * input_channels
+    initial_value = 1.0 / num_pixels
+    # TODO: put a nice name
+    conv_average = DepthwiseConv2D(rf_size, dilation_rate=dilation_rate, padding='same',
+                                   kernel_initializer=keras.initializers.Constant(value=initial_value))
+    conv_average.trainable = False
+    x_avg = conv_average(x)
+    x_diff = layers.subtract([x, x_avg])
+    x_diff =  keras.layers.core.Lambda(lambda x: x ** 2)(x_diff)
+    x = conv_average(x_diff)
+    return x
+
+
+def invert_local_contrast(x, rf_size=(3, 3), dilation_rate=(1, 1)):
+    x = local_contrast(x, rf_size=rf_size, dilation_rate=dilation_rate)
+    x =  keras.layers.core.Lambda(lambda x: 1 - x)(x)
     return x
