@@ -155,7 +155,7 @@ def which_architecture(args):
     elif network_name == 'densenet201':
         model = densenet.DenseNet201(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
     elif network_name == 'alexnet':
-        model = alexnet.AlexNet(input_shape=args.input_shape, classes=args.num_classes, area1layers=args.area1layers)
+        model = alexnet.AlexNet(input_shape=args.input_shape, classes=args.num_classes)
     return model
 
 
