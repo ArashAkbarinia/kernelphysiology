@@ -14,7 +14,7 @@ from keras.applications.imagenet_utils import preprocess_input
 from keras_applications.imagenet_utils import _obtain_input_shape
 
 
-def AlexNet(input_shape=(224, 224, 3), classes=10, l2_reg=0., weights=None):
+def AlexNet(input_shape=(224, 224, 3), classes=100, l2_reg=0., weights=None):
 
     # Initialize model
     alexnet = Sequential()
@@ -33,27 +33,27 @@ def AlexNet(input_shape=(224, 224, 3), classes=10, l2_reg=0., weights=None):
 
     # Layer 3
     alexnet.add(ZeroPadding2D((1, 1)))
-    alexnet.add(Conv2D(512, (3, 3), padding='same'))
+    alexnet.add(Conv2D(384, (3, 3), padding='same'))
     alexnet.add(BatchNormalization())
     alexnet.add(Activation('relu'))
     alexnet.add(MaxPooling2D(pool_size=(2, 2)))
 
     # Layer 4
     alexnet.add(ZeroPadding2D((1, 1)))
-    alexnet.add(Conv2D(1024, (3, 3), padding='same'))
+    alexnet.add(Conv2D(384, (3, 3), padding='same'))
     alexnet.add(BatchNormalization())
     alexnet.add(Activation('relu'))
 
     # Layer 5
     alexnet.add(ZeroPadding2D((1, 1)))
-    alexnet.add(Conv2D(1024, (3, 3), padding='same'))
+    alexnet.add(Conv2D(256, (3, 3), padding='same'))
     alexnet.add(BatchNormalization())
     alexnet.add(Activation('relu'))
     alexnet.add(MaxPooling2D(pool_size=(2, 2)))
 
     # Layer 6
     alexnet.add(Flatten())
-    alexnet.add(Dense(3072))
+    alexnet.add(Dense(4096))
     alexnet.add(BatchNormalization())
     alexnet.add(Activation('relu'))
     alexnet.add(Dropout(0.5))
