@@ -15,6 +15,7 @@ import math
 
 from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant, adjust_gamma
 from kernelphysiology.utils.imutils import s_p_noise, gaussian_noise, speckle_noise, poisson_noise
+from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness
 from kernelphysiology.utils.path_utils import create_dir
 
 from kernelphysiology.dl.keras.datasets.utils import get_default_dataset_paths, get_default_target_size, which_dataset
@@ -36,6 +37,7 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
                             gaussian_sigma_range=None, salt_pepper_range=None,
                             gaussian_noise_range=None, poisson_range=False,
                             speckle_range=None, gamma_range=None,
+                            chromatic_contrast=None, luminance_contrast=None,
                             mask_radius=None, preprocessing_function=None):
     if num_augmentation is None:
         order_augmentatoin = []
@@ -69,6 +71,10 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
             img = convert_to_uni8(speckle_noise(img, np.random.uniform(*speckle_range), mask_radius=mask_radius))
         elif aug_type == 'gaussian' and gaussian_noise_range is not None:
             img = convert_to_uni8(gaussian_noise(img, np.random.uniform(*gaussian_noise_range), mask_radius=mask_radius))
+        elif aug_type == 'chromatic_contrast' and chromatic_contrast is not None:
+            img = convert_to_uni8(reduce_chromaticity(img, np.random.uniform(*chromatic_contrast), mask_radius=mask_radius))
+        elif aug_type == 'luminance_contrast' and luminance_contrast is not None:
+            img = convert_to_uni8(reduce_lightness(img, np.random.uniform(*luminance_contrast), mask_radius=mask_radius))
     if preprocessing_function is not None:
         img = preprocessing_function(img)
     return img
@@ -134,6 +140,8 @@ def prepare_train_augmentation(args):
                                                                                  poisson_range=args.poisson_noise,
                                                                                  speckle_range=args.speckle_amount,
                                                                                  gamma_range=args.gamma_range,
+                                                                                 chromatic_contrast=args.chromatic_contrast,
+                                                                                 luminance_contrast=args.luminance_contrast,
                                                                                  mask_radius=args.mask_radius,
                                                                                  preprocessing_function=get_preprocessing_function(args.preprocessing))
     else:
@@ -213,6 +221,7 @@ def test_arg_parser(argvs):
     parser.add_argument('--crop_type', type=str, default='none', choices=['random', 'centre','none'], help='What type of crop (default: centre)')
     parser.add_argument('--mask_radius', type=float, default=None, help='Apply image destortion to this radius from centre (default: None)')
     parser.add_argument('--image_limit', type=int, default=None, help='Number of images to be evaluated (default: None)')
+    parser.add_argument('--opponent_space', type=str, default='lab', choices=['lab', 'dkl'], help='The default colour opponent space (default: lab)')
 
     image_degradation_group = parser.add_mutually_exclusive_group()
     image_degradation_group.add_argument('--contrasts', nargs='+', type=float, default=None, help='List of contrasts to be evaluated (default: None)')
@@ -316,6 +325,8 @@ def train_arg_parser(argvs):
     our_augmentation_group.add_argument('--gamma_range', nargs='+', type=float, default=None, help='Gamma lower and upper limits (default: None)')
     our_augmentation_group.add_argument('--poisson_noise', action='store_true', default=False, help='Poisson noise (default: False)')
     our_augmentation_group.add_argument('--mask_radius', type=float, default=None, help='Augmentation within this radius (default: None)')
+    our_augmentation_group.add_argument('--chromatic_contrast', type=float, default=None, help='Chromatic contrast lower limit (default: None)')
+    our_augmentation_group.add_argument('--luminance_contrast', type=float, default=None, help='Luminance contrast lower limit (default: None)')
 
     return check_training_args(parser, argvs)
 
@@ -401,6 +412,12 @@ def check_training_args(parser, argvs):
             augmentation_types.append('gamma')
         if args.poisson_noise is not None:
             augmentation_types.append('poisson')
+        if args.chromatic_contrast is not None:
+            args.chromatic_contrast = np.array([args.chromatic_contrast, 1])
+            augmentation_types.append('chromatic_contrast')
+        if args.luminance_contrast is not None:
+            args.luminance_contrast = np.array([args.luminance_contrast, 1])
+            augmentation_types.append('luminance_contrast')
 
         # there should be at least one sort of augmentation in this case
         if not augmentation_types:
