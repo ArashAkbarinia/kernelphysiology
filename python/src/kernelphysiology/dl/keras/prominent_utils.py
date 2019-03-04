@@ -388,35 +388,36 @@ def check_training_args(parser, argvs):
 
     # checking augmentation parameters
     if args.num_augmentation is not None:
+        # TODO make them one variable with name and make sure they're two elements
         augmentation_types = []
         if args.illuminant_range is not None:
-            args.illuminant_range = np.array([args.illuminant_range, 1])
+            args.illuminant_range = np.array(args.illuminant_range)
             augmentation_types.append('iluuminant')
         if args.contrast_range is not None:
-            args.contrast_range = np.array([args.contrast_range, 1])
+            args.contrast_range = np.array(args.contrast_range)
             augmentation_types.append('contrast')
         if args.gaussian_sigma is not None:
-            args.gaussian_sigma = np.array([0, args.gaussian_sigma])
+            args.gaussian_sigma = np.array(args.gaussian_sigma)
             augmentation_types.append('blur')
         if args.s_p_amount is not None:
-            args.s_p_amount = np.array([0, args.s_p_amount])
+            args.s_p_amount = np.array(args.s_p_amount)
             augmentation_types.append('s_p')
         if args.gaussian_amount is not None:
-            args.gaussian_amount = np.array([0, args.gaussian_amount])
+            args.gaussian_amount = np.array(args.gaussian_amount)
             augmentation_types.append('gaussian')
         if args.speckle_amount is not None:
-            args.speckle_amount = np.array([0, args.speckle_amount])
+            args.speckle_amount = np.array(args.speckle_amount)
             augmentation_types.append('speckle')
         if args.gamma_range is not None:
-            args.gamma_range = np.array(args.gamma_range[0:2])
+            args.gamma_range = np.array(args.gamma_range)
             augmentation_types.append('gamma')
         if args.poisson_noise is not None:
             augmentation_types.append('poisson')
         if args.chromatic_contrast is not None:
-            args.chromatic_contrast = np.array([args.chromatic_contrast, 1])
+            args.chromatic_contrast = np.array(args.chromatic_contrast)
             augmentation_types.append('chromatic_contrast')
         if args.luminance_contrast is not None:
-            args.luminance_contrast = np.array([args.luminance_contrast, 1])
+            args.luminance_contrast = np.array(args.luminance_contrast)
             augmentation_types.append('luminance_contrast')
 
         # there should be at least one sort of augmentation in this case
