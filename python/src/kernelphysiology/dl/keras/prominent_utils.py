@@ -15,7 +15,7 @@ import math
 
 from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant, adjust_gamma
 from kernelphysiology.utils.imutils import s_p_noise, gaussian_noise, speckle_noise, poisson_noise
-from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness
+from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness, reduce_yellow_blue, reduce_red_green
 from kernelphysiology.utils.path_utils import create_dir
 
 from kernelphysiology.dl.keras.datasets.utils import get_default_dataset_paths, get_default_target_size, which_dataset
@@ -38,6 +38,7 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
                             gaussian_noise_range=None, poisson_range=False,
                             speckle_range=None, gamma_range=None,
                             chromatic_contrast=None, luminance_contrast=None,
+                            yellow_blue=None, red_green=None,
                             mask_radius=None, preprocessing_function=None):
     if num_augmentation is None:
         order_augmentatoin = []
@@ -75,6 +76,10 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
             img = convert_to_uni8(reduce_chromaticity(img, np.random.uniform(*chromatic_contrast), mask_radius=mask_radius))
         elif aug_type == 'luminance_contrast' and luminance_contrast is not None:
             img = convert_to_uni8(reduce_lightness(img, np.random.uniform(*luminance_contrast), mask_radius=mask_radius))
+        elif aug_type == 'yellow_blue' and yellow_blue is not None:
+            img = convert_to_uni8(reduce_yellow_blue(img, np.random.uniform(*yellow_blue), mask_radius=mask_radius))
+        elif aug_type == 'red_green' and red_green is not None:
+            img = convert_to_uni8(reduce_red_green(img, np.random.uniform(*red_green), mask_radius=mask_radius))
     if preprocessing_function is not None:
         img = preprocessing_function(img)
     return img
@@ -142,6 +147,8 @@ def prepare_train_augmentation(args):
                                                                                  gamma_range=args.gamma_range,
                                                                                  chromatic_contrast=args.chromatic_contrast,
                                                                                  luminance_contrast=args.luminance_contrast,
+                                                                                 red_green=args.red_green,
+                                                                                 yellow_blue=args.yellow_blue,
                                                                                  mask_radius=args.mask_radius,
                                                                                  preprocessing_function=get_preprocessing_function(args.preprocessing))
     else:
@@ -327,6 +334,8 @@ def train_arg_parser(argvs):
     our_augmentation_group.add_argument('--mask_radius', nargs='+', type=float, default=None, help='Augmentation within this radius (default: None)')
     our_augmentation_group.add_argument('--chromatic_contrast', nargs='+', type=float, default=None, help='Chromatic contrast lower limit (default: None)')
     our_augmentation_group.add_argument('--luminance_contrast', nargs='+', type=float, default=None, help='Luminance contrast lower limit (default: None)')
+    our_augmentation_group.add_argument('--red_green', nargs='+', type=float, default=None, help='List of red-green to be evaluated (default: None)')
+    our_augmentation_group.add_argument('--yellow_blue', nargs='+', type=float, default=None, help='List of yellow-blue to be evaluated (default: None)')
 
     return check_training_args(parser, argvs)
 
@@ -419,6 +428,12 @@ def check_training_args(parser, argvs):
         if args.luminance_contrast is not None:
             args.luminance_contrast = np.array(args.luminance_contrast)
             augmentation_types.append('luminance_contrast')
+        if args.yellow_blue is not None:
+            args.yellow_blue = np.array(args.yellow_blue)
+            augmentation_types.append('yellow_blue')
+        if args.red_green is not None:
+            args.red_green = np.array(args.red_green)
+            augmentation_types.append('red_green')
 
         # there should be at least one sort of augmentation in this case
         if not augmentation_types:
