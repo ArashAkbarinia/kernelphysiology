@@ -106,7 +106,7 @@ def local_contrast(x, rf_size=(3, 3), dilation_rate=(1, 1)):
     num_pixels = rf_size[0] * rf_size[1] * input_channels
     initial_value = 1.0 / num_pixels
     # TODO: put a nice name
-    conv_average = Conv2D(rf_size, dilation_rate=dilation_rate, padding='same',
+    conv_average = Conv2D(1, rf_size, dilation_rate=dilation_rate, padding='same',
                           kernel_initializer=keras.initializers.Constant(value=initial_value))
     conv_average.trainable = False
     x_avg = conv_average(x)
