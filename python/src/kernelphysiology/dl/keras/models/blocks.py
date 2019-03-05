@@ -106,6 +106,22 @@ def local_contrast(x, rf_size=(3, 3), dilation_rate=(1, 1)):
     num_pixels = rf_size[0] * rf_size[1] * input_channels
     initial_value = 1.0 / num_pixels
     # TODO: put a nice name
+    conv_average = Conv2D(rf_size, dilation_rate=dilation_rate, padding='same',
+                          kernel_initializer=keras.initializers.Constant(value=initial_value))
+    conv_average.trainable = False
+    x_avg = conv_average(x)
+    x_diff = layers.subtract([x, x_avg])
+    x_diff =  keras.layers.core.Lambda(lambda x: x ** 2)(x_diff)
+    x = conv_average(x_diff)
+    x = keras.layers.core.Lambda(lambda x: x ** 0.5)(x)
+    return x
+
+
+def local_contrast_depth_wise(x, rf_size=(3, 3), dilation_rate=(1, 1)):
+    # TODO: support one dimensinal rf_size
+    num_pixels = rf_size[0] * rf_size[1]
+    initial_value = 1.0 / num_pixels
+    # TODO: put a nice name
     conv_average = DepthwiseConv2D(rf_size, dilation_rate=dilation_rate, padding='same',
                                    kernel_initializer=keras.initializers.Constant(value=initial_value))
     conv_average.trainable = False
@@ -113,10 +129,17 @@ def local_contrast(x, rf_size=(3, 3), dilation_rate=(1, 1)):
     x_diff = layers.subtract([x, x_avg])
     x_diff =  keras.layers.core.Lambda(lambda x: x ** 2)(x_diff)
     x = conv_average(x_diff)
+    x = keras.layers.core.Lambda(lambda x: x ** 0.5)(x)
     return x
 
 
 def invert_local_contrast(x, rf_size=(3, 3), dilation_rate=(1, 1)):
     x = local_contrast(x, rf_size=rf_size, dilation_rate=dilation_rate)
-    x =  keras.layers.core.Lambda(lambda x: 1 - x)(x)
+    x = keras.layers.core.Lambda(lambda x: 1 - x)(x)
+    return x
+
+
+def invert_local_contrast_depth_wise(x, rf_size=(3, 3), dilation_rate=(1, 1)):
+    x = local_contrast_depth_wise(x, rf_size=rf_size, dilation_rate=dilation_rate)
+    x = keras.layers.core.Lambda(lambda x: 1 - x)(x)
     return x
