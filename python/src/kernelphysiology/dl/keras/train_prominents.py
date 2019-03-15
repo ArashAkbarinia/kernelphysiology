@@ -149,8 +149,10 @@ def start_training_generator(args):
     # TODO: extra losses should be passed directly from the dataset
     # TODO: unequal types should be taken into consideration
     losses = {'all_classes': 'categorical_crossentropy'}
+    class_weight = {'all_classes': None}
     if 'natural_vs_manmade' in args.output_types:
         losses['natural_vs_manmade'] = 'binary_crossentropy'
+        class_weight['natural_vs_manmade'] = {0: 0.4, 1: 0.6}
 
     if len(args.gpus) == 1:
         model.compile(loss=losses, optimizer=opt, metrics=metrics)
@@ -171,7 +173,8 @@ def start_training_generator(args):
         model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
                             validation_data=args.validation_generator, validation_steps=args.validation_steps,
                             callbacks=callbacks, initial_epoch=args.initial_epoch,
-                            workers=args.workers, use_multiprocessing=args.use_multiprocessing)
+                            workers=args.workers, use_multiprocessing=args.use_multiprocessing,
+                            class_weight=class_weight)
 
     # save model and weights
     model_name = args.model_name + '.h5'
