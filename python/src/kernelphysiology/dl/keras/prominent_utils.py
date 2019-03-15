@@ -208,7 +208,7 @@ def common_arg_parser(description):
     parser.add_argument('--batch_size', type=int, default=None, help='Batch size (default: according to dataset)')
     parser.add_argument('--target_size', type=int, default=None, help='Target size (default: according to dataset)')
     parser.add_argument('--preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
-    parser.add_argument('--top_k', type=int, default=5, help='Accuracy of top K elements (default: 5)')
+    parser.add_argument('--top_k', type=int, default=None, help='Accuracy of top K elements (default: None)')
     parser.add_argument('--task_type', type=str, default=None, help='The task to prform by network (default: None)')
 
     return parser
@@ -358,6 +358,11 @@ def check_args(parser, argvs, script_type):
         args.target_size = (args.target_size, args.target_size)
     # check the input shape
     args.input_shape = get_input_shape(args.target_size)
+
+    # setting the default top_k
+    if args.top_k is None:
+        if args.dataset == 'imagenet':
+            args.top_k = 5
 
     # setting the batch size
     if args.batch_size is None:
