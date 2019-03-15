@@ -5,6 +5,47 @@ import shutil
 import time
 import warnings
 import sys
+import numpy as np
+from PIL import Image as pil_image
+
+sys.path.append('/home/arash/Software/repositories/kernelphysiology/python/src/')
+from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_red_green, reduce_yellow_blue
+
+class RedGreenDeficiency(object):
+
+    def __init__(self, amount):
+        self.amount = amount
+
+    def __call__(self, x):
+        x = np.asarray(x, dtype='uint8')
+        x = reduce_red_green(x, self.amount)
+        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
+        return x
+
+
+class YellowBlueDeficiency(object):
+
+    def __init__(self, amount):
+        self.amount = amount
+
+    def __call__(self, x):
+        x = np.asarray(x, dtype='uint8')
+        x = reduce_yellow_blue(x, self.amount)
+        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
+        return x
+
+
+class ChromaticityDeficiency(object):
+
+    def __init__(self, amount):
+        self.amount = amount
+
+    def __call__(self, x):
+        x = np.asarray(x, dtype='uint8')
+        x = reduce_chromaticity(x, self.amount)
+        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
+        return x
+
 
 import torch
 import torch.nn as nn
@@ -74,12 +115,15 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'N processes per node, which has N GPUs. This is the '
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
+parser.add_argument('--experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
 
 best_acc1 = 0
 
 
 def main():
     args = parser.parse_args()
+    dirname = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/pytorch/imagenet/imagenet/resnet50/sgd/scratch/'
+    args.out_dir = os.path.join(dirname, args.experiment_name)
 
     if args.seed is not None:
         random.seed(args.seed)
@@ -198,10 +242,22 @@ def main_worker(gpu, ngpus_per_node, args):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
+    transformations = []
+    if args.experiment_name == 'deficiency_yellow_blue':
+        print('deficiency_yellow_blue')
+        transformations.append(YellowBlueDeficiency(0))
+    elif args.experiment_name == 'deficiency_red_green':
+        print('deficiency_red_green')
+        transformations.append(RedGreenDeficiency(0))
+    elif args.experiment_name == 'deficiency_chromaticity':
+        print('deficiency_chromaticity')
+        transformations.append(ChromaticityDeficiency(0))
+
     train_dataset = datasets.ImageFolder(
         traindir,
         transforms.Compose([
             transforms.RandomResizedCrop(224),
+            *transformations,
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
@@ -230,18 +286,24 @@ def main_worker(gpu, ngpus_per_node, args):
         validate(val_loader, model, criterion, args)
         return
 
+    model_progress = []
+    if not os.path.isdir(args.out_dir):
+        os.mkdir(args.out_dir)
+    file_path = os.path.join(args.out_dir, 'model_progress.csv')
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
         adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args)
+        train_log = train(train_loader, model, criterion, optimizer, epoch, args)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
+        validation_log = validate(val_loader, model, criterion, args)
+        model_progress.append([*train_log, *validation_log])
 
         # remember best acc@1 and save checkpoint
+        acc1 = validation_log[2]
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
 
@@ -253,7 +315,8 @@ def main_worker(gpu, ngpus_per_node, args):
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer' : optimizer.state_dict(),
-            }, is_best)
+            }, is_best, out_folder=args.out_dir)
+        np.savetxt(file_path, np.array(model_progress), delimiter=',')
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
@@ -303,6 +366,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
                   'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                    epoch, i, len(train_loader), batch_time=batch_time,
                    data_time=data_time, loss=losses, top1=top1, top5=top5))
+    return [epoch, batch_time.avg, losses.avg, top1.avg, top5.avg]
 
 
 def validate(val_loader, model, criterion, args):
@@ -343,17 +407,18 @@ def validate(val_loader, model, criterion, args):
                       'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                        i, len(val_loader), batch_time=batch_time, loss=losses,
                        top1=top1, top5=top5))
-
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
 
-    return top1.avg
+    return [batch_time.avg, losses.avg, top1.avg, top5.avg]
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', out_folder=''):
+    filename = os.path.join(out_folder, filename)
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        model_best_path = os.path.join(out_folder, 'model_best.pth.tar')
+        shutil.copyfile(filename, model_best_path)
 
 
 class AverageMeter(object):
