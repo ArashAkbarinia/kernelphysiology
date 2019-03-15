@@ -152,7 +152,10 @@ def start_training_generator(args):
     class_weight = {'all_classes': None}
     if 'natural_vs_manmade' in args.output_types:
         losses['natural_vs_manmade'] = 'binary_crossentropy'
-        class_weight['natural_vs_manmade'] = {0: 0.4, 1: 0.6}
+        if args.dataset == 'cifar10':
+            class_weight['natural_vs_manmade'] = {0: 0.4, 1: 0.6}
+        elif args.dataset == 'cifar100':
+            class_weight['natural_vs_manmade'] = {0: 0.3, 1: 0.7}
 
     if len(args.gpus) == 1:
         model.compile(loss=losses, optimizer=opt, metrics=metrics)

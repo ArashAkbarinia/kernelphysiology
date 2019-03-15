@@ -42,7 +42,7 @@ def prepare_cifar100(args):
     args.num_classes = 100
 
     # The data, split between train and test sets:
-    (args.x_train, args.y_train), (args.x_test, args.y_test) = cifar100.load_data(dirname=args.data_dir)
+    (args.x_train, args.y_train), (args.x_test, args.y_test) = cifar100.load_data(dirname=args.data_dir, which_outputs=args.output_types)
 
     return args
 
@@ -51,7 +51,7 @@ def prepare_cifar100_generators(args):
     args.num_classes = 100
 
     # The data, split between train and test sets:
-    (x_train, y_train), (x_test, y_test) = cifar100.load_data(dirname=args.data_dir)
+    (x_train, y_train), (x_test, y_test) = cifar100.load_data(dirname=args.data_dir, which_outputs=args.output_types)
 
     args = get_generators(args, x_train, y_train, x_test, y_test)
     return args
@@ -61,7 +61,7 @@ def cifar100_validatoin_generator(args):
     args.num_classes = 100
 
     # The data, split between train and test sets:
-    (x_train, y_train), (x_test, y_test) = cifar100.load_data(dirname=args.data_dir)
+    (x_train, y_train), (x_test, y_test) = cifar100.load_data(dirname=args.data_dir, which_outputs=args.output_types)
 
     args = get_validatoin_generator(args, x_test, y_test)
     return args
