@@ -1638,7 +1638,14 @@ class NumpyArrayIterator(Iterator):
         else:
             x_misc = []
 
-        if y is not None and len(x) != len(y):
+        if type(y) is dict:
+            for sub_ys in y.values():
+                if y is not None and len(x) != len(sub_ys):
+                    raise ValueError('`x` (images tensor) and `y` (labels) '
+                                     'should have the same length. '
+                                     'Found: x.shape = %s, y.shape = %s' %
+                                     (np.asarray(x).shape, np.asarray(sub_ys).shape))
+        elif y is not None and len(x) != len(y):
             raise ValueError('`x` (images tensor) and `y` (labels) '
                              'should have the same length. '
                              'Found: x.shape = %s, y.shape = %s' %
@@ -1654,9 +1661,15 @@ class NumpyArrayIterator(Iterator):
                                  '; expected "training" or "validation".')
             split_idx = int(len(x) * image_data_generator._validation_split)
 
-            if not np.array_equal(
-                    np.unique(y[:split_idx]),
-                    np.unique(y[split_idx:])):
+            if type(y) is dict:
+               for sub_ys in y.values():
+                   if not np.array_equal(np.unique(sub_ys[:split_idx]), np.unique(sub_ys[split_idx:])):
+                       raise ValueError('Training and validation subsets '
+                                        'have different number of classes after '
+                                        'the split. If your numpy arrays are '
+                                        'sorted by the label, you might want '
+                                        'to shuffle them.')
+            elif not np.array_equal(np.unique(y[:split_idx]), np.unique(y[split_idx:])):
                 raise ValueError('Training and validation subsets '
                                  'have different number of classes after '
                                  'the split. If your numpy arrays are '
@@ -1667,12 +1680,20 @@ class NumpyArrayIterator(Iterator):
                 x = x[:split_idx]
                 x_misc = [np.asarray(xx[:split_idx]) for xx in x_misc]
                 if y is not None:
-                    y = y[:split_idx]
+                    if type(y) is dict:
+                        for key_ys, sub_ys in y.items():
+                            y[key_ys] = sub_ys[:split_idx]
+                    else:
+                        y = y[:split_idx]
             else:
                 x = x[split_idx:]
                 x_misc = [np.asarray(xx[split_idx:]) for xx in x_misc]
                 if y is not None:
-                    y = y[split_idx:]
+                    if type(y) is dict:
+                        for key_ys, sub_ys in y.items():
+                            y[key_ys] = sub_ys[:split_idx]
+                    else:
+                        y = y[:split_idx]
 
         self.x = np.asarray(x, dtype=self.dtype)
         self.x_misc = x_misc
@@ -1691,7 +1712,12 @@ class NumpyArrayIterator(Iterator):
                           str(self.x.shape) + ' (' +
                           str(self.x.shape[channels_axis]) + ' channels).')
         if y is not None:
-            self.y = np.asarray(y)
+            if type(y) is dict:
+                for key_ys, val_ys in y.items():
+                    y[key_ys] = np.asarray(val_ys)
+                self.y = y
+            else:
+                self.y = np.asarray(y)
         else:
             self.y = None
         if sample_weight is not None:
@@ -1733,7 +1759,13 @@ class NumpyArrayIterator(Iterator):
                   else [batch_x] + batch_x_miscs,)
         if self.y is None:
             return output[0]
-        output += (self.y[index_array],)
+        if type(self.y) is dict:
+            ys = {}
+            for key_ys, val_ys in self.y.items():
+                ys[key_ys] = val_ys[index_array]
+            output += (ys,)
+        else:
+            output += (self.y[index_array],)
         if self.sample_weight is not None:
             output += (self.sample_weight[index_array],)
         return output
