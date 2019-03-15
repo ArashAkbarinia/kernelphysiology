@@ -16,7 +16,7 @@ from keras.utils.data_utils import get_file
 from keras import backend as K
 
 
-def load_data(dirname=os.path.join(commons.python_root, 'data/datasets/cifar/cifar10/')):
+def load_data(dirname=os.path.join(commons.python_root, 'data/datasets/cifar/cifar10/'), which_outputs=[]):
     """Loads CIFAR10 dataset.
 
     # Returns
@@ -48,8 +48,28 @@ def load_data(dirname=os.path.join(commons.python_root, 'data/datasets/cifar/cif
         x_train = x_train.transpose(0, 2, 3, 1)
         x_test = x_test.transpose(0, 2, 3, 1)
 
+    # natural versus man made ground truth
+    if 'natural_vs_manmade' in which_outputs:
+        y_train_nvm = np.zeros((num_train_samples, 1), dtype='bool')
+        y_test_nvm = np.zeros((len(y_test), 1), dtype='bool')
+
+        man_made_inds = [0, 1, 8, 9]
+        for m in man_made_inds:
+            y_train_nvm = y_train_nvm | (y_train == m)
+            y_test_nvm = y_test_nvm | (y_test == m)
+
     # Convert class vectors to binary class matrices.
     y_train = keras.utils.to_categorical(y_train, 10)
     y_test = keras.utils.to_categorical(y_test, 10)
 
+    if 'natural_vs_manmade' in which_outputs:
+        y_train_nvm = keras.utils.to_categorical(y_train_nvm, 2)
+        y_test_nvm = keras.utils.to_categorical(y_test_nvm, 2)
+
+    y_train = {'all_classes': y_train}
+    y_test = {'all_classes': y_test}
+
+    if 'natural_vs_manmade' in which_outputs:
+        y_train['natural_vs_manmade'] = y_train_nvm
+        y_test['natural_vs_manmade'] = y_test_nvm
     return (x_train, y_train), (x_test, y_test)

@@ -54,7 +54,7 @@ def resnet_layer(inputs,
 
 
 def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal',
-              pyramid_levels=1, num_kernels=16):
+              pyramid_levels=1, num_kernels=16, output_types=[]):
     """ResNet Version 1 Model builder [a]
 
     Stacks of 2 x (3 x 3) Conv2D-BN-ReLU
@@ -93,6 +93,15 @@ def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
 
     inputs = Input(shape=input_shape)
     x = resnet_layer(inputs=inputs, kernel_initializer=kernel_initializer, pyramid_levels=pyramid_levels)
+
+    other_outputs = []
+    if 'natural_vs_manmade' in output_types:
+        x_nvm = AveragePooling2D(pool_size=8)(x)
+        y_nvm = Flatten()(x_nvm)
+        natural_vs_manmade_outout = Dense(2, activation='softmax',
+                                          kernel_initializer=kernel_initializer,
+                                          name='natural_vs_manmade')(y_nvm)
+        other_outputs.append(natural_vs_manmade_outout)
     # Instantiate the stack of residual units
     for stack in range(3):
         for res_block in range(num_res_blocks):
@@ -128,12 +137,13 @@ def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
     # v1 does not use BN after last shortcut connection-ReLU
     x = AveragePooling2D(pool_size=8)(x)
     y = Flatten()(x)
-    outputs = Dense(num_classes,
+    all_classes_output = Dense(num_classes,
                     activation='softmax',
-                    kernel_initializer=kernel_initializer)(y)
+                    kernel_initializer=kernel_initializer,
+                    name='all_classes')(y)
 
     # Instantiate model.
-    model = Model(inputs=inputs, outputs=outputs)
+    model = Model(inputs=inputs, outputs=[all_classes_output, *other_outputs])
     return model
 
 

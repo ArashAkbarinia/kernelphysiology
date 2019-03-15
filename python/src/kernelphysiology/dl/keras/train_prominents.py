@@ -35,6 +35,13 @@ class TimeHistory(keras.callbacks.Callback):
         logs['epoch_time'] = time.time() - self.epoch_time_start
 
 
+class LrHistory(keras.callbacks.Callback):
+    def on_epoch_end(self, batch, logs):
+        optimizer = self.model.optimizer
+        lr = K.eval(optimizer.lr * (1. / (1. + optimizer.decay * K.cast(optimizer.iterations, K.dtype(optimizer.decay)))))
+        logs['lr'] = lr
+
+
 def lr_metric_call_back(optimizer):
     def lr(y_true, y_pred):
         return optimizer.lr * (1. / (1. + optimizer.decay * K.cast(optimizer.iterations, K.dtype(optimizer.decay))))
@@ -97,7 +104,8 @@ def start_training_generator(args):
                                   min_lr=args.plateau_min_lr, cooldown=0)
     logging.info('ReduceLROnPlateau monitor=%s factor=%f, patience=%d, min_delta=%f, min_lr=%f' % (reduce_lr.monitor, reduce_lr.factor, reduce_lr.patience, reduce_lr.min_delta, reduce_lr.min_lr))
     time_callback = TimeHistory()
-    callbacks = [time_callback, csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
+    lr_callback = LrHistory()
+    callbacks = [time_callback, lr_callback, csv_logger, best_checkpoint_logger, last_checkpoint_logger, reduce_lr]
 
     if args.log_period > 0:
         period_checkpoint_logger = ModelCheckpoint(os.path.join(args.log_dir, 'model_weights_{epoch:03d}.h5'), save_weights_only=True, period=args.log_period)
@@ -126,9 +134,10 @@ def start_training_generator(args):
         callbacks.append(LearningRateScheduler(lr_schedule_lambda))
 
     # metrics
-    top_k_acc = get_top_k_accuracy(args.top_k)
-    lr_metric = lr_metric_call_back(opt)
-    metrics = ['accuracy', top_k_acc, lr_metric]
+#    lr_metric = lr_metric_call_back(opt)
+    metrics = ['accuracy']
+    if args.top_k is not None:
+        metrics.append(get_top_k_accuracy(args.top_k))
 
     model = args.model
     # initialising the network with specific weights
@@ -137,15 +146,26 @@ def start_training_generator(args):
     model = handle_trainability(model, args)
     model.summary(print_fn=logging.info)
 
+    # TODO: extra losses should be passed directly from the dataset
+    # TODO: unequal types should be taken into consideration
+    losses = {'all_classes': 'categorical_crossentropy'}
+    class_weight = {'all_classes': None}
+    if 'natural_vs_manmade' in args.output_types:
+        losses['natural_vs_manmade'] = 'binary_crossentropy'
+        if args.dataset == 'cifar10':
+            class_weight['natural_vs_manmade'] = {0: 0.4, 1: 0.6}
+        elif args.dataset == 'cifar100':
+            class_weight['natural_vs_manmade'] = {0: 0.3, 1: 0.7}
+
     if len(args.gpus) == 1:
-        model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+        model.compile(loss=losses, optimizer=opt, metrics=metrics)
         parallel_model = None
     else:
         with tf.device('/cpu:0'):
-            model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+            model.compile(loss=losses, optimizer=opt, metrics=metrics)
         parallel_model = multi_gpu_model(model, gpus=args.gpus)
         # TODO: this compilation probably is not necessary
-        parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+        parallel_model.compile(loss=losses, optimizer=opt, metrics=metrics)
 
     if not parallel_model == None:
         parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
@@ -156,7 +176,8 @@ def start_training_generator(args):
         model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
                             validation_data=args.validation_generator, validation_steps=args.validation_steps,
                             callbacks=callbacks, initial_epoch=args.initial_epoch,
-                            workers=args.workers, use_multiprocessing=args.use_multiprocessing)
+                            workers=args.workers, use_multiprocessing=args.use_multiprocessing,
+                            class_weight=class_weight)
 
     # save model and weights
     model_name = args.model_name + '.h5'
