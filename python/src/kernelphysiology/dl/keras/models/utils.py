@@ -133,7 +133,8 @@ def which_architecture(args):
         # FIXME: add initialiser to ass architectures args.initialise
         from kernelphysiology.dl.keras.models import resnet
         model = resnet.resnet_v1(input_shape=args.input_shape, depth=3*6+2,
-                                 num_classes=args.num_classes, pyramid_levels=args.pyramid_conv, num_kernels=args.num_kernels)
+                                 num_classes=args.num_classes, pyramid_levels=args.pyramid_conv, num_kernels=args.num_kernels,
+                                 output_types=args.output_types)
     elif network_name == 'resnet_v2':
         # FIXME: make it more generic
         # FIXME: add initialiser to ass architectures args.initialise

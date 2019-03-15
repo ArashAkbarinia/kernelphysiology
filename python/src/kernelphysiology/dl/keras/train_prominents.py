@@ -137,15 +137,21 @@ def start_training_generator(args):
     model = handle_trainability(model, args)
     model.summary(print_fn=logging.info)
 
+    # TODO: extra losses should be passed directly from the dataset
+    # TODO: unequal types should be taken into consideration
+    losses = {'all_classes': 'categorical_crossentropy'}
+    if 'natural_vs_manmade' in args.output_types:
+        losses['natural_vs_manmade'] = 'binary_crossentropy'
+
     if len(args.gpus) == 1:
-        model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+        model.compile(loss=losses, optimizer=opt, metrics=metrics)
         parallel_model = None
     else:
         with tf.device('/cpu:0'):
-            model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+            model.compile(loss=losses, optimizer=opt, metrics=metrics)
         parallel_model = multi_gpu_model(model, gpus=args.gpus)
         # TODO: this compilation probably is not necessary
-        parallel_model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=metrics)
+        parallel_model.compile(loss=losses, optimizer=opt, metrics=metrics)
 
     if not parallel_model == None:
         parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,

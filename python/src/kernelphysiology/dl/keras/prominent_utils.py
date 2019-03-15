@@ -261,6 +261,7 @@ def test_arg_parser(argvs):
 def train_arg_parser(argvs):
     parser = common_arg_parser('Training prominent nets of Keras.')
     parser.add_argument('--crop_type', type=str, default='random', choices=['random', 'centre', 'none'], help='What type of crop (default: random)')
+    parser.add_argument('--output_types', type=str, nargs='+', default=[], help='What type of outputs to consider in model (default: None)')
 
     # better handling the parameters, e.g. pretrained ones are only for imagenet
     architecture_group = parser.add_argument_group('architecture')
