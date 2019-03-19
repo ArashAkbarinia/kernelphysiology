@@ -22,7 +22,7 @@ from kernelphysiology.dl.keras.utils import get_top_k_accuracy
 
 from kernelphysiology.dl.keras.initialisations.initialise import initialse_weights
 from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, get_default_lrs, get_default_decays
-from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule_resnet, lr_schedule_arash, lr_schedule_file
+from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule_resnet, lr_schedule_arash, lr_schedule_file, lr_schedule_nepochs
 
 from kernelphysiology.utils.path_utils import create_dir
 
@@ -125,7 +125,9 @@ def start_training_generator(args):
         callbacks.append(LearningRateScheduler(exp_decay_lambda))
         logging.info('Exponential decay=%f' % (args.exp_decay))
     if args.lr_schedule is not None:
-        if os.path.isfile(args.lr_schedule):
+        if args.lr_schedule.isdigit():
+            lr_schedule_lambda = partial(lr_schedule_nepochs, lr=args.lr, n=int(args.lr_schedule.isdigit()))
+        elif os.path.isfile(args.lr_schedule):
             lr_schedule_lambda = partial(lr_schedule_file, file_path=args.lr_schedule)
         elif args.lr_schedule == 'resnet':
             lr_schedule_lambda = partial(lr_schedule_resnet, lr=args.lr)

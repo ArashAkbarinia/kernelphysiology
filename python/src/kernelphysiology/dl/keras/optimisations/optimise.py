@@ -135,3 +135,8 @@ def lr_schedule_file(epoch, file_path):
             tokens = line.strip().split(',')
             new_lr = float(tokens[0])
     return new_lr
+
+
+def lr_schedule_nepochs(epoch, n, lr, decay_factor=0.1):
+    new_lr = lr * (decay_factor ** (epoch // n))
+    return new_lr
