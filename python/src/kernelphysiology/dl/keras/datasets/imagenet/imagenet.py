@@ -27,7 +27,7 @@ def train_generator(dirname, batch_size=32, target_size=(224, 224), preprocessin
     return train_generator
 
 
-def validation_generator(dirname, batch_size=32, target_size=(224, 224), preprocessing_function=None, crop_type='random',):
+def validation_generator(dirname, batch_size=32, target_size=(224, 224), preprocessing_function=None, crop_type='centre'):
     validarion_datagen = ImageDataGenerator(preprocessing_function=preprocessing_function)
 
     validatoin_generator = validarion_datagen.flow_from_directory(dirname, target_size=target_size, batch_size=batch_size,
