@@ -257,7 +257,7 @@ def ResNet50(include_top=True, weights=None,
 
     if include_top:
         x = GlobalAveragePooling2D(name='avg_pool')(x)
-        x = Dense(classes, activation='softmax', name='fc1000')(x)
+        x = Dense(classes, activation='softmax', name='all_classes')(x)
     else:
         if pooling == 'avg':
             x = GlobalAveragePooling2D()(x)
@@ -291,7 +291,7 @@ def ResNet50(include_top=True, weights=None,
             if include_top:
                 maxpool = model.get_layer(name='avg_pool')
                 shape = maxpool.output_shape[1:]
-                dense = model.get_layer(name='fc1000')
+                dense = model.get_layer(name='all_classes')
                 layer_utils.convert_dense_weights_data_format(dense, shape, 'channels_first')
 
         if K.image_data_format() == 'channels_first' and K.backend() == 'tensorflow':

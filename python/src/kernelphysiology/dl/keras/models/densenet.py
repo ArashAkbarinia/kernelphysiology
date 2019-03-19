@@ -216,7 +216,7 @@ def DenseNet(blocks,
 
     if include_top:
         x = GlobalAveragePooling2D(name='avg_pool')(x)
-        x = Dense(classes, activation='softmax', name='fc1000')(x)
+        x = Dense(classes, activation='softmax', name='all_classes')(x)
     else:
         if pooling == 'avg':
             x = GlobalAveragePooling2D(name='avg_pool')(x)

@@ -453,7 +453,7 @@ def MobileNetV2(input_shape=None,
     if include_top:
         x = layers.GlobalAveragePooling2D()(x)
         x = layers.Dense(classes, activation='softmax',
-                         use_bias=True, name='Logits')(x)
+                         use_bias=True, name='all_classes')(x)
     else:
         if pooling == 'avg':
             x = layers.GlobalAveragePooling2D()(x)
