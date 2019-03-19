@@ -18,7 +18,7 @@ class RedGreenDeficiency(object):
 
     def __call__(self, x):
         x = np.asarray(x, dtype='uint8')
-        x = reduce_red_green(x, self.amount)
+        x = reduce_red_green(x, self.amount) * 255
         x = pil_image.fromarray(x.astype('uint8'), 'RGB')
         return x
 
@@ -30,7 +30,7 @@ class YellowBlueDeficiency(object):
 
     def __call__(self, x):
         x = np.asarray(x, dtype='uint8')
-        x = reduce_yellow_blue(x, self.amount)
+        x = reduce_yellow_blue(x, self.amount) * 255
         x = pil_image.fromarray(x.astype('uint8'), 'RGB')
         return x
 
@@ -42,7 +42,7 @@ class ChromaticityDeficiency(object):
 
     def __call__(self, x):
         x = np.asarray(x, dtype='uint8')
-        x = reduce_chromaticity(x, self.amount)
+        x = reduce_chromaticity(x, self.amount) * 255
         x = pil_image.fromarray(x.astype('uint8'), 'RGB')
         return x
 
