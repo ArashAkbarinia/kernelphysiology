@@ -126,7 +126,7 @@ def start_training_generator(args):
         logging.info('Exponential decay=%f' % (args.exp_decay))
     if args.lr_schedule is not None:
         if args.lr_schedule.isdigit():
-            lr_schedule_lambda = partial(lr_schedule_nepochs, lr=args.lr, n=int(args.lr_schedule.isdigit()))
+            lr_schedule_lambda = partial(lr_schedule_nepochs, n=int(args.lr_schedule), lr=args.lr)
         elif os.path.isfile(args.lr_schedule):
             lr_schedule_lambda = partial(lr_schedule_file, file_path=args.lr_schedule)
         elif args.lr_schedule == 'resnet':
