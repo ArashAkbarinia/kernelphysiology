@@ -125,7 +125,7 @@ best_acc1 = 0
 
 def main():
     args = parser.parse_args()
-    args.out_dir = prepare_training(dataset_name='imagenet', args.arch, optimiser='sgd', load_weights=False, args.experiment_name)
+    args.out_dir = prepare_training(dataset_name='imagenet', network_name=args.arch, optimiser='sgd', load_weights=False, args.experiment_name)
 
     if args.seed is not None:
         random.seed(args.seed)
