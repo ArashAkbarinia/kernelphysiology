@@ -4,11 +4,9 @@ import random
 import shutil
 import time
 import warnings
-import sys
 import numpy as np
 from PIL import Image as pil_image
 
-sys.path.append('/home/arash/Software/repositories/kernelphysiology/python/src/')
 from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_red_green, reduce_yellow_blue
 
 class RedGreenDeficiency(object):
@@ -129,7 +127,8 @@ def main():
                                                                network_name=args.arch,
                                                                optimiser='sgd',
                                                                load_weights=False,
-                                                               experiment_name=args.experiment_name)
+                                                               experiment_name=args.experiment_name,
+                                                               framework='pytorch')
 
     if args.seed is not None:
         random.seed(args.seed)
