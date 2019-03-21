@@ -60,6 +60,9 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from kernelphysiology.dl.utils import prepare_training
+
+
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -122,8 +125,7 @@ best_acc1 = 0
 
 def main():
     args = parser.parse_args()
-    dirname = '/home/arash/Software/repositories/kernelphysiology/python/data/nets/pytorch/imagenet/imagenet/resnet50/sgd/scratch/'
-    args.out_dir = os.path.join(dirname, args.experiment_name)
+    args.out_dir = prepare_training(dataset_name='imagenet', args.arch, optimiser='sgd', load_weights=False, args.experiment_name)
 
     if args.seed is not None:
         random.seed(args.seed)
