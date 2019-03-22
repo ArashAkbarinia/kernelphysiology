@@ -3,11 +3,7 @@ The utility functoins for datasets.
 '''
 
 
-import socket
 import sys
-import os
-
-from kernelphysiology import commons
 
 from kernelphysiology.dl.keras.datasets.cifar import cifar_train
 from kernelphysiology.dl.keras.datasets.stl import stl_train
@@ -66,34 +62,3 @@ def get_default_target_size(dataset):
 
     target_size = (target_size, target_size)
     return target_size
-
-
-def get_default_dataset_paths(args):
-    if args.dataset == 'imagenet':
-        # NOTE: just for the ease of working in my machiens
-        if args.train_dir is None:
-            args.train_dir = '/home/arash/Software/imagenet/raw-data/train/'
-        if args.validation_dir is None:
-            if socket.gethostname() == 'awesome' or socket.gethostname() == 'nickel':
-                args.validation_dir = '/home/arash/Software/imagenet/raw-data/validation/'
-            else:
-                args.validation_dir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/ilsvrc/ilsvrc2012/raw-data/validation/'
-    elif args.dataset == 'cifar10':
-        if args.data_dir is None:
-            args.data_dir = os.path.join(commons.python_root, 'data/datasets/cifar/cifar10/')
-    elif args.dataset == 'cifar100':
-        if args.data_dir is None:
-            args.data_dir = os.path.join(commons.python_root, 'data/datasets/cifar/cifar100/')
-    elif args.dataset == 'stl10':
-        if args.data_dir is None:
-            args.data_dir = os.path.join(commons.python_root, 'data/datasets/stl/stl10/')
-    elif args.dataset == 'coco':
-        # NOTE: just for the ease of working in my machiens
-        if args.data_dir is None:
-            if socket.gethostname() == 'awesome' or socket.gethostname() == 'nickel':
-                args.data_dir = '/home/arash/Software/coco/'
-            else:
-                args.validation_dir = '/home/arash/Software/repositories/kernelphysiology/data/computervision/coco/'           
-    else:
-        sys.exit('Unsupported dataset %s' % (args.dataset))
-    return args

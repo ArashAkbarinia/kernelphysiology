@@ -18,7 +18,8 @@ from kernelphysiology.utils.imutils import s_p_noise, gaussian_noise, speckle_no
 from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness, reduce_yellow_blue, reduce_red_green
 from kernelphysiology.utils.path_utils import create_dir
 
-from kernelphysiology.dl.keras.datasets.utils import get_default_dataset_paths, get_default_target_size, which_dataset
+from kernelphysiology.dl.keras.datasets.utils import get_default_target_size, which_dataset
+from kernelphysiology.dl.utils import default_configs
 
 from kernelphysiology.dl.keras.models.utils import which_architecture, which_network
 from kernelphysiology.dl.keras.models.utils import get_preprocessing_function
@@ -394,7 +395,7 @@ def check_args(parser, argvs, script_type):
         args.use_multiprocessing = False
 
     # handling the paths
-    args = get_default_dataset_paths(args)
+    (args.train_dir, args.validation_dir, args.data_dir) = default_configs.get_default_dataset_paths(args.dataset, args.train_dir, args.validation_dir, args.data_dir)
 
     return args
 
