@@ -3,8 +3,6 @@ Testing a Keras model of CIFAR or STL against different levels of contrast.
 '''
 
 
-import commons
-
 import sys
 import numpy as np
 import time

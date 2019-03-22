@@ -3,11 +3,11 @@ The utility functoins for datasets.
 '''
 
 
-import commons
-
 import socket
 import sys
 import os
+
+from kernelphysiology import commons
 
 from kernelphysiology.dl.keras.datasets.cifar import cifar_train
 from kernelphysiology.dl.keras.datasets.stl import stl_train

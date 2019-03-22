@@ -3,8 +3,6 @@ Testing a Keras model of vairous datasets for different image manipulations.
 '''
 
 
-import commons
-
 import sys
 import numpy as np
 import time

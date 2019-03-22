@@ -4,7 +4,6 @@ Train prominent DNN architectures on various different datasets.
 
 
 import os
-import commons
 import time
 import datetime
 import sys
@@ -24,7 +23,7 @@ from kernelphysiology.dl.keras.initialisations.initialise import initialse_weigh
 from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, get_default_lrs, get_default_decays
 from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule_resnet, lr_schedule_arash, lr_schedule_file, lr_schedule_nepochs
 
-from kernelphysiology.utils.path_utils import create_dir
+from kernelphysiology.dl.utils import prepare_training
 
 
 class TimeHistory(keras.callbacks.Callback):
@@ -200,21 +199,12 @@ if __name__ == "__main__":
     optimiser = args.optimiser.lower()
 
     # preparing directories
-    dataset_parent_path = os.path.join(commons.python_root, 'data/nets/%s/' % (''.join([i for i in dataset_name if not i.isdigit()])))
-    create_dir(dataset_parent_path)
-    dataset_child_path = os.path.join(dataset_parent_path, dataset_name)
-    create_dir(dataset_child_path)
-    network_parent_path = os.path.join(dataset_child_path, network_name)
-    create_dir(network_parent_path)
-    network_dir = os.path.join(network_parent_path, optimiser)
-    create_dir(network_dir)
-    if args.load_weights is not None:
-        f_s_dir = os.path.join(network_dir, 'fine_tune')
-    else:
-        f_s_dir = os.path.join(network_dir, 'scratch')
-    create_dir(f_s_dir)
-    args.save_dir = os.path.join(f_s_dir, args.experiment_name)
-    create_dir(args.save_dir)
+    args.save_dir = prepare_training.prepare_output_directories(dataset_name=dataset_name,
+                                                               network_name=network_name,
+                                                               optimiser=optimiser,
+                                                               load_weights=args.load_weights,
+                                                               experiment_name=args.experiment_name,
+                                                               framework='keras')
 
     # preparing the name of the model
     args.model_name = 'model_area_%s' % (args.area1layers)

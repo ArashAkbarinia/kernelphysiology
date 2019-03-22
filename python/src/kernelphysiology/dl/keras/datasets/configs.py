@@ -3,11 +3,6 @@ The utility functoins for datasets.
 '''
 
 
-import commons
-
-import socket
-import sys
-import os
 import numpy as np
 import skimage
 import logging

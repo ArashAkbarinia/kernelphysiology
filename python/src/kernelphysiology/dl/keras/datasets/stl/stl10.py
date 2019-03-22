@@ -7,7 +7,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import commons
 import os
 import sys
 
@@ -15,6 +14,8 @@ import urllib.request as urllib
 import tarfile
 import numpy as np
 import keras
+
+from kernelphysiology import commons
 
 
 # number of classes in the STL-10 dataset

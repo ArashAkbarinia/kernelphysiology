@@ -10,7 +10,6 @@ from kernelphysiology import commons
 from kernelphysiology.utils.path_utils import create_dir
 
 
-
 def prepare_output_directories(dataset_name, network_name, optimiser, load_weights, experiment_name, framework):
     # preparing directories
     data_folder_path = os.path.join(commons.python_root, 'data')

@@ -4,8 +4,6 @@ Adapted from code originally written by Waleed Abdulla.
 '''
 
 
-import commons
-
 import os
 import numpy as np
 import zipfile

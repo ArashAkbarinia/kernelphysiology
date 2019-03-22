@@ -7,13 +7,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import commons
 import numpy as np
 import os
+
 import keras
-from kernelphysiology.dl.keras.datasets.cifar.cifar_utils import load_batch
 from keras.utils.data_utils import get_file
 from keras import backend as K
+
+from kernelphysiology import commons
+from kernelphysiology.dl.keras.datasets.cifar.cifar_utils import load_batch
 
 
 def load_data(label_mode='fine', dirname=os.path.join(commons.python_root, 'data/datasets/cifar/cifar100/'), which_outputs=[]):
