@@ -277,10 +277,11 @@ def main_worker(gpu, ngpus_per_node, args):
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
 
+    target_size = 224
     val_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(valdir, transforms.Compose([
             transforms.Resize(256),
-            transforms.CenterCrop(224),
+            transforms.CenterCrop(target_size),
             transforms.ToTensor(),
             normalize,
         ])),
@@ -320,6 +321,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer' : optimizer.state_dict(),
+                'target_size': target_size,
             }, is_best, out_folder=args.out_dir)
         np.savetxt(file_path, np.array(model_progress), delimiter=',')
 

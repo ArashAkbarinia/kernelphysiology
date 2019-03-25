@@ -549,18 +549,17 @@ def crop_image_centre(img, target_size):
 
 
 # NOTE: image_data_format is 'channel_last'
-def crop_image_random(img, target_size):
-    (height, width, _) = img.shape
+def crop_image_random(img, target_size, extended_crop=None):
     # NOTE: assuming only square images
     (dy, dx) = target_size
+    if extended_crop is None:
+        extended_crop = (dx + 32, dy + 32)
+
+    img = resize_to_min_side(img, extended_crop)
+
+    (height, width, _) = img.shape
     start_x = width - dx + 1
     start_y = height - dy + 1
-    # some of the images are smaller than target_size, that is why
-    if start_x <= 0 or start_y <= 0:
-        img = resize_to_min_side(img, target_size)
-        (height, width, _) = img.shape
-        start_x = width - dx + 1
-        start_y = height - dy + 1
 
     x = np.random.randint(0, start_x)
     y = np.random.randint(0, start_y)
