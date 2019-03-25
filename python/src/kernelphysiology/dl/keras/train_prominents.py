@@ -77,21 +77,28 @@ def handle_trainability(model, args):
     return model
 
 
+def tf_rad2deg(rad):
+    pi_on_180 = 0.017453292519943295
+    return rad / pi_on_180
+
+
 def reproduction_angular_error_loss():
     def loss(y_true, y_pred):
-#        import pdb
-#        pdb.set_trace()
-        l1 =  y_pred / K.repeat(K.sum(y_pred, axis=1), 3)
-        l2 = y_pred / K.repeat(K.sum(y_pred, axis=1), 3) # change to y_true
+        y_pred_sum = K.tile(K.sum(y_pred, axis=1), 3)
+        y_true_sum = K.tile(K.sum(y_true, axis=1), 3)
+        l1 = y_pred / K.reshape(y_pred_sum, (-1, 3))
+        l2 = y_true / K.reshape(y_true_sum, (-1, 3))
 
         l2l1 = l2 / l1
-        w1 = l2l1 / K.repeat(K.sum(l2l1 ** 2, axis=1) ** 0.5, 3)
+        l2l1_sum = K.tile(K.sum(l2l1 ** 2, axis=1), 3)
+        w1 = l2l1 / K.reshape(l2l1_sum ** 0.5, (-1, 3))
         w2 = 1 / (3 ** 0.5)
 
         w1w2 = K.sum(w1 * w2, axis=1)
         w1w2 = K.minimum(w1w2, 1)
         w1w2 = K.maximum(w1w2, -1)
         r = tf.math.acos(w1w2)
+#        r = tf_rad2deg(r) # TODO: should do on radian or degree?
         return K.mean(r, axis=-1)
     return loss
 
@@ -171,24 +178,27 @@ def start_training_generator(args):
     # TODO: unequal types should be taken into consideration
     losses = {'all_classes': 'categorical_crossentropy'}
     class_weight = {'all_classes': None}
+    loss_weights = {"all_classes": 1.0}
     if 'natural_vs_manmade' in args.output_types:
         losses['natural_vs_manmade'] = 'binary_crossentropy'
         if args.dataset == 'cifar10':
             class_weight['natural_vs_manmade'] = {0: 0.4, 1: 0.6}
         elif args.dataset == 'cifar100':
             class_weight['natural_vs_manmade'] = {0: 0.3, 1: 0.7}
+        loss_weights['natural_vs_manmade'] = 0.25
     if 'illuminant' in args.output_types:
         losses['illuminant'] = reproduction_angular_error_loss()
+        loss_weights['illuminant'] = 0.25
 
     if len(args.gpus) == 1:
-        model.compile(loss=losses, optimizer=opt, metrics=metrics)
+        model.compile(loss=losses, optimizer=opt, metrics=metrics, loss_weights=loss_weights)
         parallel_model = None
     else:
         with tf.device('/cpu:0'):
-            model.compile(loss=losses, optimizer=opt, metrics=metrics)
+            model.compile(loss=losses, optimizer=opt, metrics=metrics, loss_weights=loss_weights)
         parallel_model = multi_gpu_model(model, gpus=args.gpus)
         # TODO: this compilation probably is not necessary
-        parallel_model.compile(loss=losses, optimizer=opt, metrics=metrics)
+        parallel_model.compile(loss=losses, optimizer=opt, metrics=metrics, loss_weights=loss_weights)
 
     if not parallel_model == None:
         parallel_model.fit_generator(generator=args.train_generator, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, verbose=1,
