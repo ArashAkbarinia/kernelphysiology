@@ -40,7 +40,8 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
                             speckle_range=None, gamma_range=None,
                             chromatic_contrast=None, luminance_contrast=None,
                             yellow_blue=None, red_green=None,
-                            mask_radius=None, preprocessing_function=None):
+                            mask_radius=None, preprocessing_function=None,
+                            dynamic_gt=None):
     if num_augmentation is None:
         order_augmentatoin = []
     elif num_augmentation == 0:
@@ -86,6 +87,8 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
 
     if preprocessing_function is not None:
         img = preprocessing_function(img)
+    if dynamic_gt is None or len(dynamic_gt) == 0:
+        return img
     return (img, transformation_params)
 
 
@@ -154,7 +157,8 @@ def prepare_train_augmentation(args):
                                                                                  red_green=args.red_green,
                                                                                  yellow_blue=args.yellow_blue,
                                                                                  mask_radius=args.mask_radius,
-                                                                                 preprocessing_function=get_preprocessing_function(args.preprocessing))
+                                                                                 preprocessing_function=get_preprocessing_function(args.preprocessing),
+                                                                                 dynamic_gt=args.dynamic_gt)
     else:
         current_augmentation_preprocessing = get_preprocessing_function(args.preprocessing)
 
