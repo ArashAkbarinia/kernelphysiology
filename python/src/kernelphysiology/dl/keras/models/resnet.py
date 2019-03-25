@@ -102,6 +102,14 @@ def resnet_v1(input_shape, depth, num_classes=10, kernel_initializer='he_normal'
                                           kernel_initializer=kernel_initializer,
                                           name='natural_vs_manmade')(y_nvm)
         other_outputs.append(natural_vs_manmade_outout)
+    if 'illuminant' in output_types:
+        x_ilum = AveragePooling2D(pool_size=8)(x)
+        y_ilum = Flatten()(x_ilum)
+        illuminant_outout = Dense(3, activation='softmax',
+                                  kernel_initializer=kernel_initializer,
+                                  name='illuminant')(y_ilum)
+        other_outputs.append(illuminant_outout)
+
     # Instantiate the stack of residual units
     for stack in range(3):
         for res_block in range(num_res_blocks):

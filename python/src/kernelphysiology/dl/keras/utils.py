@@ -116,15 +116,6 @@ class ResizeGenerator(keras.utils.Sequence):
         return (x_batch, y_batch)
 
 
-def dynamic_multiple_gt_generator(batches, crop_length):
-    """Take as input a Keras ImageGen (Iterator) and generate gt according to
-    applied transformations
-    """
-    while True:
-        x_batch, y_batch = next(batches)
-        yield (x_batch, y_batch)
-
-
 def get_validatoin_generator(args, x_test, y_test, validation_preprocessing_function):
     (args.validation_generator, args.validation_samples) = resize_generator(x_test, y_test, batch_size=args.batch_size,
                                             target_size=args.target_size, preprocessing_function=validation_preprocessing_function)

@@ -77,6 +77,25 @@ def handle_trainability(model, args):
     return model
 
 
+def reproduction_angular_error_loss():
+    def loss(y_true, y_pred):
+#        import pdb
+#        pdb.set_trace()
+        l1 =  y_pred / K.repeat(K.sum(y_pred, axis=1), 3)
+        l2 = y_pred / K.repeat(K.sum(y_pred, axis=1), 3) # change to y_true
+
+        l2l1 = l2 / l1
+        w1 = l2l1 / K.repeat(K.sum(l2l1 ** 2, axis=1) ** 0.5, 3)
+        w2 = 1 / (3 ** 0.5)
+
+        w1w2 = K.sum(w1 * w2, axis=1)
+        w1w2 = K.minimum(w1w2, 1)
+        w1w2 = K.maximum(w1w2, -1)
+        r = tf.math.acos(w1w2)
+        return K.mean(r, axis=-1)
+    return loss
+
+
 def start_training_generator(args):
     args.log_dir = os.path.join(args.save_dir, args.model_name)
     if not os.path.isdir(args.log_dir):
@@ -158,6 +177,8 @@ def start_training_generator(args):
             class_weight['natural_vs_manmade'] = {0: 0.4, 1: 0.6}
         elif args.dataset == 'cifar100':
             class_weight['natural_vs_manmade'] = {0: 0.3, 1: 0.7}
+    if 'illuminant' in args.output_types:
+        losses['illuminant'] = reproduction_angular_error_loss()
 
     if len(args.gpus) == 1:
         model.compile(loss=losses, optimizer=opt, metrics=metrics)

@@ -4,6 +4,7 @@ The utility functoins for datasets.
 
 
 import sys
+import numpy as np
 
 from kernelphysiology.dl.keras.datasets.cifar import cifar_train
 from kernelphysiology.dl.keras.datasets.stl import stl_train
@@ -57,8 +58,11 @@ def dynamic_multiple_gt_generator(batches, preprocessing_function):
     """
     while True:
         x_batch, y_batch = next(batches)
+        illuminant_y_batch = np.zeros((x_batch.shape[0], 3))
         for i in range(x_batch.shape[0]):
             (x_batch[i,], transformation_params) = preprocessing_function(x_batch[i,])
+            illuminant_y_batch[i, :] = transformation_params['illuminant']
+        y_batch['illuminant'] = illuminant_y_batch
         yield (x_batch, y_batch)
 
 

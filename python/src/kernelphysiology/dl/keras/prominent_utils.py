@@ -4,27 +4,21 @@ Utility functions for training prominent networks.
 
 
 import os
-import sys
 import glob
-import argparse
 import datetime
 import time
 import numpy as np
-import warnings
-import math
 
 from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant, adjust_gamma
 from kernelphysiology.utils.imutils import s_p_noise, gaussian_noise, speckle_noise, poisson_noise
 from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness, reduce_yellow_blue, reduce_red_green
 from kernelphysiology.utils.path_utils import create_dir
 
-from kernelphysiology.dl.keras.datasets.utils import get_default_target_size, which_dataset
-from kernelphysiology.dl.utils import default_configs
+from kernelphysiology.dl.keras.datasets.utils import which_dataset
 
 from kernelphysiology.dl.keras.models.utils import which_architecture, which_network
 from kernelphysiology.dl.keras.models.utils import get_preprocessing_function
 
-from kernelphysiology.dl.keras.utils import get_input_shape
 
 
 def convert_to_uni8(img):
@@ -166,6 +160,30 @@ def prepare_train_augmentation(args):
     return args
 
 
+def prepare_validation_augmentation(args):
+    if args.dynamic_gt is None or len(args.dynamic_gt) == 0:
+        return get_preprocessing_function(args.preprocessing)
+    else:
+        # FIXME: only works for illuminant
+        current_augmentation_preprocessing = lambda img: augmented_preprocessing(img, augmentation_types=args.augmentation_types, num_augmentation=args.num_augmentation,
+                                                                                 illuminant_range=[1, 1], illuminant_variation=args.local_illuminant_variation,
+                                                                                 contrast_range=args.contrast_range, contrast_variation=args.local_contrast_variation,
+                                                                                 gaussian_sigma_range=args.gaussian_sigma,
+                                                                                 salt_pepper_range=args.s_p_amount,
+                                                                                 gaussian_noise_range=args.gaussian_amount,
+                                                                                 poisson_range=args.poisson_noise,
+                                                                                 speckle_range=args.speckle_amount,
+                                                                                 gamma_range=args.gamma_range,
+                                                                                 chromatic_contrast=args.chromatic_contrast,
+                                                                                 luminance_contrast=args.luminance_contrast,
+                                                                                 red_green=args.red_green,
+                                                                                 yellow_blue=args.yellow_blue,
+                                                                                 mask_radius=args.mask_radius,
+                                                                                 preprocessing_function=get_preprocessing_function(args.preprocessing),
+                                                                                 dynamic_gt=args.dynamic_gt)
+        return current_augmentation_preprocessing
+
+
 def train_prominent_prepares(args):
     dataset_name = args.dataset.lower()
     network_name = args.network_name.lower()
@@ -178,7 +196,7 @@ def train_prominent_prepares(args):
     args = prepare_train_augmentation(args)
 
     # we don't want augmentation for validation set
-    args.validation_preprocessing_function = get_preprocessing_function(args.preprocessing)
+    args.validation_preprocessing_function = prepare_validation_augmentation(args)
 
     # which dataset
     args = which_dataset(args, dataset_name)

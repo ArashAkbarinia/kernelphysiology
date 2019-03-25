@@ -282,7 +282,7 @@ def check_training_args(parser, argvs):
         augmentation_types = []
         if args.illuminant_range is not None:
             args.illuminant_range = np.array(args.illuminant_range)
-            augmentation_types.append('iluuminant')
+            augmentation_types.append('illuminant')
         if args.contrast_range is not None:
             args.contrast_range = np.array(args.contrast_range)
             augmentation_types.append('contrast')
@@ -301,7 +301,7 @@ def check_training_args(parser, argvs):
         if args.gamma_range is not None:
             args.gamma_range = np.array(args.gamma_range)
             augmentation_types.append('gamma')
-        if args.poisson_noise is not None:
+        if args.poisson_noise is True:
             augmentation_types.append('poisson')
         if args.chromatic_contrast is not None:
             args.chromatic_contrast = np.array(args.chromatic_contrast)
