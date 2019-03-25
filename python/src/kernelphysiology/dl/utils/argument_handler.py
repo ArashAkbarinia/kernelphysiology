@@ -81,6 +81,7 @@ def common_arg_parser(description):
     parser.add_argument('--batch_size', type=int, default=None, help='Batch size (default: according to dataset)')
     parser.add_argument('--target_size', type=int, default=None, help='Target size (default: according to dataset)')
     parser.add_argument('--preprocessing', type=str, default=None, help='The preprocessing function (default: network preprocessing function)')
+    parser.add_argument('--dynamic_gt', nargs='+', type=str, default=None, help='Generating dynamically ground-truth (default: None)')
     parser.add_argument('--top_k', type=int, default=None, help='Accuracy of top K elements (default: None)')
     parser.add_argument('--task_type', type=str, default=None, help='The task to prform by network (default: None)')
 

@@ -116,23 +116,32 @@ class ResizeGenerator(keras.utils.Sequence):
         return (x_batch, y_batch)
 
 
-def get_validatoin_generator(args, x_test, y_test):
+def dynamic_multiple_gt_generator(batches, crop_length):
+    """Take as input a Keras ImageGen (Iterator) and generate gt according to
+    applied transformations
+    """
+    while True:
+        x_batch, y_batch = next(batches)
+        yield (x_batch, y_batch)
+
+
+def get_validatoin_generator(args, x_test, y_test, validation_preprocessing_function):
     (args.validation_generator, args.validation_samples) = resize_generator(x_test, y_test, batch_size=args.batch_size,
-                                            target_size=args.target_size, preprocessing_function=args.validation_preprocessing_function)
+                                            target_size=args.target_size, preprocessing_function=validation_preprocessing_function)
 
     return args
 
 
-def get_generators(args, x_train, y_train, x_test, y_test):
+def get_generators(args, x_train, y_train, x_test, y_test, train_preprocessing_function, validation_preprocessing_function):
     (args.train_generator, args.train_samples) = resize_generator(x_train, y_train, batch_size=args.batch_size,
-                                            target_size=args.target_size, preprocessing_function=args.train_preprocessing_function,
+                                            target_size=args.target_size, preprocessing_function=train_preprocessing_function,
                                             horizontal_flip=args.horizontal_flip, vertical_flip=args.vertical_flip,
                                             zoom_range=args.zoom_range,
                                             width_shift_range=args.width_shift_range, height_shift_range=args.height_shift_range)
 
 
     (args.validation_generator, args.validation_samples) = resize_generator(x_test, y_test, batch_size=args.batch_size,
-                                            target_size=args.target_size, preprocessing_function=args.validation_preprocessing_function)
+                                            target_size=args.target_size, preprocessing_function=validation_preprocessing_function)
 
     return args
 

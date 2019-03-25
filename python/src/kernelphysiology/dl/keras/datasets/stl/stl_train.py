@@ -17,21 +17,21 @@ def prepare_stl10(args):
     return args
 
 
-def prepare_stl10_generators(args):
+def prepare_stl10_generators(args, train_preprocessing_function, validation_preprocessing_function):
     args.num_classes = 10
 
     # The data, split between train and test sets:
     (x_train, y_train), (x_test, y_test) = stl10.load_data(dirname=args.data_dir)
 
-    args = get_generators(args, x_train, y_train, x_test, y_test)
+    args = get_generators(args, x_train, y_train, x_test, y_test, train_preprocessing_function, validation_preprocessing_function)
     return args
 
 
-def stl10_validation_generator(args):
+def stl10_validation_generator(args, validation_preprocessing_function):
     args.num_classes = 10
 
     # The data, split between train and test sets:
     (x_train, y_train), (x_test, y_test) = stl10.load_data(dirname=args.data_dir)
 
-    args = get_validatoin_generator(args, x_test, y_test)
+    args = get_validatoin_generator(args, x_test, y_test, validation_preprocessing_function)
     return args

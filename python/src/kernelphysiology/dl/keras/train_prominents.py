@@ -16,7 +16,7 @@ from keras import backend as K
 from keras.utils import multi_gpu_model
 from keras.callbacks import CSVLogger, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler
 
-from kernelphysiology.dl.keras.prominent_utils import train_arg_parser, train_prominent_prepares
+from kernelphysiology.dl.keras.prominent_utils import train_prominent_prepares
 from kernelphysiology.dl.keras.utils import get_top_k_accuracy
 
 from kernelphysiology.dl.keras.initialisations.initialise import initialse_weights
@@ -24,6 +24,7 @@ from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, g
 from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule_resnet, lr_schedule_arash, lr_schedule_file, lr_schedule_nepochs
 
 from kernelphysiology.dl.utils import prepare_training
+from kernelphysiology.dl.utils import argument_handler
 
 
 class TimeHistory(keras.callbacks.Callback):
@@ -191,7 +192,7 @@ if __name__ == "__main__":
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
     print('Starting at: ' + start_time)
 
-    args = train_arg_parser(sys.argv[1:])
+    args = argument_handler.train_arg_parser(sys.argv[1:])
     args = train_prominent_prepares(args)
 
     dataset_name = args.dataset.lower()
