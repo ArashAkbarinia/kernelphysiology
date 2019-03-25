@@ -155,8 +155,6 @@ def prepare_train_augmentation(args):
                                                                                  yellow_blue=args.yellow_blue,
                                                                                  mask_radius=args.mask_radius,
                                                                                  preprocessing_function=get_preprocessing_function(args.preprocessing))
-        if args.dynamic_gt is None or len(args.dynamic_gt) == 0:
-            current_augmentation_preprocessing = current_augmentation_preprocessing[0]
     else:
         current_augmentation_preprocessing = get_preprocessing_function(args.preprocessing)
 

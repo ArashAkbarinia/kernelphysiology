@@ -58,9 +58,7 @@ def dynamic_multiple_gt_generator(batches, preprocessing_function):
     while True:
         x_batch, y_batch = next(batches)
         for i in range(x_batch.shape[0]):
-            import pdb
-            pdb.set_trace()
-            x_batch[i,] = preprocessing_function(x_batch[i,])
+            (x_batch[i,], transformation_params) = preprocessing_function(x_batch[i,])
         yield (x_batch, y_batch)
 
 
