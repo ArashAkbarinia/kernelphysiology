@@ -22,6 +22,7 @@ from kernelphysiology.dl.keras.utils import get_top_k_accuracy
 from kernelphysiology.dl.keras.initialisations.initialise import initialse_weights
 from kernelphysiology.dl.keras.optimisations.optimise import set_optimisation, get_default_lrs, get_default_decays
 from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_schedule_resnet, lr_schedule_arash, lr_schedule_file, lr_schedule_nepochs
+from kernelphysiology.dl.keras.optimisations.metrics import reproduction_angular_error, mean_absolute_error
 
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.utils import argument_handler
@@ -75,34 +76,6 @@ def handle_trainability(model, args):
         else:
             layer.trainable = not trainable_bool
     return model
-
-
-def tf_rad2deg(rad):
-    pi_on_180 = 0.017453292519943295
-    return rad / pi_on_180
-
-
-def reproduction_angular_error_loss():
-    def loss(y_true, y_pred):
-        y_pred_sum = K.tile(K.sum(y_pred, axis=1, keepdims=True), [1, 3])
-        y_true_sum = K.tile(K.sum(y_true, axis=1, keepdims=True), [1, 3])
-        y_pred_sum = K.reshape(y_pred_sum, (-1, 3))
-        y_true_sum = K.reshape(y_true_sum, (-1, 3))
-        y_pred = y_pred / y_pred_sum
-        y_true = y_true / y_true_sum
-
-        l2l1 = y_true / y_pred
-        l2l1_sum = K.tile(K.sum(l2l1 ** 2, axis=1, keepdims=True), [1, 3])
-        w1 = l2l1 / K.reshape(l2l1_sum ** 0.5, (-1, 3))
-        w2 = 1 / (3 ** 0.5)
-
-        w1w2 = K.sum(w1 * w2, axis=1, keepdims=True)
-        w1w2 = K.minimum(w1w2, 1)
-        w1w2 = K.maximum(w1w2, -1)
-        r = tf.math.acos(w1w2)
-#        r = tf_rad2deg(r) # TODO: should do on radian or degree?
-        return K.mean(r, axis=0)
-    return loss
 
 
 def start_training_generator(args):
@@ -165,9 +138,10 @@ def start_training_generator(args):
 
     # metrics
 #    lr_metric = lr_metric_call_back(opt)
-    metrics = ['accuracy']
+    all_classes_metrics = ['accuracy']
     if args.top_k is not None:
-        metrics.append(get_top_k_accuracy(args.top_k))
+        all_classes_metrics.append(get_top_k_accuracy(args.top_k))
+    metrics = {'all_classes': all_classes_metrics}
 
     model = args.model
     # initialising the network with specific weights
@@ -187,10 +161,11 @@ def start_training_generator(args):
             class_weight['natural_vs_manmade'] = {0: 0.4, 1: 0.6}
         elif args.dataset == 'cifar100':
             class_weight['natural_vs_manmade'] = {0: 0.3, 1: 0.7}
-        loss_weights['natural_vs_manmade'] = 0.25
+        loss_weights['natural_vs_manmade'] = 1
     if 'illuminant' in args.output_types:
-        losses['illuminant'] = reproduction_angular_error_loss()
-        loss_weights['illuminant'] = 0.25
+        losses['illuminant'] = mean_absolute_error()
+        loss_weights['illuminant'] = 1
+        metrics['illuminant'] = [reproduction_angular_error()]
 
     if len(args.gpus) == 1:
         model.compile(loss=losses, optimizer=opt, metrics=metrics, loss_weights=loss_weights)
