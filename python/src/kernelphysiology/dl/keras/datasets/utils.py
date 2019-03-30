@@ -17,7 +17,8 @@ def which_dataset(args, dataset_name):
         train_preprocessing_function = None
         validation_preprocessing_function = None
     else:
-        train_preprocessing_function = args.train_preprocessing_function
+        if args.script_type == 'training':
+            train_preprocessing_function = args.train_preprocessing_function
         validation_preprocessing_function = args.validation_preprocessing_function
 
     if dataset_name == 'cifar10':
