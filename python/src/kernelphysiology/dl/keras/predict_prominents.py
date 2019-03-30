@@ -9,10 +9,12 @@ import time
 import datetime
 
 from kernelphysiology.dl.keras.analysis.analysis_generator import predict_generator
-from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares, test_arg_parser
 from kernelphysiology.dl.keras.models.utils import which_network, get_preprocessing_function
 from kernelphysiology.dl.keras.datasets.utils import which_dataset
 from kernelphysiology.utils.preprocessing import which_preprocessing
+
+from kernelphysiology.dl.utils import test_prominent_prepares
+from kernelphysiology.dl.utils import argument_handler
 
 
 def predict_network(args):
@@ -32,7 +34,7 @@ if __name__ == "__main__":
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
     print('Starting at: ' + start_time)
 
-    args = test_arg_parser(sys.argv[1:])
+    args = argument_handler.test_arg_parser(sys.argv[1:])
     args = test_prominent_prepares(args)
 
     dataset_name = args.dataset.lower()
