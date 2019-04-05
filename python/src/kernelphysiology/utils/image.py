@@ -535,9 +535,14 @@ def resize_to_min_side(img, target_size):
     img = np.minimum(img, 255)
     return img
 
+
 # TODO: support other interpolation methods
-def crop_image_centre(img, target_size):
-    img = resize_to_min_side(img, target_size)
+def crop_image_centre(img, target_size, extended_crop=None):
+    (dx, dy) = target_size
+    # FIXME: by default it should be 0 rather than 32
+    if extended_crop is None:
+        extended_crop = (dx + 32, dy + 32)
+    img = resize_to_min_side(img, extended_crop)
     # crop
     (height, width, _) = img.shape
     left = (width - target_size[0]) // 2
@@ -549,13 +554,12 @@ def crop_image_centre(img, target_size):
 
 
 # NOTE: image_data_format is 'channel_last'
-def crop_image_random(img, target_size, extended_crop=None):
+def crop_image_random(img, target_size):
     # NOTE: assuming only square images
-    (dy, dx) = target_size
-    if extended_crop is None:
-        extended_crop = (dx + 32, dy + 32)
+    (dx, dy) = target_size
 
-    img = resize_to_min_side(img, extended_crop)
+    if img.shape[0] < dx or img.shape[1] < dy:
+        img = resize_to_min_side(img, target_size)
 
     (height, width, _) = img.shape
     start_x = width - dx + 1
