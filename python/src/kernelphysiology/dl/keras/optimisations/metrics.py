@@ -18,12 +18,12 @@ def reproduction_angular_error():
         y_true_sum = K.tile(K.sum(y_true, axis=1, keepdims=True), [1, 3])
         y_pred = y_pred / K.reshape(y_pred_sum, (-1, 3))
         y_true = y_true / K.reshape(y_true_sum, (-1, 3))
-    
+
         l2l1 = y_true / y_pred
         l2l1_sum = K.tile(K.sum(l2l1 ** 2, axis=1, keepdims=True), [1, 3])
         w1 = l2l1 / K.reshape(l2l1_sum ** 0.5, (-1, 3))
         w2 = 1.0 / (3.0 ** 0.5)
-    
+
         w1w2 = K.sum(w1 * w2, axis=1)
         w1w2 = K.minimum(w1w2, 1)
         w1w2 = K.maximum(w1w2, -1)
