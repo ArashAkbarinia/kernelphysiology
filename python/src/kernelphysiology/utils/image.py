@@ -563,7 +563,7 @@ def get_random_crop_params(img, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.)):
         h = img.shape[1]
     i = (img.shape[1] - h) // 2
     j = (img.shape[0] - w) // 2
-    return i, j, int(h), int(w)
+    return int(i), int(j), int(h), int(w)
 
 
 def resize_to_min_side(img, target_size):
