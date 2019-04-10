@@ -545,7 +545,7 @@ def get_random_crop_params(img, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.)):
         w = int(round(math.sqrt(target_area * aspect_ratio)))
         h = int(round(math.sqrt(target_area / aspect_ratio)))
 
-        if w <= img.shape[0] and h <= img.shape[1]:
+        if w < img.shape[0] and h < img.shape[1]:
             i = np.random.randint(0, img.shape[1] - h)
             j = np.random.randint(0, img.shape[0] - w)
             return i, j, h, w
