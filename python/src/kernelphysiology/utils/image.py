@@ -563,7 +563,7 @@ def get_random_crop_params(img, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.)):
         h = img.shape[1]
     i = (img.shape[1] - h) // 2
     j = (img.shape[0] - w) // 2
-    return i, j, h, w
+    return i, j, int(h), int(w)
 
 
 def resize_to_min_side(img, target_size):
@@ -603,7 +603,7 @@ def crop_image_centre(img, target_size, extended_crop=None):
 # NOTE: image_data_format is 'channel_last'
 def crop_image_random(img, target_size):
     (i, j, h, w) = get_random_crop_params(img)
-    img = img[j:j+w, i:i+h]
+    img = img[j:(j+w), i:(i+h)]
 
     img = cv2.resize(img, target_size, interpolation=cv2.INTER_LINEAR)
     # FIXME: only for 8 bit images
