@@ -80,7 +80,7 @@ def get_default_num_classes(dataset):
 
 
 def get_default_target_size(dataset):
-    if dataset == 'imagenet':
+    if dataset in ['imagenet', 'leaf', 'fruits']:
         target_size = 224
     elif 'cifar' in dataset or 'stl' in dataset:
         target_size = 32
