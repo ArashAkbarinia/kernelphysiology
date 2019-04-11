@@ -730,8 +730,7 @@ def check_args(parser, argvs, script_type):
             if args.script_type == 'activation':
                 args.batch_size = 32
             warnings.warn(
-                'default batch_size are used for dataset %s' %
-                (args.dataset))
+                'default batch_size are used for dataset %s' % (args.dataset))
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
     args.gpus = [*range(len(args.gpus))]
@@ -817,7 +816,8 @@ def get_augmentation_types(args):
 
 
 def check_task_type(dataset, task_type=None):
-    if 'imagenet' in dataset or 'cifar' in dataset or 'stl' in dataset:
+    if ('cifar' in dataset or 'stl' in dataset or
+            dataset in ['imagenet', 'leaf', 'fruits']):
         if task_type is not None and task_type != 'classification':
             warnings.warn(
                 'Invalid task_type %s: %s only supports classification' %
