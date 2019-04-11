@@ -339,6 +339,17 @@ def poisson_noise(image, seed=None, clip=True, mask_radius=None):
     return output
 
 
+def simulate_distance(image, distance_factor, mask_radius=None):
+    if distance_factor <= 1:
+        return image
+    (rows, cols, _) = image.shape
+    distance_rows = rows // distance_factor
+    distance_cols = cols // distance_factor
+    output = cv2.resize(image, (distance_rows, distance_cols), interpolation=cv2.INTER_NEAREST)
+    output = cv2.resize(output, (rows, cols), interpolation=cv2.INTER_NEAREST)
+    return output
+
+
 # TODO: add other shapes as well
 def random_occlusion(image, object_instances=1, object_ratio=0.05):
     out = im2double(image)
