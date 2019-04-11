@@ -18,6 +18,7 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
+from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.dl.utils import argument_handler
 from kernelphysiology.dl.pytorch.models.utils import which_network, get_preprocessing_function
 from kernelphysiology.utils.preprocessing import which_preprocessing
@@ -51,6 +52,9 @@ def main(argv):
 
     (image_manipulation_type, image_manipulation_values, image_manipulation_function) = which_preprocessing(args)
 
+    distance_transformation = []
+    if args.distance > 1:
+        distance_transformation.append(PreprocessingTransformation(simulate_distance, args.distance, args.mask_radius))
     for j, network_name in enumerate(args.networks):
         # which architecture
         (model, target_size) = which_network(network_name, args.task_type)
@@ -61,7 +65,7 @@ def main(argv):
         # TODO: merge code with evaluation
         for i, manipulation_value in enumerate(image_manipulation_values):
             current_manipulation_preprocessing = PreprocessingTransformation(image_manipulation_function, manipulation_value, args.mask_radius)
-            transformations = [current_manipulation_preprocessing]
+            transformations = [*distance_transformation, current_manipulation_preprocessing]
 
             print('Processing network %s and %s %f' % (network_name, image_manipulation_type, manipulation_value))
 
