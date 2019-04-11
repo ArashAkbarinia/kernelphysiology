@@ -725,8 +725,8 @@ def check_args(parser, argvs, script_type):
         else:
             sys.exit('batch_size is required for dataset %s' % (args.dataset))
 
-    # TODO: more checking for GPUs
     os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
+    args.gpus = [*range(len(args.gpus))]
 
     # workers
     if args.workers > 1:
@@ -738,10 +738,10 @@ def check_args(parser, argvs, script_type):
     (args.train_dir,
      args.validation_dir,
      args.data_dir) = default_configs.get_default_dataset_paths(
-             args.dataset,
-             args.train_dir,
-             args.validation_dir,
-             args.data_dir)
+        args.dataset,
+        args.train_dir,
+        args.validation_dir,
+        args.data_dir)
 
     return args
 

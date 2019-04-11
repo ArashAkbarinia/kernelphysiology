@@ -46,7 +46,6 @@ def main(argv):
 
     # FIXME: cant take more than one GPU
     gpu = args.gpus[0]
-    gpu = 0
     torch.cuda.set_device(gpu)
     criterion = nn.CrossEntropyLoss().cuda(gpu)
     cudnn.benchmark = True
