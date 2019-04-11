@@ -723,7 +723,15 @@ def check_args(parser, argvs, script_type):
             if args.script_type == 'activation':
                 args.batch_size = 256
         else:
-            sys.exit('batch_size is required for dataset %s' % (args.dataset))
+            if args.script_type == 'training':
+                args.batch_size = 32
+            if args.script_type == 'testing':
+                args.batch_size = 64
+            if args.script_type == 'activation':
+                args.batch_size = 32
+            warnings.warn(
+                'default batch_size are used for dataset %s' %
+                (args.dataset))
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
     args.gpus = [*range(len(args.gpus))]
