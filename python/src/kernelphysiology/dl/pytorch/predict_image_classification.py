@@ -20,13 +20,18 @@ import torchvision.datasets as datasets
 
 from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.dl.utils import argument_handler
-from kernelphysiology.dl.pytorch.models.utils import which_network, get_preprocessing_function
+from kernelphysiology.dl.pytorch.models.utils import which_network
+from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.utils.preprocessing import which_preprocessing
 
 
 class PreprocessingTransformation(object):
 
-    def __init__(self, manipulation_function, manipulation_value, manipulation_radius):
+    def __init__(
+            self,
+            manipulation_function,
+            manipulation_value,
+            manipulation_radius):
         self.manipulation_function = manipulation_function
         self.manipulation_value = manipulation_value
         self.manipulation_radius = manipulation_radius
@@ -42,7 +47,13 @@ class PreprocessingTransformation(object):
 
 def main(argv):
     args = argument_handler.test_arg_parser(argv)
-    (args.networks, args.network_names, args.preprocessings, args.output_file) = argument_handler.test_prominent_prepares(args.experiment_name, args.network_name, args.preprocessing)
+    (args.networks,
+     args.network_names,
+     args.preprocessings,
+     args.output_file) = argument_handler.test_prominent_prepares(
+         args.experiment_name,
+         args.network_name,
+         args.preprocessing)
 
     # FIXME: cant take more than one GPU
     gpu = args.gpus[0]
@@ -50,11 +61,16 @@ def main(argv):
     criterion = nn.CrossEntropyLoss().cuda(gpu)
     cudnn.benchmark = True
 
-    (image_manipulation_type, image_manipulation_values, image_manipulation_function) = which_preprocessing(args)
+    (image_manipulation_type, image_manipulation_values,
+     image_manipulation_function) = which_preprocessing(args)
 
     distance_transformation = []
     if args.distance > 1:
-        distance_transformation.append(PreprocessingTransformation(simulate_distance, args.distance, args.mask_radius))
+        distance_transformation.append(
+            PreprocessingTransformation(
+                simulate_distance,
+                args.distance,
+                args.mask_radius))
     for j, network_name in enumerate(args.networks):
         # which architecture
         (model, target_size) = which_network(network_name, args.task_type)
@@ -64,10 +80,12 @@ def main(argv):
         # FIXME: for now it only supprts classiication
         # TODO: merge code with evaluation
         for i, manipulation_value in enumerate(image_manipulation_values):
-            current_manipulation_preprocessing = PreprocessingTransformation(image_manipulation_function, manipulation_value, args.mask_radius)
+            current_manipulation_preprocessing = PreprocessingTransformation(
+                image_manipulation_function, manipulation_value, args.mask_radius)
             transformations = [*distance_transformation, current_manipulation_preprocessing]
 
-            print('Processing network %s and %s %f' % (network_name, image_manipulation_type, manipulation_value))
+            print('Processing network %s and %s %f' %
+                  (network_name, image_manipulation_type, manipulation_value))
 
             # which dataset
             # reading it after the model, because each might have their own
@@ -84,7 +102,15 @@ def main(argv):
                 batch_size=args.batch_size, shuffle=False,
                 num_workers=args.workers, pin_memory=True)
             (_, _, current_results) = validate(val_loader, model, criterion)
-            np.savetxt('%s_%s_%s_%s.csv' % (args.output_file, args.network_names[j], image_manipulation_type, str(manipulation_value)), current_results, delimiter=',', fmt='%i')
+            np.savetxt(
+                '%s_%s_%s_%s.csv' %
+                (args.output_file,
+                 args.network_names[j],
+                 image_manipulation_type,
+                 str(manipulation_value)),
+                current_results,
+                delimiter=',',
+                fmt='%i')
 
 
 def validate(val_loader, model, criterion):
@@ -109,7 +135,8 @@ def validate(val_loader, model, criterion):
             loss = criterion(output, target)
 
             # measure accuracy and record loss
-            ((acc1, acc5), (corrects1, corrects5)) = accuracy(output, target, topk=(1, 5))
+            ((acc1, acc5), (corrects1, corrects5)) = accuracy(
+                output, target, topk=(1, 5))
             corrects1 = corrects1.cpu().numpy()
             corrects5 = corrects5.cpu().numpy().sum(axis=0)
 
@@ -138,15 +165,21 @@ def validate(val_loader, model, criterion):
             end = time.time()
 
             if i % 10 == 0:
-                print('Test: [{0}/{1}]\t'
-                      'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                      'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                       i, len(val_loader), batch_time=batch_time, loss=losses,
-                       top1=top1, top5=top5))
+                print(
+                    'Test: [{0}/{1}]\t'
+                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                    'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                        i,
+                        len(val_loader),
+                        batch_time=batch_time,
+                        loss=losses,
+                        top1=top1,
+                        top5=top5))
 
-        print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1, top5=top5))
+        print(
+            ' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1, top5=top5))
 
     if len(all_outs) == 1:
         prediction_output = np.concatenate(all_outs[0])
@@ -156,7 +189,8 @@ def validate(val_loader, model, criterion):
 
 
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
+    '''Computes and stores the average and current value'''
+
     def __init__(self):
         self.reset()
 
@@ -174,7 +208,7 @@ class AverageMeter(object):
 
 
 def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+    '''Computes the accuracy over the k top predictions for the specified values of k'''
     with torch.no_grad():
         maxk = max(topk)
         batch_size = target.size(0)
