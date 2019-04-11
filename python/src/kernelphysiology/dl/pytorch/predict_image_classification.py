@@ -44,8 +44,9 @@ def main(argv):
     args = argument_handler.test_arg_parser(argv)
     (args.networks, args.network_names, args.preprocessings, args.output_file) = argument_handler.test_prominent_prepares(args.experiment_name, args.network_name, args.preprocessing)
 
-    # TODO: cant take more than one GPU
+    # FIXME: cant take more than one GPU
     gpu = args.gpus[0]
+    gpu = 0
     torch.cuda.set_device(gpu)
     criterion = nn.CrossEntropyLoss().cuda(gpu)
     cudnn.benchmark = True
