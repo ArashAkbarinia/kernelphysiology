@@ -27,7 +27,7 @@ class ColourTransformation(object):
         img = np.asarray(img, dtype='uint8')
         img = self.manipulation_function(img,
                                          self.manipulation_value,
-                                         colour_space=self.colour_space)
+                                         colour_space=self.colour_space) * 255
         img = PilImage.fromarray(img.astype('uint8'), 'RGB')
         return img
 
