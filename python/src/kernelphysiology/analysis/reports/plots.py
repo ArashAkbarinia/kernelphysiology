@@ -7,8 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plot_results(networks, original_networks, experiment_name, original_value,
-                 cat_inds=None):
+def plot_results(networks, original_networks, experiment_name, category_name,
+                 original_value, cat_inds=None):
     fig = plt.figure(figsize=(10, 4))
     ax = fig.add_subplot(1, 1, 1)
     all_xs = None
@@ -33,8 +33,10 @@ def plot_results(networks, original_networks, experiment_name, original_value,
         all_ys.append(ys[0, sorted_inds])
         ax.plot(*xs[0, sorted_inds], *ys[0, sorted_inds], marker='o')
     ax.legend(networks.keys(), loc='right', bbox_to_anchor=(1.45, 0.8))
-    ax.set_title(experiment_name)
+    ax.set_title(experiment_name + category_name)
     ax.set_ylim([0, 1])
+    ax.set_ylabel('Top 1 Accuracy')
+    ax.set_xlabel(experiment_name)
     all_ys = np.array(all_ys).squeeze()
     ax.axhline(y=all_ys.max(), linestyle='--', color='black')
     plt.show()

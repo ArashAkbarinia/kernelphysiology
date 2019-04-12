@@ -50,11 +50,11 @@ def do_one_network(result_dir, which_experiments, original_values, class_inds,
                 networks[network_name].add_test(predictions, test_value)
 
         (all_xs, all_ys) = plot_results(networks, original_networks,
-                                        experiment_name + '_all',
+                                        experiment_name, '_all',
                                         original_values[w_ind])
         for cat_name, cat_val in which_categories.items():
             (_, _) = plot_results(networks, original_networks,
-                                  experiment_name + '_' + cat_name,
+                                  experiment_name, '_' + cat_name,
                                   original_values[w_ind],
                                   cat_val)
         summary_out[experiment_name] = (all_xs, all_ys)
