@@ -64,6 +64,7 @@ if __name__ == "__main__":
 
             current_results = predict_network(args)
             current_results = np.array(current_results)
+            # FIXME add pre_suff to network name, or save them directly into theyr own folder
             np.savetxt('%s_%s_%s_%s.csv' % (args.output_file, args.network_names[j], image_manipulation_type, str(manipulation_value)), current_results, delimiter=',', fmt='%i')
 
     finish_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H_%M_%S')
