@@ -1,12 +1,12 @@
-'''
-Prediction script for image classification task.
-'''
+"""
+Pytorch prediction script for various datasets and image manipulations.
+"""
 
 import time
 import sys
 import numpy as np
 
-from PIL import Image as pil_image
+from PIL import Image as PilImage
 
 import torch
 import torch.nn as nn
@@ -18,6 +18,7 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
+from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.dl.utils import argument_handler
 from kernelphysiology.dl.pytorch.models.utils import which_network
@@ -41,7 +42,7 @@ class PreprocessingTransformation(object):
         x = self.manipulation_function(x, self.manipulation_value,
                                        mask_radius=self.manipulation_radius,
                                        preprocessing_function=None)
-        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
+        x = PilImage.fromarray(x.astype('uint8'), 'RGB')
         return x
 
 
@@ -61,12 +62,15 @@ def main(argv):
     criterion = nn.CrossEntropyLoss().cuda(gpu)
     cudnn.benchmark = True
 
-    (image_manipulation_type, image_manipulation_values,
+    (image_manipulation_type,
+     image_manipulation_values,
      image_manipulation_function) = which_preprocessing(args)
 
-    distance_transformation = []
+    other_transformations = preprocessing.colour_transformation(
+        args.colour_transformation,
+        args.colour_space)
     if args.distance > 1:
-        distance_transformation.append(
+        other_transformations.append(
             PreprocessingTransformation(
                 simulate_distance,
                 args.distance,
@@ -81,8 +85,11 @@ def main(argv):
         # TODO: merge code with evaluation
         for i, manipulation_value in enumerate(image_manipulation_values):
             current_manipulation_preprocessing = PreprocessingTransformation(
-                image_manipulation_function, manipulation_value, args.mask_radius)
-            transformations = [*distance_transformation, current_manipulation_preprocessing]
+                image_manipulation_function,
+                manipulation_value,
+                args.mask_radius)
+            transformations = [*other_transformations,
+                               current_manipulation_preprocessing]
 
             print('Processing network %s and %s %f' %
                   (network_name, image_manipulation_type, manipulation_value))
@@ -179,7 +186,8 @@ def validate(val_loader, model, criterion):
                         top5=top5))
 
         print(
-            ' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1, top5=top5))
+            ' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(
+                top1=top1, top5=top5))
 
     if len(all_outs) == 1:
         prediction_output = np.concatenate(all_outs[0])
@@ -208,7 +216,7 @@ class AverageMeter(object):
 
 
 def accuracy(output, target, topk=(1,)):
-    '''Computes the accuracy over the k top predictions for the specified values of k'''
+    """Computes the accuracy over the k top predictions"""
     with torch.no_grad():
         maxk = max(topk)
         batch_size = target.size(0)
@@ -223,7 +231,7 @@ def accuracy(output, target, topk=(1,)):
             corrects.append(correct[:k])
             correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
-        return (res, corrects)
+        return res, corrects
 
 
 if __name__ == '__main__':

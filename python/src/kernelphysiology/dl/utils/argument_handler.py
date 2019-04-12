@@ -1,6 +1,6 @@
-'''
+"""
 Handling input arguments for training/testing a network.
-'''
+"""
 
 
 import os
@@ -61,7 +61,7 @@ def test_prominent_prepares(experiment_name, network_arg, preprocessing=None):
         create_dir(output_dir)
         output_file = os.path.join(output_dir, 'results_' + current_time)
 
-    return (networks, network_names, preprocessings, output_file)
+    return networks, network_names, preprocessings, output_file
 
 
 def common_arg_parser(description):
@@ -187,8 +187,15 @@ def test_arg_parser(argvs):
         type=int,
         default=None,
         help='Number of images to be evaluated (default: None)')
-    # TODO: this is necessary only for a few and has to be trated accordingly
+    # TODO: Keras part is not implemented
     parser.add_argument(
+        '--distance',
+        type=float,
+        default=1,
+        help='Simulating the viewing distance (default: 1)')
+
+    colour_space_group = parser.add_argument_group('colour space')
+    colour_space_group.add_argument(
         '--opponent_space',
         type=str,
         default='lab',
@@ -196,12 +203,17 @@ def test_arg_parser(argvs):
             'lab',
             'dkl'],
         help='The default colour opponent space (default: lab)')
-    # Keras part is not implemented
-    parser.add_argument(
-        '--distance',
-        type=float,
-        default=1,
-        help='Simulating the viewing distance (default: 1)')
+    # TODO: Keras part is not implemented
+    colour_space_group.add_argument(
+        '--colour_transformation',
+        type=str,
+        default='trichromat',
+        choices=[
+            'trichromat',
+            'monochromat',
+            'dichromat_rg',
+            'dichromat_yb'],
+        help='The preprocessing colour transformation (default: trichromat)')
 
     image_degradation_group = parser.add_mutually_exclusive_group()
     image_degradation_group.add_argument(
@@ -681,7 +693,7 @@ def train_arg_parser(argvs):
 
 
 def check_args(parser, argvs, script_type):
-    # HINT: this is just in order to get rid of EXIF warnigns
+    # HINT: this is just in order to get rid of EXIF warnings
     warnings.filterwarnings(
         'ignore',
         '(Possibly )?corrupt EXIF data',
@@ -730,7 +742,7 @@ def check_args(parser, argvs, script_type):
             if args.script_type == 'activation':
                 args.batch_size = 32
             warnings.warn(
-                'default batch_size are used for dataset %s' % (args.dataset))
+                'default batch_size are used for dataset %s' % args.datase)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
     args.gpus = [*range(len(args.gpus))]
