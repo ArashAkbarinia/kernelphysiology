@@ -2,12 +2,10 @@
 Preparing the input image to be inputted to a network.
 """
 
-
 import numpy as np
 import warnings
 from PIL import Image as PilImage
 from PIL import ImageCms
-
 
 rgb_p = ImageCms.createProfile('sRGB')
 lab_p = ImageCms.createProfile('LAB')
@@ -46,3 +44,23 @@ def colour_transformation(transformation_type):
         else:
             warnings.warn('Unsupported colour transformation' % type)
     return ct
+
+
+class ImageTransformation(object):
+
+    def __init__(
+            self,
+            manipulation_function,
+            manipulation_value,
+            manipulation_radius):
+        self.manipulation_function = manipulation_function
+        self.manipulation_value = manipulation_value
+        self.manipulation_radius = manipulation_radius
+
+    def __call__(self, img):
+        img = np.asarray(img, dtype='uint8')
+        img = self.manipulation_function(img,
+                                         self.manipulation_value,
+                                         mask_radius=self.manipulation_radius)
+        img = PilImage.fromarray(img.astype('uint8'), 'RGB')
+        return img

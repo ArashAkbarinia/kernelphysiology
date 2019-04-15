@@ -68,7 +68,7 @@ def main(argv):
     other_transformations = []
     if args.distance > 1:
         other_transformations.append(
-            PreprocessingTransformation(
+            preprocessing.ImageTransformation(
                 simulate_distance,
                 args.distance,
                 args.mask_radius))
