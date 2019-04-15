@@ -6,48 +6,43 @@ Preparing the input image to be inputted to a network.
 import numpy as np
 import warnings
 from PIL import Image as PilImage
+from PIL import ImageCms
 
-from kernelphysiology.utils.imutils import reduce_red_green
-from kernelphysiology.utils.imutils import reduce_yellow_blue
-from kernelphysiology.utils.imutils import reduce_chromaticity
+
+rgb_p = ImageCms.createProfile('sRGB')
+lab_p = ImageCms.createProfile('LAB')
+
+rgb2lab = ImageCms.buildTransformFromOpenProfiles(rgb_p, lab_p, 'RGB', 'LAB')
+lab2rgb = ImageCms.buildTransformFromOpenProfiles(lab_p, rgb_p, 'LAB', 'RGB')
 
 
 class ColourTransformation(object):
 
-    def __init__(
-            self,
-            manipulation_function,
-            manipulation_value=0,
-            colour_space='lab'):
-        self.manipulation_function = manipulation_function
-        self.manipulation_value = manipulation_value
-        self.colour_space = colour_space
+    def __init__(self, colour_inds):
+        self.colour_inds = colour_inds
 
     def __call__(self, img):
-        img = np.asarray(img, dtype='uint8')
-        img = self.manipulation_function(img,
-                                         self.manipulation_value,
-                                         colour_space=self.colour_space) * 255
-        img = PilImage.fromarray(img.astype('uint8'), 'RGB')
+        img = ImageCms.applyTransform(img, rgb2lab)
+        img = np.asarray(img)
+        img[:, :, self.colour_inds] = 0
+        img = PilImage.fromarray(img, 'LAB')
+        img = ImageCms.applyTransform(img, lab2rgb)
         return img
 
 
-def colour_transformation(transformation_type, colour_space='lab'):
+def colour_transformation(transformation_type):
     ct = []
     if transformation_type != 'trichromat':
-        manipulation_function = None
+        colour_inds = None
         if transformation_type == 'dichromat_rg':
-            manipulation_function = reduce_red_green
+            colour_inds = [1]
         elif transformation_type == 'dichromat_yb':
-            manipulation_function = reduce_yellow_blue
+            colour_inds = [2]
         elif transformation_type == 'monochromat':
-            manipulation_function = reduce_chromaticity
-        # check if it's a valid manipulation
-        if manipulation_function is not None:
-            ct.append(
-                ColourTransformation(
-                    manipulation_function,
-                    colour_space=colour_space))
+            colour_inds = [1, 2]
+        # check if it's a valid colour index
+        if colour_inds is not None:
+            ct.append(ColourTransformation(colour_inds))
         else:
             warnings.warn('Unsupported colour transformation' % type)
     return ct

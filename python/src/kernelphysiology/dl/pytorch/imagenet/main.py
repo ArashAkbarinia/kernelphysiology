@@ -5,44 +5,6 @@ import shutil
 import time
 import warnings
 import numpy as np
-from PIL import Image as pil_image
-
-from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_red_green, reduce_yellow_blue
-
-class RedGreenDeficiency(object):
-
-    def __init__(self, amount):
-        self.amount = amount
-
-    def __call__(self, x):
-        x = np.asarray(x, dtype='uint8')
-        x = reduce_red_green(x, self.amount) * 255
-        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
-        return x
-
-
-class YellowBlueDeficiency(object):
-
-    def __init__(self, amount):
-        self.amount = amount
-
-    def __call__(self, x):
-        x = np.asarray(x, dtype='uint8')
-        x = reduce_yellow_blue(x, self.amount) * 255
-        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
-        return x
-
-
-class ChromaticityDeficiency(object):
-
-    def __init__(self, amount):
-        self.amount = amount
-
-    def __call__(self, x):
-        x = np.asarray(x, dtype='uint8')
-        x = reduce_chromaticity(x, self.amount) * 255
-        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
-        return x
 
 
 import torch
@@ -59,6 +21,7 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 
 from kernelphysiology.dl.utils import prepare_training
+from kernelphysiology.dl.pytorch.utils import preprocessing
 
 
 model_names = sorted(name for name in models.__dict__
@@ -250,13 +213,16 @@ def main_worker(gpu, ngpus_per_node, args):
     transformations = []
     if args.experiment_name == 'deficiency_yellow_blue':
         print('deficiency_yellow_blue')
-        transformations.append(YellowBlueDeficiency(0))
+        transformations.append(preprocessing.colour_transformation(
+            'dichromat_yb'))
     elif args.experiment_name == 'deficiency_red_green':
         print('deficiency_red_green')
-        transformations.append(RedGreenDeficiency(0))
+        transformations.append(preprocessing.colour_transformation(
+            'dichromat_rg'))
     elif args.experiment_name == 'deficiency_chromaticity':
         print('deficiency_chromaticity')
-        transformations.append(ChromaticityDeficiency(0))
+        transformations.append(preprocessing.colour_transformation(
+            'monochromat'))
 
     train_dataset = datasets.ImageFolder(
         traindir,

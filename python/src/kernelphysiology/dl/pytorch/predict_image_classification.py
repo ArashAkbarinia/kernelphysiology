@@ -67,8 +67,7 @@ def main(argv):
      image_manipulation_function) = which_preprocessing(args)
 
     other_transformations = preprocessing.colour_transformation(
-        args.colour_transformation,
-        args.opponent_space)
+        args.colour_transformation)
     if args.distance > 1:
         other_transformations.append(
             PreprocessingTransformation(
