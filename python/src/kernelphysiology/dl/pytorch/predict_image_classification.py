@@ -51,9 +51,7 @@ def main(argv):
     args = argument_handler.test_arg_parser(argv)
     (args.networks,
      args.network_names,
-     args.preprocessings,
-     args.output_file) = argument_handler.test_prominent_prepares(
-        args.experiment_name,
+     args.preprocessings) = prepapre_testing.test_prominent_prepares(
         args.network_name,
         args.preprocessing)
 

@@ -5,63 +5,14 @@ Handling input arguments for training/testing a network.
 
 import os
 import sys
-import glob
 import argparse
-import datetime
-import time
 import numpy as np
 import warnings
 import math
 
-from kernelphysiology.utils.path_utils import create_dir
 from kernelphysiology.dl.utils import default_configs
 from kernelphysiology.dl.keras.datasets.utils import get_default_target_size
 from kernelphysiology.dl.keras.utils import get_input_shape
-
-
-def test_prominent_prepares(experiment_name, network_arg, preprocessing=None):
-    output_file = None
-    if os.path.isdir(network_arg):
-        dirname = network_arg
-        output_dir = os.path.join(dirname, experiment_name)
-        create_dir(output_dir)
-        output_file = os.path.join(output_dir, 'results_')
-        networks = sorted(glob.glob(dirname + '*.h5'))
-        network_names = []
-        preprocessings = [preprocessing] * len(networks)
-    elif os.path.isfile(network_arg):
-        networks = []
-        preprocessings = []
-        network_names = []
-        with open(network_arg) as f:
-            lines = f.readlines()
-            for i, line in enumerate(lines):
-                tokens = line.strip().split(',')
-                networks.append(tokens[0])
-                if len(tokens) > 1:
-                    preprocessings.append(tokens[1])
-                else:
-                    preprocessings.append(preprocessing)
-                if len(tokens) > 2:
-                    network_names.append(tokens[2])
-                else:
-                    network_names.append('network_%03d' % i)
-    else:
-        networks = [network_arg.lower()]
-        network_names = [network_arg.lower()]
-        # choosing the preprocessing function
-        if preprocessing is None:
-            preprocessing = network_arg.lower()
-        preprocessings = [preprocessing]
-
-    if not output_file:
-        current_time = datetime.datetime.fromtimestamp(
-            time.time()).strftime('%Y-%m-%d_%H_%M_%S')
-        output_dir = experiment_name
-        create_dir(output_dir)
-        output_file = os.path.join(output_dir, 'results_' + current_time)
-
-    return networks, network_names, preprocessings, output_file
 
 
 def common_arg_parser(description):
