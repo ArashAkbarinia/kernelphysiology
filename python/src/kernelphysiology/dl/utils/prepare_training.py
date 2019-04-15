@@ -1,7 +1,6 @@
-'''
+"""
 Common functionality of training a network under different frameworks.
-'''
-
+"""
 
 import os
 
@@ -10,7 +9,8 @@ from kernelphysiology import commons
 from kernelphysiology.utils.path_utils import create_dir
 
 
-def prepare_output_directories(dataset_name, network_name, optimiser, load_weights, experiment_name, framework):
+def prepare_output_directories(dataset_name, network_name, optimiser,
+                               load_weights, experiment_name, framework):
     # preparing directories
     data_folder_path = os.path.join(commons.python_root, 'data')
     create_dir(data_folder_path)
@@ -18,7 +18,8 @@ def prepare_output_directories(dataset_name, network_name, optimiser, load_weigh
     create_dir(network_folder_path)
     framework_folder_path = os.path.join(network_folder_path, framework)
     create_dir(framework_folder_path)
-    dataset_parent_path = os.path.join(framework_folder_path, '%s' % (''.join([i for i in dataset_name if not i.isdigit()])))
+    dataset_parent_path = os.path.join(framework_folder_path, '%s' % (
+        ''.join([i for i in dataset_name if not i.isdigit()])))
     create_dir(dataset_parent_path)
     dataset_child_path = os.path.join(dataset_parent_path, dataset_name)
     create_dir(dataset_child_path)

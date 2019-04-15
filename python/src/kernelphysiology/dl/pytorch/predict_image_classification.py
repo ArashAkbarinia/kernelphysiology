@@ -21,6 +21,7 @@ import torchvision.datasets as datasets
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.dl.utils import argument_handler
+from kernelphysiology.dl.utils import prepapre_testing
 from kernelphysiology.dl.pytorch.models.utils import which_network
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.utils.preprocessing import which_preprocessing
@@ -52,9 +53,9 @@ def main(argv):
      args.network_names,
      args.preprocessings,
      args.output_file) = argument_handler.test_prominent_prepares(
-         args.experiment_name,
-         args.network_name,
-         args.preprocessing)
+        args.experiment_name,
+        args.network_name,
+        args.preprocessing)
 
     # FIXME: cant take more than one GPU
     gpu = args.gpus[0]
@@ -66,8 +67,7 @@ def main(argv):
      image_manipulation_values,
      image_manipulation_function) = which_preprocessing(args)
 
-    other_transformations = preprocessing.colour_transformation(
-        args.colour_transformation)
+    other_transformations = []
     if args.distance > 1:
         other_transformations.append(
             PreprocessingTransformation(
@@ -81,8 +81,10 @@ def main(argv):
                                              args.dataset)
         model = model.cuda(gpu)
         normalize = get_preprocessing_function(args.preprocessing)
+        other_transformations.extend(preprocessing.colour_transformation(
+            args.preprocessings[j]))  # TODO: change it to colour_transformation
 
-        # FIXME: for now it only supprts classiication
+        # FIXME: for now it only supports classification
         # TODO: merge code with evaluation
         for i, manipulation_value in enumerate(image_manipulation_values):
             current_manipulation_preprocessing = PreprocessingTransformation(
@@ -110,15 +112,11 @@ def main(argv):
                 batch_size=args.batch_size, shuffle=False,
                 num_workers=args.workers, pin_memory=True)
             (_, _, current_results) = validate(val_loader, model, criterion)
-            np.savetxt(
-                '%s_%s_%s_%s.csv' %
-                (args.output_file,
-                 args.network_names[j],
-                 image_manipulation_type,
-                 str(manipulation_value)),
-                current_results,
-                delimiter=',',
-                fmt='%i')
+            prepapre_testing.save_predictions(current_results,
+                                              args.experiment_name,
+                                              network_name, args.dataset,
+                                              image_manipulation_type,
+                                              manipulation_value)
 
 
 def validate(val_loader, model, criterion):
@@ -133,13 +131,13 @@ def validate(val_loader, model, criterion):
     all_outs = []
     with torch.no_grad():
         end = time.time()
-        for i, (input, target) in enumerate(val_loader):
+        for i, (input_imgs, target) in enumerate(val_loader):
             if 0 is not None:
-                input = input.cuda(0, non_blocking=True)
+                input_imgs = input_imgs.cuda(0, non_blocking=True)
             target = target.cuda(0, non_blocking=True)
 
             # compute output
-            output = model(input)
+            output = model(input_imgs)
             loss = criterion(output, target)
 
             # measure accuracy and record loss
@@ -158,15 +156,15 @@ def validate(val_loader, model, criterion):
                 outs = [outs]
 
             if not all_outs:
-                for out in outs:
+                for _ in outs:
                     all_outs.append([])
 
             for j, out in enumerate(outs):
                 all_outs[j].append(out)
 
-            losses.update(loss.item(), input.size(0))
-            top1.update(acc1[0], input.size(0))
-            top5.update(acc5[0], input.size(0))
+            losses.update(loss.item(), input_imgs.size(0))
+            top1.update(acc1[0], input_imgs.size(0))
+            top5.update(acc5[0], input_imgs.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -194,11 +192,11 @@ def validate(val_loader, model, criterion):
         prediction_output = np.concatenate(all_outs[0])
     else:
         prediction_output = [np.concatenate(out) for out in all_outs]
-    return (top1.avg, top5.avg, prediction_output)
+    return top1.avg, top5.avg, prediction_output
 
 
 class AverageMeter(object):
-    '''Computes and stores the average and current value'''
+    """Computes and stores the average and current value"""
 
     def __init__(self):
         self.reset()
