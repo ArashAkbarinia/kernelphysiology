@@ -68,7 +68,7 @@ def main(argv):
 
     other_transformations = preprocessing.colour_transformation(
         args.colour_transformation,
-        args.colour_space)
+        args.opponent_space)
     if args.distance > 1:
         other_transformations.append(
             PreprocessingTransformation(
@@ -77,7 +77,9 @@ def main(argv):
                 args.mask_radius))
     for j, network_name in enumerate(args.networks):
         # which architecture
-        (model, target_size) = which_network(network_name, args.task_type)
+        (model, target_size) = which_network(network_name,
+                                             args.task_type,
+                                             args.dataset)
         model = model.cuda(gpu)
         normalize = get_preprocessing_function(args.preprocessing)
 
