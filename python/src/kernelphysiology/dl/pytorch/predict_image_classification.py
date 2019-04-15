@@ -72,9 +72,9 @@ def main(argv):
                 simulate_distance,
                 args.distance,
                 args.mask_radius))
-    for j, network_name in enumerate(args.networks):
+    for j, current_network in enumerate(args.networks):
         # which architecture
-        (model, target_size) = which_network(network_name,
+        (model, target_size) = which_network(current_network,
                                              args.task_type,
                                              args.dataset)
         model = model.cuda(gpu)
@@ -93,7 +93,7 @@ def main(argv):
                                current_manipulation_preprocessing]
 
             print('Processing network %s and %s %f' %
-                  (network_name, image_manipulation_type, manipulation_value))
+                  (current_network, image_manipulation_type, manipulation_value))
 
             # which dataset
             # reading it after the model, because each might have their own
@@ -112,7 +112,8 @@ def main(argv):
             (_, _, current_results) = validate(val_loader, model, criterion)
             prepapre_testing.save_predictions(current_results,
                                               args.experiment_name,
-                                              network_name, args.dataset,
+                                              args.network_names[j],
+                                              args.dataset,
                                               image_manipulation_type,
                                               manipulation_value)
 

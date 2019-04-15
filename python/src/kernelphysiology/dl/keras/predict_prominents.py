@@ -48,9 +48,9 @@ if __name__ == "__main__":
 
     # maybe if only one preprocessing is used,
     # the generators can be called only once
-    for j, network_name in enumerate(args.networks):
+    for j, current_network in enumerate(args.networks):
         # w1hich architecture
-        args = which_network(args, network_name, args.task_type)
+        args = which_network(args, current_network, args.task_type)
         # FIXME: for now it only supprts classiication
         # TODO: merge code with evaluation
         for i, manipulation_value in enumerate(image_manipulation_values):
@@ -65,7 +65,7 @@ if __name__ == "__main__":
                 current_manipulation_preprocessing
 
             print('Processing network %s and %s %f' % (
-                network_name, image_manipulation_type, manipulation_value))
+                current_network, image_manipulation_type, manipulation_value))
 
             # which dataset
             # reading it after the model, because each might have their own
@@ -79,7 +79,8 @@ if __name__ == "__main__":
             current_results = np.array(current_results)
             prepapre_testing.save_predictions(current_results,
                                               args.experiment_name,
-                                              network_name, args.dataset,
+                                              args.network_names[j],
+                                              args.dataset,
                                               image_manipulation_type,
                                               manipulation_value)
 
