@@ -6,7 +6,6 @@ import time
 import warnings
 import numpy as np
 
-
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -23,10 +22,9 @@ import torchvision.models as models
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.pytorch.utils import preprocessing
 
-
 model_names = sorted(name for name in models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(models.__dict__[name]))
+                     if name.islower() and not name.startswith("__")
+                     and callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
@@ -34,8 +32,8 @@ parser.add_argument('data', metavar='DIR',
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
-                        ' | '.join(model_names) +
-                        ' (default: resnet18)')
+                         ' | '.join(model_names) +
+                         ' (default: resnet18)')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--epochs', default=90, type=int, metavar='N',
@@ -79,19 +77,21 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'N processes per node, which has N GPUs. This is the '
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
-parser.add_argument('--experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
+parser.add_argument('--experiment_name', type=str, default='Ex',
+                    help='The name of the experiment (default: Ex)')
 
 best_acc1 = 0
 
 
 def main():
     args = parser.parse_args()
-    args.out_dir = prepare_training.prepare_output_directories(dataset_name='imagenet',
-                                                               network_name=args.arch,
-                                                               optimiser='sgd',
-                                                               load_weights=False,
-                                                               experiment_name=args.experiment_name,
-                                                               framework='pytorch')
+    args.out_dir = prepare_training.prepare_output_directories(
+        dataset_name='imagenet',
+        network_name=args.arch,
+        optimiser='sgd',
+        load_weights=False,
+        experiment_name=args.experiment_name,
+        framework='pytorch')
 
     if args.seed is not None:
         random.seed(args.seed)
@@ -119,7 +119,8 @@ def main():
         args.world_size = ngpus_per_node * args.world_size
         # Use torch.multiprocessing.spawn to launch distributed processes: the
         # main_worker process function
-        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+        mp.spawn(main_worker, nprocs=ngpus_per_node,
+                 args=(ngpus_per_node, args))
     else:
         # Simply call main_worker function
         main_worker(args.gpu, ngpus_per_node, args)
@@ -139,7 +140,8 @@ def main_worker(gpu, ngpus_per_node, args):
             # For multiprocessing distributed training, rank needs to be the
             # global rank among all the processes
             args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+        dist.init_process_group(backend=args.dist_backend,
+                                init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
     # create model
     if args.pretrained:
@@ -161,7 +163,9 @@ def main_worker(gpu, ngpus_per_node, args):
             # ourselves based on the total number of GPUs we have
             args.batch_size = int(args.batch_size / ngpus_per_node)
             args.workers = int(args.workers / ngpus_per_node)
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+            model = torch.nn.parallel.DistributedDataParallel(model,
+                                                              device_ids=[
+                                                                  args.gpu])
         else:
             model.cuda()
             # DistributedDataParallel will divide and allocate batch_size to all
@@ -213,16 +217,13 @@ def main_worker(gpu, ngpus_per_node, args):
     transformations = []
     if args.experiment_name == 'deficiency_yellow_blue':
         print('deficiency_yellow_blue')
-        transformations.append(preprocessing.colour_transformation(
-            'dichromat_yb'))
+        transformations = preprocessing.colour_transformation('dichromat_yb')
     elif args.experiment_name == 'deficiency_red_green':
         print('deficiency_red_green')
-        transformations.append(preprocessing.colour_transformation(
-            'dichromat_rg'))
+        transformations = preprocessing.colour_transformation('dichromat_rg')
     elif args.experiment_name == 'deficiency_chromaticity':
         print('deficiency_chromaticity')
-        transformations.append(preprocessing.colour_transformation(
-            'monochromat'))
+        transformations = preprocessing.colour_transformation('monochromat')
 
     train_dataset = datasets.ImageFolder(
         traindir,
@@ -235,12 +236,14 @@ def main_worker(gpu, ngpus_per_node, args):
         ]))
 
     if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+        train_sampler = torch.utils.data.distributed.DistributedSampler(
+            train_dataset)
     else:
         train_sampler = None
 
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
+        train_dataset, batch_size=args.batch_size,
+        shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
 
     target_size = 224
@@ -268,7 +271,8 @@ def main_worker(gpu, ngpus_per_node, args):
         adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train_log = train(train_loader, model, criterion, optimizer, epoch, args)
+        train_log = train(train_loader, model, criterion, optimizer, epoch,
+                          args)
 
         # evaluate on validation set
         validation_log = validate(val_loader, model, criterion, args)
@@ -279,14 +283,15 @@ def main_worker(gpu, ngpus_per_node, args):
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
 
-        if not args.multiprocessing_distributed or (args.multiprocessing_distributed
+        if not args.multiprocessing_distributed or (
+                args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
-                'optimizer' : optimizer.state_dict(),
+                'optimizer': optimizer.state_dict(),
                 'target_size': target_size,
             }, is_best, out_folder=args.out_dir)
         np.savetxt(file_path, np.array(model_progress), delimiter=',')
@@ -337,8 +342,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                   epoch, i, len(train_loader), batch_time=batch_time,
-                   data_time=data_time, loss=losses, top1=top1, top5=top5))
+                epoch, i, len(train_loader), batch_time=batch_time,
+                data_time=data_time, loss=losses, top1=top1, top5=top5))
     return [epoch, batch_time.avg, losses.avg, top1.avg, top5.avg]
 
 
@@ -378,15 +383,16 @@ def validate(val_loader, model, criterion, args):
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                       'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                       i, len(val_loader), batch_time=batch_time, loss=losses,
-                       top1=top1, top5=top5))
+                    i, len(val_loader), batch_time=batch_time, loss=losses,
+                    top1=top1, top5=top5))
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
 
     return [batch_time.avg, losses.avg, top1.avg, top5.avg]
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', out_folder=''):
+def save_checkpoint(state, is_best, filename='checkpoint.pth.tar',
+                    out_folder=''):
     filename = os.path.join(out_folder, filename)
     torch.save(state, filename)
     if is_best:
@@ -396,6 +402,7 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', out_folder=''
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
@@ -420,7 +427,7 @@ def adjust_learning_rate(optimizer, epoch, args):
 
 
 def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+    """Computes the accuracy over the k top predictions"""
     with torch.no_grad():
         maxk = max(topk)
         batch_size = target.size(0)

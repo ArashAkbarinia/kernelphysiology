@@ -23,7 +23,7 @@ class ColourTransformation(object):
 
     def __call__(self, img):
         img = ImageCms.applyTransform(img, rgb2lab)
-        img = np.asarray(img)
+        img = np.asarray(img).copy()
         img[:, :, self.colour_inds] = 0
         img = PilImage.fromarray(img, 'LAB')
         img = ImageCms.applyTransform(img, lab2rgb)
