@@ -742,7 +742,7 @@ def check_args(parser, argvs, script_type):
             if args.script_type == 'activation':
                 args.batch_size = 32
             warnings.warn(
-                'default batch_size are used for dataset %s' % args.datase)
+                'default batch_size are used for dataset %s' % args.dataset)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
     args.gpus = [*range(len(args.gpus))]
