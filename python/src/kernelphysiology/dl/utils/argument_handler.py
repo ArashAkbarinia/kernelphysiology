@@ -649,6 +649,10 @@ def check_args(parser, argvs, script_type):
         'ignore',
         '(Possibly )?corrupt EXIF data',
         UserWarning)
+    warnings.filterwarnings(
+        'ignore',
+        'is a low contrast image',
+        UserWarning)
 
     args = parser.parse_args(argvs)
     args.script_type = script_type
