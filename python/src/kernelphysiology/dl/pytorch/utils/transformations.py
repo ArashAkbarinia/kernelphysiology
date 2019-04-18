@@ -24,7 +24,7 @@ def rgb2xyz(img_rgb):
     arr[~mask] /= 12.92
 
     img_xyz = torch.empty(img_rgb.shape, dtype=torch.float)
-    img_xyz = img_xyz.cuda(0, non_blocking=True)
+    img_xyz = img_xyz.cuda(img_rgb.get_device(), non_blocking=True)
     for i in range(3):
         x_r = arr[0,] * xyz_from_rgb[i, 0]
         y_g = arr[1,] * xyz_from_rgb[i, 1]
@@ -39,7 +39,7 @@ def xyz2rgb(img_xyz):
     # Follow the algorithm from http://www.easyrgb.com/index.php
     # except we don't multiply/divide by 100 in the conversion
     img_rgb = torch.empty(img_xyz.shape, dtype=torch.float)
-    img_rgb = img_rgb.cuda(0, non_blocking=True)
+    img_rgb = img_rgb.cuda(img_xyz.get_device(), non_blocking=True)
     for i in range(3):
         x_r = arr[0,] * rgb_from_xyz[i, 0]
         y_g = arr[1,] * rgb_from_xyz[i, 1]
@@ -75,7 +75,7 @@ def xyz2lab(img_xyz):
     b = 200.0 * (y - z)
 
     img_lab = torch.empty(img_xyz.shape, dtype=torch.float)
-    img_lab = img_lab.cuda(0, non_blocking=True)
+    img_lab = img_lab.cuda(img_xyz.get_device(), non_blocking=True)
     img_lab[0,] = L
     img_lab[1,] = a
     img_lab[2,] = b
@@ -99,7 +99,7 @@ def lab2xyz(img_lab):
         z[invalid] = 0
 
     img_xyz = torch.empty(img_lab.shape, dtype=torch.float)
-    img_xyz = img_xyz.cuda(0, non_blocking=True)
+    img_xyz = img_xyz.cuda(img_lab.get_device(), non_blocking=True)
     img_xyz[0,] = x
     img_xyz[1,] = y
     img_xyz[2,] = z
