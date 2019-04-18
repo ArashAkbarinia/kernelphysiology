@@ -395,7 +395,6 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
             save_sample_imgs(args.out_dir, input_imgs, output_imgs,
                              imgs_dichromat)
         imgs_dichromat = normalise_tensor(imgs_dichromat, args.mean, args.std)
-        imgs_dichromat = imgs_dichromat.cuda(args.gpu, non_blocking=True)
         imgs_trichromat = normalise_tensor(output_imgs, args.mean, args.std)
         with torch.no_grad():
             output = dichromat_network(imgs_dichromat)
@@ -492,7 +491,6 @@ def validate(val_loader, model, criterion, args):
             imgs_dichromat = prepare_dichromat(output_imgs, args.n2_transform)
             imgs_dichromat = normalise_tensor(imgs_dichromat, args.mean,
                                               args.std)
-            imgs_dichromat = imgs_dichromat.cuda(args.gpu, non_blocking=True)
             imgs_trichromat = normalise_tensor(output_imgs, args.mean, args.std)
 
             output = dichromat_network(imgs_dichromat)
