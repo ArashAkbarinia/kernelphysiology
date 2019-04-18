@@ -647,11 +647,11 @@ def check_args(parser, argvs, script_type):
     # HINT: this is just in order to get rid of EXIF warnings
     warnings.filterwarnings(
         'ignore',
-        '(Possibly )?corrupt EXIF data',
+        '.*(Possibly )?corrupt EXIF data.*',
         UserWarning)
     warnings.filterwarnings(
         'ignore',
-        'is a low contrast image',
+        '.*is a low contrast image.*',
         UserWarning)
 
     args = parser.parse_args(argvs)
