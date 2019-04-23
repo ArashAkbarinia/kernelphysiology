@@ -26,10 +26,10 @@ def rgb2xyz(img_rgb):
     img_xyz = torch.empty(img_rgb.shape, dtype=torch.float)
     img_xyz = img_xyz.cuda(img_rgb.get_device(), non_blocking=False)
     for i in range(3):
-        x_r = arr[:, 0,] * xyz_from_rgb[i, 0]
-        y_g = arr[:, 1,] * xyz_from_rgb[i, 1]
-        z_b = arr[:, 2,] * xyz_from_rgb[i, 2]
-        img_xyz[:, i,] = x_r + y_g + z_b
+        x_r = arr[:, 0:1, ] * xyz_from_rgb[i, 0]
+        y_g = arr[:, 1:2, ] * xyz_from_rgb[i, 1]
+        z_b = arr[:, 2:3, ] * xyz_from_rgb[i, 2]
+        img_xyz[:, i:i + 1, ] = x_r + y_g + z_b
 
     return img_xyz
 
@@ -41,10 +41,10 @@ def xyz2rgb(img_xyz):
     img_rgb = torch.empty(img_xyz.shape, dtype=torch.float)
     img_rgb = img_rgb.cuda(img_xyz.get_device(), non_blocking=False)
     for i in range(3):
-        x_r = arr[:, 0,] * rgb_from_xyz[i, 0]
-        y_g = arr[:, 1,] * rgb_from_xyz[i, 1]
-        z_b = arr[:, 2,] * rgb_from_xyz[i, 2]
-        img_rgb[:, i,] = x_r + y_g + z_b
+        x_r = arr[:, 0:1, ] * rgb_from_xyz[i, 0]
+        y_g = arr[:, 1:2, ] * rgb_from_xyz[i, 1]
+        z_b = arr[:, 2:3, ] * rgb_from_xyz[i, 2]
+        img_rgb[:, i:i + 1, ] = x_r + y_g + z_b
 
     mask = img_rgb > 0.0031308
     img_rgb[mask] = 1.055 * img_rgb[mask].pow(1 / 2.4) - 0.055
@@ -65,9 +65,9 @@ def xyz2lab(img_xyz):
     arr[mask] = arr[mask].pow(1 / 3)
     arr[~mask] = 7.787 * arr[~mask] + 16. / 116.
 
-    x = arr[:, 0,]
-    y = arr[:, 1,]
-    z = arr[:, 2,]
+    x = arr[:, 0:1, ]
+    y = arr[:, 1:2, ]
+    z = arr[:, 2:3, ]
 
     # Vector scaling
     L = (116. * y) - 16.
@@ -76,18 +76,18 @@ def xyz2lab(img_xyz):
 
     img_lab = torch.empty(img_xyz.shape, dtype=torch.float)
     img_lab = img_lab.cuda(img_xyz.get_device(), non_blocking=False)
-    img_lab[:, 0,] = L
-    img_lab[:, 1,] = a
-    img_lab[:, 2,] = b
+    img_lab[:, 0:1, ] = L
+    img_lab[:, 1:2, ] = a
+    img_lab[:, 2:3, ] = b
     return img_lab
 
 
 def lab2xyz(img_lab):
     arr = img_lab.clone()
 
-    L = arr[:, 0,]
-    a = arr[:, 1,]
-    b = arr[:, 2,]
+    L = arr[:, 0:1, ]
+    a = arr[:, 1:2, ]
+    b = arr[:, 2:3, ]
     y = (L + 16.) / 116.
     x = (a / 500.) + y
     z = y - (b / 200.)
@@ -100,9 +100,9 @@ def lab2xyz(img_lab):
 
     img_xyz = torch.empty(img_lab.shape, dtype=torch.float)
     img_xyz = img_xyz.cuda(img_lab.get_device(), non_blocking=False)
-    img_xyz[:, 0,] = x
-    img_xyz[:, 1,] = y
-    img_xyz[:, 2,] = z
+    img_xyz[:, 0:1, ] = x
+    img_xyz[:, 1:2, ] = y
+    img_xyz[:, 2:3, ] = z
 
     mask = img_xyz > 0.2068966
     img_xyz[mask] = img_xyz[mask].pow(3.)
@@ -110,7 +110,7 @@ def lab2xyz(img_lab):
 
     # rescale to the reference white (illuminant)
     for i in range(3):
-        img_xyz[:, i,] *= xyz_ref_white[i]
+        img_xyz[:, i:i + 1, ] *= xyz_ref_white[i]
     return img_xyz
 
 
