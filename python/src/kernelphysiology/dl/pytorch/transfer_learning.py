@@ -261,9 +261,13 @@ def main_worker(gpu, ngpus_per_node, args):
                                      std=[0.229, 0.224, 0.225])
 
     num_categories = len(glob.glob(traindir + '/*/'))
-    print(num_categories)
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, num_categories)
+    if 'squeezenet' in args.arch:
+        model.classifier[1] = nn.Conv2d(512, num_categories,
+                                        kernel_size=(1, 1), stride=(1, 1))
+        model.num_classes = num_categories
+    else:
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, num_categories)
     model = model.to(args.gpu)
 
     cudnn.benchmark = True
