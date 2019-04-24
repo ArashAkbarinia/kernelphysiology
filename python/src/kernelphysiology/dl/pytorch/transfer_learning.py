@@ -58,6 +58,8 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+import glob
+
 from kernelphysiology.dl.utils import prepare_training
 
 
@@ -68,6 +70,10 @@ model_names = sorted(name for name in models.__dict__
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
+parser.add_argument('--train_dir', default='train', type=str,
+                    help='Name of the train directory')
+parser.add_argument('--validation_dir', default='validation', type=str,
+                    help='Name of the validation directory')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
@@ -240,18 +246,19 @@ def main_worker(gpu, ngpus_per_node, args):
             print("=> no checkpoint found at '{}'".format(args.resume))
 
 
-#    model = models.resnet18(pretrained=True)
+    # Data loading code
+    traindir = os.path.join(args.data, args.train_dir)
+    valdir = os.path.join(args.data, args.validation_dir)
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+
+    num_categories = len(glob.glob(traindir + '/*/'))
+    print(num_categories)
     num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 30)
+    model.fc = nn.Linear(num_ftrs, num_categories)
     model = model.to(args.gpu)
 
     cudnn.benchmark = True
-
-    # Data loading code
-    traindir = os.path.join(args.data, 'train')
-    valdir = os.path.join(args.data, 'validation')
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
 
     transformations = []
     if args.experiment_name == 'deficiency_yellow_blue':
