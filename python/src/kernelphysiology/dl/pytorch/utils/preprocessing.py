@@ -63,5 +63,6 @@ class ImageTransformation(object):
         img = self.manipulation_function(img,
                                          manipulation_value,
                                          mask_radius=self.manipulation_radius)
+        img *= 255
         img = PilImage.fromarray(img.astype('uint8'), 'RGB')
         return img
