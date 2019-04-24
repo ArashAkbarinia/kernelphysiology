@@ -70,6 +70,8 @@ model_names = sorted(name for name in models.__dict__
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
+parser.add_argument('--dataset_name', required=True, type=str,
+                    help='Name of the train directory')
 parser.add_argument('--train_dir', default='train', type=str,
                     help='Name of the train directory')
 parser.add_argument('--validation_dir', default='validation', type=str,
@@ -123,13 +125,19 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
 parser.add_argument('--experiment_name', type=str, default='Ex', help='The name of the experiment (default: Ex)')
+parser.add_argument(
+    '--scale',
+    nargs='+',
+    type=float,
+    default=[0.9, 1.0],
+    help='Range for scale (default: 0.9-1.0)')
 
 best_acc1 = 0
 
 
 def main():
     args = parser.parse_args()
-    args.out_dir = prepare_training.prepare_output_directories(dataset_name='leaf',
+    args.out_dir = prepare_training.prepare_output_directories(dataset_name=args.dataset_name,
                                                                network_name=args.arch,
                                                                optimiser='sgd',
                                                                load_weights=True,
@@ -275,7 +283,7 @@ def main_worker(gpu, ngpus_per_node, args):
         traindir,
         transforms.Compose([
             transforms.Resize(256),
-            transforms.RandomResizedCrop(224),
+            transforms.RandomResizedCrop(224, scale=args.scale),
             *transformations,
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
