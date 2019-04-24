@@ -59,8 +59,9 @@ class ImageTransformation(object):
 
     def __call__(self, img):
         img = np.asarray(img, dtype='uint8')
+        manipulation_value = np.random.uniform(*self.manipulation_value)
         img = self.manipulation_function(img,
-                                         self.manipulation_value,
+                                         manipulation_value,
                                          mask_radius=self.manipulation_radius)
         img = PilImage.fromarray(img.astype('uint8'), 'RGB')
         return img
