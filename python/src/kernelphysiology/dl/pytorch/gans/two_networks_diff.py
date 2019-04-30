@@ -79,8 +79,14 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'multi node data parallel training')
 parser.add_argument('--experiment_name', type=str, default='Ex',
                     help='The name of the experiment (default: Ex)')
-parser.add_argument('--net_folder', type=str, required=True,
-                    help='The folder containing two networks')
+parser.add_argument('--pos_net_path', type=str, required=True,
+                    help='The path to network to be maximised.')
+parser.add_argument('--neg_net_path', type=str, required=True,
+                    help='The path to network to be minimised.')
+parser.add_argument('--pos_colour', type=str, default='trichromat',
+                    help='Preprocessing colour transformation to pos net.')
+parser.add_argument('--neg_colour', type=str, default='trichromat',
+                    help='Preprocessing colour transformation to neg net.')
 
 best_acc1 = 0
 
@@ -137,20 +143,51 @@ def main():
 
 
 class SimpleModel(nn.Module):
-    def __init__(self):
+    def __init__(self, pos_net, neg_net, pos_tra, neg_tra, mean, std):
         super(SimpleModel, self).__init__()
         self.generator = nn.Sequential(
-            nn.Conv2d(3, 16, 3, padding=1),
+            nn.Conv2d(3, 8, 3, padding=1),
             nn.ReLU(True),
-            nn.Conv2d(16, 8, 5, padding=2),
+            nn.Conv2d(8, 16, 3, padding=1),
             nn.ReLU(True),
-            nn.Conv2d(8, 3, 1),
+            nn.Conv2d(16, 32, 3, padding=1),
+            nn.ReLU(True),
+            nn.Conv2d(32, 3, 1),
             nn.Tanh()
         )
+        self.pos_net = pos_net
+        self.neg_net = neg_net
+        self.pos_tra = pos_tra
+        self.neg_tra = neg_tra
+        self.mean = mean
+        self.std = std
 
     def forward(self, x):
         x = self.generator(x)
-        return x
+        x_pos = x.detach()
+        if self.pos_tra is not None:
+            x_pos = prepare_dichromat(
+                    inv_normalise_tensor(x_pos, self.mean, self.std), self.pos_tra)
+            x_pos = normalise_tensor(x_pos, self.mean, self.std)
+        pos_out = self.pos_net(x_pos)
+        x_neg = x.detach()
+        if self.neg_tra is not None:
+            x_neg = prepare_dichromat(
+                    inv_normalise_tensor(x_neg, self.mean, self.std), self.neg_tra)
+            x_neg = normalise_tensor(x_neg, self.mean, self.std)
+        neg_out = self.neg_net(x_neg)
+        return x, pos_out, neg_out, x_pos, x_neg
+
+
+def get_colour_inds(colour_tranformation):
+    colour_inds = None
+    if colour_tranformation == 'dichromat_rg':
+        colour_inds = [1]
+    elif colour_tranformation == 'dichromat_yb':
+        colour_inds = [2]
+    elif colour_tranformation == 'monochromat':
+        colour_inds = [1, 2]
+    return colour_inds
 
 
 def main_worker(gpu, ngpus_per_node, args):
@@ -170,6 +207,25 @@ def main_worker(gpu, ngpus_per_node, args):
         dist.init_process_group(backend=args.dist_backend,
                                 init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
+
+    # HINT TWO networks introduced
+    args.n2_transform = 1
+    (negative_network, _) = which_network(args.pos_net_path,
+                                          'classification', '')
+    (positive_network, _) = which_network(args.neg_net_path,
+                                          'classification', '')
+    if args.gpu is not None:
+        negative_network = negative_network.cuda(args.gpu)
+        positive_network = positive_network.cuda(args.gpu)
+
+    for param in positive_network.parameters():
+        param.requires_grad = False
+    for param in negative_network.parameters():
+        param.requires_grad = False
+
+    args.mean = [0.485, 0.456, 0.406]
+    args.std = [0.229, 0.224, 0.225]
+
     # create model
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
@@ -178,7 +234,11 @@ def main_worker(gpu, ngpus_per_node, args):
         print("=> creating model '{}'".format(args.arch))
         # model = models.__dict__[args.arch]()
         # TODO make the model more smart
-        model = SimpleModel()
+        pos_tra = get_colour_inds(args.pos_colour)
+        neg_tra = get_colour_inds(args.neg_colour)
+        model = SimpleModel(pos_net=positive_network, neg_net=negative_network,
+                            pos_tra=pos_tra, neg_tra=neg_tra,
+                            mean=args.mean, std=args.std)
 
     if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
@@ -192,9 +252,8 @@ def main_worker(gpu, ngpus_per_node, args):
             # ourselves based on the total number of GPUs we have
             args.batch_size = int(args.batch_size / ngpus_per_node)
             args.workers = int(args.workers / ngpus_per_node)
-            model = torch.nn.parallel.DistributedDataParallel(model,
-                                                              device_ids=[
-                                                                  args.gpu])
+            model = torch.nn.parallel.DistributedDataParallel(
+                model, device_ids=[args.gpu])
         else:
             model.cuda()
             # DistributedDataParallel will divide and allocate batch_size to all
@@ -212,7 +271,7 @@ def main_worker(gpu, ngpus_per_node, args):
             model = torch.nn.DataParallel(model).cuda()
 
     # define loss function (criterion) and optimizer
-    criterion = nn.MSELoss().cuda(args.gpu)
+    criterion = nn.L1Loss().cuda(args.gpu) # MSELoss
 
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
@@ -240,10 +299,7 @@ def main_worker(gpu, ngpus_per_node, args):
     # Data loading code
     traindir = os.path.join(args.data, 'validation')  # FIXME change it to train
     valdir = os.path.join(args.data, 'validation')
-    args.mean = [0.485, 0.456, 0.406]
-    args.std = [0.229, 0.224, 0.225]
-    normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
-                                     std=[0.5, 0.5, 0.5])
+    normalize = transforms.Normalize(mean=args.mean, std=args.std)
 
     target_size = 224
     val_loader = torch.utils.data.DataLoader(
@@ -261,24 +317,8 @@ def main_worker(gpu, ngpus_per_node, args):
         os.mkdir(args.out_dir)
     file_path = os.path.join(args.out_dir, 'model_progress.csv')
 
-    # HINT TWO networks introduced
-    args.n2_transform = 1
-    (trichromat_network, _) = which_network(
-        args.net_folder + '/nets/pytorch/imagenet'
-                          '/imagenet/resnet50/sgd/scratch/original_b64/model_best.pth.tar',
-        'classification', '')
-    (dichromat_network, _) = which_network(
-        args.net_folder + '/nets/pytorch/imagenet'
-                          '/imagenet/resnet50/sgd/scratch/deficiency_red_green/model_best.pth.tar',
-        'classification', '')
-    if args.gpu is not None:
-        trichromat_network = trichromat_network.cuda(args.gpu)
-        dichromat_network = dichromat_network.cuda(args.gpu)
-    args.dichromat_network = dichromat_network
-    args.trichromat_network = trichromat_network
-
-    args.criterion_dichromat = nn.CrossEntropyLoss().cuda(args.gpu)
-    args.criterion_trichromat = nn.CrossEntropyLoss().cuda(args.gpu)
+    args.criterion_pos = nn.CrossEntropyLoss().cuda(args.gpu)
+    args.criterion_neg = nn.CrossEntropyLoss().cuda(args.gpu)
 
     if args.evaluate:
         validate(val_loader, model, criterion, args)
@@ -287,7 +327,9 @@ def main_worker(gpu, ngpus_per_node, args):
     train_dataset = datasets.ImageFolder(
         traindir,
         transforms.Compose([
-            transforms.RandomResizedCrop(target_size),
+#            transforms.RandomResizedCrop(target_size),
+            transforms.Resize(256),
+            transforms.CenterCrop(target_size),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
@@ -314,7 +356,8 @@ def main_worker(gpu, ngpus_per_node, args):
                           args)
 
         # evaluate on validation set
-        validation_log = validate(val_loader, model, criterion, args)
+#        validation_log = validate(val_loader, model, criterion, args)
+        validation_log = train_log[1:]
         model_progress.append([*train_log, *validation_log])
 
         # remember best acc@1 and save checkpoint
@@ -342,7 +385,17 @@ def to_img(x):
     return x
 
 
+def inv_normalise_tensor(tensor, mean, std):
+    tensor = tensor.clone()
+    # normalising the channels
+    for i in range(tensor.shape[1]):
+        tensor[:, i, ] = (tensor[:, i, ] * std[i]) + mean[i]
+    tensor = tensor.clamp(0, 1)
+    return tensor
+
+
 def normalise_tensor(tensor, mean, std):
+    tensor = tensor.clone()
     # normalising the channels
     for i in range(tensor.shape[1]):
         tensor[:, i, ] = (tensor[:, i, ] - mean[i]) / std[i]
@@ -351,7 +404,7 @@ def normalise_tensor(tensor, mean, std):
 
 def prepare_dichromat(imgs_rgb, which_inds):
     imgs_lab = transformations.rgb2lab(imgs_rgb)
-    imgs_lab[which_inds,] = 0
+    imgs_lab[:, which_inds, ] = 0
     output = transformations.lab2rgb(imgs_lab)
     return output
 
@@ -361,18 +414,13 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
     data_time = AverageMeter()
     losses_overall = AverageMeter()
     losses_gen = AverageMeter()
-    losses_dichromat = AverageMeter()
-    losses_trichromat = AverageMeter()
-    top1_dichromat = AverageMeter()
-    top1_trichromat = AverageMeter()
-
-    dichromat_network = args.dichromat_network
-    trichromat_network = args.trichromat_network
+    losses_neg = AverageMeter()
+    losses_pos = AverageMeter()
+    top1_neg = AverageMeter()
+    top1_pos = AverageMeter()
 
     # switch to train mode
     model.train()
-    dichromat_network.eval()
-    trichromat_network.eval()
 
     end = time.time()
     for i, (input_imgs, target) in enumerate(train_loader):
@@ -383,36 +431,33 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
             input_imgs = input_imgs.cuda(args.gpu, non_blocking=True)
         target = target.cuda(args.gpu, non_blocking=True)
 
+        model.zero_grad()
         # compute output
-        output_imgs = model(input_imgs)
-        loss = criterion(output_imgs, input_imgs)
-        losses_gen.update(loss.item(), input_imgs.size(0))
+        output_imgs, pos_out, neg_out, x_pos, x_neg = model(input_imgs)
+        loss_gen = criterion(output_imgs, input_imgs)
+        losses_gen.update(loss_gen.item(), input_imgs.size(0))
 
-        # predicting by other networks
-        output_imgs = to_img(output_imgs.data)
-        imgs_dichromat = prepare_dichromat(output_imgs, args.n2_transform)
         if i % 200 == 0:
             save_sample_imgs(args.out_dir, input_imgs, output_imgs,
-                             imgs_dichromat)
-        imgs_dichromat = normalise_tensor(imgs_dichromat, args.mean, args.std)
-        imgs_trichromat = normalise_tensor(output_imgs, args.mean, args.std)
-        with torch.no_grad():
-            output = dichromat_network(imgs_dichromat)
-            loss_dichromat = args.criterion_dichromat(output, target)
-            acc1, acc5 = accuracy(output, target, topk=(1, 5))
-            losses_dichromat.update(loss_dichromat.item(), input_imgs.size(0))
-            top1_dichromat.update(acc1[0], input_imgs.size(0))
+                             x_neg, args.mean, args.std)
 
-            output = trichromat_network(imgs_trichromat)
-            loss_trichromat = args.criterion_trichromat(output, target)
-            acc1, acc5 = accuracy(output, target, topk=(1, 5))
-            losses_trichromat.update(loss_trichromat.item(), input_imgs.size(0))
-            top1_trichromat.update(acc1[0], input_imgs.size(0))
+        output = neg_out
+        loss_neg = args.criterion_neg(output, target)
+        acc1_neg, acc5 = accuracy(output, target, topk=(1, 5))
+        losses_neg.update(loss_neg.item(), input_imgs.size(0))
+        top1_neg.update(acc1_neg[0], input_imgs.size(0))
 
-        loss = loss + (loss_trichromat / loss_dichromat)
-        losses_overall.update(loss.item(), input_imgs.size(0))
-        optimizer.zero_grad()
+        output = pos_out
+        loss_pos = args.criterion_pos(output, target)
+        acc1_pos, acc5 = accuracy(output, target, topk=(1, 5))
+        losses_pos.update(loss_pos.item(), input_imgs.size(0))
+        top1_pos.update(acc1_pos[0], input_imgs.size(0))
+
+#        loss = 0.2 * loss_gen + 0.3 * (loss_pos - loss_neg) + 0.5 * (loss_pos - 1.1)
+#        loss = 0.5 * loss_gen + 0.5 * ((loss_pos - loss_neg) / (loss_pos - loss_neg))
+        loss = 0.2 * loss_gen + 0.3 * (loss_pos / loss_neg) + 0.5 * (loss_pos - 1.1)
         loss.backward()
+        losses_overall.update(loss.item(), input_imgs.size(0))
         optimizer.step()
 
         # measure elapsed time
@@ -423,28 +468,29 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
             print('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'L {losses_overall.val:.3f} ({losses_overall.avg:.3f})\t'
-                  'L {losses_gen.val:.3f} ({losses_gen.avg:.3f})\t'
-                  'L@D {losses_dichromat.val:.3f} ({losses_dichromat.avg:.3f})\t'
-                  'L@T {losses_trichromat.val:.3f} ({losses_trichromat.avg:.3f})\t'
-                  'A@D {top1_dichromat.val:.3f} ({top1_dichromat.avg:.3f})\t'
-                  'A@T {top1_trichromat.val:.3f} ({top1_trichromat.avg:.3f})'.format(
+                  'L@I {losses_gen.val:.3f} ({losses_gen.avg:.3f})\t'
+                  'L@N {losses_neg.val:.3f} ({losses_neg.avg:.3f})\t'
+                  'L@P {losses_pos.val:.3f} ({losses_pos.avg:.3f})\t'
+                  'A@N {top1_neg.val:.3f} ({top1_neg.avg:.3f})\t'
+                  'A@P {top1_pos.val:.3f} ({top1_pos.avg:.3f})'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 losses_overall=losses_overall,
                 losses_gen=losses_gen,
-                losses_dichromat=losses_dichromat,
-                losses_trichromat=losses_trichromat,
-                top1_dichromat=top1_dichromat, top1_trichromat=top1_trichromat))
+                losses_neg=losses_neg,
+                losses_pos=losses_pos,
+                top1_neg=top1_neg, top1_pos=top1_pos))
     return [epoch, batch_time.avg, losses_overall.avg,
-            top1_dichromat.avg, top1_trichromat.avg]
+            top1_neg.avg, top1_pos.avg]
 
 
 from skimage import io
 
 
-def save_sample_imgs(out_dir, input_imgs, output_imgs, imgs_dichromat):
-    input_imgs = to_img(input_imgs.data).cpu()
-    output_imgs = output_imgs.cpu()
-    imgs_dichromat = imgs_dichromat.cpu()
+def save_sample_imgs(out_dir, input_imgs, output_imgs, imgs_dichromat,
+                     mean, std):
+    input_imgs = inv_normalise_tensor(input_imgs.data, mean, std).cpu()
+    output_imgs = inv_normalise_tensor(output_imgs.data, mean, std).cpu()
+    imgs_dichromat = inv_normalise_tensor(imgs_dichromat.data, mean, std).cpu()
     for i in range(min(input_imgs.shape[0], 10)):
         tmp_img = input_imgs.numpy()[i,].squeeze()
         tmp_img = np.transpose(tmp_img, (1, 2, 0))
@@ -461,18 +507,13 @@ def validate(val_loader, model, criterion, args):
     batch_time = AverageMeter()
     losses_overall = AverageMeter()
     losses_gen = AverageMeter()
-    losses_dichromat = AverageMeter()
-    losses_trichromat = AverageMeter()
-    top1_dichromat = AverageMeter()
-    top1_trichromat = AverageMeter()
-
-    dichromat_network = args.dichromat_network
-    trichromat_network = args.trichromat_network
+    losses_neg = AverageMeter()
+    losses_pos = AverageMeter()
+    top1_neg = AverageMeter()
+    top1_pos = AverageMeter()
 
     # switch to evaluate mode
     model.eval()
-    dichromat_network.eval()
-    trichromat_network.eval()
 
     with torch.no_grad():
         end = time.time()
@@ -482,32 +523,24 @@ def validate(val_loader, model, criterion, args):
             target = target.cuda(args.gpu, non_blocking=True)
 
             # compute output
-            output_imgs = model(input_imgs)
-            loss = criterion(output_imgs, input_imgs)
-            losses_gen.update(loss.item(), input_imgs.size(0))
+            output_imgs, pos_out, neg_out, _, _ = model(input_imgs)
+            loss_gen = criterion(output_imgs, input_imgs)
+            losses_gen.update(loss_gen.item(), input_imgs.size(0))
 
-            # predicting by other networks
-            output_imgs = to_img(output_imgs.data)
-            imgs_dichromat = prepare_dichromat(output_imgs, args.n2_transform)
-            imgs_dichromat = normalise_tensor(imgs_dichromat, args.mean,
-                                              args.std)
-            imgs_trichromat = normalise_tensor(output_imgs, args.mean, args.std)
+            output = neg_out
+            loss_neg = args.criterion_neg(output, target)
+            acc1_neg, acc5 = accuracy(output, target, topk=(1, 5))
+            losses_neg.update(loss_neg.item(), input_imgs.size(0))
+            top1_neg.update(acc1_neg[0], input_imgs.size(0))
 
-            output = dichromat_network(imgs_dichromat)
-            loss_dichromat = args.criterion_dichromat(output, target)
-            acc1, acc5 = accuracy(output, target, topk=(1, 5))
-            losses_dichromat.update(loss_dichromat.item(),
-                                    input_imgs.size(0))
-            top1_dichromat.update(acc1[0], input_imgs.size(0))
+            output = pos_out
+            loss_pos = args.criterion_pos(output, target)
+            acc1_pos, acc5 = accuracy(output, target, topk=(1, 5))
+            losses_pos.update(loss_pos.item(), input_imgs.size(0))
+            top1_pos.update(acc1_pos[0], input_imgs.size(0))
 
-            output = trichromat_network(imgs_trichromat)
-            loss_trichromat = args.criterion_trichromat(output, target)
-            acc1, acc5 = accuracy(output, target, topk=(1, 5))
-            losses_trichromat.update(loss_trichromat.item(),
-                                     input_imgs.size(0))
-            top1_trichromat.update(acc1[0], input_imgs.size(0))
-
-            loss = loss + (loss_trichromat / loss_dichromat)
+#            loss = 0.2 * loss_gen + 0.3 * (loss_pos - loss_neg) + 0.5 * (loss_pos - 1.1)
+            loss = 0.5 * loss_gen + 0.5 * ((loss_pos - loss_neg) / (loss_pos - loss_neg))
             losses_overall.update(loss.item(), input_imgs.size(0))
 
             # measure elapsed time
@@ -518,24 +551,24 @@ def validate(val_loader, model, criterion, args):
                 print('Test: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'L {losses_overall.val:.3f} ({losses_overall.avg:.3f})\t'
-                      'L {losses_gen.val:.3f} ({losses_gen.avg:.3f})\t'
-                      'L@D {losses_dichromat.val:.3f} ({losses_dichromat.avg:.3f})\t'
-                      'L@T {losses_trichromat.val:.3f} ({losses_trichromat.avg:.3f})\t'
-                      'A@D {top1_dichromat.val:.3f} ({top1_dichromat.avg:.3f})\t'
-                      'A@T {top1_trichromat.val:.3f} ({top1_trichromat.avg:.3f})'.format(
+                      'L@I {losses_gen.val:.3f} ({losses_gen.avg:.3f})\t'
+                      'L@N {losses_neg.val:.3f} ({losses_neg.avg:.3f})\t'
+                      'L@P {losses_pos.val:.3f} ({losses_pos.avg:.3f})\t'
+                      'A@N {top1_neg.val:.3f} ({top1_neg.avg:.3f})\t'
+                      'A@P {top1_pos.val:.3f} ({top1_pos.avg:.3f})'.format(
                     i, len(val_loader), batch_time=batch_time,
                     losses_overall=losses_overall,
                     losses_gen=losses_gen,
-                    losses_dichromat=losses_dichromat,
-                    losses_trichromat=losses_trichromat,
-                    top1_dichromat=top1_dichromat,
-                    top1_trichromat=top1_trichromat))
-        print(' * A@D {top1_dichromat.avg:.3f} A@T {top1_trichromat.avg:.3f}'
-              .format(top1_dichromat=top1_dichromat,
-                      top1_trichromat=top1_trichromat))
+                    losses_neg=losses_neg,
+                    losses_pos=losses_pos,
+                    top1_neg=top1_neg,
+                    top1_pos=top1_pos))
+        print(' * A@N {top1_neg.avg:.3f} A@P {top1_pos.avg:.3f}'
+              .format(top1_neg=top1_neg,
+                      top1_pos=top1_pos))
 
-    return [batch_time.avg, losses_overall.avg, top1_dichromat.avg,
-            top1_trichromat.avg]
+    return [batch_time.avg, losses_overall.avg, top1_neg.avg,
+            top1_pos.avg]
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar',
