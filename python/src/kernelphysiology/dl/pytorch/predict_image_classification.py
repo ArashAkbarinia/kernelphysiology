@@ -19,6 +19,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
+from kernelphysiology.dl.pytorch.utils.misc import accuracy
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.dl.utils import argument_handler
@@ -194,25 +195,6 @@ def validate(val_loader, model, criterion):
     else:
         prediction_output = [np.concatenate(out) for out in all_outs]
     return top1.avg, top5.avg, prediction_output
-
-
-def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions"""
-    with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        corrects = []
-        for k in topk:
-            corrects.append(correct[:k])
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res, corrects
 
 
 if __name__ == '__main__':
