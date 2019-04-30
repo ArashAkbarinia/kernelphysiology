@@ -58,7 +58,7 @@ def xyz2lab(img_xyz):
 
     # scale by CIE XYZ tristimulus values of the reference white point
     for i in range(3):
-        arr[i,] /= xyz_ref_white[i]
+        arr[:, i:i + 1, ] /= xyz_ref_white[i]
 
     # Nonlinear distortion and linear transformation
     mask = arr > 0.008856
