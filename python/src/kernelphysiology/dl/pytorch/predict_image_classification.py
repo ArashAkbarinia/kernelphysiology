@@ -18,6 +18,7 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
+from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.dl.utils import argument_handler
@@ -93,7 +94,8 @@ def main(argv):
                                current_manipulation_preprocessing]
 
             print('Processing network %s and %s %f' %
-                  (current_network, image_manipulation_type, manipulation_value))
+                  (
+                  current_network, image_manipulation_type, manipulation_value))
 
             # which dataset
             # reading it after the model, because each might have their own
@@ -192,25 +194,6 @@ def validate(val_loader, model, criterion):
     else:
         prediction_output = [np.concatenate(out) for out in all_outs]
     return top1.avg, top5.avg, prediction_output
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
 
 
 def accuracy(output, target, topk=(1,)):

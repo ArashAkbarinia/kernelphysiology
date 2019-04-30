@@ -19,6 +19,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils import transformations
 from kernelphysiology.dl.pytorch.models.utils import which_network
 
@@ -578,25 +579,6 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar',
     if is_best:
         model_best_path = os.path.join(out_folder, 'model_best.pth.tar')
         shutil.copyfile(filename, model_best_path)
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
 
 
 def adjust_learning_rate(optimizer, epoch, args):
