@@ -7,43 +7,6 @@ import warnings
 import numpy as np
 from PIL import Image as pil_image
 
-from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_red_green, reduce_yellow_blue
-
-class RedGreenDeficiency(object):
-
-    def __init__(self, amount):
-        self.amount = amount
-
-    def __call__(self, x):
-        x = np.asarray(x, dtype='uint8')
-        x = reduce_red_green(x, self.amount) * 255
-        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
-        return x
-
-
-class YellowBlueDeficiency(object):
-
-    def __init__(self, amount):
-        self.amount = amount
-
-    def __call__(self, x):
-        x = np.asarray(x, dtype='uint8')
-        x = reduce_yellow_blue(x, self.amount) * 255
-        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
-        return x
-
-
-class ChromaticityDeficiency(object):
-
-    def __init__(self, amount):
-        self.amount = amount
-
-    def __call__(self, x):
-        x = np.asarray(x, dtype='uint8')
-        x = reduce_chromaticity(x, self.amount) * 255
-        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
-        return x
-
 
 import torch
 import torch.nn as nn
@@ -60,6 +23,11 @@ import torchvision.models as models
 
 import glob
 
+from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
+from kernelphysiology.dl.pytorch.utils.misc import accuracy
+from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
+from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
+from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.utils import prepare_training
 
 
@@ -131,6 +99,16 @@ parser.add_argument(
     type=float,
     default=[0.9, 1.0],
     help='Range for scale (default: 0.9-1.0)')
+parser.add_argument(
+    '--colour_transformation',
+    type=str,
+    default='trichromat',
+    choices=[
+        'trichromat',
+        'monochromat',
+        'dichromat_rg',
+        'dichromat_yb'],
+    help='The preprocessing colour transformation (default: trichromat)')
 
 best_acc1 = 0
 
@@ -241,15 +219,15 @@ def main_worker(gpu, ngpus_per_node, args):
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
-#            args.start_epoch = checkpoint['epoch']
-#            best_acc1 = checkpoint['best_acc1']
-#            if args.gpu is not None:
+            args.start_epoch = checkpoint['epoch']
+            best_acc1 = checkpoint['best_acc1']
+            if args.gpu is not None:
                 # best_acc1 may be from a checkpoint from a different GPU
-#                best_acc1 = best_acc1.to(args.gpu)
+                best_acc1 = best_acc1.to(args.gpu)
             model.load_state_dict(checkpoint['state_dict'])
-#            optimizer.load_state_dict(checkpoint['optimizer'])
-#            print("=> loaded checkpoint '{}' (epoch {})"
-#                  .format(args.resume, checkpoint['epoch']))
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            print("=> loaded checkpoint '{}' (epoch {})"
+                  .format(args.resume, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
@@ -273,21 +251,30 @@ def main_worker(gpu, ngpus_per_node, args):
     cudnn.benchmark = True
 
     transformations = []
-    if args.experiment_name == 'deficiency_yellow_blue':
-        print('deficiency_yellow_blue')
-        transformations.append(YellowBlueDeficiency(0))
-    elif args.experiment_name == 'deficiency_red_green':
-        print('deficiency_red_green')
-        transformations.append(RedGreenDeficiency(0))
-    elif args.experiment_name == 'deficiency_chromaticity':
-        print('deficiency_chromaticity')
-        transformations.append(ChromaticityDeficiency(0))
+    transformations.extend(preprocessing.colour_transformation(
+        args.colour_transformation))
+
+    target_size = 224
+    val_loader = torch.utils.data.DataLoader(
+        datasets.ImageFolder(valdir, transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(target_size),
+            *transformations,
+            transforms.ToTensor(),
+            normalize,
+        ])),
+        batch_size=args.batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True)
+
+    if args.evaluate:
+        validate(val_loader, model, criterion, args)
+        return
 
     train_dataset = datasets.ImageFolder(
         traindir,
         transforms.Compose([
             transforms.Resize(256),
-            transforms.RandomResizedCrop(224, scale=args.scale),
+            transforms.RandomResizedCrop(target_size, scale=args.scale),
             *transformations,
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
@@ -302,21 +289,6 @@ def main_worker(gpu, ngpus_per_node, args):
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
-
-    target_size = 224
-    val_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(target_size),
-            transforms.ToTensor(),
-            normalize,
-        ])),
-        batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
-
-    if args.evaluate:
-        validate(val_loader, model, criterion, args)
-        return
 
     model_progress = []
     if not os.path.isdir(args.out_dir):
@@ -444,56 +416,6 @@ def validate(val_loader, model, criterion, args):
               .format(top1=top1, top5=top5))
 
     return [batch_time.avg, losses.avg, top1.avg, top5.avg]
-
-
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', out_folder=''):
-    filename = os.path.join(out_folder, filename)
-    torch.save(state, filename)
-    if is_best:
-        model_best_path = os.path.join(out_folder, 'model_best.pth.tar')
-        shutil.copyfile(filename, model_best_path)
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-
-def adjust_learning_rate(optimizer, epoch, args):
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = args.lr * (0.1 ** (epoch // (args.epochs / 3)))
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-
-def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
-    with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        for k in topk:
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
 
 
 if __name__ == '__main__':
