@@ -19,11 +19,14 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from kernelphysiology.utils.imutils import get_colour_inds
+from kernelphysiology.dl.pytorch.utils import transformations
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
-from kernelphysiology.dl.pytorch.utils import transformations
+from kernelphysiology.dl.pytorch.utils.preprocessing import normalise_tensor
+from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 from kernelphysiology.dl.pytorch.models.utils import which_network
 
 model_names = sorted(name for name in models.__dict__
@@ -181,17 +184,6 @@ class SimpleModel(nn.Module):
             x_neg = normalise_tensor(x_neg, self.mean, self.std)
         neg_out = self.neg_net(x_neg)
         return x, pos_out, neg_out, x_pos, x_neg
-
-
-def get_colour_inds(colour_tranformation):
-    colour_inds = None
-    if colour_tranformation == 'dichromat_rg':
-        colour_inds = [1]
-    elif colour_tranformation == 'dichromat_yb':
-        colour_inds = [2]
-    elif colour_tranformation == 'monochromat':
-        colour_inds = [1, 2]
-    return colour_inds
 
 
 def main_worker(gpu, ngpus_per_node, args):
@@ -381,29 +373,6 @@ def main_worker(gpu, ngpus_per_node, args):
                 'target_size': target_size,
             }, is_best, out_folder=args.out_dir)
         np.savetxt(file_path, np.array(model_progress), delimiter=',')
-
-
-def to_img(x):
-    x = 0.5 * (x + 1)
-    x = x.clamp(0, 1)
-    return x
-
-
-def inv_normalise_tensor(tensor, mean, std):
-    tensor = tensor.clone()
-    # normalising the channels
-    for i in range(tensor.shape[1]):
-        tensor[:, i, ] = (tensor[:, i, ] * std[i]) + mean[i]
-    tensor = tensor.clamp(0, 1)
-    return tensor
-
-
-def normalise_tensor(tensor, mean, std):
-    tensor = tensor.clone()
-    # normalising the channels
-    for i in range(tensor.shape[1]):
-        tensor[:, i, ] = (tensor[:, i, ] - mean[i]) / std[i]
-    return tensor
 
 
 def prepare_dichromat(imgs_rgb, which_inds):

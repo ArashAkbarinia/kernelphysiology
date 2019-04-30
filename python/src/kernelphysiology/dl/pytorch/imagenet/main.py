@@ -83,6 +83,16 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'multi node data parallel training')
 parser.add_argument('--experiment_name', type=str, default='Ex',
                     help='The name of the experiment (default: Ex)')
+parser.add_argument(
+    '--colour_transformation',
+    type=str,
+    default='trichromat',
+    choices=[
+        'trichromat',
+        'monochromat',
+        'dichromat_rg',
+        'dichromat_yb'],
+    help='The preprocessing colour transformation (default: trichromat)')
 
 best_acc1 = 0
 
@@ -218,16 +228,8 @@ def main_worker(gpu, ngpus_per_node, args):
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    transformations = []
-    if args.experiment_name == 'deficiency_yellow_blue':
-        print('deficiency_yellow_blue')
-        transformations = preprocessing.colour_transformation('dichromat_yb')
-    elif args.experiment_name == 'deficiency_red_green':
-        print('deficiency_red_green')
-        transformations = preprocessing.colour_transformation('dichromat_rg')
-    elif args.experiment_name == 'deficiency_chromaticity':
-        print('deficiency_chromaticity')
-        transformations = preprocessing.colour_transformation('monochromat')
+    transformations = preprocessing.colour_transformation(
+        args.colour_transformation)
 
     train_dataset = datasets.ImageFolder(
         traindir,

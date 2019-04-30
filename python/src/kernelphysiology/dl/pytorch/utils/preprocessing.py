@@ -7,6 +7,8 @@ import warnings
 from PIL import Image as PilImage
 from PIL import ImageCms
 
+from kernelphysiology.utils.imutils import get_colour_inds
+
 rgb_p = ImageCms.createProfile('sRGB')
 lab_p = ImageCms.createProfile('LAB')
 
@@ -31,13 +33,7 @@ class ColourTransformation(object):
 def colour_transformation(transformation_type):
     ct = []
     if transformation_type != 'trichromat':
-        colour_inds = None
-        if transformation_type == 'dichromat_rg':
-            colour_inds = [1]
-        elif transformation_type == 'dichromat_yb':
-            colour_inds = [2]
-        elif transformation_type == 'monochromat':
-            colour_inds = [1, 2]
+        colour_inds = get_colour_inds(transformation_type)
         # check if it's a valid colour index
         if colour_inds is not None:
             ct.append(ColourTransformation(colour_inds))
@@ -66,3 +62,20 @@ class ImageTransformation(object):
         img *= 255
         img = PilImage.fromarray(img.astype('uint8'), 'RGB')
         return img
+
+
+def inv_normalise_tensor(tensor, mean, std):
+    tensor = tensor.clone()
+    # inverting the normalisation for each channel
+    for i in range(tensor.shape[1]):
+        tensor[:, i, ] = (tensor[:, i, ] * std[i]) + mean[i]
+    tensor = tensor.clamp(0, 1)
+    return tensor
+
+
+def normalise_tensor(tensor, mean, std):
+    tensor = tensor.clone()
+    # normalising the channels
+    for i in range(tensor.shape[1]):
+        tensor[:, i, ] = (tensor[:, i, ] - mean[i]) / std[i]
+    return tensor

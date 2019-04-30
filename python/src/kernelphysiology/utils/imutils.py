@@ -2,7 +2,6 @@
 Utility functoins for image processing.
 '''
 
-
 from skimage.util import random_noise
 from skimage.color import rgb2gray, rgb2lab, lab2rgb
 from skimage.draw import rectangle
@@ -41,7 +40,8 @@ def create_mask_image(image, mask_radius=None):
         mask_radius = int(math.floor(mask_radius * smaller_side))
         if mask_radius > 3:
             centre = (int(math.floor(rows / 2)), int(math.floor(cols / 2)))
-            image_mask = cv2.circle(image_mask, centre, mask_radius, (1, 1, 1), -1)
+            image_mask = cv2.circle(image_mask, centre, mask_radius, (1, 1, 1),
+                                    -1)
             if radius_sign == 1:
                 image_mask = 1 - image_mask
     return image_mask
@@ -76,38 +76,43 @@ def invert_lightness(image, mask_radius=None, colour_space='lab'):
 
 
 # FIXME: move to colour spacs
-def cart2sph(x,y,z):
-    XsqPlusYsq = x**2 + y**2
-    r = np.sqrt(XsqPlusYsq + z**2)               # r
-    elev = np.arctan(z/np.sqrt(XsqPlusYsq))     # theta
-    az = np.arctan2(y,x)                           # phi
+def cart2sph(x, y, z):
+    XsqPlusYsq = x ** 2 + y ** 2
+    r = np.sqrt(XsqPlusYsq + z ** 2)  # r
+    elev = np.arctan(z / np.sqrt(XsqPlusYsq))  # theta
+    az = np.arctan2(y, x)  # phi
     return np.array([r, az, elev])
 
 
 ## Rotation matrix along the x axis (luminance axis)
-def rotation(X, teta): # rotation of a an image coded in color one opponent space around achromatic axis 
-    RM = np.array([[1,0,0],[0,np.cos(teta),-np.sin(teta)],[0,np.sin(teta),np.cos(teta)]])
+def rotation(X,
+             teta):  # rotation of a an image coded in color one opponent space around achromatic axis
+    RM = np.array([[1, 0, 0], [0, np.cos(teta), -np.sin(teta)],
+                   [0, np.sin(teta), np.cos(teta)]])
     return np.dot(X, RM.T)
 
 
 def rgb2pca(x):
-    M = np.array([[ 0.66666,  1,  -0.5],[ 0.66666,  0,  1],[ 0.66666,  -1,  -0.5]])
+    M = np.array([[0.66666, 1, -0.5], [0.66666, 0, 1], [0.66666, -1, -0.5]])
     return np.dot(x, M)
 
 
 def pca2rgb(x):
-    M = np.array([[ 0.66666,  1,  -0.5],[ 0.66666,  0,  1],[ 0.66666,  -1,  -0.5]])
+    M = np.array([[0.66666, 1, -0.5], [0.66666, 0, 1], [0.66666, -1, -0.5]])
     return np.dot(x, np.linalg.inv(M))
 
 
 # TODO: move to a colour space file
 def rgb2dkl(x):
-    M = np.array([[0.4252, 1.4304, 0.1444],[0.8273,-0.5912,-0.2360],[0.2268,0.7051,-0.9319]])
+    M = np.array([[0.4252, 1.4304, 0.1444], [0.8273, -0.5912, -0.2360],
+                  [0.2268, 0.7051, -0.9319]])
     return np.dot(x, M.T)
 
 
 def dkl2rgb(x):
-    M = np.array([[0.49995, 0.50001495, 0.49999914], [ 0.99998394, -0.29898596,  0.01714922], [-0.17577361, 0.15319546, -0.99994349]])
+    M = np.array([[0.49995, 0.50001495, 0.49999914],
+                  [0.99998394, -0.29898596, 0.01714922],
+                  [-0.17577361, 0.15319546, -0.99994349]])
     return np.dot(x, M)
 
 
@@ -149,8 +154,8 @@ def rotate_hue(image, hue_angle, mask_radius=None, norm_fact=0.4):
 
 
 def keep_red_channel(image, amount, mask_radius=None):
-    assert(amount >= 0.0), 'amount too low.'
-    assert(amount <= 1.0), 'amount too high.'
+    assert (amount >= 0.0), 'amount too low.'
+    assert (amount <= 1.0), 'amount too high.'
 
     output = im2double(image)
     output[:, :, 1] *= amount
@@ -159,8 +164,8 @@ def keep_red_channel(image, amount, mask_radius=None):
 
 
 def keep_green_channel(image, amount, mask_radius=None):
-    assert(amount >= 0.0), 'amount too low.'
-    assert(amount <= 1.0), 'amount too high.'
+    assert (amount >= 0.0), 'amount too low.'
+    assert (amount <= 1.0), 'amount too high.'
 
     output = im2double(image)
     output[:, :, 0] *= amount
@@ -169,8 +174,8 @@ def keep_green_channel(image, amount, mask_radius=None):
 
 
 def keep_blue_channel(image, amount, mask_radius=None):
-    assert(amount >= 0.0), 'amount too low.'
-    assert(amount <= 1.0), 'amount too high.'
+    assert (amount >= 0.0), 'amount too low.'
+    assert (amount <= 1.0), 'amount too high.'
 
     output = im2double(image)
     output[:, :, 0] *= amount
@@ -179,8 +184,8 @@ def keep_blue_channel(image, amount, mask_radius=None):
 
 
 def reduce_red_green(image, amount, mask_radius=None, colour_space='lab'):
-    assert(amount >= 0.0), 'amount too low.'
-    assert(amount <= 1.0), 'amount too high.'
+    assert (amount >= 0.0), 'amount too low.'
+    assert (amount <= 1.0), 'amount too high.'
 
     image = im2double(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
@@ -190,8 +195,8 @@ def reduce_red_green(image, amount, mask_radius=None, colour_space='lab'):
 
 
 def reduce_yellow_blue(image, amount, mask_radius=None, colour_space='lab'):
-    assert(amount >= 0.0), 'amount too low.'
-    assert(amount <= 1.0), 'amount too high.'
+    assert (amount >= 0.0), 'amount too low.'
+    assert (amount <= 1.0), 'amount too high.'
 
     image = im2double(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
@@ -201,8 +206,8 @@ def reduce_yellow_blue(image, amount, mask_radius=None, colour_space='lab'):
 
 
 def reduce_chromaticity(image, amount, mask_radius=None, colour_space='lab'):
-    assert(amount >= 0.0), 'amount too low.'
-    assert(amount <= 1.0), 'amount too high.'
+    assert (amount >= 0.0), 'amount too low.'
+    assert (amount <= 1.0), 'amount too high.'
 
     image = im2double(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
@@ -212,13 +217,14 @@ def reduce_chromaticity(image, amount, mask_radius=None, colour_space='lab'):
 
 
 def reduce_lightness(image, amount, mask_radius=None, colour_space='lab'):
-    assert(amount >= 0.0), 'amount too low.'
-    assert(amount <= 1.0), 'amount too high.'
+    assert (amount >= 0.0), 'amount too low.'
+    assert (amount <= 1.0), 'amount too high.'
 
     image = im2double(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
     max_lightness = get_max_lightness(colour_space=colour_space)
-    image_opponent[:, :, 0] = ((1 - amount) / 2 + np.multiply(image_opponent[:, :, 0] / max_lightness, amount)) * max_lightness
+    image_opponent[:, :, 0] = ((1 - amount) / 2 + np.multiply(
+        image_opponent[:, :, 0] / max_lightness, amount)) * max_lightness
     output = opponency2rgb(image_opponent, colour_space=colour_space)
     return output
 
@@ -231,8 +237,8 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
     - contrast_level: a scalar in [0, 1]; with 1 -> full contrast
     """
 
-    assert(contrast_level >= 0.0), 'contrast_level too low.'
-    assert(contrast_level <= 1.0), 'contrast_level too high.'
+    assert (contrast_level >= 0.0), 'contrast_level too low.'
+    assert (contrast_level <= 1.0), 'contrast_level too high.'
 
     image = im2double(image)
     image_org = image.copy()
@@ -241,9 +247,11 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
     min_contrast = contrast_level - pixel_variatoin
     max_contrast = contrast_level + pixel_variatoin
 
-    contrast_level_mat = np.random.uniform(low=min_contrast, high=max_contrast, size=image.shape)
+    contrast_level_mat = np.random.uniform(low=min_contrast, high=max_contrast,
+                                           size=image.shape)
 
-    image_contrast = (1 - contrast_level_mat) / 2.0 + np.multiply(image, contrast_level_mat)
+    image_contrast = (1 - contrast_level_mat) / 2.0 + np.multiply(image,
+                                                                  contrast_level_mat)
     output = image_org * image_mask + image_contrast * (1 - image_mask)
     return output
 
@@ -256,7 +264,8 @@ def grayscale_contrast(image, contrast_level, mask_radius=None):
     - contrast_level: a scalar in [0, 1]; with 1 -> full contrast
     """
 
-    return adjust_contrast(rgb2gray(image), contrast_level, mask_radius=mask_radius)
+    return adjust_contrast(rgb2gray(image), contrast_level,
+                           mask_radius=mask_radius)
 
 
 def adjust_gamma(image, gamma, mask_radius=None):
@@ -269,7 +278,8 @@ def adjust_gamma(image, gamma, mask_radius=None):
     return output
 
 
-def gaussian_blur(image, sigmax, sigmay=None, meanx=0, meany=0, theta=0, mask_radius=None):
+def gaussian_blur(image, sigmax, sigmay=None, meanx=0, meany=0, theta=0,
+                  mask_radius=None):
     '''
     Blurring the image with a Gaussian kernel.
     '''
@@ -292,19 +302,23 @@ def adjust_illuminant(image, illuminant, pixel_variatoin=0, mask_radius=None):
     for i in range(image.shape[2]):
         min_illuminant = illuminant[i] - pixel_variatoin
         max_illuminant = illuminant[i] + pixel_variatoin
-        illuminant_i = np.random.uniform(low=min_illuminant, high=max_illuminant, size=image[:,:,i].shape)
+        illuminant_i = np.random.uniform(low=min_illuminant,
+                                         high=max_illuminant,
+                                         size=image[:, :, i].shape)
         image[:, :, i] = image[:, :, i] * illuminant_i
 
     output = image_org * image_mask + image * (1 - image_mask)
     return output
 
 
-def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True, mask_radius=None):
+def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True,
+              mask_radius=None):
     image = im2double(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(image, mode='s&p', seed=seed, clip=clip, salt_vs_pepper=salt_vs_pepper, amount=amount)
+    image_noise = random_noise(image, mode='s&p', seed=seed, clip=clip,
+                               salt_vs_pepper=salt_vs_pepper, amount=amount)
     output = image_org * image_mask + image_noise * (1 - image_mask)
     return output
 
@@ -314,7 +328,8 @@ def speckle_noise(image, var, seed=None, clip=True, mask_radius=None):
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(image, mode='speckle', seed=seed, clip=clip, var=var)
+    image_noise = random_noise(image, mode='speckle', seed=seed, clip=clip,
+                               var=var)
     output = image_org * image_mask + image_noise * (1 - image_mask)
     return output
 
@@ -324,7 +339,8 @@ def gaussian_noise(image, var, seed=None, clip=True, mask_radius=None):
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(image, mode='gaussian', seed=seed, clip=clip, var=var)
+    image_noise = random_noise(image, mode='gaussian', seed=seed, clip=clip,
+                               var=var)
     output = image_org * image_mask + image_noise * (1 - image_mask)
     return output
 
@@ -345,7 +361,8 @@ def simulate_distance(image, distance_factor, mask_radius=None):
     (rows, cols, _) = image.shape
     distance_rows = int(np.round(rows / distance_factor))
     distance_cols = int(np.round(cols / distance_factor))
-    output = cv2.resize(image, (distance_rows, distance_cols), interpolation=cv2.INTER_NEAREST)
+    output = cv2.resize(image, (distance_rows, distance_cols),
+                        interpolation=cv2.INTER_NEAREST)
     output = cv2.resize(output, (rows, cols), interpolation=cv2.INTER_NEAREST)
     return output
 
@@ -356,8 +373,8 @@ def random_occlusion(image, object_instances=1, object_ratio=0.05):
     (rows, cols, chns) = out.shape
     extent = (round(rows * object_ratio), round(cols * object_ratio))
     for i in range(object_instances):
-        rand_row = np.random.randint(0+extent[0], rows-extent[0])
-        rand_col = np.random.randint(0+extent[1], cols-extent[1])
+        rand_row = np.random.randint(0 + extent[0], rows - extent[0])
+        rand_col = np.random.randint(0 + extent[1], cols - extent[1])
         start = (rand_row, rand_col)
         # FIXME: if backend shape is different
         (rr, cc) = rectangle(start, extent=extent, shape=out.shape[0:2])
@@ -377,7 +394,7 @@ def local_std(image, window_size=(5, 5)):
     kernel = np.ones(window_size, np.float32) / npixels
     # TODO: consider different border treatment
     avg_image = cv2.filter2D(image, -1, kernel)
-    std_image =  cv2.filter2D((image - avg_image) ** 2, -1, kernel) ** 0.5
+    std_image = cv2.filter2D((image - avg_image) ** 2, -1, kernel) ** 0.5
     return (std_image, avg_image)
 
 
@@ -386,5 +403,16 @@ def normalise_channel(x, low=0, high=1, minv=None, maxv=None):
         minv = x.min()
     if maxv is None:
         maxv = x.max()
-    output = low + (x - minv) * (high  - low) / (maxv - minv)
+    output = low + (x - minv) * (high - low) / (maxv - minv)
     return output
+
+
+def get_colour_inds(chromaticity_type):
+    colour_inds = None
+    if chromaticity_type == 'dichromat_rg':
+        colour_inds = [1]
+    elif chromaticity_type == 'dichromat_yb':
+        colour_inds = [2]
+    elif chromaticity_type == 'monochromat':
+        colour_inds = [1, 2]
+    return colour_inds
