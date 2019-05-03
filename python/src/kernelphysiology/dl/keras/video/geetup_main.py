@@ -6,7 +6,7 @@ from keras.layers.normalization import BatchNormalization
 import numpy as np
 import pylab as plt
 import keras
-from keras.callbacks import LearningRateScheduler
+from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from functools import partial
 
 from keras.layers.wrappers import TimeDistributed
@@ -14,6 +14,7 @@ from keras.layers.convolutional import MaxPooling3D, MaxPooling2D
 import glob
 from skimage import io, color, transform
 import sys
+import os
 
 from kernelphysiology.filterfactory import gaussian
 
@@ -76,30 +77,59 @@ def normalise_tensor(tensor, mean, std):
 
 
 def read_data(dataset_dir):
-    n_frames = 15
-    n_samples = len(glob.glob(dataset_dir + '/*/'))
+    input_frames = []
+    fixation_points = []
+    for i, subject_dir in enumerate(glob.glob(dataset_dir + '/*/segments/1/')):
+        if i == 20:
+            break
+        current_input_frames, current_fixation_points = \
+            read_one_directory(subject_dir)
+        input_frames.extend(current_input_frames)
+        fixation_points.extend(current_fixation_points)
+    input_frames = np.array(input_frames)
+    fixation_points = np.array(fixation_points)
+    return input_frames, fixation_points
+
+
+def read_one_directory(dataset_dir):
+    frames_gap = 10
+    # n_frames = 10
+    # n_samples = len(glob.glob(dataset_dir + '/*/'))
     rows = 40
     cols = 40
     chns = 1
-    input_frames = np.zeros((n_samples * n_frames, n_frames, rows, cols, chns),
-                            dtype=np.float)
-    fixation_points = np.zeros((n_samples * n_frames, n_frames, rows, cols, 1),
-                               dtype=np.float)
+    input_frames = []
+    fixation_points = []
     g_fix = gaussian.gaussian_kernel2(1.5, 1.5)
-    for s, video_dir in enumerate(glob.glob(dataset_dir + '/*/')):
+    for video_dir in glob.glob(dataset_dir + '/*/'):
+        video_ind = video_dir.split('/')[-2].split('_')[-1]
         fixation_array = np.loadtxt(
-            dataset_dir + 'SUBSAMP_EYETR_' + str(s + 1) + '.txt')
-        for i in range(n_frames * 2 - 1):
-            current_img = io.imread(video_dir + '/frames' + str(i + 1) + '.jpg')
+            dataset_dir + 'SUBSAMP_EYETR_' + video_ind + '.txt')
+        current_num_frames = len(glob.glob((video_dir + '/*.jpg')))
+        selected_frame_infs = [*range(0, current_num_frames, frames_gap)]
+        acceptable_frame_seqs = len(selected_frame_infs) - frames_gap
+        if acceptable_frame_seqs < 0:
+            continue
+        current_input_frames = np.zeros(
+            (acceptable_frame_seqs, frames_gap, rows, cols, chns),
+            dtype=np.float)
+        current_fixation_points = np.zeros(
+            (acceptable_frame_seqs, frames_gap, rows, cols, 1),
+            dtype=np.float)
+        for i in range(acceptable_frame_seqs + frames_gap - 1):
+            img_ind = selected_frame_infs[i]
+            current_img = io.imread(
+                video_dir + '/frames' + str(img_ind + 1) + '.jpg')
             current_img = color.rgb2gray(current_img).astype('float') / 255
             org_rows = current_img.shape[0]
             org_cols = current_img.shape[1]
             current_img = transform.resize(current_img, (rows, cols))
 
             current_fixation = np.zeros((rows, cols, 1))
-            if fixation_array[i, 1] > 0 and fixation_array[i, 0] > 0:
-                fpr = int(fixation_array[i, 1] * (rows / org_rows))
-                fpc = int(fixation_array[i, 0] * (cols / org_cols))
+            if fixation_array[img_ind, 1] > 0 and fixation_array[
+                img_ind, 0] > 0:
+                fpr = int(fixation_array[img_ind, 1] * (rows / org_rows))
+                fpc = int(fixation_array[img_ind, 0] * (cols / org_cols))
 
                 sr = fpr - (g_fix.shape[0] // 2)
                 sc = fpc - (g_fix.shape[1] // 2)
@@ -124,16 +154,20 @@ def read_data(dataset_dir):
                 current_fixation[sr:er, sc:ec, 0] = g_fix[gsr:ger,
                                                     gsc:gec] / g_fix[gsr:ger,
                                                                gsc:gec].max()
+            for j in range(i, i+frames_gap):
+                current_ind = i
+                if (i - j) < frames_gap and current_ind < acceptable_frame_seqs:
+                    current_input_frames[current_ind, i - j, :, :,
+                    0] = current_img
+                    current_fixation_points[
+                        current_ind, i - j,] = current_fixation
+        input_frames.extend(current_input_frames)
+        fixation_points.extend(current_fixation_points)
 
-            for j in range(n_frames):
-                current_ind = s * n_frames + j
-                if i - j < n_frames:
-                    input_frames[current_ind, i - j, :, :, 0] = current_img
-                    fixation_points[current_ind, i - j,] = current_fixation
-
+    input_frames = np.array(input_frames)
+    fixation_points = np.array(fixation_points)
     input_frames = normalise_tensor(input_frames, [0.5], [0.25])
     return input_frames, fixation_points
-
 
 def class_net_fcn_2p_lstm(input_shape):
     c = 16
@@ -187,7 +221,8 @@ def class_net_fcn_2p_lstm(input_shape):
 
     model = keras.models.Model(input_img, output)
     #     loss = categorical_crossentropy_3d_w(10, class_dim=-1)
-    model.compile(loss='binary_crossentropy', optimizer='adadelta')
+    opt = keras.optimizers.SGD(lr=0.1, decay=0, momentum=0.9, nesterov=False)
+    model.compile(loss='binary_crossentropy', optimizer=opt)
     return model
 
 
@@ -195,9 +230,13 @@ lr_schedule_lambda = partial(lr_schedule_resnet, lr=0.1)
 input_frames, fixation_points = read_data(sys.argv[1])
 
 seq = class_net_fcn_2p_lstm(input_frames.shape[1:])
-seq.fit(input_frames[:1000],
-        fixation_points[:1000,],
-#         np.reshape(fixation_points[:1000,], (-1, n_frames, rows * cols, 1)),
-        batch_size=10, epochs=5,
+last_checkpoint_logger = ModelCheckpoint('model_weights_last.h5', verbose=1,
+                                         save_weights_only=True, save_best_only=False)
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+seq.fit(input_frames,
+        fixation_points,
+        #         np.reshape(fixation_points[:1000,], (-1, n_frames, rows * cols, 1)),
+        batch_size=64, epochs=90,
         validation_split=0.25,
-        callbacks=[LearningRateScheduler(lr_schedule_lambda)])
+        callbacks=[LearningRateScheduler(lr_schedule_lambda, last_checkpoint_logger)])
