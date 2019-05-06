@@ -203,6 +203,7 @@ def main_worker(gpu, ngpus_per_node, args):
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
 
+    model_progress = []
     # optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
@@ -217,6 +218,10 @@ def main_worker(gpu, ngpus_per_node, args):
             optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
+            # FIXME: not the most robust solution
+            model_progress_path = args.resume.replace(
+                'checkpoint.pth.tar', 'model_progress.csv')
+            model_progress = np.load(model_progress_path)
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
@@ -267,7 +272,6 @@ def main_worker(gpu, ngpus_per_node, args):
         validate(val_loader, model, criterion, args)
         return
 
-    model_progress = []
     if not os.path.isdir(args.out_dir):
         os.mkdir(args.out_dir)
     file_path = os.path.join(args.out_dir, 'model_progress.csv')
