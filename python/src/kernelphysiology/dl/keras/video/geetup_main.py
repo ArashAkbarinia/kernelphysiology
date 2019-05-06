@@ -15,6 +15,8 @@ import glob
 from skimage import io, color, transform
 import sys
 import os
+import pickle
+import logging
 
 from kernelphysiology.filterfactory import gaussian
 
@@ -82,8 +84,20 @@ def read_data(dataset_dir):
     for i, subject_dir in enumerate(glob.glob(dataset_dir + '/*/segments/1/')):
         if i == 20:
             break
-        current_input_frames, current_fixation_points = \
-            read_one_directory(subject_dir)
+        if os.path.isfile(subject_dir + 'frames.pickle'):
+            pickle_in = open(subject_dir + 'frames.pickle', 'rb')
+            current_input_frames = pickle.load(pickle_in)
+            pickle_in = open(subject_dir + 'fixations.pickle', 'rb')
+            current_fixation_points = pickle.load(pickle_in)
+        else:
+            current_input_frames, current_fixation_points = \
+                read_one_directory(subject_dir)
+            pickle_out = open(subject_dir + 'frames.pickle', 'wb')
+            pickle.dump(current_input_frames, pickle_out)
+            pickle_out.close()
+            pickle_out = open(subject_dir + 'fixations.pickle', 'wb')
+            pickle.dump(current_fixation_points, pickle_out)
+            pickle_out.close()
         input_frames.extend(current_input_frames)
         fixation_points.extend(current_fixation_points)
     input_frames = np.array(input_frames)
@@ -109,6 +123,9 @@ def read_one_directory(dataset_dir):
         selected_frame_infs = [*range(0, current_num_frames, frames_gap)]
         acceptable_frame_seqs = len(selected_frame_infs) - frames_gap
         if acceptable_frame_seqs < 0:
+            continue
+        if fixation_array.shape[0] != current_num_frames:
+            logging.info('%s' % video_dir)
             continue
         current_input_frames = np.zeros(
             (acceptable_frame_seqs, frames_gap, rows, cols, chns),
@@ -154,7 +171,7 @@ def read_one_directory(dataset_dir):
                 current_fixation[sr:er, sc:ec, 0] = g_fix[gsr:ger,
                                                     gsc:gec] / g_fix[gsr:ger,
                                                                gsc:gec].max()
-            for j in range(i, i+frames_gap):
+            for j in range(i, i + frames_gap):
                 current_ind = i
                 if (i - j) < frames_gap and current_ind < acceptable_frame_seqs:
                     current_input_frames[current_ind, i - j, :, :,
@@ -168,6 +185,7 @@ def read_one_directory(dataset_dir):
     fixation_points = np.array(fixation_points)
     input_frames = normalise_tensor(input_frames, [0.5], [0.25])
     return input_frames, fixation_points
+
 
 def class_net_fcn_2p_lstm(input_shape):
     c = 16
@@ -222,16 +240,20 @@ def class_net_fcn_2p_lstm(input_shape):
     model = keras.models.Model(input_img, output)
     #     loss = categorical_crossentropy_3d_w(10, class_dim=-1)
     opt = keras.optimizers.SGD(lr=0.1, decay=0, momentum=0.9, nesterov=False)
-    model.compile(loss='binary_crossentropy', optimizer=opt)
+    model.compile(loss='mean_squared_error', optimizer=opt)
     return model
 
+
+logging.basicConfig(filename='experiment_info.log', filemode='w',
+                    format='%(levelname)s: %(message)s', level=logging.INFO)
 
 lr_schedule_lambda = partial(lr_schedule_resnet, lr=0.1)
 input_frames, fixation_points = read_data(sys.argv[1])
 
 seq = class_net_fcn_2p_lstm(input_frames.shape[1:])
 last_checkpoint_logger = ModelCheckpoint('model_weights_last.h5', verbose=1,
-                                         save_weights_only=True, save_best_only=False)
+                                         save_weights_only=True,
+                                         save_best_only=False)
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 seq.fit(input_frames,
@@ -239,4 +261,5 @@ seq.fit(input_frames,
         #         np.reshape(fixation_points[:1000,], (-1, n_frames, rows * cols, 1)),
         batch_size=64, epochs=90,
         validation_split=0.25,
-        callbacks=[LearningRateScheduler(lr_schedule_lambda, last_checkpoint_logger)])
+        callbacks=[
+            LearningRateScheduler(lr_schedule_lambda), last_checkpoint_logger])
