@@ -94,7 +94,7 @@ parser.add_argument(
         'dichromat_rg',
         'dichromat_yb'],
     help='The preprocessing colour transformation (default: trichromat)')
-parser.add_argument('--custom', dest='custom_model', action='store_true',
+parser.add_argument('--custom', dest='custom_arch', action='store_true',
                     help='loading custom models instead')
 
 best_acc1 = 0
@@ -161,7 +161,7 @@ def main_worker(gpu, ngpus_per_node, args):
                                 init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
     # create model
-    if args.custom:
+    if args.custom_arch:
         print('Custom model!')
         model = custom_models.__dict__[args.arch]()
     elif args.pretrained:
