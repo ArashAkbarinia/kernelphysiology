@@ -2,13 +2,17 @@
 Helpers functions for models in Pytorch.
 """
 
-
 import os
 
 import torch
 import torch.nn as nn
 import torchvision.models as pmodels
 import torchvision.transforms as transforms
+
+try:
+    from torch.hub import load_state_dict_from_url
+except ImportError:
+    from torch.utils.model_zoo import load_url as load_state_dict_from_url
 
 
 def which_network_classification(network_name, dataset):

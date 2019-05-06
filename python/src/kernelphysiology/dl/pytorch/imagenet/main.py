@@ -19,6 +19,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from kernelphysiology.dl.pytorch import models as custom_models
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
@@ -93,6 +94,8 @@ parser.add_argument(
         'dichromat_rg',
         'dichromat_yb'],
     help='The preprocessing colour transformation (default: trichromat)')
+parser.add_argument('--custom', dest='custom_model', action='store_true',
+                    help='loading custom models instead')
 
 best_acc1 = 0
 
@@ -158,7 +161,10 @@ def main_worker(gpu, ngpus_per_node, args):
                                 init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
     # create model
-    if args.pretrained:
+    if args.custom:
+        print('Custom model!')
+        model = custom_models.__dict__[args.arch]()
+    elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
         model = models.__dict__[args.arch](pretrained=True)
     else:
