@@ -78,20 +78,20 @@ def normalise_tensor(tensor, mean, std):
     return tensor
 
 
-def read_data(dataset_dir):
+def read_data(dataset_dir, target_size=(40, 40, 3), overwrite=False):
     input_frames = []
     fixation_points = []
     for i, subject_dir in enumerate(glob.glob(dataset_dir + '/*/segments/1/')):
         if i == 20:
             break
-        if os.path.isfile(subject_dir + 'frames.pickle'):
+        if overwrite is False & os.path.isfile(subject_dir + 'frames.pickle'):
             pickle_in = open(subject_dir + 'frames.pickle', 'rb')
             current_input_frames = pickle.load(pickle_in)
             pickle_in = open(subject_dir + 'fixations.pickle', 'rb')
             current_fixation_points = pickle.load(pickle_in)
         else:
             current_input_frames, current_fixation_points = \
-                read_one_directory(subject_dir)
+                read_one_directory(subject_dir, target_size=target_size)
             pickle_out = open(subject_dir + 'frames.pickle', 'wb')
             pickle.dump(current_input_frames, pickle_out)
             pickle_out.close()
@@ -105,13 +105,11 @@ def read_data(dataset_dir):
     return input_frames, fixation_points
 
 
-def read_one_directory(dataset_dir):
+def read_one_directory(dataset_dir, target_size=(40, 40, 3)):
     frames_gap = 10
-    # n_frames = 10
-    # n_samples = len(glob.glob(dataset_dir + '/*/'))
-    rows = 40
-    cols = 40
-    chns = 1
+    rows = target_size[0]
+    cols = target_size[1]
+    chns = target_size[2]
     input_frames = []
     fixation_points = []
     g_fix = gaussian.gaussian_kernel2(1.5, 1.5)
@@ -137,9 +135,13 @@ def read_one_directory(dataset_dir):
             img_ind = selected_frame_infs[i]
             current_img = io.imread(
                 video_dir + '/frames' + str(img_ind + 1) + '.jpg')
-            current_img = color.rgb2gray(current_img).astype('float') / 255
+            print(video_dir + '/frames' + str(img_ind + 1) + '.jpg')
+            if chns == 1:
+                current_img = color.rgb2gray(current_img)
+            current_img = current_img.astype('float') / 255
             org_rows = current_img.shape[0]
             org_cols = current_img.shape[1]
+            # TODO: use better interpolation
             current_img = transform.resize(current_img, (rows, cols))
 
             current_fixation = np.zeros((rows, cols, 1))
@@ -168,22 +170,21 @@ def read_one_directory(dataset_dir):
                 er = np.minimum(er, current_img.shape[0])
                 ec = np.minimum(ec, current_img.shape[1])
 
-                current_fixation[sr:er, sc:ec, 0] = g_fix[gsr:ger,
-                                                    gsc:gec] / g_fix[gsr:ger,
-                                                               gsc:gec].max()
-            for j in range(i, i + frames_gap):
-                current_ind = i
+                current_fixation[sr:er, sc:ec, 0] = \
+                    g_fix[gsr:ger, gsc:gec] / g_fix[gsr:ger, gsc:gec].max()
+            for j in range(i+1):
+                current_ind = j
                 if (i - j) < frames_gap and current_ind < acceptable_frame_seqs:
-                    current_input_frames[current_ind, i - j, :, :,
-                    0] = current_img
-                    current_fixation_points[
-                        current_ind, i - j,] = current_fixation
+                    current_input_frames[current_ind, i - j, :, :, :] = \
+                        current_img.copy()
+                    current_fixation_points[current_ind, i - j,] = \
+                        current_fixation.copy()
         input_frames.extend(current_input_frames)
         fixation_points.extend(current_fixation_points)
 
     input_frames = np.array(input_frames)
     fixation_points = np.array(fixation_points)
-    input_frames = normalise_tensor(input_frames, [0.5], [0.25])
+    input_frames = normalise_tensor(input_frames, [0.5] * chns, [0.25] * chns)
     return input_frames, fixation_points
 
 
