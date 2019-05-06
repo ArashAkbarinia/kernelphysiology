@@ -228,6 +228,7 @@ def main_worker(gpu, ngpus_per_node, args):
             model_progress_path = args.resume.replace(
                 'checkpoint.pth.tar', 'model_progress.csv')
             model_progress = np.loadtxt(model_progress_path, delimiter=',')
+            model_progress = model_progress.tolist()
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
