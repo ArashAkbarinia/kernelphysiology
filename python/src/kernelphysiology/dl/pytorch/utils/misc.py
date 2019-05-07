@@ -42,7 +42,7 @@ def adjust_learning_rate(optimizer, epoch, args):
         param_group['lr'] = lr
 
 
-def accuracy(output, target, topk=(1,)):
+def accuracy_preds(output, target, topk=(1,)):
     """Computes the accuracy over the k top predictions"""
     with torch.no_grad():
         maxk = max(topk)
@@ -53,7 +53,14 @@ def accuracy(output, target, topk=(1,)):
         correct = pred.eq(target.view(1, -1).expand_as(pred))
 
         res = []
+        corrects = []
         for k in topk:
+            corrects.append(correct[:k])
             correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
-        return res
+        return res, corrects
+
+
+def accuracy(output, target, topk=(1,)):
+    res, _ = accuracy_preds(output, target, topk=topk)
+    return res

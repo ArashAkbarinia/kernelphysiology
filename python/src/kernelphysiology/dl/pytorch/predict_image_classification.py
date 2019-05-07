@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
-from kernelphysiology.dl.pytorch.utils.misc import accuracy
+from kernelphysiology.dl.pytorch.utils.misc import accuracy_preds
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.dl.utils import argument_handler
@@ -143,7 +143,7 @@ def validate(val_loader, model, criterion):
             loss = criterion(output, target)
 
             # measure accuracy and record loss
-            ((acc1, acc5), (corrects1, corrects5)) = accuracy(
+            ((acc1, acc5), (corrects1, corrects5)) = accuracy_preds(
                 output, target, topk=(1, 5))
             corrects1 = corrects1.cpu().numpy()
             corrects5 = corrects5.cpu().numpy().sum(axis=0)
