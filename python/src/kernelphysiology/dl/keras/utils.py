@@ -1,6 +1,6 @@
-'''
-Common utility funcions for Keras.
-'''
+"""
+Common utility functions for Keras.
+"""
 
 import numpy as np
 
@@ -59,7 +59,10 @@ def keras_resize_img(img, target_size, resample=pil_image.NEAREST):
 
 class ResizeGenerator(keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, x_data, y_data, num_classes, batch_size=32, target_size=(224, 224), preprocessing_function=None, shuffle=True):
+
+    def __init__(self, x_data, y_data, num_classes, batch_size=32,
+                 target_size=(224, 224), preprocessing_function=None,
+                 shuffle=True):
         'Initialisation'
         self.x_data = x_data
         self.y_data = y_data
@@ -83,12 +86,13 @@ class ResizeGenerator(keras.utils.Sequence):
     def __getitem__(self, index):
         'Generate one batch of data'
         # generate indices of the batch
-        current_batch = self.indices[index * self.batch_size:(index + 1) * self.batch_size]
+        current_batch = self.indices[
+                        index * self.batch_size:(index + 1) * self.batch_size]
 
         # generate data
         (x_batch, y_batch) = self.__data_generation(current_batch)
 
-        return (x_batch, y_batch)
+        return x_batch, y_batch
 
     def on_epoch_end(self):
         'Updates indices after each epoch'
@@ -105,7 +109,8 @@ class ResizeGenerator(keras.utils.Sequence):
         # generate data
         for i, im_id in enumerate(current_batch):
             # store sample
-            x_batch[i,] = keras_resize_img(self.x_data[im_id,], self.target_size)
+            x_batch[i,] = keras_resize_img(self.x_data[im_id,],
+                                           self.target_size)
 
             # store class
             y_batch[i,] = self.y_data[im_id,]
@@ -113,43 +118,59 @@ class ResizeGenerator(keras.utils.Sequence):
         if self.preprocessing_function:
             x_batch = self.preprocessing_function(x_batch)
 
-        return (x_batch, y_batch)
+        return x_batch, y_batch
 
 
-def get_validatoin_generator(args, x_test, y_test, validation_preprocessing_function):
-    (args.validation_generator, args.validation_samples) = resize_generator(x_test, y_test, batch_size=args.batch_size,
-                                            target_size=args.target_size, preprocessing_function=validation_preprocessing_function)
-
-    return args
-
-
-def get_generators(args, x_train, y_train, x_test, y_test, train_preprocessing_function, validation_preprocessing_function):
-    (args.train_generator, args.train_samples) = resize_generator(x_train, y_train, batch_size=args.batch_size,
-                                            target_size=args.target_size, preprocessing_function=train_preprocessing_function,
-                                            horizontal_flip=args.horizontal_flip, vertical_flip=args.vertical_flip,
-                                            zoom_range=args.zoom_range,
-                                            width_shift_range=args.width_shift_range, height_shift_range=args.height_shift_range)
-
-
-    (args.validation_generator, args.validation_samples) = resize_generator(x_test, y_test, batch_size=args.batch_size,
-                                            target_size=args.target_size, preprocessing_function=validation_preprocessing_function)
+def get_validatoin_generator(args, x_test, y_test,
+                             validation_preprocessing_function):
+    (args.validation_generator, args.validation_samples) = resize_generator(
+        x_test, y_test, batch_size=args.batch_size,
+        target_size=args.target_size,
+        preprocessing_function=validation_preprocessing_function)
 
     return args
 
 
-def resize_generator(x_data, y_data, target_size, batch_size=32, preprocessing_function=None,
+def get_generators(args, x_train, y_train, x_test, y_test,
+                   train_preprocessing_function,
+                   validation_preprocessing_function):
+    (args.train_generator, args.train_samples) = \
+        resize_generator(x_train,
+                         y_train,
+                         batch_size=args.batch_size,
+                         target_size=args.target_size,
+                         preprocessing_function=train_preprocessing_function,
+                         horizontal_flip=args.horizontal_flip,
+                         vertical_flip=args.vertical_flip,
+                         zoom_range=args.zoom_range,
+                         width_shift_range=args.width_shift_range,
+                         height_shift_range=args.height_shift_range)
+
+    (args.validation_generator, args.validation_samples) = resize_generator(
+        x_test, y_test, batch_size=args.batch_size,
+        target_size=args.target_size,
+        preprocessing_function=validation_preprocessing_function)
+
+    return args
+
+
+def resize_generator(x_data, y_data, target_size, batch_size=32,
+                     preprocessing_function=None,
                      horizontal_flip=False, vertical_flip=False,
-                     zoom_range=0.0, width_shift_range=0.0, height_shift_range=0.0):
+                     zoom_range=0.0, width_shift_range=0.0,
+                     height_shift_range=0.0):
     datagen = ImageDataGenerator(preprocessing_function=preprocessing_function,
-                                 horizontal_flip=horizontal_flip, vertical_flip=vertical_flip,
+                                 horizontal_flip=horizontal_flip,
+                                 vertical_flip=vertical_flip,
                                  zoom_range=zoom_range,
-                                 width_shift_range=width_shift_range, height_shift_range=height_shift_range
+                                 width_shift_range=width_shift_range,
+                                 height_shift_range=height_shift_range
                                  )
     data_batches = datagen.flow(x_data, y_data, batch_size=batch_size)
     if target_size[0] != x_data.shape[2]:
         return (resize_iterator(data_batches, target_size), x_data.shape[0])
     else:
-        return (data_batches, x_data.shape[0])
+        return data_batches, x_data.shape[0]
 
 
 def resize_iterator(batches, target_size):
@@ -166,7 +187,8 @@ def resize_iterator(batches, target_size):
         for i in range(batch_x.shape[0]):
             # TODO: consider different interpolation for resize
             data_x[i,] = cv2.resize(batch_x[i,], target_size)
-        yield (data_x, data_y)
+        yield data_x, data_y
+
 
 # TODO: add a random crop function
 
@@ -180,5 +202,6 @@ def contrast_generator(batches, contrast_range):
         batch_x, data_y = next(batches)
         data_x = np.zeros(batch_x.shape)
         for i in range(batch_x.shape[0]):
-            data_x[i,] = adjust_contrast(batch_x[i,], np.random.uniform(*contrast_range)) * 255
-        yield (data_x, data_y)
+            data_x[i,] = adjust_contrast(batch_x[i,], np.random.uniform(
+                *contrast_range)) * 255
+        yield data_x, data_y
