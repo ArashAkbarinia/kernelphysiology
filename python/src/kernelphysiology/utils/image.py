@@ -2056,7 +2056,7 @@ class DirectoryIterator(Iterator):
             if self.crop_type == 'centre':
                 x = crop_image_centre(x, self.target_size)
             elif self.crop_type == 'random':
-                 x = crop_image_random(x, self.target_size)
+                x = crop_image_random(x, self.target_size)
             # Pillow images should be closed after `load_img`,
             # but not PIL images.
             if hasattr(img, 'close'):

@@ -19,6 +19,10 @@ import pickle
 import logging
 
 from kernelphysiology.filterfactory import gaussian
+from kernelphysiology.dl.keras.video import geetup_db
+
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
 
 
 def lr_schedule_resnet(epoch, lr):
@@ -60,7 +64,7 @@ def show_results(sample, gt, predict):
         im2 = plt.imshow(top_layer, cmap=plt.cm.viridis, alpha=.5)
 
 
-def inv_normalise_tensor(tensor, mean, std):
+def inv_normalise_tensor(tensor, mean=mean, std=std):
     tensor = tensor.copy()
     # inverting the normalisation for each channel
     for i in range(tensor.shape[4]):
@@ -69,9 +73,8 @@ def inv_normalise_tensor(tensor, mean, std):
     return tensor
 
 
-def normalise_tensor(tensor, mean, std):
+def normalise_tensor(tensor, mean=mean, std=std):
     tensor = tensor.copy()
-    print(tensor.shape)
     # normalising the channels
     for i in range(tensor.shape[4]):
         tensor[:, :, :, :, i] = (tensor[:, :, :, :, i] - mean[i]) / std[i]
@@ -135,7 +138,6 @@ def read_one_directory(dataset_dir, target_size=(40, 40, 3)):
             img_ind = selected_frame_infs[i]
             current_img = io.imread(
                 video_dir + '/frames' + str(img_ind + 1) + '.jpg')
-            print(video_dir + '/frames' + str(img_ind + 1) + '.jpg')
             if chns == 1:
                 current_img = color.rgb2gray(current_img)
             current_img = current_img.astype('float') / 255
@@ -172,7 +174,7 @@ def read_one_directory(dataset_dir, target_size=(40, 40, 3)):
 
                 current_fixation[sr:er, sc:ec, 0] = \
                     g_fix[gsr:ger, gsc:gec] / g_fix[gsr:ger, gsc:gec].max()
-            for j in range(i+1):
+            for j in range(i + 1):
                 current_ind = j
                 if (i - j) < frames_gap and current_ind < acceptable_frame_seqs:
                     current_input_frames[current_ind, i - j, :, :, :] = \
@@ -184,15 +186,19 @@ def read_one_directory(dataset_dir, target_size=(40, 40, 3)):
 
     input_frames = np.array(input_frames)
     fixation_points = np.array(fixation_points)
-    input_frames = normalise_tensor(input_frames, [0.5] * chns, [0.25] * chns)
+    input_frames = normalise_tensor(input_frames, mean, std)
     return input_frames, fixation_points
 
 
-def class_net_fcn_2p_lstm(input_shape):
-    c = 16
+def class_net_fcn_2p_lstm(input_shape, image_net=None):
+    c = 32
     input_img = Input(input_shape, name='input')
+    if image_net is not None:
+        x = TimeDistributed(image_net)(input_img)
+    else:
+        x = input_img
     x = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
-                   return_sequences=True)(input_img)
+                   return_sequences=True)(x)
     x = BatchNormalization()(x)
     x = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
                    return_sequences=True)(x)
@@ -212,6 +218,7 @@ def class_net_fcn_2p_lstm(input_shape):
                     return_sequences=True)(x)
 
     x = TimeDistributed(MaxPooling2D((2, 2), (2, 2)))(c2)
+
     x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
                    return_sequences=True)(x)
     x = BatchNormalization()(x)
@@ -234,14 +241,17 @@ def class_net_fcn_2p_lstm(input_shape):
     #     x = TimeDistributed(Conv2D(3, kernel_size=(3, 3), padding='same'))(x)
     #     x = TimeDistributed(UpSampling2D((2, 2)))(x)
 
+    x = TimeDistributed(UpSampling2D((4, 4)))(x)
+
     output = TimeDistributed(
         Conv2D(1, kernel_size=(3, 3), padding='same', activation='sigmoid'),
         name='output')(x)
 
+    output = Reshape((-1, input_shape[1] * input_shape[2], 1))(output)
     model = keras.models.Model(input_img, output)
     #     loss = categorical_crossentropy_3d_w(10, class_dim=-1)
     opt = keras.optimizers.SGD(lr=0.1, decay=0, momentum=0.9, nesterov=False)
-    model.compile(loss='mean_squared_error', optimizer=opt)
+    model.compile(loss='mean_absolute_error', optimizer=opt)
     return model
 
 
@@ -249,18 +259,37 @@ logging.basicConfig(filename='experiment_info.log', filemode='w',
                     format='%(levelname)s: %(message)s', level=logging.INFO)
 
 lr_schedule_lambda = partial(lr_schedule_resnet, lr=0.1)
-input_frames, fixation_points = read_data(sys.argv[1])
+# input_frames, fixation_points = read_data(sys.argv[1])
 
-seq = class_net_fcn_2p_lstm(input_frames.shape[1:])
+frames_gap = 10
+sequence_length = 9
+batch_size = 32
+target_size = (224, 224)
+video_list = geetup_db.dataset_frame_list(sys.argv[1], frames_gap=10,
+                                          sequence_length=9)
+preprocess = normalise_tensor
+geetup_generator = geetup_db.GeetupGenerator(video_list,
+                                             batch_size=batch_size,
+                                             target_size=target_size,
+                                             preprocessing_function=preprocess)
+
+resnet = keras.applications.ResNet50(weights='imagenet')
+resnet = keras.models.Model(inputs=resnet.input,
+                            outputs=resnet.get_layer('activation_10').output)
+for i, layer in enumerate(resnet.layers):
+    layer.trainable = False
+
+model = class_net_fcn_2p_lstm((sequence_length, *target_size, 3), resnet)
 last_checkpoint_logger = ModelCheckpoint('model_weights_last.h5', verbose=1,
                                          save_weights_only=True,
                                          save_best_only=False)
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
-seq.fit(input_frames,
-        fixation_points,
-        #         np.reshape(fixation_points[:1000,], (-1, n_frames, rows * cols, 1)),
-        batch_size=64, epochs=90,
-        validation_split=0.25,
-        callbacks=[
-            LearningRateScheduler(lr_schedule_lambda), last_checkpoint_logger])
+os.environ['CUDA_VISIBLE_DEVICES'] = sys.argv[2]
+
+model.fit_generator(generator=geetup_generator,
+                    use_multiprocessing=False,
+                    workers=8, epochs=90,
+                    validation_split=0.25,
+                    callbacks=[
+                        LearningRateScheduler(lr_schedule_lambda),
+                        last_checkpoint_logger])
