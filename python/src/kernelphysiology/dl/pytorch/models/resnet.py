@@ -31,22 +31,76 @@ def conv1x1(in_planes, out_planes, stride=1):
                      bias=False)
 
 
-class ContrastBlock(nn.Module):
+def conv_avg(in_planes, kernel_size, stride=1, groups=None, dilation=1):
+    if groups is None:
+        groups = in_planes
+    num_pixels = kernel_size * kernel_size * (in_planes / groups)
+    initial_value = 1.0 / num_pixels
+    conv_kernel = nn.Conv2d(in_planes, in_planes, kernel_size=3, stride=stride,
+                            padding=dilation, groups=groups, bias=False,
+                            dilation=dilation)
+    nn.init.constant_(conv_kernel.weight, initial_value)
+    conv_kernel.requires_grad = False
+    return conv_kernel
 
-    def __init__(self, planes, kernel_size=3, stride=2, padding=1):
-        super(ContrastBlock, self).__init__()
+
+class LocalContrastBlock(nn.Module):
+
+    def __init__(self, planes, kernel_size=3, stride=1, groups=None):
+        super(LocalContrastBlock, self).__init__()
+        self.conv_average = conv_avg(planes, kernel_size=kernel_size,
+                                     stride=stride, groups=groups)
+
+    def forward(self, x):
+        x_avg = self.conv_average(x)
+        x = x - x_avg
+        x = x ** 2
+        x = self.conv_average(x)
+        # x = x ** 0.5
+
+        return x
+
+
+class ContrastPoolingBlock(nn.Module):
+
+    def __init__(self, planes, pooling_type, kernel_size=3, stride=2,
+                 padding=1):
+        super(ContrastPoolingBlock, self).__init__()
+        self.pooling_type = pooling_type
         self.max_pool = nn.MaxPool2d(kernel_size=kernel_size, stride=stride,
                                      padding=padding)
         self.avg_pool = nn.AvgPool2d(kernel_size=kernel_size, stride=stride,
                                      padding=padding)
-        self.reduction = conv1x1(planes * 2, planes)
+        self.reduction2 = conv1x1(planes * 2, planes)
+        self.reduction3 = conv1x1(planes * 3, planes)
+        self.reduction4 = conv1x1(planes * 4, planes)
+        self.local_contrast = self._local_contrast(planes,
+                                                   kernel_size=3, stride=1)
         self.bn = nn.BatchNorm2d(planes)
 
+    def _local_contrast(self, planes, kernel_size=3, stride=1):
+        layers = []
+        layers.append(
+            LocalContrastBlock(planes, kernel_size=kernel_size, stride=stride))
+        return nn.Sequential(*layers)
+
     def forward(self, x):
-        x_max = self.max_pool(x)
-        x_avg = self.avg_pool(x)
-        x = torch.cat((x_max, x_avg), dim=1)
-        x = self.reduction(x)
+        if self.pooling_type == 'max':
+            x = self.max_pool(x)
+        elif self.pooling_type == 'avg':
+            x = self.avg_pool(x)
+        else:
+            x_max = self.max_pool(x)
+            x_avg = self.avg_pool(x)
+            if self.pooling_type == 'mix':
+                x = torch.cat((x_max, x_avg), dim=1)
+                x = self.reduction2(x)
+            elif self.pooling_type == 'contrast':
+                x = self.local_contrast(x)
+                x = self.avg_pool(x)
+                x = torch.cat((x_max, x_avg, x), dim=1)
+                x = self.reduction3(x)
+                # x = x_max * x + x_avg * (1 - x_avg)
         out = self.bn(x)
 
         return out
@@ -143,7 +197,8 @@ class ResNet(nn.Module):
                  zero_init_residual=False,
                  groups=1, width_per_group=64,
                  replace_stride_with_dilation=None,
-                 norm_layer=None):
+                 norm_layer=None, pooling_type='contrast'):
+        # TODO: pass pooling_type as an argument
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -166,8 +221,7 @@ class ResNet(nn.Module):
                                bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
-        # TODO: fix me here to contrast pooling
-        self.contrast_pool = self._contrast_pooling(self.inplanes,
+        self.contrast_pool = self._contrast_pooling(self.inplanes, pooling_type,
                                                     kernel_size=3, stride=2,
                                                     padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
@@ -224,11 +278,12 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def _contrast_pooling(self, planes, kernel_size=3, stride=2, padding=1):
+    def _contrast_pooling(self, planes, pooling_type, kernel_size=3, stride=2,
+                          padding=1):
         layers = []
         layers.append(
-            ContrastBlock(planes, kernel_size=kernel_size, stride=stride,
-                          padding=padding))
+            ContrastPoolingBlock(planes, pooling_type, kernel_size=kernel_size,
+                                 stride=stride, padding=padding))
         return nn.Sequential(*layers)
 
     def forward(self, x):
