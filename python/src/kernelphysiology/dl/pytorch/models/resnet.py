@@ -72,12 +72,15 @@ class ContrastPoolingBlock(nn.Module):
         self.avg_pool = nn.AvgPool2d(kernel_size=kernel_size, stride=stride,
                                      padding=padding)
         # TODO: merge all reductions to one type
-        self.reduction = conv1x1(planes * 2, planes)
-        self.reduction3 = conv1x1(planes * 3, planes)
-        self.reduction4 = conv1x1(planes * 4, planes)
-        self.local_contrast = self._local_contrast(planes,
-                                                   kernel_size=3, stride=1)
-        self.bn = nn.BatchNorm2d(planes)
+        if self.pooling_type in {'mix', 'contrast'}:
+            self.reduction = conv1x1(planes * 2, planes)
+        if self.pooling_type in {'contrast_avg', 'contrast_max'}:
+            self.reduction3 = conv1x1(planes * 3, planes)
+        if 'contrast' in self.pooling_type:
+            self.local_contrast = self._local_contrast(planes,
+                                                       kernel_size=3, stride=1)
+        if self.pooling_type not in {'max', 'avg'}:
+            self.bn = nn.BatchNorm2d(planes)
 
     def _local_contrast(self, planes, kernel_size=3, stride=1):
         layers = []
@@ -87,9 +90,9 @@ class ContrastPoolingBlock(nn.Module):
 
     def forward(self, x):
         if self.pooling_type == 'max':
-            x = self.max_pool(x)
+            out = self.max_pool(x)
         elif self.pooling_type == 'avg':
-            x = self.avg_pool(x)
+            out = self.avg_pool(x)
         else:
             x_max = self.max_pool(x)
             x_avg = self.avg_pool(x)
@@ -110,7 +113,7 @@ class ContrastPoolingBlock(nn.Module):
                 x = self.local_contrast(x)
                 x = self.max_pool(x)
                 x = x_max * x + x_avg * (1 - x_avg)
-        out = self.bn(x)
+            out = self.bn(x)
 
         return out
 
