@@ -96,7 +96,18 @@ parser.add_argument(
     help='The preprocessing colour transformation (default: trichromat)')
 parser.add_argument('--custom', dest='custom_arch', action='store_true',
                     help='loading custom models instead')
-
+parser.add_argument(
+    '--pooling_type',
+    type=str,
+    default='max',
+    choices=[
+        'max',
+        'avg',
+        'mix',
+        'contrast_avg',
+        'contrast_max',
+        'contrast'],
+    help='The preprocessing colour transformation (default: trichromat)')
 best_acc1 = 0
 
 
@@ -163,7 +174,8 @@ def main_worker(gpu, ngpus_per_node, args):
     # create model
     if args.custom_arch:
         print('Custom model!')
-        model = custom_models.__dict__[args.arch]()
+        model = custom_models.__dict__[args.arch](
+            pooling_type=args.pooling_type)
     elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
         model = models.__dict__[args.arch](pretrained=True)
@@ -211,6 +223,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     model_progress = []
     # optionally resume from a checkpoint
+    # TODO: it would be best if resume load the architecture from this file
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
@@ -306,6 +319,7 @@ def main_worker(gpu, ngpus_per_node, args):
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
+                'customs': {'pooling_type': args.pooling_tyep},
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer': optimizer.state_dict(),

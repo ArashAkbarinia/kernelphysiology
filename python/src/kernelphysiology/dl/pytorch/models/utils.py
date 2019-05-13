@@ -14,11 +14,16 @@ try:
 except ImportError:
     from torch.utils.model_zoo import load_url as load_state_dict_from_url
 
+from kernelphysiology.dl.pytorch import models as custom_models
+
 
 def which_network_classification(network_name, dataset):
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
-        model = which_architecture(checkpoint['arch'])
+        customs = None
+        if 'customs' in checkpoint:
+            customs = checkpoint['customs']
+        model = which_architecture(checkpoint['arch'], customs=customs)
         # TODO: for each dataset a class of network should be defined
         if dataset == 'leaf':
             num_ftrs = model.fc.in_features
@@ -46,12 +51,17 @@ def which_network(network_name, task_type, dataset):
     return model, target_size
 
 
-def which_architecture(network_name):
-    if network_name == 'inception_v3':
-        model = pmodels.__dict__[network_name](
-            pretrained=False, aux_logits=False)
+def which_architecture(network_name, customs=None):
+    if customs is None:
+        if network_name == 'inception_v3':
+            model = pmodels.__dict__[network_name](
+                pretrained=False, aux_logits=False)
+        else:
+            model = pmodels.__dict__[network_name](pretrained=False)
     else:
-        model = pmodels.__dict__[network_name](pretrained=False)
+        pooling_type = customs['pooling_type']
+        model = custom_models.__dict__[network_name](pretrained=False,
+                                                     pooling_type=pooling_type)
     return model
 
 

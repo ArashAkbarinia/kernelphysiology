@@ -95,12 +95,20 @@ class ContrastPoolingBlock(nn.Module):
             if self.pooling_type == 'mix':
                 x = torch.cat((x_max, x_avg), dim=1)
                 x = self.reduction2(x)
-            elif self.pooling_type == 'contrast':
+            elif self.pooling_type == 'contrast_avg':
                 x = self.local_contrast(x)
                 x = self.avg_pool(x)
                 x = torch.cat((x_max, x_avg, x), dim=1)
                 x = self.reduction3(x)
-                # x = x_max * x + x_avg * (1 - x_avg)
+            elif self.pooling_type == 'contrast_max':
+                x = self.local_contrast(x)
+                x = self.max_pool(x)
+                x = torch.cat((x_max, x_avg, x), dim=1)
+                x = self.reduction3(x)
+            elif self.pooling_type == 'contrast':
+                x = self.local_contrast(x)
+                x = self.max_pool(x)
+                x = x_max * x + x_avg * (1 - x_avg)
         out = self.bn(x)
 
         return out
@@ -197,9 +205,10 @@ class ResNet(nn.Module):
                  zero_init_residual=False,
                  groups=1, width_per_group=64,
                  replace_stride_with_dilation=None,
-                 norm_layer=None, pooling_type='contrast'):
+                 norm_layer=None, pooling_type='max'):
         # TODO: pass pooling_type as an argument
         super(ResNet, self).__init__()
+        print(pooling_type)
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
