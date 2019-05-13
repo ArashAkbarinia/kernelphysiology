@@ -71,7 +71,8 @@ class ContrastPoolingBlock(nn.Module):
                                      padding=padding)
         self.avg_pool = nn.AvgPool2d(kernel_size=kernel_size, stride=stride,
                                      padding=padding)
-        self.reduction2 = conv1x1(planes * 2, planes)
+        # TODO: merge all reductions to one type
+        self.reduction = conv1x1(planes * 2, planes)
         self.reduction3 = conv1x1(planes * 3, planes)
         self.reduction4 = conv1x1(planes * 4, planes)
         self.local_contrast = self._local_contrast(planes,
@@ -94,7 +95,7 @@ class ContrastPoolingBlock(nn.Module):
             x_avg = self.avg_pool(x)
             if self.pooling_type == 'mix':
                 x = torch.cat((x_max, x_avg), dim=1)
-                x = self.reduction2(x)
+                x = self.reduction(x)
             elif self.pooling_type == 'contrast_avg':
                 x = self.local_contrast(x)
                 x = self.avg_pool(x)
@@ -208,7 +209,6 @@ class ResNet(nn.Module):
                  norm_layer=None, pooling_type='max'):
         # TODO: pass pooling_type as an argument
         super(ResNet, self).__init__()
-        print(pooling_type)
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
