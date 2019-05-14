@@ -23,12 +23,77 @@ import torchvision.models as models
 
 import glob
 
+from kernelphysiology.dl.pytorch.models.utils import which_network
+from kernelphysiology.dl.pytorch import models as custom_models
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.utils import prepare_training
+
+from kernelphysiology.utils.imutils import gaussian_noise
+class NoisyImage(object):
+
+    def __init__(self, amount):
+        self.amount = amount
+
+    def __call__(self, x):
+        x = np.asarray(x, dtype='uint8')
+        x = gaussian_noise(x, self.amount) * 255
+        x = pil_image.fromarray(x.astype('uint8'), 'RGB')
+        return x
+
+def num_filters(model_ft, model_name):
+    if 'resnet' in model_name:
+        num_ftrs = model_ft.fc.in_features
+    elif model_name == "alexnet":
+        num_ftrs = model_ft.classifier[6].in_features
+    elif 'vgg' in model_name:
+        num_ftrs = 512 * 7 * 7
+    elif model_name == "squeezenet":
+        model_ft.classifier[1] = nn.Conv2d(512, num_classes, kernel_size=(1,1), stride=(1,1))
+        model_ft.num_classes = num_classes
+    elif 'densenet' in model_name:
+        num_ftrs = model_ft.classifier.in_features
+    elif model_name == "inception":
+        # Handle the auxilary net
+        num_ftrs = model_ft.AuxLogits.fc.in_features
+        model_ft.AuxLogits.fc = nn.Linear(num_ftrs, num_classes)
+        # Handle the primary net
+        num_ftrs = model_ft.fc.in_features
+
+    else:
+        print("Invalid model name, exiting...")
+        exit()
+
+    return num_ftrs
+
+
+class IntermediateModel(nn.Module):
+    def __init__(self, original_model, num_categories, dr_rate, model_name):
+        super(IntermediateModel, self).__init__()
+        if 'densenet' in model_name:
+            layer_number = 1
+        else:
+            layer_number = 2
+        num_ftrs = num_filters(original_model, model_name)
+        self.features = nn.Sequential(
+            *list(original_model.children())[:-layer_number])
+        if 'vgg' in model_name:
+            self.pool = nn.AdaptiveAvgPool2d((7, 7))
+        else:
+            self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.dropout = nn.Dropout(p=dr_rate)
+        self.fc = nn.Linear(num_ftrs, num_categories)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.pool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
 
 
 model_names = sorted(name for name in models.__dict__
@@ -51,7 +116,7 @@ parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                         ' (default: resnet18)')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
-parser.add_argument('--epochs', default=90, type=int, metavar='N',
+parser.add_argument('--epochs', default=45, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
@@ -60,7 +125,7 @@ parser.add_argument('-b', '--batch-size', default=256, type=int,
                     help='mini-batch size (default: 256), this is the total '
                          'batch size of all GPUs on the current node when '
                          'using Data Parallel or Distributed Data Parallel')
-parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.01, type=float,
                     metavar='LR', help='initial learning rate', dest='lr')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
@@ -109,7 +174,24 @@ parser.add_argument(
         'dichromat_rg',
         'dichromat_yb'],
     help='The preprocessing colour transformation (default: trichromat)')
-
+parser.add_argument('--custom', dest='custom_arch', action='store_true',
+                    help='loading custom models instead')
+parser.add_argument(
+    '--pooling_type',
+    type=str,
+    default='max',
+    choices=[
+        'max',
+        'avg',
+        'mix',
+        'contrast_avg',
+        'contrast_max',
+        'contrast'],
+    help='The preprocessing colour transformation (default: trichromat)')
+parser.add_argument('--weights', default='', type=str,
+                    help='path to weights (default: none)')
+parser.add_argument('--dropout', default=0, type=float,
+                    help='rate of dropout')
 best_acc1 = 0
 
 
@@ -158,6 +240,9 @@ def main_worker(gpu, ngpus_per_node, args):
     global best_acc1
     args.gpu = gpu
 
+    traindir = os.path.join(args.data, args.train_dir)
+    valdir = os.path.join(args.data, args.validation_dir)
+
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
 
@@ -171,12 +256,27 @@ def main_worker(gpu, ngpus_per_node, args):
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
     # create model
-    if args.pretrained:
+    if args.custom_arch:
+        print('Custom model!')
+        # TODO: clean up and merge with main training
+        (model, target_size) = which_network(args.weights,
+                                             'classification',
+                                             'imagenet')
+    elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
         model = models.__dict__[args.arch](pretrained=True)
     else:
         print("=> creating model '{}'".format(args.arch))
         model = models.__dict__[args.arch]()
+
+    # preparing the model
+    num_categories = len(glob.glob(traindir + '/*/'))
+    if 'squeezenet' in args.arch:
+        model.classifier[1] = nn.Conv2d(512, num_categories,
+                                        kernel_size=(1, 1), stride=(1, 1))
+        model.num_classes = num_categories
+    else:
+        model = IntermediateModel(model, num_categories, args.dropout, args.arch)
 
     if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
@@ -214,6 +314,7 @@ def main_worker(gpu, ngpus_per_node, args):
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
 
+    model = model.to(args.gpu)
     # optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
@@ -233,31 +334,21 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
     # Data loading code
-    traindir = os.path.join(args.data, args.train_dir)
-    valdir = os.path.join(args.data, args.validation_dir)
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
-
-    num_categories = len(glob.glob(traindir + '/*/'))
-    if 'squeezenet' in args.arch:
-        model.classifier[1] = nn.Conv2d(512, num_categories,
-                                        kernel_size=(1, 1), stride=(1, 1))
-        model.num_classes = num_categories
-    else:
-        num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, num_categories)
-    model = model.to(args.gpu)
-
     cudnn.benchmark = True
 
     transformations = []
     transformations.extend(preprocessing.colour_transformation(
         args.colour_transformation))
 
-    target_size = 224
+    if args.arch == 'inception_v3':
+        target_size = 299
+    else:
+        target_size = 224
     val_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(256),
+            transforms.Resize(target_size),
             transforms.CenterCrop(target_size),
             *transformations,
             transforms.ToTensor(),
@@ -273,7 +364,7 @@ def main_worker(gpu, ngpus_per_node, args):
     train_dataset = datasets.ImageFolder(
         traindir,
         transforms.Compose([
-            transforms.Resize(256),
+            transforms.Resize(target_size+32),
             transforms.RandomResizedCrop(target_size, scale=args.scale),
             *transformations,
             transforms.RandomHorizontalFlip(),
