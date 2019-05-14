@@ -111,8 +111,8 @@ class ContrastPoolingBlock(nn.Module):
                 x = self.reduction3(x)
             elif self.pooling_type == 'contrast':
                 x = self.local_contrast(x)
-                x = self.max_pool(x)
-                x = x_max * x + x_avg * (1 - x_avg)
+                x = self.avg_pool(x)
+                x = x_max * x + x_avg * (1 - x)
             out = self.bn(x)
 
         return out
