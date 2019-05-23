@@ -68,6 +68,7 @@ def main(argv):
      image_manipulation_function) = which_preprocessing(args)
 
     other_transformations = []
+    # TODO: better modelling the distance
     if args.distance > 1:
         other_transformations.append(
             preprocessing.ImageTransformation(
@@ -81,8 +82,6 @@ def main(argv):
                                              args.dataset)
         model = model.cuda(gpu)
         normalize = get_preprocessing_function(args.preprocessing)
-        other_transformations.extend(preprocessing.colour_transformation(
-            args.preprocessings[j]))  # TODO: change it to colour_transformation
 
         # FIXME: for now it only supports classification
         # TODO: merge code with evaluation
@@ -91,12 +90,17 @@ def main(argv):
                 image_manipulation_function,
                 manipulation_value,
                 args.mask_radius)
-            transformations = [*other_transformations,
+            if image_manipulation_type != 'original_rgb':
+                # TODO: change it to colour_transformation
+                cts = preprocessing.colour_transformation(
+                    args.preprocessings[j])
+            transformations = [*other_transformations, *cts,
                                current_manipulation_preprocessing]
 
             print('Processing network %s and %s %f' %
-                  (
-                  current_network, image_manipulation_type, manipulation_value))
+                  (current_network,
+                   image_manipulation_type,
+                   manipulation_value))
 
             # which dataset
             # reading it after the model, because each might have their own

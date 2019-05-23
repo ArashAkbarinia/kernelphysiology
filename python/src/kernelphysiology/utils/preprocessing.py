@@ -1,62 +1,81 @@
-'''
+"""
 Preprocessing functions.
-'''
-
+"""
 
 import numpy as np
 
-from kernelphysiology.utils.imutils import gaussian_blur, gaussian_noise
-from kernelphysiology.utils.imutils import s_p_noise, speckle_noise, poisson_noise
-from kernelphysiology.utils.imutils import adjust_gamma, adjust_contrast, adjust_illuminant
-from kernelphysiology.utils.imutils import random_occlusion, reduce_red_green, reduce_yellow_blue
-from kernelphysiology.utils.imutils import reduce_chromaticity, reduce_lightness, rotate_hue
-from kernelphysiology.utils.imutils import invert_chromaticity, invert_colour_opponency, invert_lightness
-from kernelphysiology.utils.imutils import keep_blue_channel, keep_green_channel, keep_red_channel
+from kernelphysiology.utils.imutils import gaussian_blur
+from kernelphysiology.utils.imutils import gaussian_noise
+from kernelphysiology.utils.imutils import s_p_noise
+from kernelphysiology.utils.imutils import speckle_noise
+from kernelphysiology.utils.imutils import poisson_noise
+from kernelphysiology.utils.imutils import adjust_gamma
+from kernelphysiology.utils.imutils import adjust_contrast
+from kernelphysiology.utils.imutils import adjust_illuminant
+from kernelphysiology.utils.imutils import random_occlusion
+from kernelphysiology.utils.imutils import reduce_red_green
+from kernelphysiology.utils.imutils import reduce_yellow_blue
+from kernelphysiology.utils.imutils import reduce_chromaticity
+from kernelphysiology.utils.imutils import reduce_lightness
+from kernelphysiology.utils.imutils import rotate_hue
+from kernelphysiology.utils.imutils import invert_chromaticity
+from kernelphysiology.utils.imutils import invert_colour_opponency
+from kernelphysiology.utils.imutils import invert_lightness
+from kernelphysiology.utils.imutils import keep_blue_channel
+from kernelphysiology.utils.imutils import keep_green_channel
+from kernelphysiology.utils.imutils import keep_red_channel
 
 
 # TODO: make it nicer, too much duplicate code
-def nothing_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+def nothing_preprocessing(img, _, mask_radius=None,
+                          preprocessing_function=None):
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def occlusion_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
+def occlusion_preprocessing(img, var, mask_radius=None,
+                            preprocessing_function=None):
     img = random_occlusion(img, object_instances=1, object_ratio=var) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def speckle_noise_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
+def speckle_noise_preprocessing(img, var, mask_radius=None,
+                                preprocessing_function=None):
     img = speckle_noise(img, var, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def s_p_noise_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def s_p_noise_preprocessing(img, amount, mask_radius=None,
+                            preprocessing_function=None):
     img = s_p_noise(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def poisson_noise_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+def poisson_noise_preprocessing(img, _, mask_radius=None,
+                                preprocessing_function=None):
     img = poisson_noise(img, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def gaussian_noise_preprocessing(img, var, mask_radius=None, preprocessing_function=None):
+def gaussian_noise_preprocessing(img, var, mask_radius=None,
+                                 preprocessing_function=None):
     img = gaussian_noise(img, var, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def colour_constancy_preprocessing(img, illuminant, mask_radius=None, preprocessing_function=None):
+def colour_constancy_preprocessing(img, illuminant, mask_radius=None,
+                                   preprocessing_function=None):
     # FIXME: for now it's only one channel, make it a loop for all channels
     illuminant = (illuminant, 1, 1)
     img = adjust_illuminant(img, illuminant, mask_radius=mask_radius) * 255
@@ -65,98 +84,112 @@ def colour_constancy_preprocessing(img, illuminant, mask_radius=None, preprocess
     return img
 
 
-def gamma_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def gamma_preprocessing(img, amount, mask_radius=None,
+                        preprocessing_function=None):
     img = adjust_gamma(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def gaussian_preprocessing(img, sigma, mask_radius=None, preprocessing_function=None):
+def gaussian_preprocessing(img, sigma, mask_radius=None,
+                           preprocessing_function=None):
     img = gaussian_blur(img, sigma, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def contrast_preprocessing(img, contrast, mask_radius=None, preprocessing_function=None):
+def contrast_preprocessing(img, contrast, mask_radius=None,
+                           preprocessing_function=None):
     img = adjust_contrast(img, contrast, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def red_green_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def red_green_preprocessing(img, amount, mask_radius=None,
+                            preprocessing_function=None):
     img = reduce_red_green(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def yellow_blue_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def yellow_blue_preprocessing(img, amount, mask_radius=None,
+                              preprocessing_function=None):
     img = reduce_yellow_blue(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def chromacity_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def chromacity_preprocessing(img, amount, mask_radius=None,
+                             preprocessing_function=None):
     img = reduce_chromaticity(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def lightness_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def lightness_preprocessing(img, amount, mask_radius=None,
+                            preprocessing_function=None):
     img = reduce_lightness(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def invert_chromaticity_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+def invert_chromaticity_preprocessing(img, _, mask_radius=None,
+                                      preprocessing_function=None):
     img = invert_chromaticity(img, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def invert_opponency_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+def invert_opponency_preprocessing(img, _, mask_radius=None,
+                                   preprocessing_function=None):
     img = invert_colour_opponency(img, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def invert_lightness_preprocessing(img, _, mask_radius=None, preprocessing_function=None):
+def invert_lightness_preprocessing(img, _, mask_radius=None,
+                                   preprocessing_function=None):
     img = invert_lightness(img, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def rotate_hue_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def rotate_hue_preprocessing(img, amount, mask_radius=None,
+                             preprocessing_function=None):
     img = rotate_hue(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def keep_red_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def keep_red_preprocessing(img, amount, mask_radius=None,
+                           preprocessing_function=None):
     img = keep_red_channel(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def keep_green_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def keep_green_preprocessing(img, amount, mask_radius=None,
+                             preprocessing_function=None):
     img = keep_green_channel(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
 
 
-def keep_blue_preprocessing(img, amount, mask_radius=None, preprocessing_function=None):
+def keep_blue_preprocessing(img, amount, mask_radius=None,
+                            preprocessing_function=None):
     img = keep_blue_channel(img, amount, mask_radius=mask_radius) * 255
     if preprocessing_function:
         img = preprocessing_function(img)
@@ -246,8 +279,13 @@ def which_preprocessing(args):
         image_manipulation_type = 'keep_blue'
         image_manipulation_values = np.array(args.keep_blue)
         image_manipulation_function = keep_blue_preprocessing
+    elif args.original_rgb:
+        image_manipulation_type = 'original_rgb'
+        image_manipulation_values = np.array([1])
+        image_manipulation_function = nothing_preprocessing
     else:
         image_manipulation_type = 'original'
         image_manipulation_values = np.array([1])
         image_manipulation_function = nothing_preprocessing
-    return (image_manipulation_type, image_manipulation_values, image_manipulation_function)
+    return (image_manipulation_type, image_manipulation_values,
+            image_manipulation_function)

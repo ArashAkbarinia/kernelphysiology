@@ -283,6 +283,11 @@ def test_arg_parser(argvs):
         type=float,
         default=None,
         help='List of keeping green to be evaluated (default: None)')
+    image_degradation_group.add_argument(
+        '--original_rgb',
+        action='store_true',
+        default=False,
+        help='Testing with the original RGB values (default: False)')
 
     logging_group = parser.add_argument_group('logging')
     logging_group.add_argument(
