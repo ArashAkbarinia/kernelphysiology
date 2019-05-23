@@ -24,7 +24,11 @@ class ColourTransformation(object):
     def __call__(self, img):
         img = ImageCms.applyTransform(img, rgb2lab)
         img = np.asarray(img).copy()
-        img[:, :, self.colour_inds] = 0
+        # TODO: only for LAB that 0 contrast lightness means all to be 50
+        if self.colour_inds == 0:
+            img[:, :, self.colour_inds] = 50
+        else:
+            img[:, :, self.colour_inds] = 0
         img = PilImage.fromarray(img, 'LAB')
         img = ImageCms.applyTransform(img, lab2rgb)
         return img

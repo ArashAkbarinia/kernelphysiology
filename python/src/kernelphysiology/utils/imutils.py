@@ -415,4 +415,6 @@ def get_colour_inds(chromaticity_type):
         colour_inds = [2]
     elif chromaticity_type == 'monochromat':
         colour_inds = [1, 2]
+    elif chromaticity_type == 'lightness':
+        colour_inds = [0]
     return colour_inds
