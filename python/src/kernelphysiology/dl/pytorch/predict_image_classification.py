@@ -90,6 +90,7 @@ def main(argv):
                 image_manipulation_function,
                 manipulation_value,
                 args.mask_radius)
+            cts = []
             if image_manipulation_type != 'original_rgb':
                 # TODO: change it to colour_transformation
                 cts = preprocessing.colour_transformation(
