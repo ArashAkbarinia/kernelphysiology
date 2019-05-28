@@ -61,7 +61,6 @@ def heat_map_from_fixation(fixation_point, target_size, org_size,
     cols = target_size[0]
     org_rows = org_size[1]
     org_cols = org_size[0]
-    # print(rows, cols, org_rows, org_cols)
     fixation_map = np.zeros((rows, cols, 1))
     if fixation_point[0] > 0 and fixation_point[1] > 0:
         fpr = int(fixation_point[1] * (rows / org_rows))
@@ -88,7 +87,6 @@ def heat_map_from_fixation(fixation_point, target_size, org_size,
 
         er = np.minimum(er, rows)
         ec = np.minimum(ec, cols)
-        # print(fpr, fpc, gaussian_kernel[gsr:ger, gsc:gec].shape)
         g_max = gaussian_kernel[gsr:ger, gsc:gec].max()
         fixation_map[sr:er, sc:ec, 0] = \
             gaussian_kernel[gsr:ger, gsc:gec] / g_max

@@ -9,7 +9,7 @@ import pylab as plt
 import keras
 from keras.layers.core import Lambda
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
-from functools import partial
+from functools import partial, update_wrapper
 
 from keras import backend as K
 from keras.layers.wrappers import TimeDistributed
@@ -25,6 +25,18 @@ from keras.utils import multi_gpu_model
 
 from kernelphysiology.filterfactory import gaussian
 from kernelphysiology.dl.keras.video import geetup_db
+
+
+def euc_error(y_true, y_pred, target_size):
+    y_true_inds = K.argmax(y_true, axis=2)
+    y_true_inds = tf.unravel_index(K.reshape(y_true_inds, [-1]), target_size)
+    y_pred_inds = K.argmax(y_pred, axis=2)
+    y_pred_inds = tf.unravel_index(K.reshape(y_pred_inds, [-1]), target_size)
+
+    true_pred_diff = K.sum((y_true_inds - y_pred_inds) ** 2, axis=0)
+    euc_distance = tf.sqrt(
+        tf.cast(true_pred_diff, dtype=tf.float32))
+    return tf.reduce_mean(euc_distance)
 
 
 def lr_schedule_resnet(epoch, lr):
@@ -262,7 +274,6 @@ def class_net_fcn_2p_lstm(input_shape, image_net=None, mid_layer=None):
 
 os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in sys.argv[2:])
 gpus = [*range(len(sys.argv) - 2)]
-print(gpus)
 
 logging.basicConfig(filename='experiment_info.log', filemode='w',
                     format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -275,16 +286,13 @@ sequence_length = 9
 batch_size = 8
 target_size = (224, 224)
 overwrite = False
-if overwrite is False and os.path.isfile('video_list.pickle'):
-    pickle_in = open('video_list.pickle', 'rb')
-    video_list = pickle.load(pickle_in)
-else:
-    video_list = geetup_db.dataset_frame_list(sys.argv[1], frames_gap=10,
-                                              sequence_length=9)
-    pickle_out = open('video_list.pickle', 'wb')
-    pickle.dump(video_list, pickle_out)
-    pickle_out.close()
-print('read %d' % len(video_list))
+
+pickle_in = open('two_parts_training.pickle', 'rb')
+training_list = pickle.load(pickle_in)
+pickle_in = open('two_parts_testing.pickle', 'rb')
+testing_list = pickle.load(pickle_in)
+
+print('Training %d, Testing %d' % (len(training_list), len(testing_list)))
 
 # mean = [0.485, 0.456, 0.406]
 # std = [0.229, 0.224, 0.225]
@@ -292,11 +300,17 @@ mean = [103.939, 116.779, 123.68]
 std = [1, 1, 1]
 
 preprocess = partial(normalise_tensor, mean=mean, std=std)
-geetup_generator = geetup_db.GeetupGenerator(video_list,
-                                             batch_size=batch_size,
-                                             target_size=target_size,
-                                             gaussian_sigma=30.5,
-                                             preprocessing_function=preprocess)
+training_generator = geetup_db.GeetupGenerator(training_list,
+                                               batch_size=batch_size,
+                                               target_size=target_size,
+                                               gaussian_sigma=30.5,
+                                               preprocessing_function=preprocess)
+testing_generator = geetup_db.GeetupGenerator(testing_list,
+                                              batch_size=batch_size,
+                                              target_size=target_size,
+                                              gaussian_sigma=30.5,
+                                              preprocessing_function=preprocess,
+                                              shuffle=True)
 
 resnet = keras.applications.ResNet50(weights='imagenet')
 for i, layer in enumerate(resnet.layers):
@@ -312,34 +326,49 @@ resnet = keras.models.Model(inputs=resnet.input,
 model = class_net_fcn_2p_lstm((sequence_length, *target_size, 3), resnet,
                               resnet_mid)
 
+
+def wrapped_partial(func, *args, **kwargs):
+    partial_func = partial(func, *args, **kwargs)
+    update_wrapper(partial_func, func)
+    return partial_func
+
+
+euc_metric = wrapped_partial(euc_error, target_size=target_size)
+
+metrics = [euc_metric]
 loss = 'binary_crossentropy'
 opt = keras.optimizers.SGD(lr=0.1, decay=0, momentum=0.9, nesterov=False)
 if len(gpus) == 1:
-    model.compile(loss=loss, optimizer=opt)
+    model.compile(loss=loss, optimizer=opt, metrics=metrics)
     parallel_model = None
 else:
     with tf.device('/cpu:0'):
-        model.compile(loss=loss, optimizer=opt)
+        model.compile(loss=loss, optimizer=opt, metrics=metrics)
     parallel_model = multi_gpu_model(model, gpus=gpus)
     # TODO: this compilation probably is not necessary
-    parallel_model.compile(loss=loss, optimizer=opt)
+    parallel_model.compile(loss=loss, optimizer=opt, metrics=metrics)
 
 last_checkpoint_logger = ModelCheckpoint('model_weights_last.h5', verbose=1,
                                          save_weights_only=True,
                                          save_best_only=False)
 
 steps_per_epoch = 10000
+validation_steps = 100
 if not parallel_model == None:
-    parallel_model.fit_generator(generator=geetup_generator,
+    parallel_model.fit_generator(generator=training_generator,
                                  steps_per_epoch=steps_per_epoch,
+                                 validation_data=testing_generator,
+                                 validation_steps=validation_steps,
                                  use_multiprocessing=False,
                                  workers=8, epochs=45,
                                  callbacks=[
                                      LearningRateScheduler(lr_schedule_lambda),
                                      last_checkpoint_logger])
 else:
-    model.fit_generator(generator=geetup_generator,
+    model.fit_generator(generator=training_generator,
                         steps_per_epoch=steps_per_epoch,
+                        validation_data=testing_generator,
+                        validation_steps=validation_steps,
                         use_multiprocessing=False,
                         workers=8, epochs=45,
                         callbacks=[
