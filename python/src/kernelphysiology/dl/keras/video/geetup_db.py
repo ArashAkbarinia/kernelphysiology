@@ -26,7 +26,7 @@ def last_valid_frame(video_dir, frames_gap=10, sequence_length=9):
 def subject_frame_limits(subject_dir, frames_gap=10, sequence_length=9):
     subject_data = []
     for segment in glob.glob(subject_dir + '/segments/*/'):
-        for video_dir in glob.glob(segment + '/*/'):
+        for video_dir in glob.glob(segment + '/CutVid_*/'):
             current_num_frames = len(glob.glob((video_dir + '/*.jpg')))
             video_ind = video_dir.split('/')[-2].split('_')[-1]
             fixation_array = np.loadtxt(
@@ -171,14 +171,12 @@ class GeetupGenerator(keras.utils.Sequence):
 
         # generate data
         for i, video_id in enumerate(current_batch):
-            # print(i, video_id, self.video_list[video_id[0]][0], x_batch.shape)
             # get the video and frame number
             segment_dir = self.video_list[video_id[0]][0]
             video_num = self.video_list[video_id[0]][1]
             video_path = segment_dir + '/CutVid_' + video_num + '/frames'
             fixation_path = segment_dir + 'SUBSAMP_EYETR_' + video_num + '.txt'
             frame_num = video_id[2]
-            # print(video_path, frame_num)
             fixation_points = np.loadtxt(fixation_path)
             start_frame = frame_num + 1
             end_frame = start_frame + self.sequence_length * self.frames_gap
@@ -189,17 +187,15 @@ class GeetupGenerator(keras.utils.Sequence):
                     grayscale=self.grey_scale)
                 org_size = current_img.size
                 current_img = current_img.resize(self.target_size)
-                # print(i, j, video_path + str(c_f_num) + '.jpg',
-                #       fixation_points[j])
                 current_img = image.img_to_array(current_img)
-                x_batch[i, j,] = current_img / 255.0
+                x_batch[i, j,] = current_img
                 y_batch[i, j,] = heat_map_from_fixation(
                     fixation_points[j],
                     target_size=self.target_size,
                     org_size=org_size,
                     gaussian_kernel=self.gaussian_kernel)
 
-        if self.preprocessing_function:
+        if self.preprocessing_function is not None:
             x_batch = self.preprocessing_function(x_batch)
 
         rows = self.target_size[1]

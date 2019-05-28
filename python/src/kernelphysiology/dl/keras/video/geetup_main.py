@@ -1,14 +1,17 @@
 from keras.models import Sequential
-from keras.layers import Reshape, Input, UpSampling2D, Concatenate
+from keras.layers import Reshape, Input, UpSampling2D, Concatenate, \
+    ZeroPadding2D
 from keras.layers.convolutional import Conv3D, Conv2D
 from keras.layers.convolutional_recurrent import ConvLSTM2D
 from keras.layers.normalization import BatchNormalization
 import numpy as np
 import pylab as plt
 import keras
+from keras.layers.core import Lambda
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from functools import partial
 
+from keras import backend as K
 from keras.layers.wrappers import TimeDistributed
 from keras.layers.convolutional import MaxPooling3D, MaxPooling2D
 import glob
@@ -17,16 +20,15 @@ import sys
 import os
 import pickle
 import logging
+import tensorflow as tf
+from keras.utils import multi_gpu_model
 
 from kernelphysiology.filterfactory import gaussian
 from kernelphysiology.dl.keras.video import geetup_db
 
-mean = [0.485, 0.456, 0.406]
-std = [0.229, 0.224, 0.225]
-
 
 def lr_schedule_resnet(epoch, lr):
-    new_lr = lr * (0.1 ** (epoch // (90 / 3)))
+    new_lr = lr * (0.1 ** (epoch // (45 / 3)))
     return new_lr
 
 
@@ -64,7 +66,7 @@ def show_results(sample, gt, predict):
         im2 = plt.imshow(top_layer, cmap=plt.cm.viridis, alpha=.5)
 
 
-def inv_normalise_tensor(tensor, mean=mean, std=std):
+def inv_normalise_tensor(tensor, mean, std):
     tensor = tensor.copy()
     # inverting the normalisation for each channel
     for i in range(tensor.shape[4]):
@@ -73,7 +75,7 @@ def inv_normalise_tensor(tensor, mean=mean, std=std):
     return tensor
 
 
-def normalise_tensor(tensor, mean=mean, std=std):
+def normalise_tensor(tensor, mean, std):
     tensor = tensor.copy()
     # normalising the channels
     for i in range(tensor.shape[4]):
@@ -190,23 +192,30 @@ def read_one_directory(dataset_dir, target_size=(40, 40, 3)):
     return input_frames, fixation_points
 
 
-def class_net_fcn_2p_lstm(input_shape, image_net=None):
+def class_net_fcn_2p_lstm(input_shape, image_net=None, mid_layer=None):
     c = 32
     input_img = Input(input_shape, name='input')
     if image_net is not None:
-        x = TimeDistributed(image_net)(input_img)
+        c0 = TimeDistributed(image_net)(input_img)
     else:
         x = input_img
     x = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
-                   return_sequences=True)(x)
+                   return_sequences=True)(c0)
     x = BatchNormalization()(x)
     x = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
                    return_sequences=True)(x)
     x = BatchNormalization()(x)
     c1 = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
                     return_sequences=True)(x)
+    c1 = BatchNormalization()(c1)
 
+    x = TimeDistributed(ZeroPadding2D(padding=(1, 1)))(x)
     x = TimeDistributed(MaxPooling2D((2, 2), (2, 2)))(c1)
+    x = TimeDistributed(ZeroPadding2D(padding=((1, 0), (1, 0))))(x)
+
+    if image_net is not None:
+        x_mid = TimeDistributed(mid_layer)(input_img)
+        x = Concatenate()([x_mid, x])
 
     x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
                    return_sequences=True)(x)
@@ -216,7 +225,9 @@ def class_net_fcn_2p_lstm(input_shape, image_net=None):
     x = BatchNormalization()(x)
     c2 = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
                     return_sequences=True)(x)
+    c2 = BatchNormalization()(c2)
 
+    x = TimeDistributed(ZeroPadding2D(padding=(1, 1)))(x)
     x = TimeDistributed(MaxPooling2D((2, 2), (2, 2)))(c2)
 
     x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
@@ -227,19 +238,16 @@ def class_net_fcn_2p_lstm(input_shape, image_net=None):
     x = BatchNormalization()(x)
     c3 = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
                     return_sequences=True)(x)
+    c3 = BatchNormalization()(c3)
 
     x = TimeDistributed(UpSampling2D((2, 2)))(c3)
     x = Concatenate()([c2, x])
     x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
+    x = BatchNormalization()(x)
 
     x = TimeDistributed(UpSampling2D((2, 2)))(x)
+    c1 = TimeDistributed(ZeroPadding2D(padding=((1, 0), (1, 0))))(c1)
     x = Concatenate()([c1, x])
-    # x = TimeDistributed(Convolution2D(c, 3, 3, border_mode='same'))(x)
-
-    #     x = TimeDistributed(Conv2D(3, kernel_size=(3, 3), padding='same'))(x)
-    #     x = TimeDistributed(UpSampling2D((2, 2)))(x)
-    #     x = TimeDistributed(Conv2D(3, kernel_size=(3, 3), padding='same'))(x)
-    #     x = TimeDistributed(UpSampling2D((2, 2)))(x)
 
     x = TimeDistributed(UpSampling2D((4, 4)))(x)
 
@@ -249,11 +257,12 @@ def class_net_fcn_2p_lstm(input_shape, image_net=None):
 
     output = Reshape((-1, input_shape[1] * input_shape[2], 1))(output)
     model = keras.models.Model(input_img, output)
-    #     loss = categorical_crossentropy_3d_w(10, class_dim=-1)
-    opt = keras.optimizers.SGD(lr=0.1, decay=0, momentum=0.9, nesterov=False)
-    model.compile(loss='mean_absolute_error', optimizer=opt)
     return model
 
+
+os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in sys.argv[2:])
+gpus = [*range(len(sys.argv) - 2)]
+print(gpus)
 
 logging.basicConfig(filename='experiment_info.log', filemode='w',
                     format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -263,33 +272,76 @@ lr_schedule_lambda = partial(lr_schedule_resnet, lr=0.1)
 
 frames_gap = 10
 sequence_length = 9
-batch_size = 32
+batch_size = 8
 target_size = (224, 224)
-video_list = geetup_db.dataset_frame_list(sys.argv[1], frames_gap=10,
-                                          sequence_length=9)
-preprocess = normalise_tensor
+overwrite = False
+if overwrite is False and os.path.isfile('video_list.pickle'):
+    pickle_in = open('video_list.pickle', 'rb')
+    video_list = pickle.load(pickle_in)
+else:
+    video_list = geetup_db.dataset_frame_list(sys.argv[1], frames_gap=10,
+                                              sequence_length=9)
+    pickle_out = open('video_list.pickle', 'wb')
+    pickle.dump(video_list, pickle_out)
+    pickle_out.close()
+print('read %d' % len(video_list))
+
+# mean = [0.485, 0.456, 0.406]
+# std = [0.229, 0.224, 0.225]
+mean = [103.939, 116.779, 123.68]
+std = [1, 1, 1]
+
+preprocess = partial(normalise_tensor, mean=mean, std=std)
 geetup_generator = geetup_db.GeetupGenerator(video_list,
                                              batch_size=batch_size,
                                              target_size=target_size,
+                                             gaussian_sigma=30.5,
                                              preprocessing_function=preprocess)
 
 resnet = keras.applications.ResNet50(weights='imagenet')
-resnet = keras.models.Model(inputs=resnet.input,
-                            outputs=resnet.get_layer('activation_10').output)
 for i, layer in enumerate(resnet.layers):
     layer.trainable = False
+resnet_mid = keras.models.Model(inputs=resnet.input,
+                                outputs=resnet.get_layer(
+                                    'activation_22').output)
+resnet = keras.models.Model(inputs=resnet.input,
+                            outputs=resnet.get_layer('activation_10').output)
+# outputs = [resnet.get_layer('activation_10').output,
+#           resnet.get_layer('activation_22').output]
+# resnet = K.function([resnet.input, K.learning_phase()], outputs)
+model = class_net_fcn_2p_lstm((sequence_length, *target_size, 3), resnet,
+                              resnet_mid)
 
-model = class_net_fcn_2p_lstm((sequence_length, *target_size, 3), resnet)
+loss = 'binary_crossentropy'
+opt = keras.optimizers.SGD(lr=0.1, decay=0, momentum=0.9, nesterov=False)
+if len(gpus) == 1:
+    model.compile(loss=loss, optimizer=opt)
+    parallel_model = None
+else:
+    with tf.device('/cpu:0'):
+        model.compile(loss=loss, optimizer=opt)
+    parallel_model = multi_gpu_model(model, gpus=gpus)
+    # TODO: this compilation probably is not necessary
+    parallel_model.compile(loss=loss, optimizer=opt)
+
 last_checkpoint_logger = ModelCheckpoint('model_weights_last.h5', verbose=1,
                                          save_weights_only=True,
                                          save_best_only=False)
 
-os.environ['CUDA_VISIBLE_DEVICES'] = sys.argv[2]
-
-model.fit_generator(generator=geetup_generator,
-                    use_multiprocessing=False,
-                    workers=8, epochs=90,
-                    validation_split=0.25,
-                    callbacks=[
-                        LearningRateScheduler(lr_schedule_lambda),
-                        last_checkpoint_logger])
+steps_per_epoch = 10000
+if not parallel_model == None:
+    parallel_model.fit_generator(generator=geetup_generator,
+                                 steps_per_epoch=steps_per_epoch,
+                                 use_multiprocessing=False,
+                                 workers=8, epochs=45,
+                                 callbacks=[
+                                     LearningRateScheduler(lr_schedule_lambda),
+                                     last_checkpoint_logger])
+else:
+    model.fit_generator(generator=geetup_generator,
+                        steps_per_epoch=steps_per_epoch,
+                        use_multiprocessing=False,
+                        workers=8, epochs=45,
+                        callbacks=[
+                            LearningRateScheduler(lr_schedule_lambda),
+                            last_checkpoint_logger])
