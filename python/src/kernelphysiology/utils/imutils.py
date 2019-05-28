@@ -418,3 +418,7 @@ def get_colour_inds(chromaticity_type):
     elif chromaticity_type == 'lightness':
         colour_inds = [0]
     return colour_inds
+
+
+def max_pixel_ind(im):
+    return np.unravel_index(np.argmax(im, axis=None), im.shape)
