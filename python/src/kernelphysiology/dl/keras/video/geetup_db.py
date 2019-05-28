@@ -165,9 +165,10 @@ class GeetupGenerator(keras.utils.Sequence):
     def __data_generation(self, current_batch):
         """Generates data containing batch_size samples"""
         # initialisation
-        x_batch = np.empty((self.batch_size, *self.in_shape), dtype='float32')
+        current_num_imgs = len(current_batch)
+        x_batch = np.empty((current_num_imgs, *self.in_shape), dtype='float32')
         # TODO: could be that only Euclidean distance might be better?
-        y_batch = np.empty((self.batch_size, *self.out_shape), dtype='float32')
+        y_batch = np.empty((current_num_imgs, *self.out_shape), dtype='float32')
 
         # generate data
         for i, video_id in enumerate(current_batch):
