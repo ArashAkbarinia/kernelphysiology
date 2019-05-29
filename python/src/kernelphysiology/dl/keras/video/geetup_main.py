@@ -3,29 +3,34 @@ The main script for GEETUP.
 """
 
 import keras
-from keras.layers import Reshape, Input, UpSampling2D, Concatenate, \
-    ZeroPadding2D
+from keras import backend as K
+from keras.layers import Reshape
+from keras.layers import Input
+from keras.layers import UpSampling2D
+from keras.layers import Concatenate
+from keras.layers import ZeroPadding2D
 from keras.layers.convolutional import Conv2D
+from keras.layers.convolutional import MaxPooling2D
 from keras.layers.convolutional_recurrent import ConvLSTM2D
 from keras.layers.normalization import BatchNormalization
-
-from keras.callbacks import LearningRateScheduler, ModelCheckpoint
-from keras import backend as K
 from keras.layers.wrappers import TimeDistributed
-from keras.layers.convolutional import MaxPooling2D
+from keras.callbacks import LearningRateScheduler
+from keras.callbacks import ModelCheckpoint
+from keras.callbacks import CSVLogger
+from keras.utils import multi_gpu_model
 
+import tensorflow as tf
 import cv2
-import argparse
-
-from functools import partial, update_wrapper
 
 import numpy as np
 import sys
 import os
 import pickle
 import logging
-import tensorflow as tf
-from keras.utils import multi_gpu_model
+import argparse
+
+from functools import partial
+from functools import update_wrapper
 
 from kernelphysiology.dl.keras.video import geetup_db
 from kernelphysiology.utils.imutils import max_pixel_ind
@@ -287,14 +292,18 @@ if __name__ == "__main__":
         )
         print(loss_eval, euc_eval)
     else:
-        last_checkpoint_logger = ModelCheckpoint('model_weights_last.h5',
-                                                 verbose=1,
-                                                 save_weights_only=True,
-                                                 save_best_only=False)
+        last_checkpoint_logger = ModelCheckpoint(
+            args.log_dir + '/model_weights_last.h5',
+            verbose=1,
+            save_weights_only=True,
+            save_best_only=False)
+        csv_logger = CSVLogger(
+            os.path.join(args.log_dir, 'log.csv'),
+            append=False, separator=';')
 
         steps_per_epoch = 10000
         validation_steps = 100
-        if not parallel_model == None:
+        if parallel_model is not None:
             parallel_model.fit_generator(generator=training_generator,
                                          steps_per_epoch=steps_per_epoch,
                                          validation_data=testing_generator,
@@ -302,6 +311,7 @@ if __name__ == "__main__":
                                          use_multiprocessing=False,
                                          workers=1, epochs=45, verbose=1,
                                          callbacks=[
+                                             csv_logger,
                                              LearningRateScheduler(
                                                  lr_schedule_lambda),
                                              last_checkpoint_logger])
@@ -313,5 +323,6 @@ if __name__ == "__main__":
                                 use_multiprocessing=False,
                                 workers=1, epochs=45, verbose=1,
                                 callbacks=[
+                                    csv_logger,
                                     LearningRateScheduler(lr_schedule_lambda),
                                     last_checkpoint_logger])
