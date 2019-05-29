@@ -34,6 +34,7 @@ from functools import update_wrapper
 
 from kernelphysiology.dl.keras.video import geetup_db
 from kernelphysiology.utils.imutils import max_pixel_ind
+from kernelphysiology.utils.path_utils import create_dir
 
 
 def euc_error(y_true, y_pred, target_size):
@@ -174,6 +175,12 @@ if __name__ == "__main__":
         default=None,
         help='Path to the weights')
     parser.add_argument(
+        '--log_dir',
+        dest='log_dir',
+        type=str,
+        default='Ex',
+        help='Path to the logging directory (default: Ex')
+    parser.add_argument(
         '--gpus',
         nargs='+',
         type=int,
@@ -196,8 +203,12 @@ if __name__ == "__main__":
     os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
     gpus = [*range(len(args.gpus))]
 
-    logging.basicConfig(filename='experiment_info.log', filemode='w',
-                        format='%(levelname)s: %(message)s', level=logging.INFO)
+    create_dir(args.log_dir)
+
+    logging.basicConfig(
+        filename=args.log_dir + 'experiment_info.log', filemode='w',
+        format='%(levelname)s: %(message)s', level=logging.INFO
+    )
 
     lr_schedule_lambda = partial(lr_schedule_resnet, lr=0.1)
 
