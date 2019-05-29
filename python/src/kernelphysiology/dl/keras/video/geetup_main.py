@@ -70,24 +70,33 @@ def normalise_tensor(tensor, mean, std):
     return tensor
 
 
-def class_net_fcn_2p_lstm(input_shape, image_net=None, mid_layer=None):
+def class_net_fcn_2p_lstm(input_shape, image_net=None, mid_layer=None,
+                          frame_based=False):
     c = 32
     input_img = Input(input_shape, name='input')
     if image_net is not None:
         c0 = TimeDistributed(image_net)(input_img)
     else:
         x = input_img
-    x = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
-                   return_sequences=True)(c0)
+    if frame_based:
+        x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(c0)
+    else:
+        x = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
+                       return_sequences=True)(c0)
     x = BatchNormalization()(x)
-    x = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
-                   return_sequences=True)(x)
+    if frame_based:
+        x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        x = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
+                       return_sequences=True)(x)
     x = BatchNormalization()(x)
-    c1 = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
-                    return_sequences=True)(x)
+    if frame_based:
+        c1 = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        c1 = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
+                        return_sequences=True)(x)
     c1 = BatchNormalization()(c1)
 
-    x = TimeDistributed(ZeroPadding2D(padding=(1, 1)))(x)
     x = TimeDistributed(MaxPooling2D((2, 2), (2, 2)))(c1)
     x = TimeDistributed(ZeroPadding2D(padding=((1, 0), (1, 0))))(x)
 
@@ -95,27 +104,44 @@ def class_net_fcn_2p_lstm(input_shape, image_net=None, mid_layer=None):
         x_mid = TimeDistributed(mid_layer)(input_img)
         x = Concatenate()([x_mid, x])
 
-    x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
-                   return_sequences=True)(x)
+    if frame_based:
+        x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
+                       return_sequences=True)(x)
     x = BatchNormalization()(x)
-    x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
-                   return_sequences=True)(x)
+    if frame_based:
+        x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
+                       return_sequences=True)(x)
     x = BatchNormalization()(x)
-    c2 = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
-                    return_sequences=True)(x)
+    if frame_based:
+        c2 = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        c2 = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
+                        return_sequences=True)(x)
     c2 = BatchNormalization()(c2)
 
-    x = TimeDistributed(ZeroPadding2D(padding=(1, 1)))(x)
     x = TimeDistributed(MaxPooling2D((2, 2), (2, 2)))(c2)
 
-    x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
-                   return_sequences=True)(x)
+    if frame_based:
+        x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
+                       return_sequences=True)(x)
     x = BatchNormalization()(x)
-    x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
-                   return_sequences=True)(x)
+    if frame_based:
+        x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        x = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
+                       return_sequences=True)(x)
     x = BatchNormalization()(x)
-    c3 = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
-                    return_sequences=True)(x)
+    if frame_based:
+        c3 = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        c3 = ConvLSTM2D(filters=2 * c, kernel_size=(3, 3), padding='same',
+                        return_sequences=True)(x)
     c3 = BatchNormalization()(c3)
 
     x = TimeDistributed(UpSampling2D((2, 2)))(c3)
@@ -197,6 +223,17 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help='Number of random images to try (default: None)')
+    parser.add_argument(
+        '--epochs',
+        dest='epochs',
+        type=int,
+        default=15,
+        help='Number of epochs (default: 15)')
+    parser.add_argument(
+        '--frame_based',
+        action='store_true',
+        default=False,
+        help='Make the model frame based (default: False)')
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -259,8 +296,9 @@ if __name__ == "__main__":
     # outputs = [resnet.get_layer('activation_10').output,
     #           resnet.get_layer('activation_22').output]
     # resnet = K.function([resnet.input, K.learning_phase()], outputs)
-    model = class_net_fcn_2p_lstm((sequence_length, *target_size, 3), resnet,
-                                  resnet_mid)
+    model = class_net_fcn_2p_lstm(
+        (sequence_length, *target_size, 3), resnet, resnet_mid, args.frame_based
+    )
     if args.evaluate:
         model.load_weights(args.weights)
 
@@ -315,25 +353,29 @@ if __name__ == "__main__":
         steps_per_epoch = 10000
         validation_steps = 100
         if parallel_model is not None:
-            parallel_model.fit_generator(generator=training_generator,
-                                         steps_per_epoch=steps_per_epoch,
-                                         validation_data=testing_generator,
-                                         validation_steps=validation_steps,
-                                         use_multiprocessing=False,
-                                         workers=1, epochs=45, verbose=1,
-                                         callbacks=[
-                                             csv_logger,
-                                             LearningRateScheduler(
-                                                 lr_schedule_lambda),
-                                             last_checkpoint_logger])
+            parallel_model.fit_generator(
+                generator=training_generator,
+                steps_per_epoch=steps_per_epoch,
+                validation_data=testing_generator,
+                validation_steps=validation_steps,
+                use_multiprocessing=False,
+                workers=1, epochs=args.epochs, verbose=1,
+                callbacks=[
+                    csv_logger,
+                    LearningRateScheduler(
+                        lr_schedule_lambda),
+                    last_checkpoint_logger]
+            )
         else:
-            model.fit_generator(generator=training_generator,
-                                steps_per_epoch=steps_per_epoch,
-                                validation_data=testing_generator,
-                                validation_steps=validation_steps,
-                                use_multiprocessing=False,
-                                workers=1, epochs=45, verbose=1,
-                                callbacks=[
-                                    csv_logger,
-                                    LearningRateScheduler(lr_schedule_lambda),
-                                    last_checkpoint_logger])
+            model.fit_generator(
+                generator=training_generator,
+                steps_per_epoch=steps_per_epoch,
+                validation_data=testing_generator,
+                validation_steps=validation_steps,
+                use_multiprocessing=False,
+                workers=1, epochs=args.epochs, verbose=1,
+                callbacks=[
+                    csv_logger,
+                    LearningRateScheduler(lr_schedule_lambda),
+                    last_checkpoint_logger]
+            )
