@@ -14,10 +14,12 @@ from keras import backend as K
 from keras.layers.wrappers import TimeDistributed
 from keras.layers.convolutional import MaxPooling2D
 
+import cv2
 import argparse
 
 from functools import partial, update_wrapper
 
+import numpy as np
 import sys
 import os
 import pickle
@@ -26,6 +28,7 @@ import tensorflow as tf
 from keras.utils import multi_gpu_model
 
 from kernelphysiology.dl.keras.video import geetup_db
+from kernelphysiology.utils.imutils import max_pixel_ind
 
 
 def euc_error(y_true, y_pred, target_size):
@@ -50,7 +53,6 @@ def inv_normalise_tensor(tensor, mean, std):
     # inverting the normalisation for each channel
     for i in range(tensor.shape[4]):
         tensor[:, :, :, :, i] = (tensor[:, :, :, :, i] * std[i]) + mean[i]
-    tensor = tensor.clip(0, 1)
     return tensor
 
 
@@ -136,6 +138,27 @@ def wrapped_partial(func, *args, **kwargs):
     return partial_func
 
 
+def visualise_results(current_image, gt, pred, file_name):
+    rows, cols, _ = current_image.shape
+    gt_pixel = max_pixel_ind(
+        np.reshape(gt.squeeze(), (rows, cols))
+    )
+    cv2.circle(current_image, gt_pixel, 15, (0, 255, 0))
+
+    pred_pixel = max_pixel_ind(
+        np.reshape(pred.squeeze(), (rows, cols))
+    )
+    cv2.circle(current_image, pred_pixel, 15, (0, 0, 255))
+
+    euc_dis = np.linalg.norm(
+        np.asarray(pred_pixel) - np.asarray(gt_pixel))
+    cx = round(rows / 2)
+    cy = round(cols / 2)
+    cv2.putText(current_image, str(int(euc_dis)), (cx, cy),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255))
+    cv2.imwrite(file_name, current_image)
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='GEETUP Train/Test')
@@ -156,6 +179,12 @@ if __name__ == "__main__":
         action='store_true',
         default=False,
         help='Only evaluation (default: False)')
+    parser.add_argument(
+        '--random',
+        dest='random',
+        type=int,
+        default=None,
+        help='Number of random images to try (default: None)')
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -234,12 +263,28 @@ if __name__ == "__main__":
         # TODO: this compilation probably is not necessary
         parallel_model.compile(loss=loss, optimizer=opt, metrics=metrics)
 
-    # FIXME: multiprocessing
-    if args.evaluate:
+    if args.random is not None:
+        for i in range(args.random):
+            ran_ind = np.random.randint(0, testing_generator.__len__())
+            x, y = testing_generator.__getitem__(ran_ind)
+            pred_fix = model.predict_on_batch(x)
+            x = inv_normalise_tensor(x, mean=mean, std=std)
+            for b in range(x.shape[0]):
+                for f in range(x.shape[1]):
+                    file_name = 'random_results/image_%d_%d_%d.jpg' % \
+                                (ran_ind, b, f)
+                    current_image = x[b, f,].squeeze()
+                    current_image = current_image[:, :, [2, 1, 0]].copy()
+                    visualise_results(current_image, y[b, f,],
+                                      pred_fix[b, f,], file_name)
+    elif args.evaluate:
+        # TODO: multiprocessing
         [loss_eval, euc_eval] = model.evaluate_generator(
             generator=testing_generator,
             use_multiprocessing=False,
-            workers=8)
+            workers=1,
+            verbose=1
+        )
         print(loss_eval, euc_eval)
     else:
         last_checkpoint_logger = ModelCheckpoint('model_weights_last.h5',
@@ -255,7 +300,7 @@ if __name__ == "__main__":
                                          validation_data=testing_generator,
                                          validation_steps=validation_steps,
                                          use_multiprocessing=False,
-                                         workers=8, epochs=45,
+                                         workers=1, epochs=45, verbose=1,
                                          callbacks=[
                                              LearningRateScheduler(
                                                  lr_schedule_lambda),
@@ -266,7 +311,7 @@ if __name__ == "__main__":
                                 validation_data=testing_generator,
                                 validation_steps=validation_steps,
                                 use_multiprocessing=False,
-                                workers=8, epochs=45,
+                                workers=1, epochs=45, verbose=1,
                                 callbacks=[
                                     LearningRateScheduler(lr_schedule_lambda),
                                     last_checkpoint_logger])
