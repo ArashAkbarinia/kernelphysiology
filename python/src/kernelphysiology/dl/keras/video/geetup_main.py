@@ -191,6 +191,12 @@ def visualise_results(current_image, gt, pred, file_name):
     cv2.imwrite(file_name, current_image)
 
 
+def euc_error_image(pred, gt):
+    pred_ind = np.asarray(max_pixel_ind(pred))
+    gt_ind = np.asarray(max_pixel_ind(gt))
+    return np.linalg.norm(pred_ind - gt_ind)
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='GEETUP Train/Test')
@@ -243,7 +249,7 @@ if __name__ == "__main__":
     create_dir(args.log_dir)
 
     logging.basicConfig(
-        filename=args.log_dir + 'experiment_info.log', filemode='w',
+        filename=args.log_dir + '/experiment_info.log', filemode='w',
         format='%(levelname)s: %(message)s', level=logging.INFO
     )
 
@@ -332,14 +338,35 @@ if __name__ == "__main__":
                     visualise_results(current_image, y[b, f,],
                                       pred_fix[b, f,], file_name)
     elif args.evaluate:
-        # TODO: multiprocessing
-        [loss_eval, euc_eval] = model.evaluate_generator(
-            generator=testing_generator,
-            use_multiprocessing=False,
-            workers=1,
-            verbose=1
+        sequence_length = 9
+        all_results = np.zeros(
+            (testing_generator.num_sequences, sequence_length)
         )
-        print(loss_eval, euc_eval)
+        j = 0
+        for i in range(testing_generator.__len__()):
+            x, y = testing_generator.__getitem__(i)
+            y = np.reshape(y,
+                           (y.shape[0], y.shape[1], target_size[0],
+                            target_size[1])
+                           )
+            pred_fix = model.predict_on_batch(x)
+            pred_fix = np.reshape(pred_fix, y.shape)
+            for b in range(x.shape[0]):
+                for f in range(x.shape[1]):
+                    all_results[j, f] = euc_error_image(
+                        pred_fix[b, f,].squeeze(), y[b, f,].squeeze()
+                    )
+                j += 1
+        # TODO: multiprocessing
+        # [loss_eval, euc_eval] = model.evaluate_generator(
+        #     generator=testing_generator,
+        #     use_multiprocessing=False,
+        #     workers=1,
+        #     verbose=1
+        # )
+        pickle_out = open(args.log_dir + '/geetup.pickle', 'wb')
+        pickle.dump(all_results, pickle_out)
+        pickle_out.close()
     else:
         last_checkpoint_logger = ModelCheckpoint(
             args.log_dir + '/model_weights_last.h5',
