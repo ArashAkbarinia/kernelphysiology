@@ -159,6 +159,7 @@ def test_arg_parser(argvs):
         '--colour_transformation',
         type=str,
         default='trichromat',
+        # TODO: add luminance blindness
         choices=[
             'trichromat',
             'monochromat',

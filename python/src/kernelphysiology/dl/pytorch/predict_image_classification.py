@@ -84,17 +84,28 @@ def main(argv):
         normalize = get_preprocessing_function(args.preprocessing)
 
         # FIXME: for now it only supports classification
-        # TODO: merge code with evaluation
         for i, manipulation_value in enumerate(image_manipulation_values):
             current_manipulation_preprocessing = PreprocessingTransformation(
                 image_manipulation_function,
                 manipulation_value,
                 args.mask_radius)
-            cts = []
-            if image_manipulation_type != 'original_rgb':
-                # TODO: change it to colour_transformation
+            # TODO: change args.preprocessings[j] to colour_transformation
+            # TODO: perhaps for inverting chromaticity and luminance as well
+            if (image_manipulation_type == 'original_rgb' or
+                    (image_manipulation_type == 'red_green'
+                     and args.preprocessings[j] == 'dichromat_rg') or
+                    (image_manipulation_type == 'yellow_blue'
+                     and args.preprocessings[j] == 'dichromat_yb') or
+                    (image_manipulation_type == 'chromaticity'
+                     and args.preprocessings[j] == 'monochromat') or
+                    (image_manipulation_type == 'lightness'
+                     and args.preprocessings[j] == 'lightness')
+            ):
+                cts = []
+            else:
                 cts = preprocessing.colour_transformation(
                     args.preprocessings[j])
+
             transformations = [*other_transformations, *cts,
                                current_manipulation_preprocessing]
 
