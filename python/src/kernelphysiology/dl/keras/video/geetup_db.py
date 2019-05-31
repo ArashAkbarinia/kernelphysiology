@@ -189,7 +189,7 @@ class GeetupGenerator(keras.utils.Sequence):
                 current_img = image.img_to_array(current_img)
                 x_batch[i, j,] = current_img
                 y_batch[i, j,] = heat_map_from_fixation(
-                    fixation_points[j],
+                    fixation_points[c_f_num - 1],
                     target_size=self.target_size,
                     org_size=org_size,
                     gaussian_kernel=self.gaussian_kernel)
