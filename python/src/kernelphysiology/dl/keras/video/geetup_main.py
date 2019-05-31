@@ -236,6 +236,12 @@ if __name__ == "__main__":
         default=15,
         help='Number of epochs (default: 15)')
     parser.add_argument(
+        '--batch_size',
+        dest='batch_size',
+        type=int,
+        default=8,
+        help='Batch size (default: 8)')
+    parser.add_argument(
         '--frame_based',
         action='store_true',
         default=False,
@@ -257,7 +263,7 @@ if __name__ == "__main__":
 
     frames_gap = 10
     sequence_length = 9
-    batch_size = 8
+    batch_size = args.batch_size
     target_size = (224, 224)
 
     mean = [103.939, 116.779, 123.68]
