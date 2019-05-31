@@ -344,6 +344,10 @@ if __name__ == "__main__":
         )
         j = 0
         for i in range(testing_generator.__len__()):
+            print('Processing video %d of %d (Euc avg %.2f med %.2f)' %
+                  (j, testing_generator.num_sequences,
+                   all_results[:j, ].mean(), np.median(all_results[:j, ]))
+                  )
             x, y = testing_generator.__getitem__(i)
             y = np.reshape(y,
                            (y.shape[0], y.shape[1], target_size[0],
