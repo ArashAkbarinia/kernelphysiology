@@ -133,7 +133,7 @@ if __name__ == "__main__":
             gaussian_sigma=30.5,
             preprocessing_function=preprocess)
 
-    pickle_in = open(args.test_file, 'rb')
+    pickle_in = open(args.validation_file, 'rb')
     testing_list = pickle.load(pickle_in)
 
     print('Training %d, Testing %d' % (len(training_list), len(testing_list)))
