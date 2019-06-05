@@ -77,7 +77,8 @@ def class_net_fcn_2p_lstm(input_shape, image_net=None, mid_layer=None,
     if image_net is not None:
         c0 = TimeDistributed(image_net)(input_img)
     else:
-        x = input_img
+        c0 = TimeDistributed(
+            Conv2D(c, kernel_size=(3, 3), strides=4, padding='same'))(input_img)
     if frame_based:
         x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(c0)
     else:
@@ -98,9 +99,9 @@ def class_net_fcn_2p_lstm(input_shape, image_net=None, mid_layer=None,
     c1 = BatchNormalization()(c1)
 
     x = TimeDistributed(MaxPooling2D((2, 2), (2, 2)))(c1)
-    x = TimeDistributed(ZeroPadding2D(padding=((1, 0), (1, 0))))(x)
+    #    x = TimeDistributed(ZeroPadding2D(padding=((1, 0), (1, 0))))(x)
 
-    if image_net is not None:
+    if mid_layer is not None:
         x_mid = TimeDistributed(mid_layer)(input_img)
         x = Concatenate()([x_mid, x])
 
@@ -150,7 +151,7 @@ def class_net_fcn_2p_lstm(input_shape, image_net=None, mid_layer=None,
     x = BatchNormalization()(x)
 
     x = TimeDistributed(UpSampling2D((2, 2)))(x)
-    c1 = TimeDistributed(ZeroPadding2D(padding=((1, 0), (1, 0))))(c1)
+    #    c1 = TimeDistributed(ZeroPadding2D(padding=((1, 0), (1, 0))))(c1)
     x = Concatenate()([c1, x])
 
     x = TimeDistributed(UpSampling2D((4, 4)))(x)
@@ -246,6 +247,16 @@ if __name__ == "__main__":
         action='store_true',
         default=False,
         help='Make the model frame based (default: False)')
+    parser.add_argument(
+        '--low_resnet',
+        action='store_true',
+        default=False,
+        help='Using low level output of ResNet (default: False)')
+    parser.add_argument(
+        '--mid_resnet',
+        action='store_true',
+        default=False,
+        help='Using mid level output of ResNet (default: False)')
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -273,7 +284,7 @@ if __name__ == "__main__":
 
     training_list = []
     if args.evaluate is False:
-        pickle_in = open('two_parts_training.pickle', 'rb')
+        pickle_in = open('training_all.pickle', 'rb')
         training_list = pickle.load(pickle_in)
 
         training_generator = geetup_db.GeetupGenerator(
@@ -283,7 +294,7 @@ if __name__ == "__main__":
             gaussian_sigma=30.5,
             preprocessing_function=preprocess)
 
-    pickle_in = open('two_parts_testing.pickle', 'rb')
+    pickle_in = open('testing_inter_subjects.pickle', 'rb')
     testing_list = pickle.load(pickle_in)
 
     print('Training %d, Testing %d' % (len(training_list), len(testing_list)))
@@ -296,21 +307,27 @@ if __name__ == "__main__":
         preprocessing_function=preprocess,
         shuffle=not args.evaluate)
 
-    resnet = keras.applications.ResNet50(weights='imagenet')
-    for i, layer in enumerate(resnet.layers):
-        layer.trainable = False
-    resnet_mid = keras.models.Model(inputs=resnet.input,
+    if args.low_resnet:
+        resnet = keras.applications.ResNet50(weights='imagenet')
+        for i, layer in enumerate(resnet.layers):
+            layer.trainable = False
+        if args.mid_resnet:
+            resnet_mid = keras.models.Model(inputs=resnet.input,
+                                            outputs=resnet.get_layer(
+                                                'activation_22').output)
+        else:
+            resnet_mid = None
+        resnet = keras.models.Model(inputs=resnet.input,
                                     outputs=resnet.get_layer(
-                                        'activation_22').output)
-    resnet = keras.models.Model(inputs=resnet.input,
-                                outputs=resnet.get_layer(
-                                    'activation_10').output)
-    # outputs = [resnet.get_layer('activation_10').output,
-    #           resnet.get_layer('activation_22').output]
-    # resnet = K.function([resnet.input, K.learning_phase()], outputs)
-    model = class_net_fcn_2p_lstm(
-        (sequence_length, *target_size, 3), resnet, resnet_mid, args.frame_based
-    )
+                                        'activation_10').output)
+        model = class_net_fcn_2p_lstm(
+            (sequence_length, *target_size, 3), resnet, resnet_mid,
+            args.frame_based
+        )
+    else:
+        model = class_net_fcn_2p_lstm(
+            (sequence_length, *target_size, 3), None, None, args.frame_based
+        )
     if args.evaluate:
         model.load_weights(args.weights)
 
