@@ -17,15 +17,15 @@ import sys
 import os
 import pickle
 import logging
-import argparse
 
 from functools import partial
 from functools import update_wrapper
 
-from kernelphysiology.dl.keras.video import geetup_db
 from kernelphysiology.utils.imutils import max_pixel_ind
 from kernelphysiology.utils.path_utils import create_dir
-from .geetup_net import class_net_fcn_2p_lstm
+from . import geetup_net
+from . import geetup_db
+from . import geetup_opts
 
 
 def euc_error(y_true, y_pred, target_size):
@@ -96,65 +96,8 @@ def euc_error_image(pred, gt):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='GEETUP Train/Test')
-    parser.add_argument(
-        '--weights',
-        dest='weights',
-        type=str,
-        default=None,
-        help='Path to the weights')
-    parser.add_argument(
-        '--log_dir',
-        dest='log_dir',
-        type=str,
-        default='Ex',
-        help='Path to the logging directory (default: Ex')
-    parser.add_argument(
-        '--gpus',
-        nargs='+',
-        type=int,
-        default=[0],
-        help='List of GPUs to be used (default: [0])')
-    parser.add_argument(
-        '--evaluate',
-        action='store_true',
-        default=False,
-        help='Only evaluation (default: False)')
-    parser.add_argument(
-        '--random',
-        dest='random',
-        type=int,
-        default=None,
-        help='Number of random images to try (default: None)')
-    parser.add_argument(
-        '--epochs',
-        dest='epochs',
-        type=int,
-        default=15,
-        help='Number of epochs (default: 15)')
-    parser.add_argument(
-        '--batch_size',
-        dest='batch_size',
-        type=int,
-        default=8,
-        help='Batch size (default: 8)')
-    parser.add_argument(
-        '--frame_based',
-        action='store_true',
-        default=False,
-        help='Make the model frame based (default: False)')
-    parser.add_argument(
-        '--low_resnet',
-        action='store_true',
-        default=False,
-        help='Using low level output of ResNet (default: False)')
-    parser.add_argument(
-        '--mid_resnet',
-        action='store_true',
-        default=False,
-        help='Using mid level output of ResNet (default: False)')
-
-    args = parser.parse_args(sys.argv[1:])
+    parser = geetup_opts.argument_parser()
+    args = geetup_opts.check_args(parser, sys.argv[1:])
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
     gpus = [*range(len(args.gpus))]
@@ -180,7 +123,7 @@ if __name__ == "__main__":
 
     training_list = []
     if args.evaluate is False:
-        pickle_in = open('training_all.pickle', 'rb')
+        pickle_in = open(args.train_file, 'rb')
         training_list = pickle.load(pickle_in)
 
         training_generator = geetup_db.GeetupGenerator(
@@ -190,7 +133,7 @@ if __name__ == "__main__":
             gaussian_sigma=30.5,
             preprocessing_function=preprocess)
 
-    pickle_in = open('testing_inter_subjects.pickle', 'rb')
+    pickle_in = open(args.test_file, 'rb')
     testing_list = pickle.load(pickle_in)
 
     print('Training %d, Testing %d' % (len(training_list), len(testing_list)))
@@ -203,29 +146,12 @@ if __name__ == "__main__":
         preprocessing_function=preprocess,
         shuffle=not args.evaluate)
 
-    if args.low_resnet:
-        resnet = keras.applications.ResNet50(weights='imagenet')
-        for i, layer in enumerate(resnet.layers):
-            layer.trainable = False
-        if args.mid_resnet:
-            resnet_mid = keras.models.Model(inputs=resnet.input,
-                                            outputs=resnet.get_layer(
-                                                'activation_22').output)
-        else:
-            resnet_mid = None
-        resnet = keras.models.Model(inputs=resnet.input,
-                                    outputs=resnet.get_layer(
-                                        'activation_10').output)
-        model = class_net_fcn_2p_lstm(
-            (sequence_length, *target_size, 3), resnet, resnet_mid,
-            args.frame_based
-        )
-    else:
-        model = class_net_fcn_2p_lstm(
-            (sequence_length, *target_size, 3), None, None, args.frame_based
-        )
-    if args.evaluate:
-        model.load_weights(args.weights)
+    model = geetup_net.get_network(
+        args.architecture,
+        input_shape=(sequence_length, *target_size, 3),
+        frame_based=args.frame_based,
+        weights=args.weights
+    )
 
     euc_metric = wrapped_partial(euc_error, target_size=target_size)
 
@@ -280,13 +206,6 @@ if __name__ == "__main__":
                         pred_fix[b, f,].squeeze(), y[b, f,].squeeze()
                     )
                 j += 1
-        # TODO: multiprocessing
-        # [loss_eval, euc_eval] = model.evaluate_generator(
-        #     generator=testing_generator,
-        #     use_multiprocessing=False,
-        #     workers=1,
-        #     verbose=1
-        # )
         pickle_out = open(args.log_dir + '/geetup.pickle', 'wb')
         pickle.dump(all_results, pickle_out)
         pickle_out.close()

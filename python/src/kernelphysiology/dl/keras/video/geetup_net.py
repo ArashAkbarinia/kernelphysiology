@@ -15,8 +15,51 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers.wrappers import TimeDistributed
 
 
-def class_net_fcn_2p_lstm(input_shape, image_net=None, mid_layer=None,
-                          frame_based=False):
+def get_network(architecture_name, input_shape, frame_based, weights=None):
+    model = which_architecture(architecture_name, input_shape, frame_based)
+    if weights is not None:
+        model.load_weights(weights)
+    return model
+
+
+def _object_detection_net():
+    resnet = keras.applications.ResNet50(weights='imagenet')
+    for i, layer in enumerate(resnet.layers):
+        layer.trainable = False
+    return resnet
+
+
+def which_architecture(architecture_name, input_shape, frame_based):
+    if architecture_name == 'draft':
+        return draft_architecture(input_shape, None, None, frame_based)
+    elif architecture_name == 'draft_lm':
+        resnet = _object_detection_net()
+        resnet_mid = keras.models.Model(
+            inputs=resnet.input,
+            outputs=resnet.get_layer('activation_22').output
+        )
+        resnet = keras.models.Model(
+            inputs=resnet.input,
+            outputs=resnet.get_layer('activation_10').output
+        )
+        model = draft_architecture(
+            input_shape, resnet, resnet_mid, frame_based
+        )
+        return model
+    elif architecture_name == 'draft_l':
+        resnet = _object_detection_net()
+        resnet = keras.models.Model(
+            inputs=resnet.input,
+            outputs=resnet.get_layer('activation_10').output
+        )
+        model = draft_architecture(
+            input_shape, resnet, None, frame_based
+        )
+        return model
+
+
+def draft_architecture(input_shape, image_net=None, mid_layer=None,
+                       frame_based=False):
     c = 32
     input_img = Input(input_shape, name='input')
     if image_net is not None:
