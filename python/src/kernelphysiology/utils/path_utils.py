@@ -1,7 +1,6 @@
-'''
+"""
 Utility functions for path, file and folder related.
-'''
-
+"""
 
 import os
 

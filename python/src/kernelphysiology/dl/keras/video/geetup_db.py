@@ -5,12 +5,77 @@ Reading the GEETUP dataset and creating train and validation sets.
 import numpy as np
 import glob
 import logging
+import os
 
 import keras
 import keras.backend as K
 from keras.preprocessing import image
 
 from kernelphysiology.filterfactory import gaussian
+from kernelphysiology.utils import path_utils
+
+
+def cleanup_dataset(dataset_dir):
+    for subject_dir in glob.glob(dataset_dir + '/*/'):
+        cleanup_subject(subject_dir)
+
+
+def cleanup_subject(subject_dir):
+    rows = 360
+    cols = 640
+    margin = 5
+    for segment in glob.glob(subject_dir + '/segments/*/'):
+        for video_dir in glob.glob(segment + '/CutVid_*/'):
+            good_frames_dir = video_dir + '/selected_frames/'
+            path_utils.create_dir(good_frames_dir)
+            current_num_frames = len(glob.glob((video_dir + '/*.jpg')))
+            video_ind = video_dir.split('/')[-2].split('_')[-1]
+            gts = np.loadtxt(
+                segment + '/SUBSAMP_EYETR_' + video_ind + '.txt')
+            if gts.shape[0] != current_num_frames:
+                logging.info('%s contains %d frames but %d fixation points' %
+                             (video_dir, current_num_frames, gts.shape[0]))
+                ignore_video_dir = '%s/Ignore_CutVid_%s/' % (segment, video_ind)
+                os.rename(video_dir, ignore_video_dir)
+                continue
+            # ignoring all fixation points that are around corner
+            conds = np.zeros((gts.shape[0], 4))
+            conds[:, 0] = np.all(
+                [[gts[:, 0] < margin], [gts[:, 1] < margin]],
+                axis=0
+            ).squeeze()
+            conds[:, 1] = np.all(
+                [[gts[:, 0] < margin], [gts[:, 1] > (rows - margin)]],
+                axis=0
+            ).squeeze()
+            conds[:, 2] = np.all(
+                [[gts[:, 0] > (cols - margin)], [gts[:, 1] < margin]],
+                axis=0
+            ).squeeze()
+            conds[:, 3] = np.all(
+                [[gts[:, 0] > (cols - margin)], [gts[:, 1] > (rows - margin)]],
+                axis=0
+            ).squeeze()
+            conds = np.invert(np.any(conds, axis=1))
+
+            j = 1
+            cleaned_gts = []
+            for i in range(current_num_frames):
+                previous_frame = True
+                next_frame = True
+                if i != 0:
+                    previous_frame = conds[i - 1]
+                if i != (current_num_frames - 1):
+                    next_frame = conds[i + 1]
+                if previous_frame and conds[i] and next_frame:
+                    # moving good frames to selected frames
+                    os.rename(
+                        video_dir + '/frames%d.jpg' % (i + 1),
+                        good_frames_dir + '/frames%d.jpg' % j,
+                    )
+                    j += 1
+                    cleaned_gts.append(gts[i, :])
+            np.savetxt(good_frames_dir + '/gt.txt', np.array(cleaned_gts))
 
 
 def last_valid_frame(video_dir, frames_gap=10, sequence_length=9):
