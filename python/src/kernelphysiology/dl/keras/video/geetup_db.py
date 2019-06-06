@@ -90,20 +90,12 @@ def last_valid_frame(video_dir, frames_gap=10, sequence_length=9):
 
 def subject_frame_limits(subject_dir, frames_gap=10, sequence_length=9):
     subject_data = []
-    for segment in glob.glob(subject_dir + '/segments/*/'):
-        for video_dir in glob.glob(segment + '/CutVid_*/'):
-            current_num_frames = len(glob.glob((video_dir + '/*.jpg')))
+    for segment in sorted(glob.glob(subject_dir + '/segments/*/')):
+        for video_dir in sorted(glob.glob(segment + '/CutVid_*/')):
             video_ind = video_dir.split('/')[-2].split('_')[-1]
-            fixation_array = np.loadtxt(
-                segment + '/SUBSAMP_EYETR_' + video_ind + '.txt')
-            if fixation_array.shape[0] != current_num_frames:
-                logging.info('%s contains %d frames but %d fixation points' %
-                             (video_dir,
-                              current_num_frames,
-                              fixation_array.shape[0]))
-                continue
-            current_video_limit = last_valid_frame(video_dir, frames_gap,
-                                                   sequence_length)
+            current_video_limit = last_valid_frame(
+                video_dir + '/selected_frames/', frames_gap, sequence_length
+            )
             if current_video_limit > 0:
                 subject_data.append([segment, video_ind, current_video_limit])
     return subject_data
@@ -238,8 +230,10 @@ class GeetupGenerator(keras.utils.Sequence):
             # get the video and frame number
             segment_dir = self.video_list[video_id[0]][0]
             video_num = self.video_list[video_id[0]][1]
-            video_path = segment_dir + '/CutVid_' + video_num + '/frames'
-            fixation_path = segment_dir + 'SUBSAMP_EYETR_' + video_num + '.txt'
+            selected_path = segment_dir + '/CutVid_' + video_num + \
+                         '/selected_frames/'
+            video_path = selected_path + 'frames'
+            fixation_path = selected_path + 'gt.txt'
             frame_num = video_id[2]
             fixation_points = np.loadtxt(fixation_path)
             start_frame = frame_num + 1
