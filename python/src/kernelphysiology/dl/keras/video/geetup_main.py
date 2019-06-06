@@ -219,8 +219,8 @@ if __name__ == "__main__":
             os.path.join(args.log_dir, 'log.csv'),
             append=False, separator=';')
 
-        steps_per_epoch = 10000
-        validation_steps = 100
+        steps_per_epoch = round(10000 / args.batch_size)
+        validation_steps = round(100 / args.batch_size)
         if parallel_model is not None:
             parallel_model.fit_generator(
                 generator=training_generator,
