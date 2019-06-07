@@ -7,6 +7,7 @@ from keras.layers import Reshape
 from keras.layers import Input
 from keras.layers import UpSampling2D
 from keras.layers import Concatenate
+from keras.layers import Activation
 from keras.layers import ZeroPadding2D
 from keras.layers.convolutional import Conv2D
 from keras.layers.convolutional import MaxPooling2D
@@ -53,6 +54,32 @@ def which_architecture(architecture_name, input_shape, frame_based):
             outputs=resnet.get_layer('activation_10').output
         )
         model = draft_architecture(
+            input_shape, resnet, None, frame_based
+        )
+        return model
+    elif architecture_name == 'resnet':
+        return resnet_architecture(input_shape, None, None, frame_based)
+    elif architecture_name == 'resnet_lm':
+        resnet = _object_detection_net()
+        resnet_mid = keras.models.Model(
+            inputs=resnet.input,
+            outputs=resnet.get_layer('activation_22').output
+        )
+        resnet = keras.models.Model(
+            inputs=resnet.input,
+            outputs=resnet.get_layer('activation_10').output
+        )
+        model = resnet_architecture(
+            input_shape, resnet, resnet_mid, frame_based
+        )
+        return model
+    elif architecture_name == 'resnet_l':
+        resnet = _object_detection_net()
+        resnet = keras.models.Model(
+            inputs=resnet.input,
+            outputs=resnet.get_layer('activation_10').output
+        )
+        model = resnet_architecture(
             input_shape, resnet, None, frame_based
         )
         return model
@@ -147,6 +174,146 @@ def draft_architecture(input_shape, image_net=None, mid_layer=None,
     output = TimeDistributed(
         Conv2D(1, kernel_size=(3, 3), padding='same', activation='sigmoid'),
         name='output')(x)
+
+    output = Reshape((-1, input_shape[1] * input_shape[2], 1))(output)
+    model = keras.models.Model(input_img, output)
+    return model
+
+
+def resnet_layer(inputs, num_kernels, rf_size, conv_first=True,
+                 activation='relu', batch_normalization=True, strides=(1, 1),
+                 padding='same', frame_based=False):
+    if frame_based:
+        conv = TimeDistributed(Conv2D(
+            num_kernels, kernel_size=rf_size, strides=strides, padding=padding))
+    else:
+        conv = ConvLSTM2D(num_kernels, rf_size, strides=strides,
+                          padding=padding, return_sequences=True)
+    x = inputs
+    if conv_first:
+        x = conv(x)
+        if batch_normalization:
+            x = BatchNormalization()(x)
+        if activation is not None:
+            x = Activation(activation)(x)
+    else:
+        if batch_normalization:
+            x = BatchNormalization()(x)
+        if activation is not None:
+            x = Activation(activation)(x)
+        x = conv(x)
+    return x
+
+
+def resnet_architecture(input_shape, image_net=None, mid_layer=None,
+                        frame_based=False, depth=20):
+    num_filters_in = 16
+    input_img = Input(input_shape, name='input')
+
+    if image_net is not None:
+        x = TimeDistributed(image_net)(input_img)
+    else:
+        x = TimeDistributed(
+            Conv2D(
+                num_filters_in, kernel_size=(3, 3), strides=4, padding='same'
+            )
+        )(input_img)
+    if frame_based:
+        x = TimeDistributed(
+            Conv2D(num_filters_in, kernel_size=(7, 7), padding='same')
+        )(x)
+    else:
+        x = ConvLSTM2D(
+            filters=num_filters_in, kernel_size=(7, 7),
+            padding='same', return_sequences=True
+        )(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    num_res_blocks = int((depth - 2) / 9)
+    for stage in range(3):
+        for res_block in range(num_res_blocks):
+            activation = 'relu'
+            batch_normalization = True
+            strides = 1
+            if stage == 0:
+                num_filters_out = num_filters_in * 4
+                if res_block == 0:  # first layer and first stage
+                    activation = None
+                    batch_normalization = False
+            else:
+                num_filters_out = num_filters_in * 2
+                if res_block == 0:  # first layer but not first stage
+                    strides = 2  # downsample
+
+            # bottleneck residual unit
+            y = resnet_layer(inputs=x,
+                             num_kernels=num_filters_in,
+                             rf_size=1,
+                             strides=strides,
+                             activation=activation,
+                             batch_normalization=batch_normalization,
+                             conv_first=False,
+                             frame_based=frame_based)
+            y = resnet_layer(inputs=y,
+                             num_kernels=num_filters_in,
+                             rf_size=3,
+                             conv_first=False,
+                             frame_based=frame_based)
+            y = resnet_layer(inputs=y,
+                             num_kernels=num_filters_out,
+                             rf_size=1,
+                             conv_first=False,
+                             frame_based=frame_based)
+            if res_block == 0:
+                x = resnet_layer(inputs=x,
+                                 num_kernels=num_filters_out,
+                                 rf_size=1,
+                                 strides=strides,
+                                 activation=None,
+                                 batch_normalization=False,
+                                 frame_based=frame_based)
+            x = keras.layers.add([x, y])
+            if strides == 2 and stage == 1:
+                if mid_layer is not None:
+                    x_mid = TimeDistributed(mid_layer)(input_img)
+                    x = keras.layers.concatenate([x, x_mid])
+                    x = resnet_layer(inputs=x,
+                                     num_kernels=num_filters_out,
+                                     rf_size=1,
+                                     strides=1,
+                                     activation=None,
+                                     batch_normalization=False,
+                                     frame_based=frame_based)
+
+        num_filters_in = num_filters_out
+
+    x = TimeDistributed(UpSampling2D((2, 2)))(x)
+    if frame_based:
+        x = TimeDistributed(Conv2D(16, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        x = ConvLSTM2D(
+            filters=16, kernel_size=(3, 3),
+            padding='same', return_sequences=True
+        )(x)
+    x = BatchNormalization()(x)
+
+    x = TimeDistributed(UpSampling2D((2, 2)))(x)
+    if frame_based:
+        x = TimeDistributed(Conv2D(16, kernel_size=(3, 3), padding='same'))(x)
+    else:
+        x = ConvLSTM2D(
+            filters=16, kernel_size=(3, 3),
+            padding='same', return_sequences=True
+        )(x)
+    x = BatchNormalization()(x)
+
+    x = Activation('relu')(x)
+    x = TimeDistributed(UpSampling2D((4, 4)))(x)
+    output = TimeDistributed(
+        Conv2D(1, kernel_size=(3, 3), padding='same', activation='sigmoid'),
+        name='output'
+    )(x)
 
     output = Reshape((-1, input_shape[1] * input_shape[2], 1))(output)
     model = keras.models.Model(input_img, output)
