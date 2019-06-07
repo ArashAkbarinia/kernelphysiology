@@ -101,6 +101,8 @@ def evaluate(model, args, validation_name):
         testing_list,
         batch_size=args.batch_size,
         target_size=args.target_size,
+        frames_gap=args.frames_gap,
+        sequence_length=args.sequence_length,
         gaussian_sigma=30.5,
         preprocessing_function=preprocess,
         shuffle=False)
@@ -151,6 +153,8 @@ def random_image(model, args):
         testing_list,
         batch_size=args.batch_size,
         target_size=args.target_size,
+        frames_gap=args.frames_gap,
+        sequence_length=args.sequence_length,
         gaussian_sigma=30.5,
         preprocessing_function=preprocess,
         shuffle=False)
@@ -196,7 +200,6 @@ if __name__ == "__main__":
 
     lr_schedule_lambda = partial(lr_schedule_resnet, lr=0.1)
 
-    frames_gap = 10
     args.sequence_length = 9
     args.target_size = (224, 224)
 
@@ -207,23 +210,27 @@ if __name__ == "__main__":
 
     training_list = []
     if args.evaluate is False:
-        pickle_in = open(args.train_file, 'rb')
+        pickle_in = open(os.path.join(args.data_dir, args.train_file), 'rb')
         training_list = pickle.load(pickle_in)
 
         training_generator = geetup_db.GeetupGenerator(
             training_list,
             batch_size=args.batch_size,
             target_size=args.target_size,
+            frames_gap=args.frames_gap,
+            sequence_length=args.sequence_length,
             gaussian_sigma=30.5,
             preprocessing_function=preprocess)
 
-        pickle_in = open(args.validation_file, 'rb')
+        pickle_in = open(os.path.join(args.data_dir, args.train_file), 'rb')
         testing_list = pickle.load(pickle_in)
 
         testing_generator = geetup_db.GeetupGenerator(
             testing_list,
             batch_size=args.batch_size,
             target_size=args.target_size,
+            frames_gap=args.frames_gap,
+            sequence_length=args.sequence_length,
             gaussian_sigma=30.5,
             preprocessing_function=preprocess,
             shuffle=not args.evaluate)
@@ -296,7 +303,9 @@ if __name__ == "__main__":
                     LearningRateScheduler(lr_schedule_lambda),
                     last_checkpoint_logger]
             )
-        args.validation_file = '/home/arash/Software/repositories/kernelphysiology/python/data/datasets/geetup/testing_all_subjects.pickle'
+        args.validation_file = os.path.join(args.data_dir,
+                                            'testing_all_subjects.pickle')
         evaluate(model, args, 'all_subjects')
-        args.validation_file = '/home/arash/Software/repositories/kernelphysiology/python/data/datasets/geetup/testing_inter_subjects.pickle'
+        args.validation_file = os.path.join(args.data_dir,
+                                            'testing_inter_subjects.pickle')
         evaluate(model, args, 'inter_subjects')

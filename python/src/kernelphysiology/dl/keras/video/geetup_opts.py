@@ -16,7 +16,9 @@ def check_args(parser, argv):
         if args.weights is None:
             sys.exit('Models weights most be specified.')
     else:
-        if args.train_file is None:
+        if args.data_dir is None:
+            sys.exit('The data dir should be specified')
+        elif args.train_file is None:
             sys.exit('The training file should be specified')
     return args
 
@@ -30,6 +32,11 @@ def argument_parser():
 
     data_group = parser.add_argument_group('data')
     data_group.add_argument(
+        '--data_dir',
+        dest='data_dir',
+        type=str,
+        help='Path to the data folder')
+    data_group.add_argument(
         '--train_file',
         dest='train_file',
         type=str,
@@ -39,6 +46,12 @@ def argument_parser():
         dest='validation_file',
         type=str,
         help='Path to the validation file')
+    # TODO: move frames_gap to the pickle file
+    data_group.add_argument(
+        '--frames_gap',
+        dest='frames_gap',
+        type=int,
+        help='Gaps between frames when reading the video')
 
     parser.add_argument(
         '--log_dir',
