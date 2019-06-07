@@ -16,7 +16,9 @@ def check_args(parser, argv):
         if args.weights is None:
             sys.exit('Models weights most be specified.')
     else:
-        if args.train_file is None:
+        if args.data_dir is None:
+            sys.exit('The data dir should be specified')
+        elif args.train_file is None:
             sys.exit('The training file should be specified')
     return args
 
@@ -29,6 +31,11 @@ def argument_parser():
         help='Type of architecture to be used')
 
     data_group = parser.add_argument_group('data')
+    data_group.add_argument(
+        '--data_dir',
+        dest='data_dir',
+        type=str,
+        help='Path to the data folder')
     data_group.add_argument(
         '--train_file',
         dest='train_file',
