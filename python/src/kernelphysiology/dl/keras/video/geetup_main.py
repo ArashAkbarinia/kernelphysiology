@@ -94,6 +94,46 @@ def euc_error_image(pred, gt):
     return np.linalg.norm(pred_ind - gt_ind)
 
 
+def evaluate(model, args, validation_name):
+    pickle_in = open(args.validation_file, 'rb')
+    testing_list = pickle.load(pickle_in)
+    testing_generator = geetup_db.GeetupGenerator(
+        testing_list,
+        batch_size=args.batch_size,
+        target_size=args.target_size,
+        gaussian_sigma=30.5,
+        preprocessing_function=preprocess,
+        shuffle=False)
+
+    all_results = np.zeros(
+        (testing_generator.num_sequences, args.sequence_length)
+    )
+    j = 0
+    for i in range(testing_generator.__len__()):
+        if i % 100 == 0:
+            print('Processing %s %d of %d (Euc avg %.2f med %.2f)' %
+                  (validation_name, j, testing_generator.num_sequences,
+                   all_results[:j, ].mean(), np.median(all_results[:j, ]))
+                  )
+        x, y = testing_generator.__getitem__(i)
+        y = np.reshape(y,
+                       (y.shape[0], y.shape[1],
+                        args.target_size[0], args.target_size[1])
+                       )
+        pred_fix = model.predict_on_batch(x)
+        pred_fix = np.reshape(pred_fix, y.shape)
+        for b in range(x.shape[0]):
+            for f in range(x.shape[1]):
+                all_results[j, f] = euc_error_image(
+                    pred_fix[b, f,].squeeze(), y[b, f,].squeeze()
+                )
+            j += 1
+    result_file = '%s/%s_pred.pickle' % (args.log_dir, validation_name)
+    pickle_out = open(result_file, 'wb')
+    pickle.dump(all_results, pickle_out)
+    pickle_out.close()
+
+
 if __name__ == "__main__":
 
     parser = geetup_opts.argument_parser()
@@ -112,9 +152,8 @@ if __name__ == "__main__":
     lr_schedule_lambda = partial(lr_schedule_resnet, lr=0.1)
 
     frames_gap = 10
-    sequence_length = 9
-    batch_size = args.batch_size
-    target_size = (224, 224)
+    args.sequence_length = 9
+    args.target_size = (224, 224)
 
     mean = [103.939, 116.779, 123.68]
     std = [1, 1, 1]
@@ -128,32 +167,32 @@ if __name__ == "__main__":
 
         training_generator = geetup_db.GeetupGenerator(
             training_list,
-            batch_size=batch_size,
-            target_size=target_size,
+            batch_size=args.batch_size,
+            target_size=args.target_size,
             gaussian_sigma=30.5,
             preprocessing_function=preprocess)
 
-    pickle_in = open(args.validation_file, 'rb')
-    testing_list = pickle.load(pickle_in)
+        pickle_in = open(args.validation_file, 'rb')
+        testing_list = pickle.load(pickle_in)
+
+        testing_generator = geetup_db.GeetupGenerator(
+            testing_list,
+            batch_size=args.batch_size,
+            target_size=args.target_size,
+            gaussian_sigma=30.5,
+            preprocessing_function=preprocess,
+            shuffle=not args.evaluate)
 
     print('Training %d, Testing %d' % (len(training_list), len(testing_list)))
 
-    testing_generator = geetup_db.GeetupGenerator(
-        testing_list,
-        batch_size=batch_size,
-        target_size=target_size,
-        gaussian_sigma=30.5,
-        preprocessing_function=preprocess,
-        shuffle=not args.evaluate)
-
     model = geetup_net.get_network(
         args.architecture,
-        input_shape=(sequence_length, *target_size, 3),
+        input_shape=(args.sequence_length, *args.target_size, 3),
         frame_based=args.frame_based,
         weights=args.weights
     )
 
-    euc_metric = wrapped_partial(euc_error, target_size=target_size)
+    euc_metric = wrapped_partial(euc_error, target_size=args.target_size)
 
     metrics = [euc_metric]
     loss = 'binary_crossentropy'
@@ -169,8 +208,15 @@ if __name__ == "__main__":
         parallel_model.compile(loss=loss, optimizer=opt, metrics=metrics)
 
     if args.random is not None:
-        for i in range(args.random):
-            ran_ind = np.random.randint(0, testing_generator.__len__())
+        if len(args.random) == 1:
+            which_images = range(args.random)
+        else:
+            which_images = args.random
+        for i in which_images:
+            if len(args.random) == 1:
+                ran_ind = np.random.randint(0, testing_generator.__len__())
+            else:
+                ran_ind = i
             x, y = testing_generator.__getitem__(ran_ind)
             pred_fix = model.predict_on_batch(x)
             x = inv_normalise_tensor(x, mean=mean, std=std)
@@ -183,32 +229,7 @@ if __name__ == "__main__":
                     visualise_results(current_image, y[b, f,],
                                       pred_fix[b, f,], file_name)
     elif args.evaluate:
-        sequence_length = 9
-        all_results = np.zeros(
-            (testing_generator.num_sequences, sequence_length)
-        )
-        j = 0
-        for i in range(testing_generator.__len__()):
-            print('Processing video %d of %d (Euc avg %.2f med %.2f)' %
-                  (j, testing_generator.num_sequences,
-                   all_results[:j, ].mean(), np.median(all_results[:j, ]))
-                  )
-            x, y = testing_generator.__getitem__(i)
-            y = np.reshape(y,
-                           (y.shape[0], y.shape[1], target_size[0],
-                            target_size[1])
-                           )
-            pred_fix = model.predict_on_batch(x)
-            pred_fix = np.reshape(pred_fix, y.shape)
-            for b in range(x.shape[0]):
-                for f in range(x.shape[1]):
-                    all_results[j, f] = euc_error_image(
-                        pred_fix[b, f,].squeeze(), y[b, f,].squeeze()
-                    )
-                j += 1
-        pickle_out = open(args.log_dir + '/geetup.pickle', 'wb')
-        pickle.dump(all_results, pickle_out)
-        pickle_out.close()
+        evaluate(model, args, 'validation_name')
     else:
         last_checkpoint_logger = ModelCheckpoint(
             args.log_dir + '/model_weights_last.h5',
@@ -248,3 +269,7 @@ if __name__ == "__main__":
                     LearningRateScheduler(lr_schedule_lambda),
                     last_checkpoint_logger]
             )
+        args.validation_file = '/home/arash/Software/repositories/kernelphysiology/python/data/datasets/geetup/testing_all_subjects.pickle'
+        evaluate(model, args, 'all_subjects')
+        args.validation_file = '/home/arash/Software/repositories/kernelphysiology/python/data/datasets/geetup/testing_inter_subjects.pickle'
+        evaluate(model, args, 'inter_subjects')

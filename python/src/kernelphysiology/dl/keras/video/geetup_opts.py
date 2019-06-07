@@ -8,6 +8,8 @@ import argparse
 
 def check_args(parser, argv):
     args = parser.parse_args(argv)
+    if args.random is not None:
+        args.evaluate = True
     if args.evaluate:
         if args.validation_file is None:
             sys.exit('The validation file should be specified')
@@ -52,6 +54,7 @@ def argument_parser():
     parser.add_argument(
         '--random',
         dest='random',
+        nargs='+',
         type=int,
         default=None,
         help='Number of random images to try (default: None)')
