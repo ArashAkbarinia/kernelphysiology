@@ -134,6 +134,39 @@ def evaluate(model, args, validation_name):
     pickle_out.close()
 
 
+def random_image(model, args):
+    pickle_in = open(args.validation_file, 'rb')
+    testing_list = pickle.load(pickle_in)
+    testing_generator = geetup_db.GeetupGenerator(
+        testing_list,
+        batch_size=args.batch_size,
+        target_size=args.target_size,
+        gaussian_sigma=30.5,
+        preprocessing_function=preprocess,
+        shuffle=False)
+
+    if len(args.random) == 1:
+        which_images = range(args.random)
+    else:
+        which_images = args.random
+    for i in which_images:
+        if len(args.random) == 1:
+            ran_ind = np.random.randint(0, testing_generator.__len__())
+        else:
+            ran_ind = i
+        x, y = testing_generator.__getitem__(ran_ind)
+        pred_fix = model.predict_on_batch(x)
+        x = inv_normalise_tensor(x, mean=mean, std=std)
+        for b in range(x.shape[0]):
+            for f in range(x.shape[1]):
+                file_name = '%s/image_%d_%d_%d.jpg' % \
+                            (args.log_dir, ran_ind, b, f)
+                current_image = x[b, f,].squeeze()
+                current_image = current_image[:, :, [2, 1, 0]].copy()
+                visualise_results(current_image, y[b, f,],
+                                  pred_fix[b, f,], file_name)
+
+
 if __name__ == "__main__":
 
     parser = geetup_opts.argument_parser()
@@ -183,7 +216,8 @@ if __name__ == "__main__":
             preprocessing_function=preprocess,
             shuffle=not args.evaluate)
 
-    print('Training %d, Testing %d' % (len(training_list), len(testing_list)))
+        print('Training %d, Testing %d' %
+              (len(training_list), len(testing_list)))
 
     model = geetup_net.get_network(
         args.architecture,
@@ -208,26 +242,7 @@ if __name__ == "__main__":
         parallel_model.compile(loss=loss, optimizer=opt, metrics=metrics)
 
     if args.random is not None:
-        if len(args.random) == 1:
-            which_images = range(args.random)
-        else:
-            which_images = args.random
-        for i in which_images:
-            if len(args.random) == 1:
-                ran_ind = np.random.randint(0, testing_generator.__len__())
-            else:
-                ran_ind = i
-            x, y = testing_generator.__getitem__(ran_ind)
-            pred_fix = model.predict_on_batch(x)
-            x = inv_normalise_tensor(x, mean=mean, std=std)
-            for b in range(x.shape[0]):
-                for f in range(x.shape[1]):
-                    file_name = 'random_results/image_%d_%d_%d.jpg' % \
-                                (ran_ind, b, f)
-                    current_image = x[b, f,].squeeze()
-                    current_image = current_image[:, :, [2, 1, 0]].copy()
-                    visualise_results(current_image, y[b, f,],
-                                      pred_fix[b, f,], file_name)
+        random_image(model, args)
     elif args.evaluate:
         evaluate(model, args, 'validation_name')
     else:
