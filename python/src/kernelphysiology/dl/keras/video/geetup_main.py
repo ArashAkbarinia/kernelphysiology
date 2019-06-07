@@ -108,6 +108,9 @@ def evaluate(model, args, validation_name):
     all_results = np.zeros(
         (testing_generator.num_sequences, args.sequence_length)
     )
+    all_preds = np.zeros(
+        (testing_generator.num_sequences, args.sequence_length, 2)
+    )
     j = 0
     for i in range(testing_generator.__len__()):
         if i % 100 == 0:
@@ -124,13 +127,20 @@ def evaluate(model, args, validation_name):
         pred_fix = np.reshape(pred_fix, y.shape)
         for b in range(x.shape[0]):
             for f in range(x.shape[1]):
-                all_results[j, f] = euc_error_image(
-                    pred_fix[b, f,].squeeze(), y[b, f,].squeeze()
-                )
+                pred_ind = np.asarray(max_pixel_ind(pred_fix[b, f,].squeeze()))
+                gt_ind = np.asarray(max_pixel_ind(y[b, f,].squeeze()))
+                all_results[j, f] = np.linalg.norm(pred_ind - gt_ind)
+                all_preds[j, f,] = pred_ind
             j += 1
+    # saving Euc distances
     result_file = '%s/%s_pred.pickle' % (args.log_dir, validation_name)
     pickle_out = open(result_file, 'wb')
     pickle.dump(all_results, pickle_out)
+    pickle_out.close()
+    # saving predictions distances
+    result_file = '%s/%s_model_out.pickle' % (args.log_dir, validation_name)
+    pickle_out = open(result_file, 'wb')
+    pickle.dump(all_preds, pickle_out)
     pickle_out.close()
 
 
