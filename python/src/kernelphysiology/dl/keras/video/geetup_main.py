@@ -146,7 +146,7 @@ def random_image(model, args):
         shuffle=False)
 
     if len(args.random) == 1:
-        which_images = range(args.random)
+        which_images = range(args.random[0])
     else:
         which_images = args.random
     for i in which_images:
@@ -165,6 +165,8 @@ def random_image(model, args):
                 current_image = current_image[:, :, [2, 1, 0]].copy()
                 visualise_results(current_image, y[b, f,],
                                   pred_fix[b, f,], file_name)
+                # only saving the first batch, since the others are very similar
+                break
 
 
 if __name__ == "__main__":
