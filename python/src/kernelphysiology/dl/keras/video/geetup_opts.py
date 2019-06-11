@@ -52,6 +52,11 @@ def argument_parser():
         dest='frames_gap',
         type=int,
         help='Gaps between frames when reading the video')
+    data_group.add_argument(
+        '--all_frames',
+        action='store_true',
+        default=False,
+        help='Train and evaluate on all frames in a sequence (default: False)')
 
     parser.add_argument(
         '--log_dir',

@@ -16,8 +16,10 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers.wrappers import TimeDistributed
 
 
-def get_network(architecture_name, input_shape, frame_based, weights=None):
-    model = which_architecture(architecture_name, input_shape, frame_based)
+def get_network(architecture_name, input_shape, frame_based, weights=None,
+                all_frames=False):
+    model = which_architecture(architecture_name, input_shape, frame_based,
+                               all_frames)
     if weights is not None:
         model.load_weights(weights)
     return model
@@ -30,9 +32,11 @@ def _object_detection_net():
     return resnet
 
 
-def which_architecture(architecture_name, input_shape, frame_based):
+def which_architecture(architecture_name, input_shape, frame_based, all_frames):
     if architecture_name == 'draft':
-        return draft_architecture(input_shape, None, None, frame_based)
+        return draft_architecture(
+            input_shape, None, None, frame_based, all_frames
+        )
     elif architecture_name == 'draft_lm':
         resnet = _object_detection_net()
         resnet_mid = keras.models.Model(
@@ -44,7 +48,7 @@ def which_architecture(architecture_name, input_shape, frame_based):
             outputs=resnet.get_layer('activation_10').output
         )
         model = draft_architecture(
-            input_shape, resnet, resnet_mid, frame_based
+            input_shape, resnet, resnet_mid, frame_based, all_frames
         )
         return model
     elif architecture_name == 'draft_l':
@@ -54,7 +58,7 @@ def which_architecture(architecture_name, input_shape, frame_based):
             outputs=resnet.get_layer('activation_10').output
         )
         model = draft_architecture(
-            input_shape, resnet, None, frame_based
+            input_shape, resnet, None, frame_based, all_frames
         )
         return model
     elif architecture_name == 'resnet':
@@ -86,19 +90,22 @@ def which_architecture(architecture_name, input_shape, frame_based):
 
 
 def draft_architecture(input_shape, image_net=None, mid_layer=None,
-                       frame_based=False):
+                       frame_based=False, all_frames=False):
     c = 32
     input_img = Input(input_shape, name='input')
     if image_net is not None:
         c0 = TimeDistributed(image_net)(input_img)
     else:
         c0 = TimeDistributed(
-            Conv2D(c, kernel_size=(3, 3), strides=4, padding='same'))(input_img)
+            Conv2D(c, kernel_size=(3, 3), strides=4, padding='same')
+        )(input_img)
     if frame_based:
         x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(c0)
     else:
-        x = ConvLSTM2D(filters=c, kernel_size=(3, 3), padding='same',
-                       return_sequences=True)(c0)
+        x = ConvLSTM2D(
+            filters=c, kernel_size=(3, 3), padding='same',
+            return_sequences=True
+        )(c0)
     x = BatchNormalization()(x)
     if frame_based:
         x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
@@ -162,6 +169,7 @@ def draft_architecture(input_shape, image_net=None, mid_layer=None,
 
     x = TimeDistributed(UpSampling2D((2, 2)))(c3)
     x = Concatenate()([c2, x])
+    # TODO: make it according to frame based and time integration
     x = TimeDistributed(Conv2D(c, kernel_size=(3, 3), padding='same'))(x)
     x = BatchNormalization()(x)
 
@@ -171,11 +179,19 @@ def draft_architecture(input_shape, image_net=None, mid_layer=None,
 
     x = TimeDistributed(UpSampling2D((4, 4)))(x)
 
-    output = TimeDistributed(
-        Conv2D(1, kernel_size=(3, 3), padding='same', activation='sigmoid'),
-        name='output')(x)
+    if all_frames:
+        output = TimeDistributed(
+            Conv2D(1, kernel_size=(3, 3), padding='same', activation='sigmoid'),
+            name='output')(x)
+    else:
+        output = ConvLSTM2D(1, kernel_size=(3, 3), padding='same',
+                            activation='sigmoid', return_sequences=False,
+                            name='output')(x)
 
-    output = Reshape((-1, input_shape[1] * input_shape[2], 1))(output)
+    if all_frames:
+        output = Reshape((-1, input_shape[1] * input_shape[2], 1))(output)
+    else:
+        output = Reshape((1, input_shape[1] * input_shape[2], 1))(output)
     model = keras.models.Model(input_img, output)
     return model
 

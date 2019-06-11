@@ -154,7 +154,7 @@ class GeetupGenerator(keras.utils.Sequence):
     """GEETUP generator for training and validation."""
 
     def __init__(self, video_list, batch_size=32, target_size=(224, 224),
-                 num_chns=3, frames_gap=10, sequence_length=9,
+                 num_chns=3, frames_gap=10, sequence_length=9, all_frames=False,
                  gaussian_sigma=2.5, preprocessing_function=None, shuffle=True):
         """Initialisation"""
         self.video_list = video_list
@@ -167,6 +167,7 @@ class GeetupGenerator(keras.utils.Sequence):
         self.shuffle = shuffle
         self.grey_scale = self.num_chns == 1
         self.gaussian_kernel = gaussian.gaussian_kernel2(gaussian_sigma)
+        self.only_last_frame = not all_frames
 
         if K.image_data_format() == 'channels_last':
             self.in_shape = (self.sequence_length,
@@ -231,7 +232,7 @@ class GeetupGenerator(keras.utils.Sequence):
             segment_dir = self.video_list[video_id[0]][0]
             video_num = self.video_list[video_id[0]][1]
             selected_path = segment_dir + '/CutVid_' + video_num + \
-                         '/selected_frames/'
+                            '/selected_frames/'
             video_path = selected_path + 'frames'
             fixation_path = selected_path + 'gt.txt'
             frame_num = video_id[2]
@@ -258,6 +259,10 @@ class GeetupGenerator(keras.utils.Sequence):
 
         rows = self.target_size[1]
         cols = self.target_size[0]
-        y_batch = np.reshape(y_batch,
-                             (-1, self.sequence_length, rows * cols, 1))
+        # TODO: in case of only last frame, don't read all other GTs
+        if self.only_last_frame:
+            y_batch = np.reshape(y_batch[:, -1, ], (-1, 1, rows * cols, 1))
+        else:
+            y_batch = np.reshape(y_batch,
+                                 (-1, self.sequence_length, rows * cols, 1))
         return x_batch, y_batch

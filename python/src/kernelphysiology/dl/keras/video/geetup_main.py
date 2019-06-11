@@ -28,10 +28,10 @@ from kernelphysiology.dl.keras.video import geetup_db
 from kernelphysiology.dl.keras.video import geetup_opts
 
 
-def euc_error(y_true, y_pred, target_size):
-    y_true_inds = K.argmax(y_true, axis=2)
+def euc_error(y_true, y_pred, target_size, axis=2):
+    y_true_inds = K.argmax(y_true, axis=axis)
     y_true_inds = tf.unravel_index(K.reshape(y_true_inds, [-1]), target_size)
-    y_pred_inds = K.argmax(y_pred, axis=2)
+    y_pred_inds = K.argmax(y_pred, axis=axis)
     y_pred_inds = tf.unravel_index(K.reshape(y_pred_inds, [-1]), target_size)
 
     true_pred_diff = K.sum((y_true_inds - y_pred_inds) ** 2, axis=0)
@@ -105,7 +105,9 @@ def evaluate(model, args, validation_name):
         sequence_length=args.sequence_length,
         gaussian_sigma=30.5,
         preprocessing_function=preprocess,
-        shuffle=False)
+        shuffle=False,
+        all_frames=args.all_frames
+    )
 
     all_results = np.zeros(
         (testing_generator.num_sequences, args.sequence_length)
@@ -127,8 +129,8 @@ def evaluate(model, args, validation_name):
                        )
         pred_fix = model.predict_on_batch(x)
         pred_fix = np.reshape(pred_fix, y.shape)
-        for b in range(x.shape[0]):
-            for f in range(x.shape[1]):
+        for b in range(y.shape[0]):
+            for f in range(y.shape[1]):
                 pred_ind = np.asarray(max_pixel_ind(pred_fix[b, f,].squeeze()))
                 gt_ind = np.asarray(max_pixel_ind(y[b, f,].squeeze()))
                 all_results[j, f] = np.linalg.norm(pred_ind - gt_ind)
@@ -157,7 +159,9 @@ def random_image(model, args):
         sequence_length=args.sequence_length,
         gaussian_sigma=30.5,
         preprocessing_function=preprocess,
-        shuffle=False)
+        shuffle=False,
+        all_frames=args.all_frames
+    )
 
     if len(args.random) == 1:
         which_images = range(args.random[0])
@@ -171,8 +175,8 @@ def random_image(model, args):
         x, y = testing_generator.__getitem__(ran_ind)
         pred_fix = model.predict_on_batch(x)
         x = inv_normalise_tensor(x, mean=mean, std=std)
-        for b in range(x.shape[0]):
-            for f in range(x.shape[1]):
+        for b in range(y.shape[0]):
+            for f in range(y.shape[1]):
                 file_name = '%s/image_%d_%d_%d.jpg' % \
                             (args.log_dir, ran_ind, b, f)
                 current_image = x[b, f,].squeeze()
@@ -220,7 +224,9 @@ if __name__ == "__main__":
             frames_gap=args.frames_gap,
             sequence_length=args.sequence_length,
             gaussian_sigma=30.5,
-            preprocessing_function=preprocess)
+            preprocessing_function=preprocess,
+            all_frames=args.all_frames
+        )
 
         pickle_in = open(os.path.join(args.data_dir, args.train_file), 'rb')
         testing_list = pickle.load(pickle_in)
@@ -233,7 +239,9 @@ if __name__ == "__main__":
             sequence_length=args.sequence_length,
             gaussian_sigma=30.5,
             preprocessing_function=preprocess,
-            shuffle=not args.evaluate)
+            shuffle=not args.evaluate,
+            all_frames=args.all_frames
+        )
 
         print('Training %d, Testing %d' %
               (len(training_list), len(testing_list)))
@@ -242,7 +250,8 @@ if __name__ == "__main__":
         args.architecture,
         input_shape=(args.sequence_length, *args.target_size, 3),
         frame_based=args.frame_based,
-        weights=args.weights
+        weights=args.weights,
+        all_frames=args.all_frames
     )
 
     euc_metric = wrapped_partial(euc_error, target_size=args.target_size)
@@ -286,8 +295,7 @@ if __name__ == "__main__":
                 workers=1, epochs=args.epochs, verbose=1,
                 callbacks=[
                     csv_logger,
-                    LearningRateScheduler(
-                        lr_schedule_lambda),
+                    LearningRateScheduler(lr_schedule_lambda),
                     last_checkpoint_logger]
             )
         else:
