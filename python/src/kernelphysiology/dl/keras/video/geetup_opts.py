@@ -46,12 +46,12 @@ def argument_parser():
         dest='validation_file',
         type=str,
         help='Path to the validation file')
-    # TODO: move frames_gap to the pickle file
+    # This parameter is only for testing generalisation across frame gaps
     data_group.add_argument(
         '--frames_gap',
         dest='frames_gap',
         type=int,
-        help='Gaps between frames when reading the video')
+        help='Gaps between frames when reading the video (default: from data)')
     data_group.add_argument(
         '--all_frames',
         action='store_true',

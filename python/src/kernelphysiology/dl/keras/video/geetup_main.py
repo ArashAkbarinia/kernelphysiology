@@ -96,8 +96,9 @@ def euc_error_image(pred, gt):
 
 
 def evaluate(model, args, validation_name):
-    pickle_in = open(args.validation_file, 'rb')
-    testing_list = pickle.load(pickle_in)
+    testing_list, args.sequence_length, frames_gap = read_pickle(
+        args.validation_file, args.frames_gap)
+
     testing_generator = geetup_db.GeetupGenerator(
         testing_list,
         batch_size=args.batch_size,
@@ -155,8 +156,9 @@ def evaluate(model, args, validation_name):
 
 
 def random_image(model, args):
-    pickle_in = open(args.validation_file, 'rb')
-    testing_list = pickle.load(pickle_in)
+    testing_list, args.sequence_length, frames_gap = read_pickle(
+        args.validation_file, args.frames_gap)
+
     testing_generator = geetup_db.GeetupGenerator(
         testing_list,
         batch_size=args.batch_size,
@@ -191,6 +193,16 @@ def random_image(model, args):
                                   pred_fix[b, f,], file_name)
                 # only saving the first batch, since the others are very similar
                 break
+
+
+def read_pickle(pickle_path, frames_gap=None):
+    pickle_in = open(pickle_path, 'rb')
+    pickle_info = pickle.load(pickle_in)
+    video_list = pickle_info['video_list']
+    sequence_length = pickle_info['sequence_length']
+    if frames_gap is None:
+        frames_gap = pickle_info['frames_gap']
+    return video_list, sequence_length, frames_gap
 
 
 if __name__ == "__main__":
@@ -232,7 +244,6 @@ if __name__ == "__main__":
 
     lr_schedule_lambda = partial(lr_schedule_resnet, lr=0.1)
 
-    args.sequence_length = 9
     args.target_size = (224, 224)
 
     mean = [103.939, 116.779, 123.68]
@@ -242,8 +253,8 @@ if __name__ == "__main__":
 
     training_list = []
     if args.evaluate is False:
-        pickle_in = open(os.path.join(args.data_dir, args.train_file), 'rb')
-        training_list = pickle.load(pickle_in)
+        training_list, args.sequence_length, frames_gap = read_pickle(
+            os.path.join(args.data_dir, args.train_file), args.frames_gap)
 
         training_generator = geetup_db.GeetupGenerator(
             training_list,
@@ -256,8 +267,8 @@ if __name__ == "__main__":
             all_frames=args.all_frames
         )
 
-        pickle_in = open(os.path.join(args.data_dir, args.train_file), 'rb')
-        testing_list = pickle.load(pickle_in)
+        # during training the validation is only for sanity check
+        testing_list = training_list
 
         testing_generator = geetup_db.GeetupGenerator(
             testing_list,
