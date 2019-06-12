@@ -96,7 +96,7 @@ def euc_error_image(pred, gt):
 
 
 def evaluate(model, args, validation_name):
-    testing_list, args.sequence_length, frames_gap = read_pickle(
+    testing_list, args.sequence_length, args.frames_gap = read_pickle(
         args.validation_file, args.frames_gap)
 
     testing_generator = geetup_db.GeetupGenerator(
@@ -156,7 +156,7 @@ def evaluate(model, args, validation_name):
 
 
 def random_image(model, args):
-    testing_list, args.sequence_length, frames_gap = read_pickle(
+    testing_list, args.sequence_length, args.frames_gap = read_pickle(
         args.validation_file, args.frames_gap)
 
     testing_generator = geetup_db.GeetupGenerator(
@@ -253,7 +253,7 @@ if __name__ == "__main__":
 
     training_list = []
     if args.evaluate is False:
-        training_list, args.sequence_length, frames_gap = read_pickle(
+        training_list, args.sequence_length, args.frames_gap = read_pickle(
             os.path.join(args.data_dir, args.train_file), args.frames_gap)
 
         training_generator = geetup_db.GeetupGenerator(
