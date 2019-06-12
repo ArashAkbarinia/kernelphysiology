@@ -62,8 +62,14 @@ def argument_parser():
         '--log_dir',
         dest='log_dir',
         type=str,
-        default='Ex',
-        help='Path to the logging directory (default: Ex)')
+        default='log_dir',
+        help='Path to the logging directory (default: log_dir)')
+    parser.add_argument(
+        '--experiment_name',
+        dest='experiment_name',
+        type=str,
+        default='experiment_name',
+        help='Name of the current experiment (default: experiment_name)')
     parser.add_argument(
         '--evaluate',
         action='store_true',

@@ -202,6 +202,28 @@ if __name__ == "__main__":
     gpus = [*range(len(args.gpus))]
 
     create_dir(args.log_dir)
+    # for training organise the output file
+    if args.evaluate is False:
+        # add architecture to directory
+        args.log_dir = os.path.join(args.log_dir, args.architecture)
+        create_dir(args.log_dir)
+        # add frame based or time integration to directory
+        if args.frame_based:
+            time_or_frame = 'frame_based'
+        else:
+            time_or_frame = 'time_integration'
+        args.log_dir = os.path.join(args.log_dir, time_or_frame)
+        create_dir(args.log_dir)
+        # add scratch or fine tune to directory
+        if args.weights is None:
+            new_or_tune = 'scratch'
+        else:
+            new_or_tune = 'fine_tune'
+        args.log_dir = os.path.join(args.log_dir, new_or_tune)
+        create_dir(args.log_dir)
+    # add experiment name to directory
+    args.log_dir = os.path.join(args.log_dir, args.experiment_name)
+    create_dir(args.log_dir)
 
     logging.basicConfig(
         filename=args.log_dir + '/experiment_info.log', filemode='w',
