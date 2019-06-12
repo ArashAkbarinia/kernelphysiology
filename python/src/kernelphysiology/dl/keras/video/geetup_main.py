@@ -72,17 +72,18 @@ def visualise_results(current_image, gt, pred, file_name):
     gt_pixel = max_pixel_ind(
         np.reshape(gt.squeeze(), (rows, cols))
     )
-    cv2.circle(current_image, gt_pixel, 15, (0, 255, 0))
+    # [::-1] because OpenCV point is XY, which is opposite of rows, cols
+    cv2.circle(current_image, gt_pixel[::-1], 15, (0, 255, 0))
 
     pred_pixel = max_pixel_ind(
         np.reshape(pred.squeeze(), (rows, cols))
     )
-    cv2.circle(current_image, pred_pixel, 15, (0, 0, 255))
+    cv2.circle(current_image, pred_pixel[::-1], 15, (0, 0, 255))
 
     euc_dis = np.linalg.norm(
         np.asarray(pred_pixel) - np.asarray(gt_pixel))
-    cx = round(rows / 2)
-    cy = round(cols / 2)
+    cx = round(cols / 2)
+    cy = round(rows / 2)
     cv2.putText(current_image, str(int(euc_dis)), (cx, cy),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255))
     cv2.imwrite(file_name, current_image)

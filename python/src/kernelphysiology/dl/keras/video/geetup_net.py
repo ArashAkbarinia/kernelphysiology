@@ -177,16 +177,17 @@ def draft_architecture(input_shape, image_net=None, mid_layer=None,
     #    c1 = TimeDistributed(ZeroPadding2D(padding=((1, 0), (1, 0))))(c1)
     x = Concatenate()([c1, x])
 
-    x = TimeDistributed(UpSampling2D((4, 4)))(x)
-
     if all_frames:
+        x = TimeDistributed(UpSampling2D((4, 4)))(x)
         output = TimeDistributed(
             Conv2D(1, kernel_size=(3, 3), padding='same', activation='sigmoid'),
             name='output')(x)
     else:
-        output = ConvLSTM2D(1, kernel_size=(3, 3), padding='same',
-                            activation='sigmoid', return_sequences=False,
-                            name='output')(x)
+        x = ConvLSTM2D(1, kernel_size=(3, 3), padding='same',
+                       return_sequences=False)(x)
+        x = UpSampling2D((4, 4))(x)
+        output = Conv2D(1, kernel_size=(3, 3), padding='same',
+                        activation='sigmoid', name='output')(x)
 
     if all_frames:
         output = Reshape((-1, input_shape[1] * input_shape[2], 1))(output)

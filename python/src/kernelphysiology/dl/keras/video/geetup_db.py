@@ -114,14 +114,14 @@ def heat_map_from_fixation(fixation_point, target_size, org_size,
                            gaussian_kernel=None, gaussian_sigma=1.5):
     if gaussian_kernel is None:
         gaussian_kernel = gaussian.gaussian_kernel2(gaussian_sigma)
-    rows = target_size[1]
-    cols = target_size[0]
-    org_rows = org_size[1]
-    org_cols = org_size[0]
+    rows = target_size[0]
+    cols = target_size[1]
+    org_rows = org_size[0]
+    org_cols = org_size[1]
     fixation_map = np.zeros((rows, cols, 1))
     if fixation_point[0] > 0 and fixation_point[1] > 0:
-        fpr = int(fixation_point[1] * (rows / org_rows))
-        fpc = int(fixation_point[0] * (cols / org_cols))
+        fpr = int(round(fixation_point[0] * (rows / org_rows)))
+        fpc = int(round(fixation_point[1] * (cols / org_cols)))
 
         sr = fpr - (gaussian_kernel.shape[0] // 2)
         sc = fpc - (gaussian_kernel.shape[1] // 2)
@@ -146,7 +146,7 @@ def heat_map_from_fixation(fixation_point, target_size, org_size,
         ec = np.minimum(ec, cols)
         g_max = gaussian_kernel[gsr:ger, gsc:gec].max()
         fixation_map[sr:er, sc:ec, 0] = \
-            gaussian_kernel[gsr:ger, gsc:gec] / g_max
+            (gaussian_kernel[gsr:ger, gsc:gec] / g_max)
     return fixation_map
 
 
@@ -245,13 +245,14 @@ class GeetupGenerator(keras.utils.Sequence):
                     video_path + str(c_f_num) + '.jpg',
                     grayscale=self.grey_scale)
                 org_size = current_img.size
-                current_img = current_img.resize(self.target_size)
+                # [::-1] because PIL images have size ay XY, not rows cols
+                current_img = current_img.resize(self.target_size[::-1])
                 current_img = image.img_to_array(current_img)
                 x_batch[i, j,] = current_img
                 y_batch[i, j,] = heat_map_from_fixation(
-                    fixation_points[c_f_num - 1],
+                    fixation_points[c_f_num - 1][::-1],
                     target_size=self.target_size,
-                    org_size=org_size,
+                    org_size=org_size[::-1],
                     gaussian_kernel=self.gaussian_kernel)
 
         if self.preprocessing_function is not None:
