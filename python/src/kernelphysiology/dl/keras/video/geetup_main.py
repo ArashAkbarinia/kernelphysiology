@@ -110,11 +110,16 @@ def evaluate(model, args, validation_name):
         all_frames=args.all_frames
     )
 
+    if args.all_frames:
+        num_frames = args.sequence_length
+    else:
+        num_frames = 1
+
     all_results = np.zeros(
-        (testing_generator.num_sequences, args.sequence_length)
+        (testing_generator.num_sequences, num_frames)
     )
     all_preds = np.zeros(
-        (testing_generator.num_sequences, args.sequence_length, 2)
+        (testing_generator.num_sequences, num_frames, 2)
     )
     j = 0
     for i in range(testing_generator.__len__()):
