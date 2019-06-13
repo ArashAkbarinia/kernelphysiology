@@ -1,7 +1,6 @@
-'''
+"""
 Default configurations of this project.
-'''
-
+"""
 
 import os
 import sys
@@ -19,16 +18,16 @@ def get_default_dataset_paths(
     if dataset_name == 'imagenet':
         # NOTE: just for the ease of working in my machiens
         if train_dir is None:
-            train_dir = '%simagenet/raw-data/train/' % (pre_path)
+            train_dir = '%simagenet/raw-data/train/' % pre_path
         if validation_dir is None:
             if (socket.gethostname() == 'awesome' or
-                socket.gethostname() == 'nickel' or
+                    socket.gethostname() == 'nickel' or
                     socket.gethostname() == 'nyanza'):
-                validation_dir = '%simagenet/raw-data/validation/' % (pre_path)
+                validation_dir = '%simagenet/raw-data/validation/' % pre_path
             else:
-                validation_dir = '%srepositories/kernelphysiology/data/'
-                'computervision/ilsvrc/ilsvrc2012/raw-data/validation/' % (
-                    pre_path)
+                validation_dir = '%srepositories/kernelphysiology/data/' \
+                                 'computervision/ilsvrc/ilsvrc2012/' \
+                                 'raw-data/validation/' % pre_path
     elif dataset_name == 'cifar10':
         if data_dir is None:
             data_dir = os.path.join(
@@ -55,12 +54,12 @@ def get_default_dataset_paths(
         # NOTE: just for the ease of working in my machiens
         if data_dir is None:
             if (socket.gethostname() == 'awesome' or
-                socket.gethostname() == 'nickel' or
+                    socket.gethostname() == 'nickel' or
                     socket.gethostname() == 'nyanza'):
                 data_dir = '/home/arash/Software/coco/'
             else:
-                validation_dir = '%srepositories/kernelphysiology/'
-                'data/computervision/coco/' % (pre_path)
+                validation_dir = '%srepositories/kernelphysiology/' \
+                                 'data/computervision/coco/' % pre_path
     else:
-        sys.exit('Unsupported dataset %s' % (dataset_name))
-    return (train_dir, validation_dir, data_dir)
+        sys.exit('Unsupported dataset %s' % dataset_name)
+    return train_dir, validation_dir, data_dir
