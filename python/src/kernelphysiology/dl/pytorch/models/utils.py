@@ -17,6 +17,41 @@ except ImportError:
 from kernelphysiology.dl.pytorch import models as custom_models
 
 
+class IntermediateModel(nn.Module):
+    def __init__(self, original_model, num_categories, dr_rate, model_name):
+        super(IntermediateModel, self).__init__()
+        if 'densenet' in model_name:
+            layer_number = 1
+        else:
+            layer_number = 2
+
+        if 'resnet' in model_name:
+            num_ftrs = original_model.fc.in_features
+        elif model_name == "alexnet":
+            num_ftrs = original_model.classifier[6].in_features
+        elif 'vgg' in model_name:
+            num_ftrs = 512 * 7 * 7
+        elif 'densenet' in model_name:
+            num_ftrs = original_model.classifier.in_features
+
+        self.features = nn.Sequential(
+            *list(original_model.children())[:-layer_number])
+        if 'vgg' in model_name:
+            self.pool = nn.AdaptiveAvgPool2d((7, 7))
+        else:
+            self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.dropout = nn.Dropout(p=dr_rate)
+        self.fc = nn.Linear(num_ftrs, num_categories)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.pool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
+
+
 def which_network_classification(network_name, dataset):
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
@@ -24,6 +59,7 @@ def which_network_classification(network_name, dataset):
         if 'customs' in checkpoint:
             customs = checkpoint['customs']
         model = which_architecture(checkpoint['arch'], customs=customs)
+
         # TODO: for each dataset a class of network should be defined
         if dataset == 'leaf':
             num_ftrs = model.fc.in_features
@@ -31,6 +67,9 @@ def which_network_classification(network_name, dataset):
         elif dataset == 'fruits':
             num_ftrs = model.fc.in_features
             model.fc = nn.Linear(num_ftrs, 23)
+        elif dataset == 'wcs':
+            model = IntermediateModel(model, 330, 0, checkpoint['arch'])
+
         model.load_state_dict(checkpoint['state_dict'])
         target_size = checkpoint['target_size']
     elif network_name == 'inception_v3':
