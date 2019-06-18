@@ -123,6 +123,11 @@ def evaluate(model, args, validation_name, only_name_and_gt=False):
     all_preds = np.zeros(
         (testing_generator.num_sequences, num_frames, 2)
     )
+    if only_name_and_gt:
+        video_names = np.empty(
+            (testing_generator.num_sequences, num_frames), dtype='<U180'
+        )
+
     j = 0
     for i in range(testing_generator.__len__()):
         if i % 100 == 0:
@@ -150,9 +155,8 @@ def evaluate(model, args, validation_name, only_name_and_gt=False):
                     )
                     gt_ind = np.asarray(max_pixel_ind(y[b, f,].squeeze()))
                 else:
+                    video_names[j, f] = x[b, f]
                     gt_ind = y[b, f,].squeeze()
-                import pdb
-                pdb.set_trace()
                 all_results[j, f] = np.linalg.norm(pred_ind - gt_ind)
                 all_preds[j, f,] = pred_ind
             j += 1
@@ -166,6 +170,11 @@ def evaluate(model, args, validation_name, only_name_and_gt=False):
     pickle_out = open(result_file, 'wb')
     pickle.dump(all_preds, pickle_out)
     pickle_out.close()
+    if only_name_and_gt:
+        result_file = '%s/%s_frames.pickle' % (args.log_dir, validation_name)
+        pickle_out = open(result_file, 'wb')
+        pickle.dump(video_names, pickle_out)
+        pickle_out.close()
 
 
 def random_image(model, args):

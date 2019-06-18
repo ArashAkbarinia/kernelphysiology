@@ -308,5 +308,6 @@ class GeetupGenerator(keras.utils.Sequence):
                                      (-1, self.sequence_length, rows * cols, 1))
         else:
             if self.only_last_frame:
+                x_batch = np.reshape(x_batch[:, -1, ], (-1, 1, 1))
                 y_batch = np.reshape(y_batch[:, -1, ], (-1, 1, 2))
         return x_batch, y_batch
