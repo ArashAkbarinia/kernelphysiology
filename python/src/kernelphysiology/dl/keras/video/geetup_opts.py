@@ -13,7 +13,7 @@ def check_args(parser, argv):
     if args.evaluate:
         if args.validation_file is None:
             sys.exit('The validation file should be specified')
-        if args.weights is None:
+        if args.architecture != 'centre' and args.weights is None:
             sys.exit('Models weights most be specified.')
     else:
         if args.data_dir is None:

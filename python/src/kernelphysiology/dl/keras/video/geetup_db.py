@@ -110,19 +110,17 @@ def dataset_frame_list(dataset_dir, frames_gap=10, sequence_length=9):
     return dataset_data
 
 
-def heat_map_from_fixation(fixation_point, target_size, org_size,
-                           gaussian_kernel=None, gaussian_sigma=1.5):
+def heat_map_from_fixation(fixation_point, target_size, gaussian_kernel=None,
+                           gaussian_sigma=1.5):
     if gaussian_kernel is None:
         gaussian_kernel = gaussian.gaussian_kernel2(gaussian_sigma)
     rows = target_size[0]
     cols = target_size[1]
-    org_rows = org_size[0]
-    org_cols = org_size[1]
-    fixation_map = np.zeros((rows, cols, 1))
-    if fixation_point[0] > 0 and fixation_point[1] > 0:
-        fpr = int(round(fixation_point[0] * (rows / org_rows)))
-        fpc = int(round(fixation_point[1] * (cols / org_cols)))
+    fpr = fixation_point[0]
+    fpc = fixation_point[1]
 
+    fixation_map = np.zeros((rows, cols, 1))
+    if fpr > 0 and fpc > 0:
         sr = fpr - (gaussian_kernel.shape[0] // 2)
         sc = fpc - (gaussian_kernel.shape[1] // 2)
         # making sure they're within the range of image
@@ -150,21 +148,34 @@ def heat_map_from_fixation(fixation_point, target_size, org_size,
     return fixation_map
 
 
+def map_point_to_image_size(point, target_size, org_size):
+    rows = target_size[0]
+    cols = target_size[1]
+    org_rows = org_size[0]
+    org_cols = org_size[1]
+    fpr = int(round(point[0] * (rows / org_rows)))
+    fpc = int(round(point[1] * (cols / org_cols)))
+    return fpr, fpc
+
+
 class GeetupGenerator(keras.utils.Sequence):
     """GEETUP generator for training and validation."""
 
     def __init__(self, video_list, batch_size=32, target_size=(224, 224),
                  num_chns=3, frames_gap=10, sequence_length=9, all_frames=False,
-                 gaussian_sigma=2.5, preprocessing_function=None, shuffle=True):
+                 gaussian_sigma=2.5, preprocessing_function=None, shuffle=True,
+                 org_size=(360, 640), only_name_and_gt=False):
         """Initialisation"""
         self.video_list = video_list
         self.batch_size = batch_size
         self.target_size = target_size
+        self.org_size = org_size
         self.num_chns = num_chns
         self.frames_gap = frames_gap
         self.sequence_length = sequence_length
         self.preprocessing_function = preprocessing_function
         self.shuffle = shuffle
+        self.only_name_and_gt = only_name_and_gt
         self.grey_scale = self.num_chns == 1
         self.gaussian_kernel = gaussian.gaussian_kernel2(gaussian_sigma)
         self.only_last_frame = not all_frames
@@ -222,16 +233,27 @@ class GeetupGenerator(keras.utils.Sequence):
         """Generates data containing batch_size samples"""
         # initialisation
         current_num_imgs = len(current_batch)
-        x_batch = np.empty((current_num_imgs, *self.in_shape), dtype='float32')
-        # TODO: could be that only Euclidean distance might be better?
-        y_batch = np.empty((current_num_imgs, *self.out_shape), dtype='float32')
+        if self.only_name_and_gt:
+            x_batch = np.empty(
+                (current_num_imgs, self.sequence_length), dtype='<U180'
+            )
+            y_batch = np.empty(
+                (current_num_imgs, self.sequence_length, 2), dtype='float32'
+            )
+        else:
+            x_batch = np.empty(
+                (current_num_imgs, *self.in_shape), dtype='float32'
+            )
+            y_batch = np.empty(
+                (current_num_imgs, *self.out_shape), dtype='float32'
+            )
 
         # generate data
         for i, video_id in enumerate(current_batch):
             # get the video and frame number
             segment_dir = self.video_list[video_id[0]][0]
             video_num = self.video_list[video_id[0]][1]
-            selected_path = segment_dir + '/CutVid_' + video_num + \
+            selected_path =  segment_dir + '/CutVid_' + video_num + \
                             '/selected_frames/'
             video_path = selected_path + 'frames'
             fixation_path = selected_path + 'gt.txt'
@@ -241,29 +263,50 @@ class GeetupGenerator(keras.utils.Sequence):
             end_frame = start_frame + self.sequence_length * self.frames_gap
             for j, c_f_num in enumerate(
                     range(start_frame, end_frame, self.frames_gap)):
-                current_img = image.load_img(
-                    video_path + str(c_f_num) + '.jpg',
-                    grayscale=self.grey_scale)
-                org_size = current_img.size
-                # [::-1] because PIL images have size ay XY, not rows cols
-                current_img = current_img.resize(self.target_size[::-1])
-                current_img = image.img_to_array(current_img)
-                x_batch[i, j,] = current_img
-                y_batch[i, j,] = heat_map_from_fixation(
+                image_name = video_path + str(c_f_num) + '.jpg'
+                # if org_size is None, we assume different images are different
+                if self.org_size is None or self.only_name_and_gt is False:
+                    current_img = image.load_img(image_name,
+                                                 grayscale=self.grey_scale)
+                    # [::-1] because PIL images have size ay XY, not rows cols
+                    org_size = current_img.size[::-1]
+                else:
+                    org_size = self.org_size
+
+                gt_resized = map_point_to_image_size(
                     fixation_points[c_f_num - 1][::-1],
-                    target_size=self.target_size,
-                    org_size=org_size[::-1],
-                    gaussian_kernel=self.gaussian_kernel)
+                    self.target_size,
+                    org_size
+                )
+                print(i,j,fixation_points[c_f_num - 1][::-1])
 
-        if self.preprocessing_function is not None:
-            x_batch = self.preprocessing_function(x_batch)
+                if self.only_name_and_gt:
+                    x_batch[i, j,] = image_name
+                    y_batch[i, j,] = gt_resized
+                else:
+                    # [::-1] because PIL images have size ay XY, not rows cols
+                    current_img = current_img.resize(self.target_size[::-1])
+                    current_img = image.img_to_array(current_img)
+                    x_batch[i, j,] = current_img
+                    y_batch[i, j,] = heat_map_from_fixation(
+                        gt_resized,
+                        target_size=self.target_size,
+                        gaussian_kernel=self.gaussian_kernel
+                    )
 
-        rows = self.target_size[1]
-        cols = self.target_size[0]
-        # TODO: in case of only last frame, don't read all other GTs
-        if self.only_last_frame:
-            y_batch = np.reshape(y_batch[:, -1, ], (-1, 1, rows * cols, 1))
+        if self.only_name_and_gt is False:
+            if self.preprocessing_function is not None:
+                x_batch = self.preprocessing_function(x_batch)
+
+            rows = self.target_size[1]
+            cols = self.target_size[0]
+            # TODO: in case of only last frame, don't read all other GTs
+            if self.only_last_frame:
+                y_batch = np.reshape(y_batch[:, -1, ], (-1, 1, rows * cols, 1))
+            else:
+                y_batch = np.reshape(y_batch,
+                                     (-1, self.sequence_length, rows * cols, 1))
         else:
-            y_batch = np.reshape(y_batch,
-                                 (-1, self.sequence_length, rows * cols, 1))
+            if self.only_last_frame:
+                y_batch = np.reshape(y_batch[:, -1, ], (-1, 1, 2))
         return x_batch, y_batch

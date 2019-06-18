@@ -95,7 +95,7 @@ def euc_error_image(pred, gt):
     return np.linalg.norm(pred_ind - gt_ind)
 
 
-def evaluate(model, args, validation_name):
+def evaluate(model, args, validation_name, only_name_and_gt=False):
     testing_list, args.sequence_length, args.frames_gap = read_pickle(
         args.validation_file, args.frames_gap)
 
@@ -108,7 +108,8 @@ def evaluate(model, args, validation_name):
         gaussian_sigma=30.5,
         preprocessing_function=preprocess,
         shuffle=False,
-        all_frames=args.all_frames
+        all_frames=args.all_frames,
+        only_name_and_gt=only_name_and_gt
     )
 
     if args.all_frames:
@@ -130,16 +131,28 @@ def evaluate(model, args, validation_name):
                    all_results[:j, ].mean(), np.median(all_results[:j, ]))
                   )
         x, y = testing_generator.__getitem__(i)
-        y = np.reshape(y,
-                       (y.shape[0], y.shape[1],
-                        args.target_size[0], args.target_size[1])
-                       )
-        pred_fix = model.predict_on_batch(x)
-        pred_fix = np.reshape(pred_fix, y.shape)
+        if only_name_and_gt:
+            pred_ind = (args.target_size[0] / 2, args.target_size[1] / 2)
+        else:
+            y = np.reshape(y,
+                           (y.shape[0], y.shape[1],
+                            args.target_size[0], args.target_size[1])
+                           )
+            pred_fix = model.predict_on_batch(x)
+            pred_fix = np.reshape(pred_fix, y.shape)
+        # looping through batches
         for b in range(y.shape[0]):
+            # looping through frames
             for f in range(y.shape[1]):
-                pred_ind = np.asarray(max_pixel_ind(pred_fix[b, f,].squeeze()))
-                gt_ind = np.asarray(max_pixel_ind(y[b, f,].squeeze()))
+                if only_name_and_gt is False:
+                    pred_ind = np.asarray(
+                        max_pixel_ind(pred_fix[b, f,].squeeze())
+                    )
+                    gt_ind = np.asarray(max_pixel_ind(y[b, f,].squeeze()))
+                else:
+                    gt_ind = y[b, f,].squeeze()
+                import pdb
+                pdb.set_trace()
                 all_results[j, f] = np.linalg.norm(pred_ind - gt_ind)
                 all_preds[j, f,] = pred_ind
             j += 1
@@ -285,74 +298,78 @@ if __name__ == "__main__":
         print('Training %d, Testing %d' %
               (len(training_list), len(testing_list)))
 
-    model = geetup_net.get_network(
-        args.architecture,
-        input_shape=(args.sequence_length, *args.target_size, 3),
-        frame_based=args.frame_based,
-        weights=args.weights,
-        all_frames=args.all_frames
-    )
-
-    euc_metric = wrapped_partial(euc_error, target_size=args.target_size)
-
-    metrics = [euc_metric]
-    loss = 'binary_crossentropy'
-    opt = keras.optimizers.SGD(lr=0.1, decay=0, momentum=0.9, nesterov=False)
-    if len(gpus) == 1:
-        model.compile(loss=loss, optimizer=opt, metrics=metrics)
-        parallel_model = None
+    if args.architecture == 'centre':
+        evaluate(None, args, 'validation_name', True)
     else:
-        with tf.device('/cpu:0'):
+        model = geetup_net.get_network(
+            args.architecture,
+            input_shape=(args.sequence_length, *args.target_size, 3),
+            frame_based=args.frame_based,
+            weights=args.weights,
+            all_frames=args.all_frames
+        )
+
+        euc_metric = wrapped_partial(euc_error, target_size=args.target_size)
+
+        metrics = [euc_metric]
+        loss = 'binary_crossentropy'
+        opt = keras.optimizers.SGD(lr=0.1, decay=0, momentum=0.9,
+                                   nesterov=False)
+        if len(gpus) == 1:
             model.compile(loss=loss, optimizer=opt, metrics=metrics)
-        parallel_model = multi_gpu_model(model, gpus=gpus)
-        # TODO: this compilation probably is not necessary
-        parallel_model.compile(loss=loss, optimizer=opt, metrics=metrics)
-
-    if args.random is not None:
-        random_image(model, args)
-    elif args.evaluate:
-        evaluate(model, args, 'validation_name')
-    else:
-        last_checkpoint_logger = ModelCheckpoint(
-            args.log_dir + '/model_weights_last.h5',
-            verbose=1,
-            save_weights_only=True,
-            save_best_only=False)
-        csv_logger = CSVLogger(
-            os.path.join(args.log_dir, 'log.csv'),
-            append=False, separator=';')
-
-        steps_per_epoch = round(10000 / args.batch_size)
-        validation_steps = round(100 / args.batch_size)
-        if parallel_model is not None:
-            parallel_model.fit_generator(
-                generator=training_generator,
-                steps_per_epoch=steps_per_epoch,
-                validation_data=testing_generator,
-                validation_steps=validation_steps,
-                use_multiprocessing=False,
-                workers=1, epochs=args.epochs, verbose=1,
-                callbacks=[
-                    csv_logger,
-                    LearningRateScheduler(lr_schedule_lambda),
-                    last_checkpoint_logger]
-            )
+            parallel_model = None
         else:
-            model.fit_generator(
-                generator=training_generator,
-                steps_per_epoch=steps_per_epoch,
-                validation_data=testing_generator,
-                validation_steps=validation_steps,
-                use_multiprocessing=False,
-                workers=1, epochs=args.epochs, verbose=1,
-                callbacks=[
-                    csv_logger,
-                    LearningRateScheduler(lr_schedule_lambda),
-                    last_checkpoint_logger]
-            )
-        args.validation_file = os.path.join(args.data_dir,
-                                            'testing_all_subjects.pickle')
-        evaluate(model, args, 'all_subjects')
-        args.validation_file = os.path.join(args.data_dir,
-                                            'testing_inter_subjects.pickle')
-        evaluate(model, args, 'inter_subjects')
+            with tf.device('/cpu:0'):
+                model.compile(loss=loss, optimizer=opt, metrics=metrics)
+            parallel_model = multi_gpu_model(model, gpus=gpus)
+            # TODO: this compilation probably is not necessary
+            parallel_model.compile(loss=loss, optimizer=opt, metrics=metrics)
+
+        if args.random is not None:
+            random_image(model, args)
+        elif args.evaluate:
+            evaluate(model, args, 'validation_name')
+        else:
+            last_checkpoint_logger = ModelCheckpoint(
+                args.log_dir + '/model_weights_last.h5',
+                verbose=1,
+                save_weights_only=True,
+                save_best_only=False)
+            csv_logger = CSVLogger(
+                os.path.join(args.log_dir, 'log.csv'),
+                append=False, separator=';')
+
+            steps_per_epoch = round(10000 / args.batch_size)
+            validation_steps = round(100 / args.batch_size)
+            if parallel_model is not None:
+                parallel_model.fit_generator(
+                    generator=training_generator,
+                    steps_per_epoch=steps_per_epoch,
+                    validation_data=testing_generator,
+                    validation_steps=validation_steps,
+                    use_multiprocessing=False,
+                    workers=1, epochs=args.epochs, verbose=1,
+                    callbacks=[
+                        csv_logger,
+                        LearningRateScheduler(lr_schedule_lambda),
+                        last_checkpoint_logger]
+                )
+            else:
+                model.fit_generator(
+                    generator=training_generator,
+                    steps_per_epoch=steps_per_epoch,
+                    validation_data=testing_generator,
+                    validation_steps=validation_steps,
+                    use_multiprocessing=False,
+                    workers=1, epochs=args.epochs, verbose=1,
+                    callbacks=[
+                        csv_logger,
+                        LearningRateScheduler(lr_schedule_lambda),
+                        last_checkpoint_logger]
+                )
+            args.validation_file = os.path.join(args.data_dir,
+                                                'testing_all_subjects.pickle')
+            evaluate(model, args, 'all_subjects')
+            args.validation_file = os.path.join(args.data_dir,
+                                                'testing_inter_subjects.pickle')
+            evaluate(model, args, 'inter_subjects')
