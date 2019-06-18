@@ -278,7 +278,6 @@ class GeetupGenerator(keras.utils.Sequence):
                     self.target_size,
                     org_size
                 )
-                print(i,j,fixation_points[c_f_num - 1][::-1])
 
                 if self.only_name_and_gt:
                     x_batch[i, j,] = image_name

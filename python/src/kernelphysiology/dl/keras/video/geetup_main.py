@@ -155,7 +155,7 @@ def evaluate(model, args, validation_name, only_name_and_gt=False):
                     )
                     gt_ind = np.asarray(max_pixel_ind(y[b, f,].squeeze()))
                 else:
-                    video_names[j, f] = x[b, f]
+                    video_names[j, f] = x[b, f].squeeze()
                     gt_ind = y[b, f,].squeeze()
                 all_results[j, f] = np.linalg.norm(pred_ind - gt_ind)
                 all_preds[j, f,] = pred_ind
