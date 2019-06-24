@@ -1,7 +1,6 @@
 import argparse
 import os
 import random
-import shutil
 import time
 import warnings
 import numpy as np
@@ -26,6 +25,7 @@ from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.pytorch.utils import preprocessing
+from kernelphysiology.utils.preprocessing import contrast_preprocessing
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
@@ -108,6 +108,12 @@ parser.add_argument(
         'contrast_max',
         'contrast'],
     help='The preprocessing colour transformation (default: trichromat)')
+parser.add_argument(
+    '--contrast_range',
+    nargs='+',
+    type=float,
+    default=None,
+    help='Contrast lower limit (default: None)')
 best_acc1 = 0
 
 
@@ -255,6 +261,13 @@ def main_worker(gpu, ngpus_per_node, args):
 
     transformations = preprocessing.colour_transformation(
         args.colour_transformation)
+    if args.contrast_range is not None:
+        args.contrast_range = np.array(args.contrast_range)
+        current_preprocessing = preprocessing.PreprocessingTransformation(
+            contrast_preprocessing,
+            args.contrast_range,
+            None)
+        transformations.append(current_preprocessing)
 
     train_dataset = datasets.ImageFolder(
         traindir,

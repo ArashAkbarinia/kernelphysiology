@@ -29,26 +29,6 @@ from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.utils.preprocessing import which_preprocessing
 
 
-class PreprocessingTransformation(object):
-
-    def __init__(
-            self,
-            manipulation_function,
-            manipulation_value,
-            manipulation_radius):
-        self.manipulation_function = manipulation_function
-        self.manipulation_value = manipulation_value
-        self.manipulation_radius = manipulation_radius
-
-    def __call__(self, x):
-        x = np.asarray(x, dtype='uint8')
-        x = self.manipulation_function(x, self.manipulation_value,
-                                       mask_radius=self.manipulation_radius,
-                                       preprocessing_function=None)
-        x = PilImage.fromarray(x.astype('uint8'), 'RGB')
-        return x
-
-
 def main(argv):
     args = argument_handler.test_arg_parser(argv)
     (args.networks,
@@ -85,7 +65,7 @@ def main(argv):
 
         # FIXME: for now it only supports classification
         for i, manipulation_value in enumerate(image_manipulation_values):
-            current_manipulation_preprocessing = PreprocessingTransformation(
+            current_preprocessing = preprocessing.PreprocessingTransformation(
                 image_manipulation_function,
                 manipulation_value,
                 args.mask_radius)
@@ -107,7 +87,7 @@ def main(argv):
                     args.preprocessings[j])
 
             transformations = [*other_transformations, *cts,
-                               current_manipulation_preprocessing]
+                               current_preprocessing]
 
             print('Processing network %s and %s %f' %
                   (current_network,

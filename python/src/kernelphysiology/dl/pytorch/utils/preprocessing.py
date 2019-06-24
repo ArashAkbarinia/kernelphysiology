@@ -83,3 +83,23 @@ def normalise_tensor(tensor, mean, std):
     for i in range(tensor.shape[1]):
         tensor[:, i, ] = (tensor[:, i, ] - mean[i]) / std[i]
     return tensor
+
+
+class PreprocessingTransformation(object):
+
+    def __init__(
+            self,
+            manipulation_function,
+            manipulation_value,
+            manipulation_radius):
+        self.manipulation_function = manipulation_function
+        self.manipulation_value = manipulation_value
+        self.manipulation_radius = manipulation_radius
+
+    def __call__(self, x):
+        x = np.asarray(x, dtype='uint8')
+        x = self.manipulation_function(x, self.manipulation_value,
+                                       mask_radius=self.manipulation_radius,
+                                       preprocessing_function=None)
+        x = PilImage.fromarray(x.astype('uint8'), 'RGB')
+        return x
