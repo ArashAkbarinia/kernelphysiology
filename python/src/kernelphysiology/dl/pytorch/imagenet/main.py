@@ -263,7 +263,7 @@ def main_worker(gpu, ngpus_per_node, args):
         args.colour_transformation)
     if args.contrast_range is not None:
         args.contrast_range = np.array(args.contrast_range)
-        current_preprocessing = preprocessing.PreprocessingTransformation(
+        current_preprocessing = preprocessing.RandomPreprocessingTransformation(
             contrast_preprocessing,
             args.contrast_range,
             None)

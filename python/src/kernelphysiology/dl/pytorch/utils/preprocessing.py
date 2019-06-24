@@ -103,3 +103,24 @@ class PreprocessingTransformation(object):
                                        preprocessing_function=None)
         x = PilImage.fromarray(x.astype('uint8'), 'RGB')
         return x
+
+
+class RandomPreprocessingTransformation(object):
+
+    def __init__(
+            self,
+            manipulation_function,
+            manipulation_value,
+            manipulation_radius):
+        self.manipulation_function = manipulation_function
+        self.manipulation_value = manipulation_value
+        self.manipulation_radius = manipulation_radius
+
+    def __call__(self, x):
+        x = np.asarray(x, dtype='uint8')
+        manipulation_value = np.random.uniform(*self.manipulation_value)
+        x = self.manipulation_function(x, manipulation_value,
+                                       mask_radius=self.manipulation_radius,
+                                       preprocessing_function=None)
+        x = PilImage.fromarray(x.astype('uint8'), 'RGB')
+        return x
