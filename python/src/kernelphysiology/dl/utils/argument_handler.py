@@ -789,7 +789,7 @@ def get_augmentation_types(args):
 
 def check_task_type(dataset, task_type=None):
     if ('cifar' in dataset or 'stl' in dataset or
-            dataset in ['imagenet', 'leaf', 'fruits', 'wcs']):
+            dataset in ['imagenet', 'leaf', 'fruits', 'wcs', 'wcs_full']):
         if task_type is not None and task_type != 'classification':
             warnings.warn(
                 'Invalid task_type %s: %s only supports classification' %

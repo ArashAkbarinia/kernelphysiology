@@ -69,6 +69,8 @@ def which_network_classification(network_name, dataset):
             model.fc = nn.Linear(num_ftrs, 23)
         elif dataset == 'wcs':
             model = IntermediateModel(model, 330, 0, checkpoint['arch'])
+        elif dataset == 'wcs_full':
+            model = IntermediateModel(model, 1600, 0, checkpoint['arch'])
 
         model.load_state_dict(checkpoint['state_dict'])
         target_size = checkpoint['target_size']
