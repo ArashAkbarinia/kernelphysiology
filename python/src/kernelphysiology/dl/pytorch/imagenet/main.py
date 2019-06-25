@@ -332,7 +332,7 @@ def main_worker(gpu, ngpus_per_node, args):
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
-                'customs': {'pooling_type': args.pooling_tyep},
+                'customs': {'pooling_type': args.pooling_type},
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer': optimizer.state_dict(),
