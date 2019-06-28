@@ -209,13 +209,14 @@ class ResNet(nn.Module):
                  zero_init_residual=False,
                  groups=1, width_per_group=64,
                  replace_stride_with_dilation=None,
-                 norm_layer=None, pooling_type='max'):
+                 norm_layer=None, pooling_type='max', in_chns=3):
         # TODO: pass pooling_type as an argument
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
 
+        self.in_chns = in_chns
         self.inplanes = 64
         self.dilation = 1
         if replace_stride_with_dilation is None:
@@ -228,7 +229,8 @@ class ResNet(nn.Module):
                 replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2,
+        self.conv1 = nn.Conv2d(self.in_chns, self.inplanes,
+                               kernel_size=7, stride=2,
                                padding=3,
                                bias=False)
         self.bn1 = norm_layer(self.inplanes)

@@ -51,19 +51,15 @@ def colour_transformation(transformation_type, colour_space='rgb'):
 class ChannelTransformation(object):
 
     def __init__(self, colour_inds, colour_space='rgb'):
-        self.colour_inds = colour_inds
+        self.colour_inds = [0, 1, 2]
+        self.colour_inds = [e for e in self.colour_inds if e not in colour_inds]
         self.colour_space = colour_space
 
     def __call__(self, img):
         if self.colour_space == 'rgb':
             return img
         else:
-            if self.colour_inds == 0:
-                img = img[:, :, 1:3]
-            elif self.colour_inds == 1:
-                img = img[:, :, [0, 2]]
-            else:
-                img = img[:, :, 0:2]
+            img = img[self.colour_inds,]
             return img
 
 

@@ -172,6 +172,9 @@ def main_worker(gpu, ngpus_per_node, args):
     global best_acc1
     args.gpu = gpu
 
+    mean, std = get_preprocessing_function(args.colour_space,
+                                           args.colour_transformation)
+
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
 
@@ -189,7 +192,9 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.custom_arch:
         print('Custom model!')
         model = custom_models.__dict__[args.arch](
-            pooling_type=args.pooling_type)
+            pooling_type=args.pooling_type,
+            in_chns=len(mean)
+        )
     elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
         model = models.__dict__[args.arch](pretrained=True)
@@ -238,6 +243,7 @@ def main_worker(gpu, ngpus_per_node, args):
     model_progress = []
     # optionally resume from a checkpoint
     # TODO: it would be best if resume load the architecture from this file
+    # TODO: merge with which_architecture
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
@@ -264,8 +270,6 @@ def main_worker(gpu, ngpus_per_node, args):
     # Data loading code
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'validation')
-    mean, std = get_preprocessing_function(args.colour_space,
-                                           args.colour_transformation)
     normalize = transforms.Normalize(mean=mean, std=std)
 
     colour_transformations = preprocessing.colour_transformation(
@@ -352,7 +356,8 @@ def main_worker(gpu, ngpus_per_node, args):
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
-                'customs': {'pooling_type': args.pooling_type},
+                'customs': {'pooling_type': args.pooling_type,
+                            'in_chns': len(mean)},
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer': optimizer.state_dict(),

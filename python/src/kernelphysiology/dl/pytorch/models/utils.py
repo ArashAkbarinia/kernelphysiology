@@ -101,8 +101,14 @@ def which_architecture(network_name, customs=None):
             model = pmodels.__dict__[network_name](pretrained=False)
     else:
         pooling_type = customs['pooling_type']
+        if 'in_chns' in customs:
+            in_chns = customs['in_chns']
+        else:
+            # assuming if it doesn't exist, it's 3
+            in_chns = 3
         model = custom_models.__dict__[network_name](pretrained=False,
-                                                     pooling_type=pooling_type)
+                                                     pooling_type=pooling_type,
+                                                     in_chns=in_chns)
     return model
 
 
