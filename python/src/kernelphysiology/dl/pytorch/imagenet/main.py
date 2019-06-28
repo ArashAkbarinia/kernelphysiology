@@ -23,6 +23,7 @@ from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
+from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.utils.preprocessing import contrast_preprocessing
@@ -94,6 +95,13 @@ parser.add_argument(
         'dichromat_rg',
         'dichromat_yb'],
     help='The preprocessing colour transformation (default: trichromat)')
+parser.add_argument(
+    '--colour_space',
+    type=str,
+    default='rgb',
+    choices=['rgb', 'lab'],
+    help='The colour space of network (default: RGB)'
+)
 parser.add_argument('--custom', dest='custom_arch', action='store_true',
                     help='loading custom models instead')
 parser.add_argument(
@@ -256,11 +264,19 @@ def main_worker(gpu, ngpus_per_node, args):
     # Data loading code
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'validation')
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
+    mean, std = get_preprocessing_function(args.colour_space,
+                                           args.colour_transformation)
+    normalize = transforms.Normalize(mean=mean, std=std)
 
-    transformations = preprocessing.colour_transformation(
-        args.colour_transformation)
+    colour_transformations = preprocessing.colour_transformation(
+        args.colour_transformation,
+        args.colour_space
+    )
+    chns_transformation = preprocessing.channel_transformation(
+        args.colour_transformation,
+        args.colour_space
+    )
+    transformations = []
     if args.contrast_range is not None:
         args.contrast_range = np.array(args.contrast_range)
         current_preprocessing = preprocessing.RandomPreprocessingTransformation(
@@ -273,9 +289,11 @@ def main_worker(gpu, ngpus_per_node, args):
         traindir,
         transforms.Compose([
             transforms.RandomResizedCrop(224),
+            *colour_transformations,
             *transformations,
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
+            *chns_transformation,
             normalize,
         ]))
 
@@ -293,9 +311,11 @@ def main_worker(gpu, ngpus_per_node, args):
     target_size = 224
     val_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(256),
+            transforms.Resize(224),
             transforms.CenterCrop(target_size),
+            *colour_transformations,
             transforms.ToTensor(),
+            *chns_transformation,
             normalize,
         ])),
         batch_size=args.batch_size, shuffle=False,

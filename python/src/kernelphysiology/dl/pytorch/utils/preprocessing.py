@@ -18,8 +18,9 @@ lab2rgb = ImageCms.buildTransformFromOpenProfiles(lab_p, rgb_p, 'LAB', 'RGB')
 
 class ColourTransformation(object):
 
-    def __init__(self, colour_inds):
+    def __init__(self, colour_inds, colour_space='rgb'):
         self.colour_inds = colour_inds
+        self.colour_space = colour_space
 
     def __call__(self, img):
         img = ImageCms.applyTransform(img, rgb2lab)
@@ -30,17 +31,49 @@ class ColourTransformation(object):
         else:
             img[:, :, self.colour_inds] = 0
         img = PilImage.fromarray(img, 'LAB')
-        img = ImageCms.applyTransform(img, lab2rgb)
+        if self.colour_space == 'rgb':
+            img = ImageCms.applyTransform(img, lab2rgb)
         return img
 
 
-def colour_transformation(transformation_type):
+def colour_transformation(transformation_type, colour_space='rgb'):
     ct = []
     if transformation_type != 'trichromat':
         colour_inds = get_colour_inds(transformation_type)
         # check if it's a valid colour index
         if colour_inds is not None:
-            ct.append(ColourTransformation(colour_inds))
+            ct.append(ColourTransformation(colour_inds, colour_space))
+        else:
+            warnings.warn('Unsupported colour transformation' % type)
+    return ct
+
+
+class ChannelTransformation(object):
+
+    def __init__(self, colour_inds, colour_space='rgb'):
+        self.colour_inds = colour_inds
+        self.colour_space = colour_space
+
+    def __call__(self, img):
+        if self.colour_space == 'rgb':
+            return img
+        else:
+            if self.colour_inds == 0:
+                img = img[:, :, 1:3]
+            elif self.colour_inds == 1:
+                img = img[:, :, [0, 2]]
+            else:
+                img = img[:, :, 0:2]
+            return img
+
+
+def channel_transformation(transformation_type, colour_space='rgb'):
+    ct = []
+    if transformation_type != 'trichromat':
+        colour_inds = get_colour_inds(transformation_type)
+        # check if it's a valid colour index
+        if colour_inds is not None:
+            ct.append(ChannelTransformation(colour_inds, colour_space))
         else:
             warnings.warn('Unsupported colour transformation' % type)
     return ct

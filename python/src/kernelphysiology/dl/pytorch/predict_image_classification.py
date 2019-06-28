@@ -6,8 +6,6 @@ import time
 import sys
 import numpy as np
 
-from PIL import Image as PilImage
-
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -61,7 +59,9 @@ def main(argv):
                                              args.task_type,
                                              args.dataset)
         model = model.cuda(gpu)
-        normalize = get_preprocessing_function(args.preprocessing)
+        mean, std = get_preprocessing_function(args.colour_space,
+                                               args.colour_transformation)
+        normalize = transforms.Normalize(mean=mean, std=std)
 
         # FIXME: for now it only supports classification
         for i, manipulation_value in enumerate(image_manipulation_values):

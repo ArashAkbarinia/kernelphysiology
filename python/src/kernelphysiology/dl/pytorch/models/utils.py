@@ -107,8 +107,17 @@ def which_architecture(network_name, customs=None):
 
 
 # TODO: use different values fo preprocessing
-def get_preprocessing_function(preprocessing):
-    normalize = transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225])
-    return normalize
+def get_preprocessing_function(colour_space, chromaticity):
+    mean = [0.5, 0.5, 0.5]
+    std = [0.25, 0.25, 0.25]
+    if colour_space == 'rgb':
+        mean = [0.485, 0.456, 0.406]
+        std = [0.229, 0.224, 0.225]
+    elif colour_space == 'lab':
+        if 'dichromat' in chromaticity:
+            mean = [0.5, 0.5]
+            std = [0.25, 0.25]
+        elif chromaticity == 'monochromat':
+            mean = [0.5]
+            std = [0.25]
+    return mean, std

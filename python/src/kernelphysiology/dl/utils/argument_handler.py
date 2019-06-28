@@ -98,6 +98,13 @@ def common_arg_parser(description):
             'detection'],
         default=None,
         help='The task to prform by network (default: None)')
+    parser.add_argument(
+        '--colour_space',
+        type=str,
+        default='rgb',
+        choices=['rgb', 'lab'],
+        help='The colour space of network (default: RGB)'
+    )
     return parser
 
 
