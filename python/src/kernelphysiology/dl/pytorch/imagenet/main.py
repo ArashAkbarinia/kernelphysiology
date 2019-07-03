@@ -18,6 +18,8 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from skimage.util import random_noise
+
 from kernelphysiology.dl.pytorch import models as custom_models
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy
@@ -185,11 +187,14 @@ def main():
         main_worker(args.gpu, ngpus_per_node, args)
 
 
-def npy_data_loader(input_path, random_flip):
+def npy_data_loader(input_path, random_flip, random_noise):
     lms_image = np.load(input_path).astype(np.float32)
     lms_image = lms_image.transpose([2, 0, 1])
     if random_flip and bool(random.getrandbits(1)):
         lms_image = lms_image[:, ::-1, :].copy()
+    if random_noise and bool(random.getrandbits(1)):
+        lms_image /= lms_image.max()
+        lms_image = random_noise(lms_image, mode='gaussian', var=0.1)
     lms_image = torch.from_numpy(lms_image)
     lms_image = lms_image.type(torch.FloatTensor)
     return lms_image
@@ -326,8 +331,8 @@ def main_worker(gpu, ngpus_per_node, args):
         transformations.append(current_preprocessing)
 
     if '_lms' in args.dataset:
-        data_loader_train = lambda x: npy_data_loader(x, True)
-        data_loader_validation = lambda x: npy_data_loader(x, False)
+        data_loader_train = lambda x: npy_data_loader(x, True, True)
+        data_loader_validation = lambda x: npy_data_loader(x, False, False)
 
     if args.dataset == 'imagenet':
         train_dataset = datasets.ImageFolder(
