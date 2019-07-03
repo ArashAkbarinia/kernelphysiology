@@ -60,7 +60,7 @@ def main(argv):
                                              args.dataset)
         model = model.cuda(gpu)
         mean, std = get_preprocessing_function(args.colour_space,
-                                               args.colour_transformation)
+                                               args.preprocessings[j])
         normalize = transforms.Normalize(mean=mean, std=std)
 
         # FIXME: for now it only supports classification
