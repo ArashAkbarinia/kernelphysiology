@@ -71,6 +71,7 @@ def main(argv):
                 args.mask_radius)
             # TODO: change args.preprocessings[j] to colour_transformation
             # TODO: perhaps for inverting chromaticity and luminance as well
+            # FIXME: for less than 3 channels in lab it wont work
             if (image_manipulation_type == 'original_rgb' or
                     (image_manipulation_type == 'red_green'
                      and args.preprocessings[j] == 'dichromat_rg') or
@@ -84,7 +85,15 @@ def main(argv):
                 cts = []
             else:
                 cts = preprocessing.colour_transformation(
-                    args.preprocessings[j])
+                    args.preprocessings[j],
+                    args.colour_space
+                )
+
+            # whether should be 1, 2, or 3 channels
+            chns_transformation = preprocessing.channel_transformation(
+                args.preprocessings[j],
+                args.colour_space
+            )
 
             transformations = [*other_transformations, *cts,
                                current_preprocessing]
@@ -104,6 +113,7 @@ def main(argv):
                     transforms.CenterCrop(target_size),
                     *transformations,
                     transforms.ToTensor(),
+                    *chns_transformation,
                     normalize,
                 ])),
                 batch_size=args.batch_size, shuffle=False,
