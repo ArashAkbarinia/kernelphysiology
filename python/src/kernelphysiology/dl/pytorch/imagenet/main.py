@@ -33,8 +33,25 @@ model_names = sorted(name for name in models.__dict__
                      and callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('data', metavar='DIR',
-                    help='path to dataset')
+parser.add_argument(
+    dest='dataset',
+    type=str,
+    help='Which dataset to be used')
+parser.add_argument(
+    '--data_dir',
+    type=str,
+    default=None,
+    help='The path to the data directory (default: None)')
+parser.add_argument(
+    '--train_dir',
+    type=str,
+    default=None,
+    help='The path to the train directory (default: None)')
+parser.add_argument(
+    '--validation_dir',
+    type=str,
+    default=None,
+    help='The path to the validation directory (default: None)')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
@@ -128,7 +145,7 @@ best_acc1 = 0
 def main():
     args = parser.parse_args()
     args.out_dir = prepare_training.prepare_output_directories(
-        dataset_name='imagenet',
+        dataset_name=args.dataset,
         network_name=args.arch,
         optimiser='sgd',
         load_weights=False,
@@ -166,6 +183,14 @@ def main():
     else:
         # Simply call main_worker function
         main_worker(args.gpu, ngpus_per_node, args)
+
+
+def npy_data_loader(input_path, random_flip):
+    lms_image = np.load(input_path).astype(float)
+    if random_flip and bool(random.getrandbits(1)):
+        lms_image = lms_image[:, ::-1, :]
+    lms_image = torch.from_numpy(lms_image)
+    return lms_image
 
 
 def main_worker(gpu, ngpus_per_node, args):
@@ -268,8 +293,12 @@ def main_worker(gpu, ngpus_per_node, args):
     cudnn.benchmark = True
 
     # Data loading code
-    traindir = os.path.join(args.data, 'train')
-    valdir = os.path.join(args.data, 'validation')
+    if args.data_dir is not None:
+        traindir = os.path.join(args.data_dir, 'train')
+        valdir = os.path.join(args.data_dir, 'validation')
+    else:
+        traindir = args.train_dir
+        valdir = args.validation_dir
     normalize = transforms.Normalize(mean=mean, std=std)
 
     colour_transformations = preprocessing.colour_transformation(
@@ -289,17 +318,32 @@ def main_worker(gpu, ngpus_per_node, args):
             None)
         transformations.append(current_preprocessing)
 
-    train_dataset = datasets.ImageFolder(
-        traindir,
-        transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            *colour_transformations,
-            *transformations,
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            *chns_transformation,
-            normalize,
-        ]))
+    if '_lms' in args.dataset:
+        data_loader_train = lambda x: npy_data_loader(x, True)
+        data_loader_validation = lambda x: npy_data_loader(x, False)
+
+    if args.dataset == 'imagenet':
+        train_dataset = datasets.ImageFolder(
+            traindir,
+            transforms.Compose([
+                transforms.RandomResizedCrop(224),
+                *colour_transformations,
+                *transformations,
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                *chns_transformation,
+                normalize,
+            ]))
+    elif '_lms' in args.dataset:
+        train_dataset = datasets.DatasetFolder(
+            traindir,
+            data_loader_train,
+            ['.npy'],
+            transforms.Compose([
+                # TODO: consider other transformation
+                normalize,
+            ])
+        )
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
@@ -310,20 +354,40 @@ def main_worker(gpu, ngpus_per_node, args):
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size,
         shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler)
+        num_workers=args.workers, pin_memory=True, sampler=train_sampler
+    )
 
-    target_size = 224
-    val_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(224),
-            transforms.CenterCrop(target_size),
-            *colour_transformations,
-            transforms.ToTensor(),
-            *chns_transformation,
-            normalize,
-        ])),
-        batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
+    if args.dataset == 'imagenet':
+        target_size = 224
+        val_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(
+                valdir,
+                transforms.Compose([
+                    transforms.Resize(224),
+                    transforms.CenterCrop(target_size),
+                    *colour_transformations,
+                    transforms.ToTensor(),
+                    *chns_transformation,
+                    normalize,
+                ])
+            ),
+            batch_size=args.batch_size, shuffle=False,
+            num_workers=args.workers, pin_memory=True
+        )
+    elif '_lms' in args.dataset:
+        target_size = 128
+        val_loader = torch.utils.data.DataLoader(
+            datasets.DatasetFolder(
+                valdir,
+                data_loader_validation,
+                ['.npy'],
+                transforms.Compose([
+                    normalize,
+                ])
+            ),
+            batch_size=args.batch_size, shuffle=False,
+            num_workers=args.workers, pin_memory=True
+        )
 
     if args.evaluate:
         validate(val_loader, model, criterion, args)
