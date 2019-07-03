@@ -186,10 +186,12 @@ def main():
 
 
 def npy_data_loader(input_path, random_flip):
-    lms_image = np.load(input_path).astype(float)
+    lms_image = np.load(input_path).astype(np.float32)
+    lms_image = lms_image.transpose([2, 0, 1])
     if random_flip and bool(random.getrandbits(1)):
-        lms_image = lms_image[:, ::-1, :]
+        lms_image = lms_image[:, ::-1, :].copy()
     lms_image = torch.from_numpy(lms_image)
+    lms_image = lms_image.type(torch.FloatTensor)
     return lms_image
 
 
@@ -216,9 +218,14 @@ def main_worker(gpu, ngpus_per_node, args):
     # create model
     if args.custom_arch:
         print('Custom model!')
+        if args.dataset == 'imagenet':
+            num_classes = 1000
+        elif 'wcs_full' in args.dataset:
+            num_classes = 1600
         model = custom_models.__dict__[args.arch](
             pooling_type=args.pooling_type,
-            in_chns=len(mean)
+            in_chns=len(mean),
+            num_classes=num_classes
         )
     elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
