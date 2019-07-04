@@ -217,16 +217,22 @@ def main_worker(gpu, ngpus_per_node, args):
             # For multiprocessing distributed training, rank needs to be the
             # global rank among all the processes
             args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend,
-                                init_method=args.dist_url,
-                                world_size=args.world_size, rank=args.rank)
+        dist.init_process_group(
+            backend=args.dist_backend,
+            init_method=args.dist_url,
+            world_size=args.world_size,
+            rank=args.rank
+        )
     # create model
+    # TODO: num_classes should be added to saves file, probably?
     if args.custom_arch:
         print('Custom model!')
         if args.dataset == 'imagenet':
             num_classes = 1000
-        elif 'wcs_full' in args.dataset:
+        elif '1600' in args.dataset:
             num_classes = 1600
+        elif '330' in args.dataset:
+            num_classes = 330
         model = custom_models.__dict__[args.arch](
             pooling_type=args.pooling_type,
             in_chns=len(mean),
@@ -251,9 +257,9 @@ def main_worker(gpu, ngpus_per_node, args):
             # ourselves based on the total number of GPUs we have
             args.batch_size = int(args.batch_size / ngpus_per_node)
             args.workers = int(args.workers / ngpus_per_node)
-            model = torch.nn.parallel.DistributedDataParallel(model,
-                                                              device_ids=[
-                                                                  args.gpu])
+            model = torch.nn.parallel.DistributedDataParallel(
+                model, device_ids=[args.gpu]
+            )
         else:
             model.cuda()
             # DistributedDataParallel will divide and allocate batch_size to all
@@ -273,9 +279,13 @@ def main_worker(gpu, ngpus_per_node, args):
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda(args.gpu)
 
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+    # optimiser
+    optimizer = torch.optim.SGD(
+        model.parameters(),
+        args.lr,
+        momentum=args.momentum,
+        weight_decay=args.weight_decay
+    )
 
     model_progress = []
     # optionally resume from a checkpoint
@@ -330,8 +340,8 @@ def main_worker(gpu, ngpus_per_node, args):
             None)
         transformations.append(current_preprocessing)
 
-    if '_lms' in args.dataset:
-        data_loader_train = lambda x: npy_data_loader(x, True, True)
+    if 'wcs_lms' in args.dataset:
+        data_loader_train = lambda x: npy_data_loader(x, True, False)
         data_loader_validation = lambda x: npy_data_loader(x, False, False)
 
     if args.dataset == 'imagenet':
@@ -345,14 +355,27 @@ def main_worker(gpu, ngpus_per_node, args):
                 transforms.ToTensor(),
                 *chns_transformation,
                 normalize,
-            ]))
-    elif '_lms' in args.dataset:
+            ])
+        )
+    elif 'wcs_lms' in args.dataset:
         train_dataset = datasets.DatasetFolder(
             traindir,
             data_loader_train,
             ['.npy'],
             transforms.Compose([
                 # TODO: consider other transformation
+                normalize,
+            ])
+        )
+    elif 'wcs_jpg' in args.dataset:
+        train_dataset = datasets.ImageFolder(
+            traindir,
+            transforms.Compose([
+                *colour_transformations,
+                *transformations,
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                *chns_transformation,
                 normalize,
             ])
         )
@@ -386,7 +409,7 @@ def main_worker(gpu, ngpus_per_node, args):
             batch_size=args.batch_size, shuffle=False,
             num_workers=args.workers, pin_memory=True
         )
-    elif '_lms' in args.dataset:
+    elif 'wcs_lms' in args.dataset:
         target_size = 128
         val_loader = torch.utils.data.DataLoader(
             datasets.DatasetFolder(
@@ -394,6 +417,21 @@ def main_worker(gpu, ngpus_per_node, args):
                 data_loader_validation,
                 ['.npy'],
                 transforms.Compose([
+                    normalize,
+                ])
+            ),
+            batch_size=args.batch_size, shuffle=False,
+            num_workers=args.workers, pin_memory=True
+        )
+    elif 'wcs_jpg' in args.dataset:
+        target_size = 128
+        val_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(
+                valdir,
+                transforms.Compose([
+                    *colour_transformations,
+                    transforms.ToTensor(),
+                    *chns_transformation,
                     normalize,
                 ])
             ),

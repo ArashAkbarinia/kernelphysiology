@@ -18,8 +18,16 @@ def prepare_output_directories(dataset_name, network_name, optimiser,
     create_dir(network_folder_path)
     framework_folder_path = os.path.join(network_folder_path, framework)
     create_dir(framework_folder_path)
-    dataset_parent_path = os.path.join(framework_folder_path, '%s' % (
-        ''.join([i for i in dataset_name if not i.isdigit()])))
+
+    # organise the dataset according to their parents
+    if 'wcs' in dataset_name:
+        dataset_parent = 'wcs'
+    else:
+        dataset_parent = ''.join([i for i in dataset_name if not i.isdigit()])
+    dataset_parent_path = os.path.join(
+        framework_folder_path, '%s' % dataset_parent
+    )
+
     create_dir(dataset_parent_path)
     dataset_child_path = os.path.join(dataset_parent_path, dataset_name)
     create_dir(dataset_child_path)
