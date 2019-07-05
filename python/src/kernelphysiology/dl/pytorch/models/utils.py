@@ -119,8 +119,8 @@ def get_preprocessing_function(colour_space, chromaticity):
     if colour_space == 'rgb':
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-    elif colour_space == 'lab':
-        if 'dichromat' in chromaticity:
+    elif colour_space == 'lab' or colour_space == 'lms':
+        if 'dichromat' in chromaticity or 'anopia' in chromaticity:
             mean = [0.5, 0.5]
             std = [0.25, 0.25]
         elif chromaticity == 'monochromat':

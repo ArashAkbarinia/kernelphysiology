@@ -112,13 +112,17 @@ parser.add_argument(
         'trichromat',
         'monochromat',
         'dichromat_rg',
-        'dichromat_yb'],
+        'dichromat_yb',
+        'protanopia',
+        'deuteranopia',
+        'tritanopia'
+        ],
     help='The preprocessing colour transformation (default: trichromat)')
 parser.add_argument(
     '--colour_space',
     type=str,
     default='rgb',
-    choices=['rgb', 'lab'],
+    choices=['rgb', 'lab', 'lms'],
     help='The colour space of network (default: RGB)'
 )
 parser.add_argument('--custom', dest='custom_arch', action='store_true',
@@ -364,6 +368,7 @@ def main_worker(gpu, ngpus_per_node, args):
             ['.npy'],
             transforms.Compose([
                 # TODO: consider other transformation
+                *chns_transformation,
                 normalize,
             ])
         )
@@ -417,6 +422,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 data_loader_validation,
                 ['.npy'],
                 transforms.Compose([
+                    *chns_transformation,
                     normalize,
                 ])
             ),

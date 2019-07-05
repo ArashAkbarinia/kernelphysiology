@@ -38,7 +38,7 @@ class ColourTransformation(object):
 
 def colour_transformation(transformation_type, colour_space='rgb'):
     ct = []
-    if transformation_type != 'trichromat':
+    if transformation_type != 'trichromat' and colour_space != 'lms':
         colour_inds = get_colour_inds(transformation_type)
         # check if it's a valid colour index
         if colour_inds is not None:
