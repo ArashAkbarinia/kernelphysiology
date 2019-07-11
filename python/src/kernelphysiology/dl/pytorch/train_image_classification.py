@@ -40,6 +40,10 @@ best_acc1 = 0
 
 def main(argv):
     args = argument_handler.train_arg_parser(argv)
+    if args.learning_rate is None:
+        args.learning_rate = 0.1
+    if args.decay is None:
+        args.decay = 1e-4
     args.print_freq = 10
     args.out_dir = prepare_training.prepare_output_directories(
         dataset_name=args.dataset,
