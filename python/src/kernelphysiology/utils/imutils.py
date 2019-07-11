@@ -419,11 +419,11 @@ def get_colour_inds(chromaticity_type):
     elif chromaticity_type == 'lightness':
         colour_inds = [0]
     elif chromaticity_type == 'protanopia':
-        colour_inds = [1]
+        colour_inds = [0]
     elif chromaticity_type == 'deuteranopia':
-        colour_inds = [2]
+        colour_inds = [1]
     elif chromaticity_type == 'tritanopia':
-        colour_inds = [3]
+        colour_inds = [2]
     return colour_inds
 
 

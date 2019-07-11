@@ -41,8 +41,9 @@ class ColourTransformation(object):
 
 def colour_transformation(transformation_type, colour_space='rgb'):
     ct = []
-    colour_inds = get_colour_inds(transformation_type)
-    ct.append(ColourTransformation(colour_inds, colour_space))
+    if colour_space != 'lms':
+        colour_inds = get_colour_inds(transformation_type)
+        ct.append(ColourTransformation(colour_inds, colour_space))
     return ct
 
 
