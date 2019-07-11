@@ -19,11 +19,15 @@ def common_arg_parser(description):
     parser.add_argument(
         dest='dataset',
         type=str,
-        help='Which dataset to be used')
+        help='Name of the dataset'
+    )
+    # TODO: add choices
+    # TODO: distinguish between architecture and network
     parser.add_argument(
         dest='network_name',
         type=str,
-        help='Which network to be used')
+        help='Name of the architecture or network'
+    )
 
     parser.add_argument(
         '--experiment_name',
@@ -36,35 +40,42 @@ def common_arg_parser(description):
         '--data_dir',
         type=str,
         default=None,
-        help='The path to the data directory (default: None)')
+        help='The path to the data directory (default: None)'
+    )
     data_dir_group.add_argument(
         '--train_dir',
         type=str,
         default=None,
-        help='The path to the train directory (default: None)')
+        help='The path to the train directory (default: None)'
+    )
     data_dir_group.add_argument(
         '--validation_dir',
         type=str,
         default=None,
-        help='The path to the validation directory (default: None)')
+        help='The path to the validation directory (default: None)'
+    )
 
     parser.add_argument(
         '--gpus',
         nargs='+',
         type=int,
         default=[0],
-        help='List of GPUs to be used (default: [0])')
+        help='List of GPUs to be used (default: [0])'
+    )
+    # TODO: change the default according to training or testing
     parser.add_argument(
-        '--workers',
+        'j', '--workers',
         type=int,
         default=1,
-        help='Number of workers for image generator (default: 1)')
+        help='Number of workers for image generator (default: 1)'
+    )
 
     parser.add_argument(
-        '--batch_size',
+        '-b', '--batch_size',
         type=int,
         default=None,
-        help='Batch size (default: according to dataset)')
+        help='Batch size (default: according to dataset)'
+    )
     parser.add_argument(
         '--target_size',
         type=int,
@@ -102,7 +113,7 @@ def common_arg_parser(description):
         '--colour_space',
         type=str,
         default='rgb',
-        choices=['rgb', 'lab'],
+        choices=['rgb', 'lab', 'lms'],
         help='The colour space of network (default: RGB)'
     )
     return parser
@@ -170,7 +181,11 @@ def test_arg_parser(argvs):
             'trichromat',
             'monochromat',
             'dichromat_rg',
-            'dichromat_yb'],
+            'dichromat_yb',
+            'protanopia',
+            'deuteranopia',
+            'tritanopia'
+        ],
         help='The preprocessing colour transformation (default: trichromat)')
 
     image_degradation_group = parser.add_mutually_exclusive_group()
@@ -351,6 +366,31 @@ def train_arg_parser(argvs):
         type=int,
         default=16,
         help='The number of convolutional kernels (default: 16)')
+    architecture_group.add_argument(
+        'ca', '--custom_arch',
+        dest='custom_arch',
+        action='store_true',
+        help='Custom models rather the library models'
+    )
+    architecture_group.add_argument(
+        '--pooling_type',
+        type=str,
+        default='max',
+        choices=[
+            'max',
+            'avg',
+            'mix',
+            'contrast_avg',
+            'contrast_max',
+            'contrast'],
+        help='The pooling type (default: max)'
+    )
+    architecture_group.add_argument(
+        '--pretrained',
+        dest='pretrained',
+        action='store_true',
+        help='Use pre-trained model'
+    )
 
     trainable_group = architecture_group.add_argument_group('layers')
     trainable_group = trainable_group.add_mutually_exclusive_group()
@@ -448,38 +488,59 @@ def train_arg_parser(argvs):
     optimisation_group.add_argument(
         '--optimiser',
         type=str,
-        default='adam',
-        help='The optimiser to be used (default: adam)')
+        default='sgd',
+        help='The optimiser to be used (default: sgd)'
+    )
     optimisation_group.add_argument(
-        '--lr',
+        '--lr', '--learning_rate',
         type=float,
         default=None,
-        help='The learning rate parameter (default: None)')
+        help='The learning rate parameter (default: None)'
+    )
     optimisation_group.add_argument(
-        '--decay',
+        '--momentum',
+        default=0.9,
+        type=float,
+        help='The momentum for optimisation (default 0.9)'
+    )
+    # TODO: change the name to weight_decay
+    optimisation_group.add_argument(
+        '--wd', '--decay',
         type=float,
         default=None,
-        help='The decay weight parameter (default: None)')
+        help='The decay weight parameter (default: None)'
+    )
     optimisation_group.add_argument(
         '--exp_decay',
         type=float,
         default=None,
-        help='The exponential decay (default: None)')
+        help='The exponential decay (default: None)'
+    )
     optimisation_group.add_argument(
         '--lr_schedule',
         type=str,
         default=None,
-        help='The custom learning rate scheduler (default: None)')
+        help='The custom learning rate scheduler (default: None)'
+    )
     optimisation_group.add_argument(
         '--epochs',
         type=int,
-        default=50,
-        help='Number of epochs (default: 50)')
+        default=90,
+        help='Number of epochs (default: 90)'
+    )
     optimisation_group.add_argument(
         '--initial_epoch',
         type=int,
         default=0,
-        help='The initial epoch number (default: 0)')
+        help='The initial epoch number (default: 0)'
+    )
+    # TODO: whether it should belong to optimisation group
+    optimisation_group.add_argument(
+        '--resume',
+        default='',
+        type=str,
+        help='Path to latest checkpoint (default: none)'
+    )
 
     plateau_group = parser.add_argument_group('plateau')
     plateau_group.add_argument(
@@ -651,6 +712,46 @@ def train_arg_parser(argvs):
         type=float,
         default=None,
         help='List of yellow-blue to be evaluated (default: None)')
+
+    parallelisation_group = parser.add_argument_group('parallelisation')
+    parallelisation_group.add_argument(
+        '--world-size',
+        default=-1,
+        type=int,
+        help='Number of nodes for distributed training'
+    )
+    parallelisation_group.add_argument(
+        '--rank',
+        default=-1,
+        type=int,
+        help='Node rank for distributed training'
+    )
+    parallelisation_group.add_argument(
+        '--dist-url',
+        default='tcp://224.66.41.62:23456',
+        type=str,
+        help='URL used to set up distributed training'
+    )
+    parallelisation_group.add_argument(
+        '--dist-backend',
+        default='nccl',
+        type=str,
+        help='Distributed backend'
+    )
+    parallelisation_group.add_argument(
+        '--seed',
+        default=None,
+        type=int,
+        help='Seed for initializing training. '
+    )
+    parallelisation_group.add_argument(
+        '--multiprocessing_distributed',
+        action='store_true',
+        help='Use multi-processing distributed training to launch '
+             'N processes per node, which has N GPUs. This is the '
+             'fastest way to use PyTorch for either single node or '
+             'multi node data parallel training'
+    )
 
     return check_training_args(parser, argvs)
 

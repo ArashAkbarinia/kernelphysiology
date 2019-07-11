@@ -1,7 +1,10 @@
-import argparse
+"""
+Pytorch training script for various datasets and image manipulations.
+"""
+
 import os
+import sys
 import random
-import shutil
 import time
 import warnings
 import numpy as np
@@ -19,86 +22,33 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+from skimage.util import random_noise
+
+from kernelphysiology.dl.pytorch import models as custom_models
+from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
+from kernelphysiology.dl.pytorch.utils.misc import accuracy
+from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
+from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
+from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.dl.utils import prepare_training
+from kernelphysiology.dl.utils import argument_handler
 from kernelphysiology.dl.pytorch.utils import preprocessing
-from kernelphysiology.utils.imutils import adjust_contrast
-
-model_names = sorted(name for name in models.__dict__
-                     if name.islower() and not name.startswith("__")
-                     and callable(models.__dict__[name]))
-
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('data', metavar='DIR',
-                    help='path to dataset')
-parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
-                    choices=model_names,
-                    help='model architecture: ' +
-                         ' | '.join(model_names) +
-                         ' (default: resnet18)')
-parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
-                    help='number of data loading workers (default: 4)')
-parser.add_argument('--epochs', default=90, type=int, metavar='N',
-                    help='number of total epochs to run')
-parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
-                    help='manual epoch number (useful on restarts)')
-parser.add_argument('-b', '--batch-size', default=256, type=int,
-                    metavar='N',
-                    help='mini-batch size (default: 256), this is the total '
-                         'batch size of all GPUs on the current node when '
-                         'using Data Parallel or Distributed Data Parallel')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
-                    metavar='LR', help='initial learning rate', dest='lr')
-parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
-                    help='momentum')
-parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
-                    metavar='W', help='weight decay (default: 1e-4)',
-                    dest='weight_decay')
-parser.add_argument('-p', '--print-freq', default=10, type=int,
-                    metavar='N', help='print frequency (default: 10)')
-parser.add_argument('--resume', default='', type=str, metavar='PATH',
-                    help='path to latest checkpoint (default: none)')
-parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
-                    help='evaluate model on validation set')
-parser.add_argument('--pretrained', dest='pretrained', action='store_true',
-                    help='use pre-trained model')
-parser.add_argument('--world-size', default=-1, type=int,
-                    help='number of nodes for distributed training')
-parser.add_argument('--rank', default=-1, type=int,
-                    help='node rank for distributed training')
-parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
-                    help='url used to set up distributed training')
-parser.add_argument('--dist-backend', default='nccl', type=str,
-                    help='distributed backend')
-parser.add_argument('--seed', default=None, type=int,
-                    help='seed for initializing training. ')
-parser.add_argument('--gpu', default=None, type=int,
-                    help='GPU id to use.')
-parser.add_argument('--multiprocessing-distributed', action='store_true',
-                    help='Use multi-processing distributed training to launch '
-                         'N processes per node, which has N GPUs. This is the '
-                         'fastest way to use PyTorch for either single node or '
-                         'multi node data parallel training')
-parser.add_argument('--experiment_name', type=str, default='Ex',
-                    help='The name of the experiment (default: Ex)')
-parser.add_argument(
-    '--contrast_range',
-    nargs='+',
-    type=float,
-    default=None,
-    help='Contrast lower limit (default: None)')
+from kernelphysiology.utils.preprocessing import contrast_preprocessing
 
 best_acc1 = 0
 
 
-def main():
-    args = parser.parse_args()
+def main(argv):
+    args = argument_handler.train_arg_parser(argv)
+    args.print_freq = 10
     args.out_dir = prepare_training.prepare_output_directories(
-        dataset_name='imagenet',
-        network_name=args.arch,
+        dataset_name=args.dataset,
+        network_name=args.network_name,
         optimiser='sgd',
         load_weights=False,
         experiment_name=args.experiment_name,
-        framework='pytorch')
+        framework='pytorch'
+    )
 
     if args.seed is not None:
         random.seed(args.seed)
@@ -110,7 +60,7 @@ def main():
                       'You may see unexpected behavior when restarting '
                       'from checkpoints.')
 
-    if args.gpu is not None:
+    if args.gpus is not None:
         warnings.warn('You have chosen a specific GPU. This will completely '
                       'disable data parallelism.')
 
@@ -130,15 +80,31 @@ def main():
                  args=(ngpus_per_node, args))
     else:
         # Simply call main_worker function
-        main_worker(args.gpu, ngpus_per_node, args)
+        main_worker(args.gpus, ngpus_per_node, args)
+
+
+def npy_data_loader(input_path, random_flip, add_noise):
+    lms_image = np.load(input_path).astype(np.float32)
+    lms_image = lms_image.transpose([2, 0, 1])
+    if random_flip and bool(random.getrandbits(1)):
+        lms_image = lms_image[:, ::-1, :].copy()
+    if add_noise and bool(random.getrandbits(1)):
+        lms_image /= lms_image.max()
+        lms_image = random_noise(lms_image, mode='gaussian', var=0.1)
+    lms_image = torch.from_numpy(lms_image)
+    lms_image = lms_image.type(torch.FloatTensor)
+    return lms_image
 
 
 def main_worker(gpu, ngpus_per_node, args):
     global best_acc1
-    args.gpu = gpu
+    args.gpus = gpu
 
-    if args.gpu is not None:
-        print("Use GPU: {} for training".format(args.gpu))
+    mean, std = get_preprocessing_function(args.colour_space,
+                                           args.colour_transformation)
+
+    if args.gpus is not None:
+        print("Use GPU: {} for training".format(args.gpus))
 
     if args.distributed:
         if args.dist_url == "env://" and args.rank == -1:
@@ -147,108 +113,170 @@ def main_worker(gpu, ngpus_per_node, args):
             # For multiprocessing distributed training, rank needs to be the
             # global rank among all the processes
             args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend,
-                                init_method=args.dist_url,
-                                world_size=args.world_size, rank=args.rank)
+        dist.init_process_group(
+            backend=args.dist_backend,
+            init_method=args.dist_url,
+            world_size=args.world_size,
+            rank=args.rank
+        )
     # create model
-    if args.pretrained:
-        print("=> using pre-trained model '{}'".format(args.arch))
-        model = models.__dict__[args.arch](pretrained=True)
+    # TODO: num_classes should be added to saves file, probably?
+    if args.custom_arch:
+        print('Custom model!')
+        if args.dataset == 'imagenet':
+            num_classes = 1000
+        elif '1600' in args.dataset:
+            num_classes = 1600
+        elif '330' in args.dataset:
+            num_classes = 330
+        model = custom_models.__dict__[args.network_name](
+            pooling_type=args.pooling_type,
+            in_chns=len(mean),
+            num_classes=num_classes
+        )
+    elif args.pretrained:
+        print("=> using pre-trained model '{}'".format(args.network_name))
+        model = models.__dict__[args.network_name](pretrained=True)
     else:
-        print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch]()
+        print("=> creating model '{}'".format(args.network_name))
+        model = models.__dict__[args.network_name]()
 
     if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
         # should always set the single device scope, otherwise,
         # DistributedDataParallel will use all available devices.
-        if args.gpu is not None:
-            torch.cuda.set_device(args.gpu)
-            model.cuda(args.gpu)
+        if args.gpus is not None:
+            torch.cuda.set_device(args.gpus)
+            model.cuda(args.gpus)
             # When using a single GPU per process and per
             # DistributedDataParallel, we need to divide the batch size
             # ourselves based on the total number of GPUs we have
             args.batch_size = int(args.batch_size / ngpus_per_node)
             args.workers = int(args.workers / ngpus_per_node)
-            model = torch.nn.parallel.DistributedDataParallel(model,
-                                                              device_ids=[
-                                                                  args.gpu])
+            model = torch.nn.parallel.DistributedDataParallel(
+                model, device_ids=[args.gpus]
+            )
         else:
             model.cuda()
             # DistributedDataParallel will divide and allocate batch_size to all
             # available GPUs if device_ids are not set
             model = torch.nn.parallel.DistributedDataParallel(model)
-    elif args.gpu is not None:
-        torch.cuda.set_device(args.gpu)
-        model = model.cuda(args.gpu)
+    elif args.gpus is not None:
+        torch.cuda.set_device(args.gpus)
+        model = model.cuda(args.gpus)
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
-        if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+        if args.network_name.startswith(
+                'alexnet') or args.network_name.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
             model.cuda()
         else:
             model = torch.nn.DataParallel(model).cuda()
 
     # define loss function (criterion) and optimizer
-    criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+    criterion = nn.CrossEntropyLoss().cuda(args.gpus)
 
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+    # optimiser
+    optimizer = torch.optim.SGD(
+        model.parameters(),
+        args.lr,
+        momentum=args.momentum,
+        weight_decay=args.decay
+    )
 
+    model_progress = []
     # optionally resume from a checkpoint
+    # TODO: it would be best if resume load the architecture from this file
+    # TODO: merge with which_architecture
     if args.resume:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
-            args.start_epoch = checkpoint['epoch']
+            args.initial_epoch = checkpoint['epoch']
             best_acc1 = checkpoint['best_acc1']
-            if args.gpu is not None:
+            if args.gpus is not None:
                 # best_acc1 may be from a checkpoint from a different GPU
-                best_acc1 = best_acc1.to(args.gpu)
+                best_acc1 = best_acc1.to(args.gpus)
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
+            # FIXME: not the most robust solution
+            model_progress_path = args.resume.replace(
+                'checkpoint.pth.tar', 'model_progress.csv')
+            model_progress = np.loadtxt(model_progress_path, delimiter=',')
+            model_progress = model_progress.tolist()
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
     cudnn.benchmark = True
 
     # Data loading code
-    traindir = os.path.join(args.data, 'train')
-    valdir = os.path.join(args.data, 'validation')
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
+    if args.data_dir is not None:
+        traindir = os.path.join(args.data_dir, 'train')
+        valdir = os.path.join(args.data_dir, 'validation')
+    else:
+        traindir = args.train_dir
+        valdir = args.validation_dir
+    normalize = transforms.Normalize(mean=mean, std=std)
 
+    colour_transformations = preprocessing.colour_transformation(
+        args.colour_transformation,
+        args.colour_space
+    )
+    chns_transformation = preprocessing.channel_transformation(
+        args.colour_transformation,
+        args.colour_space
+    )
     transformations = []
-    if args.experiment_name == 'deficiency_yellow_blue':
-        print('deficiency_yellow_blue')
-        transformations = preprocessing.colour_transformation('dichromat_yb')
-    elif args.experiment_name == 'deficiency_red_green':
-        print('deficiency_red_green')
-        transformations = preprocessing.colour_transformation('dichromat_rg')
-    elif args.experiment_name == 'deficiency_chromaticity':
-        print('deficiency_chromaticity')
-        transformations = preprocessing.colour_transformation('monochromat')
-
     if args.contrast_range is not None:
-        transformations.append(
-            preprocessing.ImageTransformation(
-                adjust_contrast,
-                args.contrast_range,
-                None))
+        args.contrast_range = np.array(args.contrast_range)
+        current_preprocessing = preprocessing.RandomPreprocessingTransformation(
+            contrast_preprocessing,
+            args.contrast_range,
+            None)
+        transformations.append(current_preprocessing)
 
-    target_size = 224
-    train_dataset = datasets.ImageFolder(
-        traindir,
-        transforms.Compose([
-            transforms.RandomResizedCrop(target_size),
-            *transformations,
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize,
-        ]))
+    if 'wcs_lms' in args.dataset:
+        data_loader_train = lambda x: npy_data_loader(x, True, False)
+        data_loader_validation = lambda x: npy_data_loader(x, False, False)
+
+    if args.dataset == 'imagenet':
+        train_dataset = datasets.ImageFolder(
+            traindir,
+            transforms.Compose([
+                transforms.RandomResizedCrop(224),
+                *colour_transformations,
+                *transformations,
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                *chns_transformation,
+                normalize,
+            ])
+        )
+    elif 'wcs_lms' in args.dataset:
+        train_dataset = datasets.DatasetFolder(
+            traindir,
+            data_loader_train,
+            ['.npy'],
+            transforms.Compose([
+                # TODO: consider other transformation
+                *chns_transformation,
+                normalize,
+            ])
+        )
+    elif 'wcs_jpg' in args.dataset:
+        train_dataset = datasets.ImageFolder(
+            traindir,
+            transforms.Compose([
+                *colour_transformations,
+                *transformations,
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                *chns_transformation,
+                normalize,
+            ])
+        )
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
@@ -259,27 +287,61 @@ def main_worker(gpu, ngpus_per_node, args):
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size,
         shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler)
+        num_workers=args.workers, pin_memory=True, sampler=train_sampler
+    )
 
-    val_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(target_size),
-            transforms.ToTensor(),
-            normalize,
-        ])),
-        batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
+    if args.dataset == 'imagenet':
+        target_size = 224
+        val_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(
+                valdir,
+                transforms.Compose([
+                    transforms.Resize(224),
+                    transforms.CenterCrop(target_size),
+                    *colour_transformations,
+                    transforms.ToTensor(),
+                    *chns_transformation,
+                    normalize,
+                ])
+            ),
+            batch_size=args.batch_size, shuffle=False,
+            num_workers=args.workers, pin_memory=True
+        )
+    elif 'wcs_lms' in args.dataset:
+        target_size = 128
+        val_loader = torch.utils.data.DataLoader(
+            datasets.DatasetFolder(
+                valdir,
+                data_loader_validation,
+                ['.npy'],
+                transforms.Compose([
+                    *chns_transformation,
+                    normalize,
+                ])
+            ),
+            batch_size=args.batch_size, shuffle=False,
+            num_workers=args.workers, pin_memory=True
+        )
+    elif 'wcs_jpg' in args.dataset:
+        target_size = 128
+        val_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(
+                valdir,
+                transforms.Compose([
+                    *colour_transformations,
+                    transforms.ToTensor(),
+                    *chns_transformation,
+                    normalize,
+                ])
+            ),
+            batch_size=args.batch_size, shuffle=False,
+            num_workers=args.workers, pin_memory=True
+        )
 
-    if args.evaluate:
-        validate(val_loader, model, criterion, args)
-        return
-
-    model_progress = []
     if not os.path.isdir(args.out_dir):
         os.mkdir(args.out_dir)
     file_path = os.path.join(args.out_dir, 'model_progress.csv')
-    for epoch in range(args.start_epoch, args.epochs):
+    for epoch in range(args.initial_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
         adjust_learning_rate(optimizer, epoch, args)
@@ -302,7 +364,9 @@ def main_worker(gpu, ngpus_per_node, args):
                 and args.rank % ngpus_per_node == 0):
             save_checkpoint({
                 'epoch': epoch + 1,
-                'arch': args.arch,
+                'arch': args.network_name,
+                'customs': {'pooling_type': args.pooling_type,
+                            'in_chns': len(mean)},
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer': optimizer.state_dict(),
@@ -326,9 +390,9 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         # measure data loading time
         data_time.update(time.time() - end)
 
-        if args.gpu is not None:
-            input = input.cuda(args.gpu, non_blocking=True)
-        target = target.cuda(args.gpu, non_blocking=True)
+        if args.gpus is not None:
+            input = input.cuda(args.gpus, non_blocking=True)
+        target = target.cuda(args.gpus, non_blocking=True)
 
         # compute output
         output = model(input)
@@ -350,14 +414,17 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         end = time.time()
 
         if i % args.print_freq == 0:
-            print('Epoch: [{0}][{1}/{2}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                epoch, i, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1, top5=top5))
+            print(
+                'Epoch: [{0}][{1}/{2}]\t'
+                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                    epoch, i, len(train_loader), batch_time=batch_time,
+                    data_time=data_time, loss=losses, top1=top1, top5=top5
+                )
+            )
     return [epoch, batch_time.avg, losses.avg, top1.avg, top5.avg]
 
 
@@ -373,9 +440,9 @@ def validate(val_loader, model, criterion, args):
     with torch.no_grad():
         end = time.time()
         for i, (input, target) in enumerate(val_loader):
-            if args.gpu is not None:
-                input = input.cuda(args.gpu, non_blocking=True)
-            target = target.cuda(args.gpu, non_blocking=True)
+            if args.gpus is not None:
+                input = input.cuda(args.gpus, non_blocking=True)
+            target = target.cuda(args.gpus, non_blocking=True)
 
             # compute output
             output = model(input)
@@ -392,70 +459,21 @@ def validate(val_loader, model, criterion, args):
             end = time.time()
 
             if i % args.print_freq == 0:
-                print('Test: [{0}/{1}]\t'
-                      'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                      'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                    i, len(val_loader), batch_time=batch_time, loss=losses,
-                    top1=top1, top5=top5))
+                print(
+                    'Test: [{0}/{1}]\t'
+                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                    'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                        i, len(val_loader), batch_time=batch_time, loss=losses,
+                        top1=top1, top5=top5
+                    )
+                )
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
 
     return [batch_time.avg, losses.avg, top1.avg, top5.avg]
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar',
-                    out_folder=''):
-    filename = os.path.join(out_folder, filename)
-    torch.save(state, filename)
-    if is_best:
-        model_best_path = os.path.join(out_folder, 'model_best.pth.tar')
-        shutil.copyfile(filename, model_best_path)
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-
-def adjust_learning_rate(optimizer, epoch, args):
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = args.lr * (0.1 ** (epoch // 30))
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-
-def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions"""
-    with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        for k in topk:
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
-
-
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
