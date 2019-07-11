@@ -408,6 +408,7 @@ def normalise_channel(x, low=0, high=1, minv=None, maxv=None):
 
 
 def get_colour_inds(chromaticity_type):
+    # FIXME: according to colour space
     colour_inds = None
     if chromaticity_type == 'dichromat_rg':
         colour_inds = [1]
@@ -417,6 +418,12 @@ def get_colour_inds(chromaticity_type):
         colour_inds = [1, 2]
     elif chromaticity_type == 'lightness':
         colour_inds = [0]
+    elif chromaticity_type == 'protanopia':
+        colour_inds = [1]
+    elif chromaticity_type == 'deuteranopia':
+        colour_inds = [2]
+    elif chromaticity_type == 'tritanopia':
+        colour_inds = [3]
     return colour_inds
 
 
