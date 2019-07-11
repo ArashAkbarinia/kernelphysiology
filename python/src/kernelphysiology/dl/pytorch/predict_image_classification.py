@@ -33,7 +33,8 @@ def main(argv):
      args.network_names,
      args.preprocessings) = prepapre_testing.test_prominent_prepares(
         args.network_name,
-        args.preprocessing)
+        args.preprocessing
+    )
 
     # FIXME: cant take more than one GPU
     gpu = args.gpus[0]
@@ -52,12 +53,17 @@ def main(argv):
             preprocessing.ImageTransformation(
                 simulate_distance,
                 args.distance,
-                args.mask_radius))
+                args.mask_radius
+            )
+        )
     for j, current_network in enumerate(args.networks):
         # which architecture
-        (model, target_size) = which_network(current_network,
-                                             args.task_type,
-                                             args.dataset)
+        (model, target_size) = which_network(
+            current_network,
+            args.task_type,
+            args.dataset,
+            args.kill_kernels
+        )
         model = model.cuda(gpu)
         mean, std = get_preprocessing_function(args.colour_space,
                                                args.preprocessings[j])
@@ -119,12 +125,14 @@ def main(argv):
                 batch_size=args.batch_size, shuffle=False,
                 num_workers=args.workers, pin_memory=True)
             (_, _, current_results) = validate(val_loader, model, criterion)
-            prepapre_testing.save_predictions(current_results,
-                                              args.experiment_name,
-                                              args.network_names[j],
-                                              args.dataset,
-                                              image_manipulation_type,
-                                              manipulation_value)
+            prepapre_testing.save_predictions(
+                current_results,
+                args.experiment_name,
+                args.network_names[j],
+                args.dataset,
+                image_manipulation_type,
+                manipulation_value
+            )
 
 
 def validate(val_loader, model, criterion):
@@ -190,7 +198,9 @@ def validate(val_loader, model, criterion):
                         batch_time=batch_time,
                         loss=losses,
                         top1=top1,
-                        top5=top5))
+                        top5=top5
+                    )
+                )
 
         print(
             ' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(

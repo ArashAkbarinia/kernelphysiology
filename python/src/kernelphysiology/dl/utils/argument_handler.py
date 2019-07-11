@@ -33,7 +33,8 @@ def common_arg_parser(description):
         '--experiment_name',
         type=str,
         default='Ex',
-        help='The name of the experiment (default: Ex)')
+        help='The name of the experiment (default: Ex)'
+    )
 
     data_dir_group = parser.add_argument_group('data path')
     data_dir_group.add_argument(
@@ -80,13 +81,15 @@ def common_arg_parser(description):
         '--target_size',
         type=int,
         default=None,
-        help='Target size (default: according to dataset)')
+        help='Target size (default: according to dataset)'
+    )
     # TODO: this is not implemented in Pytorch
     parser.add_argument(
         '--preprocessing',
         type=str,
         default=None,
-        help='The preprocessing function (default: according to network)')
+        help='The preprocessing function (default: according to network)'
+    )
     # TODO: this is not implemented in Pytorch
     # FIXME: could cause errors if names mismatch and it should be merged with
     # output parameters
@@ -106,14 +109,19 @@ def common_arg_parser(description):
         type=str,
         choices=[
             'classification',
-            'detection'],
+            'detection'
+        ],
         default=None,
         help='The task to prform by network (default: None)')
     parser.add_argument(
         '--colour_space',
         type=str,
         default='rgb',
-        choices=['rgb', 'lab', 'lms'],
+        choices=[
+            'rgb',
+            'lab',
+            'lms'
+        ],
         help='The colour space of network (default: RGB)'
     )
     return parser
@@ -122,7 +130,8 @@ def common_arg_parser(description):
 def activation_arg_parser(argvs):
     # FIXME: update activation pipeline
     parser = common_arg_parser(
-        'Analysing activation of prominent nets of Keras.')
+        'Analysing activation of prominent nets of Keras.'
+    )
 
     parser.add_argument(
         '--contrasts',
@@ -135,7 +144,8 @@ def activation_arg_parser(argvs):
 
 def test_arg_parser(argvs):
     parser = common_arg_parser(
-        'Test prominent nets of Keras for different contrasts.')
+        'Testing different image classification networks.'
+    )
     parser.add_argument(
         '--validation_crop_type',
         type=str,
@@ -143,34 +153,51 @@ def test_arg_parser(argvs):
         choices=[
             'random',
             'centre',
-            'none'],
-        help='What type of crop (default: centre)')
+            'none'
+        ],
+        help='What type of crop (default: centre)'
+    )
     parser.add_argument(
         '--mask_radius',
         type=float,
         default=None,
-        help='The radius of image distortion (default: None)')
+        help='The radius of image distortion (default: None)'
+    )
     parser.add_argument(
         '--image_limit',
         type=int,
         default=None,
-        help='Number of images to be evaluated (default: None)')
+        help='Number of images to be evaluated (default: None)'
+    )
     # TODO: Keras part is not implemented
     parser.add_argument(
         '--distance',
         type=float,
         default=1,
-        help='Simulating the viewing distance (default: 1)')
+        help='Simulating the viewing distance (default: 1)'
+    )
+
+    network_manipulation_group = parser.add_mutually_exclusive_group()
+    network_manipulation_group.add_argument(
+        '--kill_kernels',
+        nargs='+',
+        type=str,
+        default=None,
+        help='First layer name followed by kernel indices (default: None)'
+    )
 
     colour_space_group = parser.add_argument_group('colour space')
+    # TODO: merge this with colour space
     colour_space_group.add_argument(
         '--opponent_space',
         type=str,
         default='lab',
         choices=[
             'lab',
-            'dkl'],
-        help='The default colour opponent space (default: lab)')
+            'dkl'
+        ],
+        help='The default colour opponent space (default: lab)'
+    )
     # TODO: Keras part is not implemented
     colour_space_group.add_argument(
         '--colour_transformation',
@@ -186,7 +213,8 @@ def test_arg_parser(argvs):
             'deuteranopia',
             'tritanopia'
         ],
-        help='The preprocessing colour transformation (default: trichromat)')
+        help='The preprocessing colour transformation (default: trichromat)'
+    )
 
     image_degradation_group = parser.add_mutually_exclusive_group()
     image_degradation_group.add_argument(
@@ -330,7 +358,8 @@ def train_arg_parser(argvs):
         choices=[
             'random',
             'centre',
-            'none'],
+            'none'
+        ],
         help='What type of crop (default: random)')
     parser.add_argument(
         '--validation_crop_type',
@@ -339,7 +368,8 @@ def train_arg_parser(argvs):
         choices=[
             'random',
             'centre',
-            'none'],
+            'none'
+        ],
         help='What type of crop (default: centre)')
     parser.add_argument(
         '--output_types',
@@ -382,7 +412,8 @@ def train_arg_parser(argvs):
             'mix',
             'contrast_avg',
             'contrast_max',
-            'contrast'],
+            'contrast'
+        ],
         help='The pooling type (default: max)'
     )
     architecture_group.add_argument(
@@ -905,7 +936,8 @@ def check_task_type(dataset, task_type=None):
         if task_type is not None and task_type != 'classification':
             warnings.warn(
                 'Invalid task_type %s: %s only supports classification' %
-                (task_type, dataset))
+                (task_type, dataset)
+            )
         task_type = 'classification'
     elif 'coco' in dataset:
         # TODO: add other tasks as well

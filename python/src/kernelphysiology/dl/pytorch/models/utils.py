@@ -3,11 +3,11 @@ Helpers functions for models in Pytorch.
 """
 
 import os
+import sys
 
 import torch
 import torch.nn as nn
 import torchvision.models as pmodels
-import torchvision.transforms as transforms
 
 try:
     from torch.hub import load_state_dict_from_url
@@ -52,7 +52,7 @@ class IntermediateModel(nn.Module):
         return x
 
 
-def which_network_classification(network_name, dataset):
+def which_network_classification(network_name, dataset, kill_kernels=None):
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
         customs = None
@@ -81,14 +81,33 @@ def which_network_classification(network_name, dataset):
     else:
         model = pmodels.__dict__[network_name](pretrained=True)
         target_size = 224
+    # TODO: move to a seperate function
+    if kill_kernels is not None:
+        layer_name = ''
+        for item in kill_kernels:
+            if item.isdigit():
+                kernel_index = int(item)
+                if layer_name == '':
+                    sys.exit(
+                        'The order of kernels to be killed should follow '
+                        'layer name and kernel indices. Invalid layer name %s' %
+                        layer_name
+                    )
+                else:
+                    model.state_dict()[layer_name][kernel_index,] = 0
+            else:
+                layer_name = item
     return model, target_size
 
 
-def which_network(network_name, task_type, dataset):
+def which_network(network_name, task_type, dataset, kill_kernels=None):
     # FIXME: network should be acosiated to dataset
     if task_type == 'classification':
         (model, target_size) = which_network_classification(
-            network_name, dataset)
+            network_name,
+            dataset,
+            kill_kernels
+        )
     return model, target_size
 
 
