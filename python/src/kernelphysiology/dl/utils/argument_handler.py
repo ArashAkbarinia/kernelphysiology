@@ -65,7 +65,7 @@ def common_arg_parser(description):
     )
     # TODO: change the default according to training or testing
     parser.add_argument(
-        'j', '--workers',
+        '-j', '--workers',
         type=int,
         default=1,
         help='Number of workers for image generator (default: 1)'
