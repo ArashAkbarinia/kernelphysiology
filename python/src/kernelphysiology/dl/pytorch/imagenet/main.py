@@ -134,7 +134,7 @@ parser.add_argument(
         'contrast_avg',
         'contrast_max',
         'contrast'],
-    help='The preprocessing colour transformation (default: trichromat)')
+    help='The pooling type (default: max)')
 parser.add_argument(
     '--contrast_range',
     nargs='+',

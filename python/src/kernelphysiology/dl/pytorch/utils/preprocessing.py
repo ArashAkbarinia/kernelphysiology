@@ -23,14 +23,17 @@ class ColourTransformation(object):
         self.colour_space = colour_space
 
     def __call__(self, img):
-        img = ImageCms.applyTransform(img, rgb2lab)
-        img = np.asarray(img).copy()
-        # TODO: only for LAB that 0 contrast lightness means all to be 50
-        if self.colour_inds == 0:
-            img[:, :, self.colour_inds] = 50
-        else:
-            img[:, :, self.colour_inds] = 0
-        img = PilImage.fromarray(img, 'LAB')
+        if self.colour_space == 'lab' or self.colour_inds is not None:
+            img = ImageCms.applyTransform(img, rgb2lab)
+        # if colour_inds is None, we consider it as trichromat
+        if self.colour_inds is not None:
+            img = np.asarray(img).copy()
+            # TODO: only for LAB that 0 contrast lightness means all to be 50
+            if self.colour_inds == 0:
+                img[:, :, self.colour_inds] = 50
+            else:
+                img[:, :, self.colour_inds] = 0
+            img = PilImage.fromarray(img, 'LAB')
         if self.colour_space == 'rgb':
             img = ImageCms.applyTransform(img, lab2rgb)
         return img
@@ -38,13 +41,8 @@ class ColourTransformation(object):
 
 def colour_transformation(transformation_type, colour_space='rgb'):
     ct = []
-    if transformation_type != 'trichromat':
-        colour_inds = get_colour_inds(transformation_type)
-        # check if it's a valid colour index
-        if colour_inds is not None:
-            ct.append(ColourTransformation(colour_inds, colour_space))
-        else:
-            warnings.warn('Unsupported colour transformation' % type)
+    colour_inds = get_colour_inds(transformation_type)
+    ct.append(ColourTransformation(colour_inds, colour_space))
     return ct
 
 
