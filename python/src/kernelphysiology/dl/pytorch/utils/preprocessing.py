@@ -25,17 +25,17 @@ class ColourTransformation(object):
     def __call__(self, img):
         if self.colour_space == 'lab' or self.colour_inds is not None:
             img = ImageCms.applyTransform(img, rgb2lab)
-        # if colour_inds is None, we consider it as trichromat
-        if self.colour_inds is not None:
-            img = np.asarray(img).copy()
-            # TODO: only for LAB that 0 contrast lightness means all to be 50
-            if self.colour_inds == 0:
-                img[:, :, self.colour_inds] = 50
-            else:
-                img[:, :, self.colour_inds] = 0
-            img = PilImage.fromarray(img, 'LAB')
-        if self.colour_space == 'rgb':
-            img = ImageCms.applyTransform(img, lab2rgb)
+            # if colour_inds is None, we consider it as trichromat
+            if self.colour_inds is not None:
+                img = np.asarray(img).copy()
+                # TODO: 0 contrast lightness means all to be 50
+                if self.colour_inds == 0:
+                    img[:, :, self.colour_inds] = 50
+                else:
+                    img[:, :, self.colour_inds] = 0
+                img = PilImage.fromarray(img, 'LAB')
+            if self.colour_space == 'rgb':
+                img = ImageCms.applyTransform(img, lab2rgb)
         return img
 
 
