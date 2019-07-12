@@ -94,6 +94,10 @@ def which_network_classification(network_name, dataset, kill_kernels=None):
                         layer_name
                     )
                 else:
+                    print(
+                        'Removing layer %s kernel %d' %
+                        (layer_name, kernel_index)
+                    )
                     model.state_dict()[layer_name][kernel_index,] = 0
             else:
                 layer_name = item
