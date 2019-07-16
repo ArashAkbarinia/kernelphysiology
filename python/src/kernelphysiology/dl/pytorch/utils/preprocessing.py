@@ -70,7 +70,7 @@ def channel_transformation(transformation_type, colour_space='rgb'):
         if colour_inds is not None:
             ct.append(ChannelTransformation(colour_inds, colour_space))
         else:
-            warnings.warn('Unsupported colour transformation' % type)
+            warnings.warn('Unsupported colour transformation %s' % colour_space)
     return ct
 
 
@@ -88,9 +88,11 @@ class ImageTransformation(object):
     def __call__(self, img):
         img = np.asarray(img, dtype='uint8')
         manipulation_value = np.random.uniform(*self.manipulation_value)
-        img = self.manipulation_function(img,
-                                         manipulation_value,
-                                         mask_radius=self.manipulation_radius)
+        img = self.manipulation_function(
+            img,
+            manipulation_value,
+            mask_radius=self.manipulation_radius
+        )
         img *= 255
         img = PilImage.fromarray(img.astype('uint8'), 'RGB')
         return img
@@ -126,9 +128,11 @@ class PreprocessingTransformation(object):
 
     def __call__(self, x):
         x = np.asarray(x, dtype='uint8')
-        x = self.manipulation_function(x, self.manipulation_value,
-                                       mask_radius=self.manipulation_radius,
-                                       preprocessing_function=None)
+        x = self.manipulation_function(
+            x, self.manipulation_value,
+            mask_radius=self.manipulation_radius,
+            preprocessing_function=None
+        )
         x = PilImage.fromarray(x.astype('uint8'), 'RGB')
         return x
 
@@ -147,8 +151,10 @@ class RandomPreprocessingTransformation(object):
     def __call__(self, x):
         x = np.asarray(x, dtype='uint8')
         manipulation_value = np.random.uniform(*self.manipulation_value)
-        x = self.manipulation_function(x, manipulation_value,
-                                       mask_radius=self.manipulation_radius,
-                                       preprocessing_function=None)
+        x = self.manipulation_function(
+            x, manipulation_value,
+            mask_radius=self.manipulation_radius,
+            preprocessing_function=None
+        )
         x = PilImage.fromarray(x.astype('uint8'), 'RGB')
         return x

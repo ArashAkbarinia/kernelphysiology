@@ -23,6 +23,7 @@ from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.dl.utils import argument_handler
 from kernelphysiology.dl.utils import prepapre_testing
 from kernelphysiology.dl.pytorch.models.utils import which_network
+from kernelphysiology.dl.pytorch.models.utils import LayerActivation
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.utils.preprocessing import which_preprocessing
 
@@ -74,7 +75,8 @@ def main(argv):
             current_preprocessing = preprocessing.PreprocessingTransformation(
                 image_manipulation_function,
                 manipulation_value,
-                args.mask_radius)
+                args.mask_radius
+            )
             # TODO: change args.preprocessings[j] to colour_transformation
             # TODO: perhaps for inverting chromaticity and luminance as well
             # FIXME: for less than 3 channels in lab it wont work
@@ -104,35 +106,100 @@ def main(argv):
             transformations = [*other_transformations, *cts,
                                current_preprocessing]
 
-            print('Processing network %s and %s %f' %
-                  (current_network,
-                   image_manipulation_type,
-                   manipulation_value))
+            print(
+                'Processing network %s and %s %f' %
+                (current_network, image_manipulation_type, manipulation_value)
+            )
 
             # which dataset
             # reading it after the model, because each might have their own
             # specific size
             # Data loading code
             val_loader = torch.utils.data.DataLoader(
-                datasets.ImageFolder(args.validation_dir, transforms.Compose([
-                    transforms.Resize(target_size),
-                    transforms.CenterCrop(target_size),
-                    *transformations,
-                    transforms.ToTensor(),
-                    *chns_transformation,
-                    normalize,
-                ])),
+                datasets.ImageFolder(
+                    args.validation_dir, transforms.Compose([
+                        transforms.Resize(target_size),
+                        transforms.CenterCrop(target_size),
+                        *transformations,
+                        transforms.ToTensor(),
+                        *chns_transformation,
+                        normalize,
+                    ])
+                ),
                 batch_size=args.batch_size, shuffle=False,
-                num_workers=args.workers, pin_memory=True)
-            (_, _, current_results) = validate(val_loader, model, criterion)
-            prepapre_testing.save_predictions(
-                current_results,
-                args.experiment_name,
-                args.network_names[j],
-                args.dataset,
-                image_manipulation_type,
-                manipulation_value
+                num_workers=args.workers, pin_memory=True
             )
+            if args.activation_map is not None:
+                model = LayerActivation(model, args.activation_map)
+                current_results = compute_activation(val_loader, model)
+                prepapre_testing.save_activation(
+                    current_results,
+                    args.experiment_name,
+                    args.network_names[j],
+                    args.dataset,
+                    image_manipulation_type,
+                    manipulation_value
+                )
+            else:
+                (_, _, current_results) = validate(
+                    val_loader, model, criterion
+                )
+                prepapre_testing.save_predictions(
+                    current_results,
+                    args.experiment_name,
+                    args.network_names[j],
+                    args.dataset,
+                    image_manipulation_type,
+                    manipulation_value
+                )
+
+
+def compute_activation(val_loader, model):
+    batch_time = AverageMeter()
+
+    # switch to evaluate mode
+    model.eval()
+
+    all_predictions = []
+    with torch.no_grad():
+        end = time.time()
+        for i, (input_imgs, target) in enumerate(val_loader):
+            if 0 is not None:
+                input_imgs = input_imgs.cuda(0, non_blocking=True)
+
+            # compute output
+            pred_outs = model(input_imgs).cpu().numpy()
+
+            # I'm not sure if this is all necessary, copied from keras
+            if not isinstance(pred_outs, list):
+                pred_outs = [pred_outs]
+
+            if not all_predictions:
+                for _ in pred_outs:
+                    all_predictions.append([])
+
+            for j, out in enumerate(pred_outs):
+                all_predictions[j].append(out)
+
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
+
+            if i % 10 == 0:
+                print(
+                    'Test: [{0}/{1}]\t'
+                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'.format(
+                        i,
+                        len(val_loader),
+                        batch_time=batch_time,
+                    )
+                )
+
+    if len(all_predictions) == 1:
+        prediction_output = np.concatenate(all_predictions[0])
+    else:
+        prediction_output = [np.concatenate(out) for out in all_predictions]
+    return prediction_output
 
 
 def validate(val_loader, model, criterion):
@@ -144,10 +211,11 @@ def validate(val_loader, model, criterion):
     # switch to evaluate mode
     model.eval()
 
-    all_outs = []
+    all_predictions = []
     with torch.no_grad():
         end = time.time()
         for i, (input_imgs, target) in enumerate(val_loader):
+            # FIXME: this is supposed to be args.gpu
             if 0 is not None:
                 input_imgs = input_imgs.cuda(0, non_blocking=True)
             target = target.cuda(0, non_blocking=True)
@@ -158,25 +226,26 @@ def validate(val_loader, model, criterion):
 
             # measure accuracy and record loss
             ((acc1, acc5), (corrects1, corrects5)) = accuracy_preds(
-                output, target, topk=(1, 5))
+                output, target, topk=(1, 5)
+            )
             corrects1 = corrects1.cpu().numpy()
             corrects5 = corrects5.cpu().numpy().sum(axis=0)
 
-            outs = np.zeros((corrects1.shape[1], 3))
-            outs[:, 0] = corrects1
-            outs[:, 1] = corrects5
-            outs[:, 2] = output.cpu().numpy().argmax(axis=1)
+            pred_outs = np.zeros((corrects1.shape[1], 3))
+            pred_outs[:, 0] = corrects1
+            pred_outs[:, 1] = corrects5
+            pred_outs[:, 2] = output.cpu().numpy().argmax(axis=1)
 
             # I'm not sure if this is all necessary, copied from keras
-            if not isinstance(outs, list):
-                outs = [outs]
+            if not isinstance(pred_outs, list):
+                pred_outs = [pred_outs]
 
-            if not all_outs:
-                for _ in outs:
-                    all_outs.append([])
+            if not all_predictions:
+                for _ in pred_outs:
+                    all_predictions.append([])
 
-            for j, out in enumerate(outs):
-                all_outs[j].append(out)
+            for j, out in enumerate(pred_outs):
+                all_predictions[j].append(out)
 
             losses.update(loss.item(), input_imgs.size(0))
             top1.update(acc1[0], input_imgs.size(0))
@@ -204,12 +273,14 @@ def validate(val_loader, model, criterion):
 
         print(
             ' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(
-                top1=top1, top5=top5))
+                top1=top1, top5=top5
+            )
+        )
 
-    if len(all_outs) == 1:
-        prediction_output = np.concatenate(all_outs[0])
+    if len(all_predictions) == 1:
+        prediction_output = np.concatenate(all_predictions[0])
     else:
-        prediction_output = [np.concatenate(out) for out in all_outs]
+        prediction_output = [np.concatenate(out) for out in all_predictions]
     return top1.avg, top5.avg, prediction_output
 
 

@@ -158,6 +158,12 @@ def test_arg_parser(argvs):
         help='What type of crop (default: centre)'
     )
     parser.add_argument(
+        '--activation_map',
+        type=str,
+        default=None,
+        help='Saving the activation maps (default: None)'
+    )
+    parser.add_argument(
         '--mask_radius',
         type=float,
         default=None,

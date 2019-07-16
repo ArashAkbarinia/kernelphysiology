@@ -17,6 +17,58 @@ except ImportError:
 from kernelphysiology.dl.pytorch import models as custom_models
 
 
+def _get_conv(module, layer_num, conv_num):
+    sub_layer = [*module[:layer_num]]
+    sub_layer = nn.Sequential(*sub_layer)
+
+    module_list = list(module[layer_num].children())
+    if (isinstance(module[layer_num], pmodels.resnet.BasicBlock) or
+            isinstance(module[layer_num], custom_models.resnet.BasicBlock)):
+        conv_ind = (conv_num - 1) * 3 + 2
+    else:
+        conv_ind = (conv_num - 1) * 2 + 2
+    sub_conv = nn.Sequential(*module_list[:conv_ind])
+    return sub_layer, sub_conv
+
+
+class LayerActivation(nn.Module):
+    def __init__(self, model, layer_name):
+        super(LayerActivation, self).__init__()
+
+        # FIXME: only for resnet at this point
+        name_split = layer_name.split('.')
+        last_layer = 4
+        sub_layer = None
+        sub_conv = None
+        if 'layer' in name_split[0]:
+            layer_num = int(name_split[1])
+            conv_num = int(name_split[2][-1])
+            if name_split[0] == 'layer1':
+                layerx = model.layer1
+                last_layer = 4
+            elif name_split[0] == 'layer2':
+                layerx = model.layer2
+                last_layer = 5
+            elif name_split[0] == 'layer3':
+                layerx = model.layer3
+                last_layer = 6
+            elif name_split[0] == 'layer4':
+                layerx = model.layer4
+                last_layer = 7
+            sub_layer, sub_conv = _get_conv(layerx, layer_num, conv_num)
+        self.features = nn.Sequential(*list(model.children())[:last_layer])
+        self.sub_layer = sub_layer
+        self.sub_conv = sub_conv
+
+    def forward(self, x):
+        x = self.features(x)
+        if self.sub_layer is not None:
+            x = self.sub_layer(x)
+        if self.sub_conv is not None:
+            x = self.sub_conv(x)
+        return x
+
+
 class IntermediateModel(nn.Module):
     def __init__(self, original_model, num_categories, dr_rate, model_name):
         super(IntermediateModel, self).__init__()
