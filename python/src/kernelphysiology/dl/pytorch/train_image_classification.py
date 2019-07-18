@@ -207,9 +207,11 @@ def main_worker(gpu, ngpus_per_node, args):
                   .format(args.resume, checkpoint['epoch']))
             # FIXME: not the most robust solution
             model_progress_path = args.resume.replace(
-                'checkpoint.pth.tar', 'model_progress.csv')
-            model_progress = np.loadtxt(model_progress_path, delimiter=',')
-            model_progress = model_progress.tolist()
+                'checkpoint.pth.tar', 'model_progress.csv'
+            )
+            if os.path.exists(model_progress_path):
+                model_progress = np.loadtxt(model_progress_path, delimiter=',')
+                model_progress = model_progress.tolist()
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
