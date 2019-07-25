@@ -165,8 +165,8 @@ def which_network_classification(network_name, dataset, kill_kernels=None,
                                     )
                                 else:
                                     print(
-                                        'Removing layer %s axis %d kernel %d' %
-                                        (layer_name, axis_num, plane_index)
+                                        'Removing axis %d plane %d' %
+                                        (axis_num, plane_index)
                                     )
                                     if axis_num == 0:
                                         model.state_dict()[layer_name][
