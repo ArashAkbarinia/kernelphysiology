@@ -183,7 +183,7 @@ def test_arg_parser(argvs):
         help='Simulating the viewing distance (default: 1)'
     )
 
-    network_manipulation_group = parser.add_mutually_exclusive_group()
+    network_manipulation_group = parser.add_argument_group()
     network_manipulation_group.add_argument(
         '--kill_kernels',
         nargs='+',
