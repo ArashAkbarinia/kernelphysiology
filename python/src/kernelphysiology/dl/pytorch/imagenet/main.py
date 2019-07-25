@@ -145,6 +145,12 @@ parser.add_argument(
     type=float,
     default=None,
     help='Contrast lower limit (default: None)')
+parser.add_argument(
+    '--contrast_radius',
+    nargs='+',
+    type=float,
+    default=None,
+    help='Contrast radius (default: None)')
 best_acc1 = 0
 
 
@@ -343,7 +349,8 @@ def main_worker(gpu, ngpus_per_node, args):
         current_preprocessing = preprocessing.RandomPreprocessingTransformation(
             contrast_preprocessing,
             args.contrast_range,
-            None)
+            args.contrast_radius
+        )
         transformations.append(current_preprocessing)
 
     if 'wcs_lms' in args.dataset:

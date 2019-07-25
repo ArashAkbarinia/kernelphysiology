@@ -28,6 +28,7 @@ def im2double(image):
             return image
 
 
+# FIXME: there is a bug with non square images
 def create_mask_image(image, mask_radius=None):
     image_mask = np.zeros(image.shape, np.uint8)
     if mask_radius is not None:
