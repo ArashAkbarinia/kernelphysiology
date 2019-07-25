@@ -63,7 +63,8 @@ def main(argv):
             current_network,
             args.task_type,
             args.dataset,
-            args.kill_kernels
+            args.kill_kernels,
+            args.kill_planes
         )
         model = model.cuda(gpu)
         mean, std = get_preprocessing_function(args.colour_space,

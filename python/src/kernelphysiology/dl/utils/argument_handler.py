@@ -191,6 +191,13 @@ def test_arg_parser(argvs):
         default=None,
         help='First layer name followed by kernel indices (default: None)'
     )
+    network_manipulation_group.add_argument(
+        '--kill_planes',
+        nargs='+',
+        type=str,
+        default=None,
+        help='First axis number followed by plane indices (default: None)'
+    )
 
     colour_space_group = parser.add_argument_group('colour space')
     # TODO: merge this with colour space
