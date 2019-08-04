@@ -63,12 +63,12 @@ def get_default_dataset_paths(
     elif 'wcs' in dataset_name:
         # NOTE: just for the ease of working in my machiens
         if train_dir is None:
-            train_dir = '%sdatasets/%s/train/' % (pre_path, dataset_name)
+            train_dir = '%sdatasets/wcs/%s/train/' % (pre_path, dataset_name)
         if validation_dir is None:
             if (socket.gethostname() == 'awesome' or
                     socket.gethostname() == 'nickel' or
                     socket.gethostname() == 'nyanza'):
-                validation_dir = '%sdatasets/%s/validation/' % \
+                validation_dir = '%sdatasets/wcs/%s/validation/' % \
                                  (pre_path, dataset_name)
     else:
         sys.exit('Unsupported dataset %s' % dataset_name)
