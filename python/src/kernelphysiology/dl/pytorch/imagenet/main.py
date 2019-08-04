@@ -15,7 +15,6 @@ import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
-import torchvision.datasets as datasets
 import torchvision.models as models
 
 from skimage.util import random_noise
@@ -25,9 +24,12 @@ from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
-from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
-from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.pytorch.utils import preprocessing
+from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.datasets.utils import get_train_dataset
+from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
+from kernelphysiology.dl.pytorch.datasets.utils import get_default_target_size
+from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.utils.preprocessing import contrast_preprocessing
 
 model_names = sorted(name for name in models.__dict__
@@ -343,7 +345,7 @@ def main_worker(gpu, ngpus_per_node, args):
         args.colour_transformation,
         args.colour_space
     )
-    transformations = []
+    other_transformations = []
     if args.contrast_range is not None:
         args.contrast_range = np.array(args.contrast_range)
         current_preprocessing = preprocessing.RandomPreprocessingTransformation(
@@ -351,52 +353,18 @@ def main_worker(gpu, ngpus_per_node, args):
             args.contrast_range,
             args.contrast_radius
         )
-        transformations.append(current_preprocessing)
+        other_transformations.append(current_preprocessing)
 
-    if 'wcs_lms' in args.dataset:
-        data_loader_train = lambda x: npy_data_loader(x, True, False)
-        data_loader_validation = lambda x: npy_data_loader(x, False, False)
-
-    if args.dataset == 'imagenet':
-        train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-                transforms.RandomResizedCrop(224),
-                *colour_transformations,
-                *transformations,
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                *chns_transformation,
-                normalize,
-            ])
-        )
-    elif 'wcs_lms' in args.dataset:
-        train_dataset = datasets.DatasetFolder(
-            traindir,
-            data_loader_train,
-            ['.npy'],
-            transforms.Compose([
-                # TODO: consider other transformation
-                *chns_transformation,
-                normalize,
-            ])
-        )
-    elif 'wcs_jpg' in args.dataset:
-        train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-                *colour_transformations,
-                *transformations,
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                *chns_transformation,
-                normalize,
-            ])
-        )
+    # loading the training set
+    train_dataset = get_train_dataset(
+        args.dataset, traindir, colour_transformations, other_transformations,
+        chns_transformation, normalize
+    )
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
-            train_dataset)
+            train_dataset
+        )
     else:
         train_sampler = None
 
@@ -406,53 +374,19 @@ def main_worker(gpu, ngpus_per_node, args):
         num_workers=args.workers, pin_memory=True, sampler=train_sampler
     )
 
-    if args.dataset == 'imagenet':
-        target_size = 224
-        val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(
-                valdir,
-                transforms.Compose([
-                    transforms.Resize(224),
-                    transforms.CenterCrop(target_size),
-                    *colour_transformations,
-                    transforms.ToTensor(),
-                    *chns_transformation,
-                    normalize,
-                ])
-            ),
-            batch_size=args.batch_size, shuffle=False,
-            num_workers=args.workers, pin_memory=True
-        )
-    elif 'wcs_lms' in args.dataset:
-        target_size = 128
-        val_loader = torch.utils.data.DataLoader(
-            datasets.DatasetFolder(
-                valdir,
-                data_loader_validation,
-                ['.npy'],
-                transforms.Compose([
-                    *chns_transformation,
-                    normalize,
-                ])
-            ),
-            batch_size=args.batch_size, shuffle=False,
-            num_workers=args.workers, pin_memory=True
-        )
-    elif 'wcs_jpg' in args.dataset:
-        target_size = 128
-        val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(
-                valdir,
-                transforms.Compose([
-                    *colour_transformations,
-                    transforms.ToTensor(),
-                    *chns_transformation,
-                    normalize,
-                ])
-            ),
-            batch_size=args.batch_size, shuffle=False,
-            num_workers=args.workers, pin_memory=True
-        )
+    # loading validation set
+    target_size = get_default_target_size(args.dataset)
+
+    validation_dataset = get_validation_dataset(
+        args.dataset, valdir, colour_transformations, [],
+        chns_transformation, normalize, target_size
+    )
+
+    val_loader = torch.utils.data.DataLoader(
+        validation_dataset,
+        batch_size=args.batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True
+    )
 
     if args.evaluate:
         validate(val_loader, model, criterion, args)
@@ -467,11 +401,15 @@ def main_worker(gpu, ngpus_per_node, args):
         adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train_log = train(train_loader, model, criterion, optimizer, epoch,
-                          args)
+        train_log = train(
+            train_loader, model, criterion, optimizer, epoch, args
+        )
 
         # evaluate on validation set
-        validation_log = validate(val_loader, model, criterion, args)
+        validation_log = validate(
+            val_loader, model, criterion, args
+        )
+
         model_progress.append([*train_log, *validation_log])
 
         # remember best acc@1 and save checkpoint
@@ -490,8 +428,9 @@ def main_worker(gpu, ngpus_per_node, args):
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
                 'optimizer': optimizer.state_dict(),
-                'target_size': target_size,
-            }, is_best, out_folder=args.out_dir)
+                'target_size': target_size, },
+                is_best, out_folder=args.out_dir
+            )
         np.savetxt(file_path, np.array(model_progress), delimiter=',')
 
 

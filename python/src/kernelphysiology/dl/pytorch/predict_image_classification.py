@@ -14,17 +14,19 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
-import torchvision.datasets as datasets
 
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy_preds
 from kernelphysiology.dl.pytorch.utils import preprocessing
-from kernelphysiology.utils.imutils import simulate_distance
-from kernelphysiology.dl.utils import argument_handler
-from kernelphysiology.dl.utils import prepapre_testing
 from kernelphysiology.dl.pytorch.models.utils import which_network
 from kernelphysiology.dl.pytorch.models.utils import LayerActivation
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.datasets.utils import get_train_dataset
+from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
+from kernelphysiology.dl.pytorch.datasets.utils import get_default_target_size
+from kernelphysiology.dl.utils import argument_handler
+from kernelphysiology.dl.utils import prepapre_testing
+from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.utils.preprocessing import which_preprocessing
 
 
@@ -47,16 +49,8 @@ def main(argv):
      image_manipulation_values,
      image_manipulation_function) = which_preprocessing(args)
 
-    other_transformations = []
     # TODO: better modelling the distance
-    if args.distance > 1:
-        other_transformations.append(
-            preprocessing.ImageTransformation(
-                simulate_distance,
-                args.distance,
-                args.mask_radius
-            )
-        )
+
     for j, current_network in enumerate(args.networks):
         # which architecture
         (model, target_size) = which_network(
@@ -67,8 +61,9 @@ def main(argv):
             args.kill_planes
         )
         model = model.cuda(gpu)
-        mean, std = get_preprocessing_function(args.colour_space,
-                                               args.preprocessings[j])
+        mean, std = get_preprocessing_function(
+            args.colour_space, args.preprocessings[j]
+        )
         normalize = transforms.Normalize(mean=mean, std=std)
 
         # FIXME: for now it only supports classification
@@ -91,9 +86,9 @@ def main(argv):
                     (image_manipulation_type == 'lightness'
                      and args.preprocessings[j] == 'lightness')
             ):
-                cts = []
+                colour_transformations = []
             else:
-                cts = preprocessing.colour_transformation(
+                colour_transformations = preprocessing.colour_transformation(
                     args.preprocessings[j],
                     args.colour_space
                 )
@@ -104,8 +99,7 @@ def main(argv):
                 args.colour_space
             )
 
-            transformations = [*other_transformations, *cts,
-                               current_preprocessing]
+            other_transformations = [current_preprocessing]
 
             print(
                 'Processing network %s and %s %f' %
@@ -115,21 +109,21 @@ def main(argv):
             # which dataset
             # reading it after the model, because each might have their own
             # specific size
-            # Data loading code
+            # loading validation set
+            target_size = get_default_target_size(args.dataset)
+
+            validation_dataset = get_validation_dataset(
+                args.dataset, args.validation_dir, colour_transformations,
+                other_transformations, chns_transformation, normalize,
+                target_size
+            )
+
             val_loader = torch.utils.data.DataLoader(
-                datasets.ImageFolder(
-                    args.validation_dir, transforms.Compose([
-                        transforms.Resize(target_size),
-                        transforms.CenterCrop(target_size),
-                        *transformations,
-                        transforms.ToTensor(),
-                        *chns_transformation,
-                        normalize,
-                    ])
-                ),
+                validation_dataset,
                 batch_size=args.batch_size, shuffle=False,
                 num_workers=args.workers, pin_memory=True
             )
+
             if args.activation_map is not None:
                 model = LayerActivation(model, args.activation_map)
                 current_results = compute_activation(val_loader, model)
