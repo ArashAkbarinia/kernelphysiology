@@ -199,19 +199,6 @@ def main():
         main_worker(args.gpu, ngpus_per_node, args)
 
 
-def npy_data_loader(input_path, random_flip, add_noise):
-    lms_image = np.load(input_path).astype(np.float32)
-    lms_image = lms_image.transpose([2, 0, 1])
-    if random_flip and bool(random.getrandbits(1)):
-        lms_image = lms_image[:, ::-1, :].copy()
-    if add_noise and bool(random.getrandbits(1)):
-        lms_image /= lms_image.max()
-        lms_image = random_noise(lms_image, mode='gaussian', var=0.1)
-    lms_image = torch.from_numpy(lms_image)
-    lms_image = lms_image.type(torch.FloatTensor)
-    return lms_image
-
-
 def main_worker(gpu, ngpus_per_node, args):
     global best_acc1
     args.gpu = gpu

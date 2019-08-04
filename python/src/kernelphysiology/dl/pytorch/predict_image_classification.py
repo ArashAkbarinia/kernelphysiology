@@ -21,12 +21,10 @@ from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.models.utils import which_network
 from kernelphysiology.dl.pytorch.models.utils import LayerActivation
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
-from kernelphysiology.dl.pytorch.datasets.utils import get_train_dataset
 from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
 from kernelphysiology.dl.pytorch.datasets.utils import get_default_target_size
 from kernelphysiology.dl.utils import argument_handler
 from kernelphysiology.dl.utils import prepapre_testing
-from kernelphysiology.utils.imutils import simulate_distance
 from kernelphysiology.utils.preprocessing import which_preprocessing
 
 

@@ -60,24 +60,16 @@ def get_default_dataset_paths(
             else:
                 validation_dir = '%srepositories/kernelphysiology/' \
                                  'data/computervision/coco/' % pre_path
-    elif dataset_name == 'wcs':
+    elif 'wcs' in dataset_name:
         # NOTE: just for the ease of working in my machiens
         if train_dir is None:
-            train_dir = '%sdatasets/wcs/train/' % pre_path
+            train_dir = '%sdatasets/%s/train/' % (pre_path, dataset_name)
         if validation_dir is None:
             if (socket.gethostname() == 'awesome' or
                     socket.gethostname() == 'nickel' or
                     socket.gethostname() == 'nyanza'):
-                validation_dir = '%sdatasets/wcs/validation/' % pre_path
-    elif dataset_name == 'wcs_full':
-        # NOTE: just for the ease of working in my machiens
-        if train_dir is None:
-            train_dir = '%sdatasets/wcs_full/train/' % pre_path
-        if validation_dir is None:
-            if (socket.gethostname() == 'awesome' or
-                    socket.gethostname() == 'nickel' or
-                    socket.gethostname() == 'nyanza'):
-                validation_dir = '%sdatasets/wcs_full/validation/' % pre_path
+                validation_dir = '%sdatasets/%s/validation/' % \
+                                 (pre_path, dataset_name)
     else:
         sys.exit('Unsupported dataset %s' % dataset_name)
     return train_dir, validation_dir, data_dir

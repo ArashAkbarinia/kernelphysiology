@@ -113,7 +113,7 @@ def get_default_num_classes(dataset):
 def get_default_target_size(dataset):
     if dataset in ['imagenet', 'leaf', 'fruits', 'wcs', 'wcs_full']:
         target_size = 224
-    elif dataset == 'wcs_lms':
+    elif 'wcs_lms' in dataset:
         target_size = 128
     elif 'cifar' in dataset or 'stl' in dataset:
         target_size = 32
