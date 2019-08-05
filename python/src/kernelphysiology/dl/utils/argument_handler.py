@@ -196,7 +196,14 @@ def test_arg_parser(argvs):
         nargs='+',
         type=str,
         default=None,
-        help='First axis number followed by plane indices (default: None)'
+        help='Axis number followed by plane indices ax_<P1> (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--kill_lines',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
     )
 
     colour_space_group = parser.add_argument_group('colour space')

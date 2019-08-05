@@ -56,7 +56,8 @@ def main(argv):
             args.task_type,
             args.dataset,
             args.kill_kernels,
-            args.kill_planes
+            args.kill_planes,
+            args.kill_vectors
         )
         model = model.cuda(gpu)
         mean, std = get_preprocessing_function(
