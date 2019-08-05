@@ -327,6 +327,50 @@ def _resnet(arch, inplanes, planes, pretrained, progress, **kwargs):
     return model
 
 
+def resnet_basic_0000(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-0000 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_basic_0000', BasicBlock, [0, 0, 0, 0], pretrained,
+                   progress, **kwargs)
+
+
+def resnet_basic_2000(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-2000 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_basic_2000', BasicBlock, [2, 0, 0, 0], pretrained,
+                   progress, **kwargs)
+
+
+def resnet_basic_2200(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-2200 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_basic_2200', BasicBlock, [2, 2, 0, 0], pretrained,
+                   progress, **kwargs)
+
+
+def resnet_basic_2220(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-2220 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_basic_2220', BasicBlock, [2, 2, 2, 0], pretrained,
+                   progress, **kwargs)
+
+
 def resnet18(pretrained=False, progress=True, **kwargs):
     """Constructs a ResNet-18 model.
 
@@ -347,6 +391,61 @@ def resnet34(pretrained=False, progress=True, **kwargs):
     """
     return _resnet('resnet34', BasicBlock, [3, 4, 6, 3], pretrained, progress,
                    **kwargs)
+
+
+def resnet_bottleneck_0000(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Bottleneck-0000 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_bottleneck_0000', Bottleneck, [0, 0, 0, 0],
+                   pretrained, progress, **kwargs)
+
+
+def resnet_bottleneck_2000(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Bottleneck-2000 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_bottleneck_2000', Bottleneck, [2, 0, 0, 0],
+                   pretrained, progress, **kwargs)
+
+
+def resnet_bottleneck_2200(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Bottleneck-2200 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_bottleneck_2200', Bottleneck, [2, 2, 0, 0],
+                   pretrained, progress, **kwargs)
+
+
+def resnet_bottleneck_2220(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Bottleneck-2220 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_bottleneck_2220', Bottleneck, [2, 2, 2, 0],
+                   pretrained, progress, **kwargs)
+
+
+def resnet_bottleneck_2222(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Bottleneck-2222 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_bottleneck_2222', Bottleneck, [2, 2, 2, 2],
+                   pretrained, progress, **kwargs)
 
 
 def resnet50(pretrained=False, progress=True, **kwargs):

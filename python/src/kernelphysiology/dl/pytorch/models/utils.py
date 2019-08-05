@@ -108,7 +108,6 @@ def lesion_lines(model, layer, kernel, kill_lines):
     for l_item in kill_lines:
         # pattern <P1>_<L1>_<P2>_<L2>
         current_line = l_item.split('_')
-        plane_index = int(l_item)
         if len(current_line) != 4:
             sys.exit(
                 'The order of lines to be killed should follow '
