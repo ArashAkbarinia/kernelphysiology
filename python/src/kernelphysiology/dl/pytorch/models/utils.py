@@ -104,6 +104,65 @@ class IntermediateModel(nn.Module):
         return x
 
 
+def lesion_planes(model, layer_name, kernel_index, kill_planes):
+    if kill_planes is not None:
+        axis_num = None
+        for p_item in kill_planes:
+            if p_item.isdigit():
+                plane_index = int(p_item)
+                if axis_num == None:
+                    sys.exit(
+                        'The order of planes to be killed should follow '
+                        'ax_<NUMBER> and plane indices. Invalid axis %d' %
+                        axis_num
+                    )
+                else:
+                    print(
+                        'Removing axis %d plane %d' % (axis_num, plane_index)
+                    )
+                    if axis_num == 0:
+                        model.state_dict()[layer_name][kernel_index,
+                        plane_index, :, :] = 0
+                    elif axis_num == 1:
+                        model.state_dict()[layer_name][kernel_index, :,
+                        plane_index, ] = 0
+                    elif axis_num == 2:
+                        model.state_dict()[layer_name][kernel_index, :, :,
+                        plane_index, ] = 0
+            else:
+                # pattern ax_<NUMBER>
+                axis_num = int(p_item.split('_')[-1])
+    else:
+        model.state_dict()[layer_name][kernel_index,] = 0
+    return model
+
+
+def lesion_kernels(model, kill_kernels, kill_planes=None):
+    if kill_kernels is not None:
+        layer_name = ''
+        for k_item in kill_kernels:
+            if k_item.isdigit():
+                kernel_index = int(k_item)
+                if layer_name == '':
+                    sys.exit(
+                        'The order of kernels to be killed should follow '
+                        'layer name and kernel indices. Invalid layer name %s' %
+                        layer_name
+                    )
+                else:
+                    print(
+                        'Removing layer %s kernel %d' %
+                        (layer_name, kernel_index)
+                    )
+                    # check whether planes are specified
+                    model = lesion_planes(
+                        model, layer_name, kernel_index, kill_planes
+                    )
+            else:
+                layer_name = k_item
+    return model
+
+
 def which_network_classification(network_name, dataset, kill_kernels=None,
                                  kill_planes=None):
     if os.path.isfile(network_name):
@@ -138,59 +197,8 @@ def which_network_classification(network_name, dataset, kill_kernels=None,
     else:
         model = pmodels.__dict__[network_name](pretrained=True)
         target_size = 224
-    # TODO: move to a seperate function
-    if kill_kernels is not None:
-        layer_name = ''
-        for k_item in kill_kernels:
-            if k_item.isdigit():
-                kernel_index = int(k_item)
-                if layer_name == '':
-                    sys.exit(
-                        'The order of kernels to be killed should follow '
-                        'layer name and kernel indices. Invalid layer name %s' %
-                        layer_name
-                    )
-                else:
-                    print(
-                        'Removing layer %s kernel %d' %
-                        (layer_name, kernel_index)
-                    )
-                    # check whether planes are specified
-                    if kill_planes is not None:
-                        axis_num = None
-                        for p_item in kill_planes:
-                            if p_item.isdigit():
-                                plane_index = int(p_item)
-                                if axis_num == None:
-                                    sys.exit(
-                                        'The order of planes to be killed '
-                                        'should follow ax_number and plane '
-                                        'indices. Invalid axis %d' % axis_num
-                                    )
-                                else:
-                                    print(
-                                        'Removing axis %d plane %d' %
-                                        (axis_num, plane_index)
-                                    )
-                                    if axis_num == 0:
-                                        model.state_dict()[layer_name][
-                                        kernel_index, plane_index, :, :
-                                        ] = 0
-                                    elif axis_num == 1:
-                                        model.state_dict()[layer_name][
-                                        kernel_index, :, plane_index,
-                                        ] = 0
-                                    elif axis_num == 2:
-                                        model.state_dict()[layer_name][
-                                        kernel_index, :, :, plane_index,
-                                        ] = 0
-                            else:
-                                # pattern ax_NUMBER
-                                axis_num = int(p_item.split('_')[-1])
-                    else:
-                        model.state_dict()[layer_name][kernel_index,] = 0
-            else:
-                layer_name = k_item
+
+    model = lesion_kernels(model, kill_kernels, kill_planes)
     return model, target_size
 
 
