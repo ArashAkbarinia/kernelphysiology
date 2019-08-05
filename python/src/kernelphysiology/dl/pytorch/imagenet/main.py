@@ -57,7 +57,7 @@ parser.add_argument(
     default=None,
     help='The path to the validation directory (default: None)')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
-                    choices=model_names,
+                    #choices=model_names, # TODO: add my custom models
                     help='model architecture: ' +
                          ' | '.join(model_names) +
                          ' (default: resnet18)')
