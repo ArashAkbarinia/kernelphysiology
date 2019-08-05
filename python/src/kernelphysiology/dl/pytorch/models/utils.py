@@ -233,14 +233,15 @@ def which_network_classification(network_name, dataset, kill_kernels=None,
 
 
 def which_network(network_name, task_type, dataset, kill_kernels=None,
-                  kill_planes=None):
+                  kill_planes=None, kill_lines=None):
     # FIXME: network should be acosiated to dataset
     if task_type == 'classification':
         (model, target_size) = which_network_classification(
             network_name,
             dataset,
             kill_kernels,
-            kill_planes
+            kill_planes,
+            kill_lines
         )
     return model, target_size
 
