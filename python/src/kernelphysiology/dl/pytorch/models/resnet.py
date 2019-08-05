@@ -10,8 +10,8 @@ __all__ = [
     'ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
     'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
     'resnet_basic_0000', 'resnet_basic_2000', 'resnet_basic_2200',
-    'resnet_basic_2220', 'resnet_bottleneck_2000', 'resnet_bottleneck_2200',
-    'resnet_bottleneck_2220', 'resnet_bottleneck_2222'
+    'resnet_basic_2220', 'resnet_bottleneck_0000', 'resnet_bottleneck_2000',
+    'resnet_bottleneck_2200', 'resnet_bottleneck_2220', 'resnet_bottleneck_2222'
 ]
 
 model_urls = {
