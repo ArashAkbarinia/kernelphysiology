@@ -293,3 +293,14 @@ def get_preprocessing_function(colour_space, chromaticity):
             mean = [0.5]
             std = [0.25]
     return mean, std
+
+
+def info_conv_parameters(state_dict):
+    num_kernels = 0
+    num_parameters = 0
+    for layer in state_dict.keys():
+        if 'conv' in layer:
+            current_layer = state_dict[layer].numpy()
+            num_kernels += current_layer.shape[0]
+            num_parameters += current_layer.size
+    return num_kernels, num_parameters
