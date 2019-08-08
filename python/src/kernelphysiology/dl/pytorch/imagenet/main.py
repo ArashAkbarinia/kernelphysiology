@@ -57,7 +57,7 @@ parser.add_argument(
     default=None,
     help='The path to the validation directory (default: None)')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
-                    #choices=model_names, # TODO: add my custom models
+                    # choices=model_names, # TODO: add my custom models
                     help='model architecture: ' +
                          ' | '.join(model_names) +
                          ' (default: resnet18)')
@@ -338,7 +338,8 @@ def main_worker(gpu, ngpus_per_node, args):
         current_preprocessing = preprocessing.RandomPreprocessingTransformation(
             contrast_preprocessing,
             args.contrast_range,
-            args.contrast_radius
+            args.contrast_radius,
+            'lms' not in args.dataset  # TODO: this should be color spaces
         )
         other_transformations.append(current_preprocessing)
 

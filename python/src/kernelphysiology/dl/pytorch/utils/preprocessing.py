@@ -74,6 +74,7 @@ def channel_transformation(transformation_type, colour_space='rgb'):
     return ct
 
 
+# FIXME: this seems to be unused
 class ImageTransformation(object):
 
     def __init__(
@@ -121,19 +122,23 @@ class PreprocessingTransformation(object):
             self,
             manipulation_function,
             manipulation_value,
-            manipulation_radius):
+            manipulation_radius,
+            is_pill_img=True):
         self.manipulation_function = manipulation_function
         self.manipulation_value = manipulation_value
         self.manipulation_radius = manipulation_radius
+        self.is_pill_img = is_pill_img
 
     def __call__(self, x):
-        x = np.asarray(x, dtype='uint8')
+        if self.is_pill_img:
+            x = np.asarray(x, dtype='uint8')
         x = self.manipulation_function(
             x, self.manipulation_value,
             mask_radius=self.manipulation_radius,
             preprocessing_function=None
         )
-        x = PilImage.fromarray(x.astype('uint8'), 'RGB')
+        if self.is_pill_img:
+            x = PilImage.fromarray(x.astype('uint8'), 'RGB')
         return x
 
 
@@ -143,13 +148,16 @@ class RandomPreprocessingTransformation(object):
             self,
             manipulation_function,
             manipulation_value,
-            manipulation_radius):
+            manipulation_radius,
+            is_pill_img=True):
         self.manipulation_function = manipulation_function
         self.manipulation_value = manipulation_value
         self.manipulation_radius = manipulation_radius
+        self.is_pill_img = is_pill_img
 
     def __call__(self, x):
-        x = np.asarray(x, dtype='uint8')
+        if self.is_pill_img:
+            x = np.asarray(x, dtype='uint8')
         manipulation_value = np.random.uniform(*self.manipulation_value)
         if self.manipulation_radius is None:
             mask_radius = None
@@ -160,5 +168,6 @@ class RandomPreprocessingTransformation(object):
             mask_radius=mask_radius,
             preprocessing_function=None
         )
-        x = PilImage.fromarray(x.astype('uint8'), 'RGB')
+        if self.is_pill_img:
+            x = PilImage.fromarray(x.astype('uint8'), 'RGB')
         return x
