@@ -241,7 +241,11 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
     assert (contrast_level >= 0.0), 'contrast_level too low.'
     assert (contrast_level <= 1.0), 'contrast_level too high.'
 
-    image = im2double(image)
+    # image = im2double(image)
+    image = image.astype('float32')
+    max_pixel = image.max()
+    image /= max_pixel
+
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
@@ -251,9 +255,10 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
     contrast_level_mat = np.random.uniform(low=min_contrast, high=max_contrast,
                                            size=image.shape)
 
-    image_contrast = (1 - contrast_level_mat) / 2.0 + np.multiply(image,
-                                                                  contrast_level_mat)
+    image_contrast = (1 - contrast_level_mat) / 2.0 + np.multiply(
+        image, contrast_level_mat)
     output = image_org * image_mask + image_contrast * (1 - image_mask)
+    output *= max_pixel
     return output
 
 

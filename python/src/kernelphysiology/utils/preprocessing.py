@@ -100,9 +100,10 @@ def gaussian_preprocessing(img, sigma, mask_radius=None,
     return img
 
 
+# FIXME: make all other functions like this
 def contrast_preprocessing(img, contrast, mask_radius=None,
                            preprocessing_function=None):
-    img = adjust_contrast(img, contrast, mask_radius=mask_radius) * 255
+    img = adjust_contrast(img, contrast, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img

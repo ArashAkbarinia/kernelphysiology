@@ -30,13 +30,16 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
             ])
         )
     elif 'wcs_lms' in dataset_name:
-        data_loader_validation = lambda x: npy_data_loader(x, False, False)
+        # FIXME: colour transformation in lms is different from rgb or lab
+        data_loader_validation = lambda x: npy_data_loader(x)
 
         validation_dataset = datasets.DatasetFolder(
             valdir,
             data_loader_validation,
             ['.npy'],
             transforms.Compose([
+                *other_transformations,
+                Numpy2Tensor(),
                 *chns_transformation,
                 normalize,
             ])
@@ -57,6 +60,7 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
     return validation_dataset
 
 
+# TODO: train and validation merge together
 def get_train_dataset(dataset_name, traindir, colour_transformations,
                       other_transformations, chns_transformation, normalize):
     if dataset_name == 'imagenet':
@@ -73,14 +77,16 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
             ])
         )
     elif 'wcs_lms' in dataset_name:
-        data_loader_train = lambda x: npy_data_loader(x, True, False)
+        data_loader_train = lambda x: npy_data_loader(x)
 
         train_dataset = datasets.DatasetFolder(
             traindir,
             data_loader_train,
             ['.npy'],
             transforms.Compose([
-                # TODO: consider other transformation
+                *other_transformations,
+                RandomHorizontalFlip(),
+                Numpy2Tensor(),
                 *chns_transformation,
                 normalize,
             ])
@@ -114,14 +120,79 @@ def get_default_target_size(dataset_name):
     return target_size
 
 
-def npy_data_loader(input_path, random_flip=False, gaussian_noise=False):
+def npy_data_loader(input_path):
     lms_image = np.load(input_path).astype(np.float32)
-    lms_image = lms_image.transpose([2, 0, 1])
-    if random_flip and bool(random.getrandbits(1)):
-        lms_image = lms_image[:, ::-1, :].copy()
-    if gaussian_noise and bool(random.getrandbits(1)):
-        lms_image /= lms_image.max()
-        lms_image = random_noise(lms_image, mode='gaussian', var=0.1)
-    lms_image = torch.from_numpy(lms_image)
-    lms_image = lms_image.type(torch.FloatTensor)
     return lms_image
+
+
+class Numpy2Tensor(object):
+    """Converting a numpy array to a tensor image.
+    """
+
+    def __call__(self, img):
+        """
+        Args:
+            img (Numpy matrix): matrix to be converted to tensor.
+
+        Returns:
+            Pytorch Tensor: colour channels are stored in axis=0
+        """
+        img = img.transpose([2, 0, 1])
+        img = torch.from_numpy(img)
+        img = img.type(torch.FloatTensor)
+        return img
+
+    def __repr__(self):
+        return self.__class__.__name__
+
+
+class RandomHorizontalFlip(object):
+    """Horizontally flip the given matrix randomly with a given probability.
+
+    Args:
+        p (float): probability of the matrix being flipped. Default value is 0.5
+    """
+
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, img):
+        """
+        Args:
+            img (Numpy matrix): matrix to be flipped.
+
+        Returns:
+            Numpy matrix: Randomly flipped matrix.
+        """
+        if random.random() < self.p:
+            return img[:, ::-1, ].copy()
+        return img
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(p={})'.format(self.p)
+
+
+class RandomVerticalFlip(object):
+    """Vertically flip the given matrix randomly with a given probability.
+
+    Args:
+        p (float): probability of the matrix being flipped. Default value is 0.5
+    """
+
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, img):
+        """
+        Args:
+            img (Numpy matrix): matrix to be flipped.
+
+        Returns:
+            Numpy matrix: Randomly flipped matrix.
+        """
+        if random.random() < self.p:
+            return img[::-1, ].copy()
+        return img
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(p={})'.format(self.p)
