@@ -1,6 +1,6 @@
-'''
+"""
 Utility functoins for image processing.
-'''
+"""
 
 from skimage.util import random_noise
 from skimage.color import rgb2gray, rgb2lab, lab2rgb
@@ -28,21 +28,28 @@ def im2double(image):
             return image
 
 
-# FIXME: there is a bug with non square images
-def create_mask_image(image, mask_radius=None):
+def create_mask_image(image, mask_radius=None, is_circle=True):
+    """Creating a mask image with given radius or given side"""
     image_mask = np.zeros(image.shape, np.uint8)
     if mask_radius is not None:
-        image_mask = np.zeros(image.shape, np.uint8)
         radius_sign = np.sign(mask_radius)
         if radius_sign == -1:
-            mask_radius = 1 + mask_radius
+            mask_radius = np.abs(mask_radius)
         (rows, cols, chns) = image.shape
         smaller_side = np.minimum(rows, cols)
-        mask_radius = int(math.floor(mask_radius * smaller_side))
-        if mask_radius > 3:
-            centre = (int(math.floor(rows / 2)), int(math.floor(cols / 2)))
-            image_mask = cv2.circle(image_mask, centre, mask_radius, (1, 1, 1),
-                                    -1)
+        mask_radius = int(math.floor(mask_radius * smaller_side * 0.5))
+        if mask_radius >= 3:
+            centre = (int(math.floor(cols / 2)), int(math.floor(rows / 2)))
+            if is_circle:
+                image_mask = cv2.circle(
+                    image_mask, centre, mask_radius, (1, 1, 1), -1
+                )
+            else:
+                rect = (centre[0] - mask_radius, centre[1] - mask_radius,
+                        2 * mask_radius, 2 * mask_radius)
+                image_mask = cv2.rectangle(
+                    image_mask, rect, (1, 1, 1), -1
+                )
             if radius_sign == 1:
                 image_mask = 1 - image_mask
     return image_mask
@@ -230,7 +237,8 @@ def reduce_lightness(image, amount, mask_radius=None, colour_space='lab'):
     return output
 
 
-def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
+def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None,
+                    is_mask_circle=True):
     """Return the image scaled to a certain contrast level in [0, 1].
 
     parameters:
@@ -247,7 +255,7 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None):
     image /= max_pixel
 
     image_org = image.copy()
-    image_mask = create_mask_image(image, mask_radius)
+    image_mask = create_mask_image(image, mask_radius, is_mask_circle)
 
     min_contrast = contrast_level - pixel_variatoin
     max_contrast = contrast_level + pixel_variatoin
