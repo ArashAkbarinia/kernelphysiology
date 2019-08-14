@@ -71,6 +71,7 @@ def main(argv):
                 image_manipulation_function,
                 manipulation_value,
                 args.mask_radius,
+                args.mask_type,
                 'lms' not in args.dataset # TODO: this should be color space
             )
             # TODO: change args.preprocessings[j] to colour_transformation

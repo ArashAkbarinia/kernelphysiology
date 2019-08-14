@@ -170,6 +170,12 @@ def test_arg_parser(argvs):
         help='The radius of image distortion (default: None)'
     )
     parser.add_argument(
+        '--mask_type',
+        type=str,
+        default='circle',
+        help='The type of mask image (default: circle)'
+    )
+    parser.add_argument(
         '--image_limit',
         type=int,
         default=None,

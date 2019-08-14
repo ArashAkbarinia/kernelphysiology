@@ -123,18 +123,22 @@ class PreprocessingTransformation(object):
             manipulation_function,
             manipulation_value,
             manipulation_radius,
+            mask_type='circle',
             is_pill_img=True):
         self.manipulation_function = manipulation_function
         self.manipulation_value = manipulation_value
         self.manipulation_radius = manipulation_radius
+        self.mask_type = mask_type
         self.is_pill_img = is_pill_img
 
     def __call__(self, x):
         if self.is_pill_img:
             x = np.asarray(x, dtype='uint8')
+        # FIXME: this will crash for any other manipulation except contrast
         x = self.manipulation_function(
             x, self.manipulation_value,
             mask_radius=self.manipulation_radius,
+            mask_type=self.mask_type,
             preprocessing_function=None
         )
         if self.is_pill_img:

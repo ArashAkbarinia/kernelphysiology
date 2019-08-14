@@ -5,6 +5,7 @@ Utility functoins for image processing.
 from skimage.util import random_noise
 from skimage.color import rgb2gray, rgb2lab, lab2rgb
 from skimage.draw import rectangle
+from skimage import feature
 
 import numpy as np
 import math
@@ -26,6 +27,41 @@ def im2double(image):
         else:
             # FIXME: not handling these cases
             return image
+
+
+def create_mask_image_canny(image, sigma=1.0, low_threshold=0.9,
+                            high_threshold=0.9, use_quantiles=True):
+    image_mask = np.zeros(image.shape, np.uint8)
+    if sigma is not None:
+        if len(image.shape) > 2:
+            chns = image.shape[2]
+        else:
+            chns = 1
+
+        # convert the image to one channel
+        image = image.astype('float32')
+        max_pixel = image.max()
+        image /= max_pixel
+        image = image.sum(axis=2)
+
+        sigma_sign = np.sign(sigma)
+        if sigma_sign == -1:
+            sigma = np.abs(sigma)
+
+        image_mask = feature.canny(
+            image, sigma, low_threshold, high_threshold,
+            use_quantiles=use_quantiles
+        )
+
+        # repeating this for number of channels in input image
+        if chns != 1:
+            image_mask = np.expand_dims(image_mask, axis=2)
+            image_mask = np.repeat(image_mask, chns, axis=2)
+
+        image_mask = image_mask.astype('uint8')
+        if sigma_sign == 1:
+            image_mask = 1 - image_mask
+    return image_mask
 
 
 def create_mask_image(image, mask_radius=None, is_circle=True):
@@ -238,7 +274,7 @@ def reduce_lightness(image, amount, mask_radius=None, colour_space='lab'):
 
 
 def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None,
-                    is_mask_circle=True):
+                    mask_type='circle'):
     """Return the image scaled to a certain contrast level in [0, 1].
 
     parameters:
@@ -255,7 +291,12 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None,
     image /= max_pixel
 
     image_org = image.copy()
-    image_mask = create_mask_image(image, mask_radius, is_mask_circle)
+    if mask_type == 'circle':
+        image_mask = create_mask_image(image, mask_radius, True)
+    elif mask_type == 'square':
+        image_mask = create_mask_image(image, mask_radius, True)
+    else:
+        image_mask = create_mask_image_canny(image, sigma=mask_radius)
 
     min_contrast = contrast_level - pixel_variatoin
     max_contrast = contrast_level + pixel_variatoin
