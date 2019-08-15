@@ -2,7 +2,6 @@
 A collection of functions to organise the output of different experiments.
 """
 
-
 import numpy as np
 import os
 import glob
@@ -10,6 +9,7 @@ import ntpath
 import shutil
 
 from kernelphysiology.utils import controls
+from kernelphysiology.utils.info import imagenet_category_inds
 
 
 def arrange_to_network_dirs(input_folder, output_folder, network_names):
@@ -51,7 +51,28 @@ def test_value_from_path(test_name):
             return token
 
 
-class ResultSummary():
+def imagenet_result_summary(predictions):
+    summary_report = dict()
+    summary_report['top1'] = predictions[:, 0].mean()
+    summary_report['top5'] = predictions[:, 1].mean()
+
+    category_inds = imagenet_category_inds()
+    num_categories = category_inds.shape[0]
+    cats_top1 = np.zeros(num_categories)
+    cats_top5 = np.zeros(num_categories)
+    for i in range(num_categories):
+        si = int(category_inds[i, 0])
+        ei = int(category_inds[i, 1])
+        cats_top1[i] = predictions[si:ei, 0].mean()
+        cats_top5[i] = predictions[si:ei, 1].mean()
+
+    summary_report['cats_top1'] = cats_top1
+    summary_report['cats_top5'] = cats_top5
+
+    return summary_report
+
+
+class ResultSummary:
     test_index = 0
 
     def __init__(self, name, num_tests, class_inds):
