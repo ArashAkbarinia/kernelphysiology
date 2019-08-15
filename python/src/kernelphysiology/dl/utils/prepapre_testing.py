@@ -11,7 +11,8 @@ from kernelphysiology.utils.path_utils import create_dir
 
 
 def _prepare_saving_directory(experiment_name, network, dataset,
-                              manipulation_type, manipulation_value, extension):
+                              manipulation_type, manipulation_value,
+                              extension, chunk=''):
     create_dir(experiment_name)
     dataset_dir = os.path.join(experiment_name, dataset)
     create_dir(dataset_dir)
@@ -19,8 +20,8 @@ def _prepare_saving_directory(experiment_name, network, dataset,
     create_dir(manipulation_dir)
     network_dir = os.path.join(manipulation_dir, network)
     create_dir(network_dir)
-    file_name = '%s_%s_%s.%s' % (
-        network, manipulation_type, str(manipulation_value), extension)
+    file_name = '%s_%s_%s%s.%s' % (
+        network, manipulation_type, str(manipulation_value), chunk, extension)
     output_file = os.path.join(network_dir, file_name)
     return output_file
 
@@ -40,17 +41,23 @@ def save_predictions(predictions, experiment_name, network, dataset,
 
 def save_activation(activations, experiment_name, network, dataset,
                     manipulation_type, manipulation_value):
-    output_file = _prepare_saving_directory(
-        experiment_name,
-        network,
-        dataset,
-        manipulation_type,
-        manipulation_value,
-        extension='pickle'
-    )
-    pickle_out = open(output_file, 'wb')
-    pickle.dump(activations, pickle_out)
-    pickle_out.close()
+    j = 1
+    gap = 5000
+    for start_i in range(0, len(activations), gap):
+        output_file = _prepare_saving_directory(
+            experiment_name,
+            network,
+            dataset,
+            manipulation_type,
+            manipulation_value,
+            extension='pickle',
+            chunk='_chunk%.3d' % j
+        )
+        pickle_out = open(output_file, 'wb')
+        end_i = start_i + gap
+        pickle.dump(activations[start_i:end_i], pickle_out)
+        pickle_out.close()
+        j += 1
 
 
 def test_prominent_prepares(network_arg, preprocessing=None):
