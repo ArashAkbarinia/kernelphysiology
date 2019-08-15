@@ -27,7 +27,7 @@ from kernelphysiology.utils.imutils import keep_red_channel
 
 
 # TODO: make it nicer, too much duplicate code
-def nothing_preprocessing(img, _, mask_radius=None,
+def nothing_preprocessing(img, _, mask_radius=None, mask_type='circle',
                           preprocessing_function=None):
     if preprocessing_function:
         img = preprocessing_function(img)
