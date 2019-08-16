@@ -387,7 +387,7 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None,
     if mask_type == 'circle':
         image_mask = create_mask_image(image, mask_radius, True)
     elif mask_type == 'square':
-        image_mask = create_mask_image(image, mask_radius, True)
+        image_mask = create_mask_image(image, mask_radius, False)
     else:
         image_mask = create_mask_image_canny(image, sigma=mask_radius, **kwargs)
 
