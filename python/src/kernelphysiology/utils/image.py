@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import math
 import re
 from six.moves import range
 import os
@@ -14,7 +13,7 @@ import warnings
 import multiprocessing.pool
 from keras_preprocessing import get_keras_submodule
 
-import cv2
+from kernelphysiology.utils import imutils
 
 try:
     IteratorType = get_keras_submodule('utils').Sequence
@@ -521,94 +520,6 @@ def load_img(path, grayscale=False, color_mode='rgb', target_size=None,
                         ", ".join(_PIL_INTERPOLATION_METHODS.keys())))
             resample = _PIL_INTERPOLATION_METHODS[interpolation]
             img = img.resize(width_height_tuple, resample)
-    return img
-
-
-# TODO: merge it with Keras image manipulation class
-def get_random_crop_params(img, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.)):
-    """Get parameters for ``crop`` for a random sized crop.
-    Args:
-        img (numpy array): Image to be cropped.
-        scale (tuple): range of size of the origin size cropped
-        ratio (tuple): range of aspect ratio of the origin aspect ratio cropped
-    Returns:
-        tuple: params (i, j, h, w) to be passed to ``crop`` for a random
-            sized crop.
-    """
-    area = img.shape[0] * img.shape[1]
-
-    for attempt in range(10):
-        target_area = np.random.uniform(*scale) * area
-        log_ratio = (math.log(ratio[0]), math.log(ratio[1]))
-        aspect_ratio = math.exp(np.random.uniform(*log_ratio))
-
-        w = int(round(math.sqrt(target_area * aspect_ratio)))
-        h = int(round(math.sqrt(target_area / aspect_ratio)))
-
-        if w < img.shape[0] and h < img.shape[1]:
-            i = np.random.randint(0, img.shape[1] - h)
-            j = np.random.randint(0, img.shape[0] - w)
-            return i, j, h, w
-
-    # Fallback to central crop
-    in_ratio = img.shape[0] / img.shape[1]
-    if (in_ratio < min(ratio)):
-        w = img.shape[0]
-        h = w / min(ratio)
-    elif (in_ratio > max(ratio)):
-        h = img.shape[1]
-        w = h * max(ratio)
-    else:  # whole image
-        w = img.shape[0]
-        h = img.shape[1]
-    i = (img.shape[1] - h) // 2
-    j = (img.shape[0] - w) // 2
-    return int(i), int(j), int(h), int(w)
-
-
-def resize_to_min_side(img, target_size):
-    # NOTE: assuming only square images
-    min_side = target_size[0]
-    # resize
-    (height, width, _) = img.shape
-    new_height = height * min_side // min(img.shape[:2])
-    new_width = width * min_side // min(img.shape[:2])
-    img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
-    # FIXME: only for 8 bit images
-    img = np.minimum(img, 255)
-    return img
-
-
-def centre_crop(img, target_size):
-    # crop
-    (height, width, _) = img.shape
-    left = (width - target_size[0]) // 2
-    top = (height - target_size[1]) // 2
-    right = (width + target_size[0]) // 2
-    bottom = (height + target_size[1]) // 2
-    img = img[top:bottom, left:right]
-    return img
-
-
-# TODO: support other interpolation methods
-def crop_image_centre(img, target_size, extended_crop=None):
-    (dx, dy) = target_size
-    # FIXME: by default it should be 0 rather than 32
-    if extended_crop is None:
-        extended_crop = (dx + 32, dy + 32)
-    img = resize_to_min_side(img, extended_crop)
-    return centre_crop(img, target_size)
-
-
-# NOTE: image_data_format is 'channel_last'
-def crop_image_random(img, target_size):
-    (i, j, h, w) = get_random_crop_params(img)
-    img = img[j:(j+w), i:(i+h)]
-
-    img = cv2.resize(img, target_size, interpolation=cv2.INTER_LINEAR)
-    # FIXME: only for 8 bit images
-    img = np.minimum(img, 255)
-
     return img
 
 
@@ -2054,9 +1965,9 @@ class DirectoryIterator(Iterator):
                            interpolation=self.interpolation)
             x = img_to_array(img, data_format=self.data_format)
             if self.crop_type == 'centre':
-                x = crop_image_centre(x, self.target_size)
+                x = imutils.crop_image_centre(x, self.target_size)
             elif self.crop_type == 'random':
-                x = crop_image_random(x, self.target_size)
+                x = imutils.crop_image_random(x, self.target_size)
             # Pillow images should be closed after `load_img`,
             # but not PIL images.
             if hasattr(img, 'close'):
