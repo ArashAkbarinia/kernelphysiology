@@ -174,7 +174,6 @@ class RandomPreprocessingTransformation(object):
         # TODO: make this nicer for all other manipulation functions
         # TODO: pass low and high thresholds
         if self.mask_type == 'canny':
-            mask_radius
             low_threshold = np.random.uniform(0, 1)
             high_threshold = np.random.uniform(low_threshold, 1)
             kwargs['low_threshold'] = low_threshold

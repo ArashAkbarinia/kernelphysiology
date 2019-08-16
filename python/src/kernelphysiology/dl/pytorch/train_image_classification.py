@@ -345,6 +345,7 @@ def main_worker(gpu, ngpus_per_node, args):
             contrast_preprocessing,
             args.contrast_range,
             args.contrast_radius,
+            args.mask_type,
             'lms' not in args.dataset  # TODO: this should be color spaces
         )
         other_transformations.append(current_preprocessing)
