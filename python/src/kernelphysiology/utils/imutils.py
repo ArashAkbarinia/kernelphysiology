@@ -33,16 +33,17 @@ def create_mask_image_canny(image, sigma=1.0, low_threshold=0.9,
                             high_threshold=0.9, use_quantiles=True):
     image_mask = np.zeros(image.shape, np.uint8)
     if sigma is not None:
-        if len(image.shape) > 2:
-            chns = image.shape[2]
-        else:
-            chns = 1
-
-        # convert the image to one channel
+        # convert to 0-1
         image = image.astype('float32')
         max_pixel = image.max()
         image /= max_pixel
-        image = image.sum(axis=2)
+
+        if len(image.shape) > 2:
+            chns = image.shape[2]
+            # convert the image to one channel
+            image = image.sum(axis=2)
+        else:
+            chns = 1
 
         sigma_sign = np.sign(sigma)
         if sigma_sign == -1:
@@ -137,7 +138,8 @@ def resize_to_min_side(img, target_size):
     # NOTE: assuming only square images
     min_side = target_size[0]
     # resize
-    (height, width, _) = img.shape
+    height = img.shape[0]
+    width = img.shape[1]
     new_height = height * min_side // min(img.shape[:2])
     new_width = width * min_side // min(img.shape[:2])
     img = cv2.resize(
@@ -150,7 +152,8 @@ def resize_to_min_side(img, target_size):
 
 def centre_crop(img, target_size):
     # crop
-    (height, width, _) = img.shape
+    height = img.shape[0]
+    width = img.shape[1]
     left = (width - target_size[0]) // 2
     top = (height - target_size[1]) // 2
     right = (width + target_size[0]) // 2
@@ -504,7 +507,8 @@ def poisson_noise(image, seed=None, clip=True, mask_radius=None):
 def simulate_distance(image, distance_factor, mask_radius=None):
     if distance_factor <= 1:
         return image
-    (rows, cols, _) = image.shape
+    rows = image.shape[0]
+    cols = image.shape[1]
     distance_rows = int(np.round(rows / distance_factor))
     distance_cols = int(np.round(cols / distance_factor))
     output = cv2.resize(image, (distance_rows, distance_cols),
