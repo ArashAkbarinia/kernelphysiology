@@ -153,10 +153,12 @@ class RandomPreprocessingTransformation(object):
             manipulation_function,
             manipulation_value,
             manipulation_radius,
+            mask_type='circle',
             is_pill_img=True):
         self.manipulation_function = manipulation_function
         self.manipulation_value = manipulation_value
         self.manipulation_radius = manipulation_radius
+        self.mask_type = mask_type
         self.is_pill_img = is_pill_img
 
     def __call__(self, x):
@@ -167,10 +169,22 @@ class RandomPreprocessingTransformation(object):
             mask_radius = None
         else:
             mask_radius = np.random.uniform(*self.manipulation_radius)
+
+        kwargs = {'mask_type': self.mask_type}
+        # TODO: make this nicer for all other manipulation functions
+        # TODO: pass low and high thresholds
+        if self.mask_type == 'canny':
+            mask_radius
+            low_threshold = np.random.uniform(0, 1)
+            high_threshold = np.random.uniform(low_threshold, 1)
+            kwargs['low_threshold'] = low_threshold
+            kwargs['high_threshold'] = high_threshold
+
         x = self.manipulation_function(
             x, manipulation_value,
             mask_radius=mask_radius,
-            preprocessing_function=None
+            preprocessing_function=None,
+            **kwargs
         )
         if self.is_pill_img:
             x = PilImage.fromarray(x.astype('uint8'), 'RGB')

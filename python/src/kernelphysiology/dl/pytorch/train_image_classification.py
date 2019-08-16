@@ -153,6 +153,12 @@ parser.add_argument(
     type=float,
     default=None,
     help='Contrast radius (default: None)')
+parser.add_argument(
+    '--mask_type',
+    type=str,
+    default='circle',
+    help='The type of mask image (default: circle)'
+)
 best_acc1 = 0
 
 

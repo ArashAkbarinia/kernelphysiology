@@ -274,7 +274,7 @@ def reduce_lightness(image, amount, mask_radius=None, colour_space='lab'):
 
 
 def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None,
-                    mask_type='circle'):
+                    mask_type='circle', **kwargs):
     """Return the image scaled to a certain contrast level in [0, 1].
 
     parameters:
@@ -296,7 +296,7 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None,
     elif mask_type == 'square':
         image_mask = create_mask_image(image, mask_radius, True)
     else:
-        image_mask = create_mask_image_canny(image, sigma=mask_radius)
+        image_mask = create_mask_image_canny(image, sigma=mask_radius, **kwargs)
 
     min_contrast = contrast_level - pixel_variatoin
     max_contrast = contrast_level + pixel_variatoin
