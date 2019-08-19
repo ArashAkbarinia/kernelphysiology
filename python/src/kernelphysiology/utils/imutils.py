@@ -72,7 +72,8 @@ def create_mask_image(image, mask_radius=None, is_circle=True):
         radius_sign = np.sign(mask_radius)
         if radius_sign == -1:
             mask_radius = np.abs(mask_radius)
-        (rows, cols, chns) = image.shape
+        rows = image.shape[0]
+        cols = image.shape[1]
         smaller_side = np.minimum(rows, cols)
         mask_radius = int(math.floor(mask_radius * smaller_side * 0.5))
         if mask_radius >= 3:
