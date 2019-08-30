@@ -74,6 +74,12 @@ def common_arg_parser(description):
         type=str,
         help='Name of the architecture or network'
     )
+    parser.add_argument(
+        '--num_classes',
+        type=int,
+        default=None,
+        help='Number of classes for unknown datasets (default: None)'
+    )
 
     parser.add_argument(
         '--experiment_name',
@@ -392,7 +398,7 @@ def test_arg_parser(argvs):
 
 
 def train_arg_parser(argvs):
-    parser = common_arg_parser('Training prominent nets of Keras.')
+    parser = common_arg_parser('Training prominent nets.')
     parser.add_argument(
         '--crop_type',
         type=str,
@@ -845,6 +851,19 @@ def check_args(parser, argvs, script_type):
     args = parser.parse_args(argvs)
     args.script_type = script_type
 
+    # checking whether number of classes is provided
+    args.num_classes = default_configs.get_num_classes(
+        args.dataset, args.num_classes
+    )
+
+    # checking whether traindir and valdir are provided
+    if args.data_dir is not None:
+        args.train_dir = os.path.join(args.data_dir, 'train')
+        args.validation_dir = os.path.join(args.data_dir, 'validation')
+    else:
+        args.train_dir = args.train_dir
+        args.validation_dir = args.validation_dir
+
     # setting task type
     args.task_type = check_task_type(args.dataset, args.task_type)
 
@@ -920,13 +939,15 @@ def check_training_args(parser, argvs):
         if not augmentation_types:
             sys.exit(
                 'When num_augmentation flag is used, '
-                'at least one sort of augmentation should be specified')
+                'at least one sort of augmentation should be specified'
+            )
         else:
             args.augmentation_types = np.array(augmentation_types)
     elif len(augmentation_types) > 0:
         sys.exit(
             'When one sort of augmentation is used '
-            'num_augmentation flag must be specified')
+            'num_augmentation flag must be specified'
+        )
     return args
 
 

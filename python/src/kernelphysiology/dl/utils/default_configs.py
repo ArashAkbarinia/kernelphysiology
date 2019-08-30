@@ -9,14 +9,33 @@ import socket
 from kernelphysiology import commons
 
 
-def get_default_dataset_paths(
-        dataset_name,
-        train_dir=None,
-        validation_dir=None,
-        data_dir=None):
+def get_num_classes(dataset_name, num_classes=None):
+    if num_classes is not None:
+        return num_classes
+
+    if dataset_name == 'cifar10':
+        num_classes = 10
+    elif dataset_name == 'cifar100':
+        num_classes = 100
+    elif dataset_name == 'imagenet':
+        num_classes = 1000
+    elif '1600' in dataset_name:
+        num_classes = 1600
+    elif '330' in dataset_name:
+        num_classes = 330
+    else:
+        sys.exit(
+            'Dataset %s not recognised. num_classes must be provided' %
+            dataset_name
+        )
+    return num_classes
+
+
+def get_default_dataset_paths(dataset_name, train_dir=None, validation_dir=None,
+                              data_dir=None):
     pre_path = '/home/arash/Software/'
     if dataset_name == 'imagenet':
-        # NOTE: just for the ease of working in my machiens
+        # NOTE: just for the ease of working in my machines
         if train_dir is None:
             train_dir = '%simagenet/raw-data/train/' % pre_path
         if validation_dir is None:
@@ -31,18 +50,18 @@ def get_default_dataset_paths(
     elif dataset_name == 'cifar10':
         if data_dir is None:
             data_dir = os.path.join(
-                commons.python_root,
-                'data/datasets/cifar/cifar10/')
+                commons.python_root, 'data/datasets/cifar/cifar10/'
+            )
     elif dataset_name == 'cifar100':
         if data_dir is None:
             data_dir = os.path.join(
-                commons.python_root,
-                'data/datasets/cifar/cifar100/')
+                commons.python_root, 'data/datasets/cifar/cifar100/'
+            )
     elif dataset_name == 'stl10':
         if data_dir is None:
             data_dir = os.path.join(
-                commons.python_root,
-                'data/datasets/stl/stl10/')
+                commons.python_root, 'data/datasets/stl/stl10/'
+            )
     elif dataset_name == 'leaf' or dataset_name == 'fruits':
         if train_dir is None:
             train_dir = '%sdatasets/misc/%s/train' % (pre_path,

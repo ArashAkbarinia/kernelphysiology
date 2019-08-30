@@ -130,16 +130,10 @@ def main_worker(gpu, ngpus_per_node, args):
     # TODO: num_classes should be added to saves file, probably?
     if args.custom_arch:
         print('Custom model!')
-        if args.dataset == 'imagenet':
-            num_classes = 1000
-        elif '1600' in args.dataset:
-            num_classes = 1600
-        elif '330' in args.dataset:
-            num_classes = 330
         model = custom_models.__dict__[args.network_name](
             pooling_type=args.pooling_type,
             in_chns=len(mean),
-            num_classes=num_classes
+            num_classes=args.num_classes
         )
     elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.network_name))
@@ -206,8 +200,11 @@ def main_worker(gpu, ngpus_per_node, args):
                 best_acc1 = best_acc1.to(args.gpus)
             model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
-            print("=> loaded checkpoint '{}' (epoch {})"
-                  .format(args.resume, checkpoint['epoch']))
+            print(
+                "=> loaded checkpoint '{}' (epoch {})".format(
+                    args.resume, checkpoint['epoch']
+                )
+            )
             # FIXME: not the most robust solution
             model_progress_path = args.resume.replace(
                 'checkpoint.pth.tar', 'model_progress.csv'
@@ -220,13 +217,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
     cudnn.benchmark = True
 
-    # Data loading code
-    if args.data_dir is not None:
-        traindir = os.path.join(args.data_dir, 'train')
-        valdir = os.path.join(args.data_dir, 'validation')
-    else:
-        traindir = args.train_dir
-        valdir = args.validation_dir
     normalize = transforms.Normalize(mean=mean, std=std)
 
     colour_transformations = preprocessing.colour_transformation(
@@ -251,8 +241,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # loading the training set
     train_dataset = get_train_dataset(
-        args.dataset, traindir, colour_transformations, other_transformations,
-        chns_transformation, normalize
+        args.dataset, args.train_dir, colour_transformations,
+        other_transformations, chns_transformation, normalize
     )
 
     if args.distributed:
@@ -273,7 +263,7 @@ def main_worker(gpu, ngpus_per_node, args):
     target_size = get_default_target_size(args.dataset)
 
     validation_dataset = get_validation_dataset(
-        args.dataset, valdir, colour_transformations, [],
+        args.dataset, args.validation_dir, colour_transformations, [],
         chns_transformation, normalize, target_size
     )
 
