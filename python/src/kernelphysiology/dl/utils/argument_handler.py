@@ -14,6 +14,52 @@ from kernelphysiology.dl.keras.datasets.utils import get_default_target_size
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
+def colour_space_group(parser):
+    colour_space_group = parser.add_argument_group('colour space')
+
+    colour_space_group.add_argument(
+        '--colour_space',
+        type=str,
+        default='rgb',
+        choices=[
+            'rgb',
+            'lab',
+            'lms'
+        ],
+        help='The colour space of network (default: RGB)'
+    )
+
+    # TODO: merge this with colour space
+    colour_space_group.add_argument(
+        '--opponent_space',
+        type=str,
+        default='lab',
+        choices=[
+            'lab',
+            'dkl'
+        ],
+        help='The default colour opponent space (default: lab)'
+    )
+
+    # TODO: Keras part is not implemented
+    colour_space_group.add_argument(
+        '--colour_transformation',
+        type=str,
+        default='trichromat',
+        # TODO: add luminance blindness
+        choices=[
+            'trichromat',
+            'monochromat',
+            'dichromat_rg',
+            'dichromat_yb',
+            'protanopia',
+            'deuteranopia',
+            'tritanopia'
+        ],
+        help='The preprocessing colour transformation (default: trichromat)'
+    )
+
+
 def common_arg_parser(description):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
@@ -34,6 +80,18 @@ def common_arg_parser(description):
         type=str,
         default='Ex',
         help='The name of the experiment (default: Ex)'
+    )
+    parser.add_argument(
+        '--print_freq',
+        type=int,
+        default=1000,
+        help='Frequency of reporting (default: 100)'
+    )
+    parser.add_argument(
+        '--top_k',
+        type=int,
+        default=None,
+        help='Accuracy of top K elements (default: None)'
     )
 
     data_dir_group = parser.add_argument_group('data path')
@@ -98,12 +156,8 @@ def common_arg_parser(description):
         nargs='+',
         type=str,
         default=None,
-        help='Generating dynamically ground-truth (default: None)')
-    parser.add_argument(
-        '--top_k',
-        type=int,
-        default=None,
-        help='Accuracy of top K elements (default: None)')
+        help='Generating dynamically ground-truth (default: None)'
+    )
     parser.add_argument(
         '--task_type',
         type=str,
@@ -112,18 +166,10 @@ def common_arg_parser(description):
             'detection'
         ],
         default=None,
-        help='The task to prform by network (default: None)')
-    parser.add_argument(
-        '--colour_space',
-        type=str,
-        default='rgb',
-        choices=[
-            'rgb',
-            'lab',
-            'lms'
-        ],
-        help='The colour space of network (default: RGB)'
+        help='The task to prform by network (default: None)'
     )
+
+    colour_space_group(parser)
     return parser
 
 
@@ -210,36 +256,6 @@ def test_arg_parser(argvs):
         type=str,
         default=None,
         help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
-    )
-
-    colour_space_group = parser.add_argument_group('colour space')
-    # TODO: merge this with colour space
-    colour_space_group.add_argument(
-        '--opponent_space',
-        type=str,
-        default='lab',
-        choices=[
-            'lab',
-            'dkl'
-        ],
-        help='The default colour opponent space (default: lab)'
-    )
-    # TODO: Keras part is not implemented
-    colour_space_group.add_argument(
-        '--colour_transformation',
-        type=str,
-        default='trichromat',
-        # TODO: add luminance blindness
-        choices=[
-            'trichromat',
-            'monochromat',
-            'dichromat_rg',
-            'dichromat_yb',
-            'protanopia',
-            'deuteranopia',
-            'tritanopia'
-        ],
-        help='The preprocessing colour transformation (default: trichromat)'
     )
 
     image_degradation_group = parser.add_mutually_exclusive_group()
@@ -423,10 +439,10 @@ def train_arg_parser(argvs):
         default=16,
         help='The number of convolutional kernels (default: 16)')
     architecture_group.add_argument(
-        'ca', '--custom_arch',
+        '-ca', '--custom_arch',
         dest='custom_arch',
         action='store_true',
-        help='Custom models rather the library models'
+        help='Custom architectures instead of those defined in libraries'
     )
     architecture_group.add_argument(
         '--pooling_type',
@@ -562,7 +578,7 @@ def train_arg_parser(argvs):
     )
     # TODO: change the name to weight_decay
     optimisation_group.add_argument(
-        '--wd', '--decay',
+        '-wd', '--decay',
         type=float,
         default=None,
         help='The decay weight parameter (default: None)'
