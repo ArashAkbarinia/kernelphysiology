@@ -11,47 +11,102 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 
+def prepare_transformations_train(dataset_name, colour_transformations,
+                                  other_transformations, chns_transformation,
+                                  normalize, target_size):
+    if dataset_name == 'imagenet':
+        transformations = transforms.Compose([
+            transforms.RandomResizedCrop(target_size),
+            *colour_transformations,
+            *other_transformations,
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            *chns_transformation,
+            normalize,
+        ])
+    elif 'wcs_lms' in dataset_name:
+        # FIXME: colour transformation in lms is different from rgb or lab
+        transformations = transforms.Compose([
+            *other_transformations,
+            RandomHorizontalFlip(),
+            Numpy2Tensor(),
+            *chns_transformation,
+            normalize,
+        ])
+    elif 'wcs_jpg' in dataset_name:
+        transformations = transforms.Compose([
+            *colour_transformations,
+            *other_transformations,
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            *chns_transformation,
+            normalize,
+        ])
+    else:
+        sys.exit(
+            'Transformations for dataset %s is not supported.' % dataset_name
+        )
+    return transformations
+
+
+def prepare_transformations_test(dataset_name, colour_transformations,
+                                 other_transformations, chns_transformation,
+                                 normalize, target_size):
+    if dataset_name == 'imagenet':
+        transformations = transforms.Compose([
+            transforms.Resize(target_size),
+            transforms.CenterCrop(target_size),
+            *colour_transformations,
+            *other_transformations,
+            transforms.ToTensor(),
+            *chns_transformation,
+            normalize,
+        ])
+    elif 'wcs_lms' in dataset_name:
+        # FIXME: colour transformation in lms is different from rgb or lab
+        transformations = transforms.Compose([
+            *other_transformations,
+            Numpy2Tensor(),
+            *chns_transformation,
+            normalize,
+        ])
+    elif 'wcs_jpg' in dataset_name:
+        transformations = transforms.Compose([
+            *colour_transformations,
+            *other_transformations,
+            transforms.ToTensor(),
+            *chns_transformation,
+            normalize,
+        ])
+    else:
+        sys.exit(
+            'Transformations for dataset %s is not supported.' % dataset_name
+        )
+    return transformations
+
+
 def get_validation_dataset(dataset_name, valdir, colour_transformations,
                            other_transformations, chns_transformation,
                            normalize, target_size=224):
+    transformations = prepare_transformations_test(
+        dataset_name, colour_transformations,
+        other_transformations, chns_transformation,
+        normalize, target_size
+    )
     if dataset_name == 'imagenet':
         validation_dataset = datasets.ImageFolder(
-            valdir,
-            transforms.Compose([
-                transforms.Resize(224),
-                transforms.CenterCrop(target_size),
-                *colour_transformations,
-                *other_transformations,
-                transforms.ToTensor(),
-                *chns_transformation,
-                normalize,
-            ])
+            valdir, transformations
         )
     elif 'wcs_lms' in dataset_name:
         # FIXME: colour transformation in lms is different from rgb or lab
         data_loader_validation = lambda x: npy_data_loader(x)
 
         validation_dataset = datasets.DatasetFolder(
-            valdir,
-            data_loader_validation,
-            ['.npy'],
-            transforms.Compose([
-                *other_transformations,
-                Numpy2Tensor(),
-                *chns_transformation,
-                normalize,
-            ])
+            valdir, data_loader_validation, ['.npy'], transformations
         )
     elif 'wcs_jpg' in dataset_name:
         validation_dataset = datasets.ImageFolder(
-            valdir,
-            transforms.Compose([
-                *colour_transformations,
-                *other_transformations,
-                transforms.ToTensor(),
-                *chns_transformation,
-                normalize,
-            ])
+            valdir, transformations
         )
     else:
         sys.exit('Dataset %s is not supported.' % dataset_name)
@@ -60,46 +115,26 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
 
 # TODO: train and validation merge together
 def get_train_dataset(dataset_name, traindir, colour_transformations,
-                      other_transformations, chns_transformation, normalize):
+                      other_transformations, chns_transformation,
+                      normalize, target_size=224):
+    transformations = prepare_transformations_train(
+        dataset_name, colour_transformations,
+        other_transformations, chns_transformation,
+        normalize, target_size
+    )
     if dataset_name == 'imagenet':
         train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-                transforms.RandomResizedCrop(224),
-                *colour_transformations,
-                *other_transformations,
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                *chns_transformation,
-                normalize,
-            ])
+            traindir, transformations
         )
     elif 'wcs_lms' in dataset_name:
         data_loader_train = lambda x: npy_data_loader(x)
 
         train_dataset = datasets.DatasetFolder(
-            traindir,
-            data_loader_train,
-            ['.npy'],
-            transforms.Compose([
-                *other_transformations,
-                RandomHorizontalFlip(),
-                Numpy2Tensor(),
-                *chns_transformation,
-                normalize,
-            ])
+            traindir, data_loader_train, ['.npy'], transformations
         )
     elif 'wcs_jpg' in dataset_name:
         train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-                *colour_transformations,
-                *other_transformations,
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                *chns_transformation,
-                normalize,
-            ])
+            traindir, transformations
         )
     else:
         sys.exit('Dataset %s is not supported.' % dataset_name)
