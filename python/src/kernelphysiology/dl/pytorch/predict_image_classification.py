@@ -30,11 +30,10 @@ from kernelphysiology.utils.preprocessing import which_preprocessing
 
 def main(argv):
     args = argument_handler.test_arg_parser(argv)
-    (args.networks,
-     args.network_names,
-     args.preprocessings) = prepapre_testing.test_prominent_prepares(
-        args.network_name,
-        args.preprocessing
+    (network_files,
+     network_names,
+     network_chromaticities) = prepapre_testing.prepare_networks_testting(
+        args.network_name, args.colour_transformation
     )
 
     # FIXME: cant take more than one GPU
@@ -47,21 +46,15 @@ def main(argv):
      image_manipulation_values,
      image_manipulation_function) = which_preprocessing(args)
 
-    # TODO: better modelling the distance
-
-    for j, current_network in enumerate(args.networks):
+    for j, current_network in enumerate(network_files):
         # which architecture
         (model, target_size) = which_network(
-            current_network,
-            args.task_type,
-            args.dataset,
-            args.kill_kernels,
-            args.kill_planes,
-            args.kill_lines
+            current_network, args.task_type, args.dataset,
+            args.kill_kernels, args.kill_planes, args.kill_lines
         )
         model = model.cuda(gpu)
         mean, std = get_preprocessing_function(
-            args.colour_space, args.preprocessings[j]
+            args.colour_space, network_chromaticities[j]
         )
         normalize = transforms.Normalize(mean=mean, std=std)
 
@@ -74,30 +67,27 @@ def main(argv):
                 args.mask_type,
                 'lms' not in args.dataset  # TODO: this should be color space
             )
-            # TODO: change args.preprocessings[j] to colour_transformation
             # TODO: perhaps for inverting chromaticity and luminance as well
             # FIXME: for less than 3 channels in lab it wont work
             if (image_manipulation_type == 'original_rgb' or
                     (image_manipulation_type == 'red_green'
-                     and args.preprocessings[j] == 'dichromat_rg') or
+                     and network_chromaticities[j] == 'dichromat_rg') or
                     (image_manipulation_type == 'yellow_blue'
-                     and args.preprocessings[j] == 'dichromat_yb') or
+                     and network_chromaticities[j] == 'dichromat_yb') or
                     (image_manipulation_type == 'chromaticity'
-                     and args.preprocessings[j] == 'monochromat') or
+                     and network_chromaticities[j] == 'monochromat') or
                     (image_manipulation_type == 'lightness'
-                     and args.preprocessings[j] == 'lightness')
+                     and network_chromaticities[j] == 'lightness')
             ):
                 colour_transformations = []
             else:
                 colour_transformations = preprocessing.colour_transformation(
-                    args.preprocessings[j],
-                    args.colour_space
+                    network_chromaticities[j], args.colour_space
                 )
 
             # whether should be 1, 2, or 3 channels
             chns_transformation = preprocessing.channel_transformation(
-                args.preprocessings[j],
-                args.colour_space
+                network_chromaticities[j], args.colour_space
             )
 
             other_transformations = [current_preprocessing]
@@ -133,7 +123,7 @@ def main(argv):
                 prepapre_testing.save_activation(
                     current_results,
                     args.experiment_name,
-                    args.network_names[j],
+                    network_names[j],
                     args.dataset,
                     image_manipulation_type,
                     manipulation_value
@@ -145,7 +135,7 @@ def main(argv):
                 prepapre_testing.save_predictions(
                     current_results,
                     args.experiment_name,
-                    args.network_names[j],
+                    network_names[j],
                     args.dataset,
                     image_manipulation_type,
                     manipulation_value

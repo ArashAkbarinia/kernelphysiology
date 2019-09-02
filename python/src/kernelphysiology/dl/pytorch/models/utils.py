@@ -279,17 +279,20 @@ def which_architecture(network_name, customs=None, dataset='imagenet'):
 
 
 # TODO: use different values fo preprocessing
-def get_preprocessing_function(colour_space, chromaticity):
+def get_preprocessing_function(colour_space, colour_transformation):
     mean = [0.5, 0.5, 0.5]
     std = [0.25, 0.25, 0.25]
     if colour_space == 'rgb':
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
     elif colour_space == 'lab' or colour_space == 'lms':
-        if 'dichromat' in chromaticity or 'anopia' in chromaticity:
+        if (
+                'dichromat' in colour_transformation or
+                'anopia' in colour_transformation
+        ):
             mean = [0.5, 0.5]
             std = [0.25, 0.25]
-        elif chromaticity == 'monochromat':
+        elif colour_transformation == 'monochromat':
             mean = [0.5]
             std = [0.25]
     return mean, std

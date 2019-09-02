@@ -60,35 +60,34 @@ def save_activation(activations, experiment_name, network, dataset,
         j += 1
 
 
-def test_prominent_prepares(network_arg, preprocessing=None):
+def prepare_networks_testting(network_arg, network_chromaticity='trichromat'):
     if os.path.isdir(network_arg):
         dirname = network_arg
-        networks = sorted(glob.glob(dirname + '*.h5'))
+        network_files = sorted(glob.glob(dirname + '*.h5'))
         network_names = []
-        preprocessings = [preprocessing] * len(networks)
+        network_chromaticities = [network_chromaticity] * len(network_files)
     elif os.path.isfile(network_arg):
-        networks = []
-        preprocessings = []
+        network_files = []
+        network_chromaticities = []
         network_names = []
         with open(network_arg) as f:
             lines = f.readlines()
             for i, line in enumerate(lines):
                 tokens = line.strip().split(',')
-                networks.append(tokens[0])
+                network_files.append(tokens[0])
+                # if colour transformation is not provided, use default
                 if len(tokens) > 1:
-                    preprocessings.append(tokens[1])
+                    network_chromaticities.append(tokens[1])
                 else:
-                    preprocessings.append(preprocessing)
+                    network_chromaticities.append(network_chromaticity)
+                # if network name is provided, genrate one
                 if len(tokens) > 2:
                     network_names.append(tokens[2])
                 else:
                     network_names.append('network_%03d' % i)
     else:
-        networks = [network_arg.lower()]
+        network_files = [network_arg.lower()]
         network_names = [network_arg.lower()]
-        # choosing the preprocessing function
-        if preprocessing is None:
-            preprocessing = network_arg.lower()
-        preprocessings = [preprocessing]
+        network_chromaticities = [network_chromaticity]
 
-    return networks, network_names, preprocessings
+    return network_files, network_names, network_chromaticities

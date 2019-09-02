@@ -232,13 +232,6 @@ def test_arg_parser(argvs):
         default=None,
         help='Number of images to be evaluated (default: None)'
     )
-    # TODO: Keras part is not implemented
-    parser.add_argument(
-        '--distance',
-        type=float,
-        default=1,
-        help='Simulating the viewing distance (default: 1)'
-    )
 
     network_manipulation_group = parser.add_argument_group()
     network_manipulation_group.add_argument(
