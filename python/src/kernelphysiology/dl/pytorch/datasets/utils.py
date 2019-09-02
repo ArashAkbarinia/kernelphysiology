@@ -15,8 +15,12 @@ def prepare_transformations_train(dataset_name, colour_transformations,
                                   other_transformations, chns_transformation,
                                   normalize, target_size):
     if 'cifar' in dataset_name or dataset_name == 'imagenet':
+        if 'cifar' in dataset_name:
+            scale = (0.9, 1.0)
+        else:
+            scale = (0.08, 1.0)
         transformations = transforms.Compose([
-            transforms.RandomResizedCrop(target_size),
+            transforms.RandomResizedCrop(target_size, scale=scale),
             *colour_transformations,
             *other_transformations,
             transforms.RandomHorizontalFlip(),
