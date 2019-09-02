@@ -2,7 +2,6 @@
 The utility functoins for datasets.
 """
 
-import sys
 import numpy as np
 
 from kernelphysiology.dl.keras.datasets.cifar import cifar_train
@@ -95,31 +94,3 @@ def dynamic_multiple_gt_generator(batches, preprocessing_function):
             illuminant_y_batch[i, :] = transformation_params['illuminant']
         y_batch['illuminant'] = illuminant_y_batch
         yield (x_batch, y_batch)
-
-
-def get_default_num_classes(dataset):
-    if dataset == 'imagenet':
-        num_classes = 1000
-    elif dataset == 'cifar10' or dataset == 'stl10':
-        num_classes = 10
-    elif dataset == 'cifar100':
-        num_classes = 100
-    else:
-        sys.exit(
-            'Default num_classes is not defined for dataset %s' % dataset)
-    return num_classes
-
-
-def get_default_target_size(dataset):
-    if dataset in ['imagenet', 'leaf', 'fruits', 'wcs', 'wcs_full']:
-        target_size = 224
-    elif 'wcs_lms' in dataset:
-        target_size = 128
-    elif 'cifar' in dataset or 'stl' in dataset:
-        target_size = 32
-    else:
-        sys.exit(
-            'Default target_size is not defined for dataset %s' % dataset)
-
-    target_size = (target_size, target_size)
-    return target_size

@@ -10,7 +10,6 @@ import warnings
 import math
 
 from kernelphysiology.dl.utils import default_configs
-from kernelphysiology.dl.keras.datasets.utils import get_default_target_size
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
@@ -869,7 +868,7 @@ def check_args(parser, argvs, script_type):
 
     # setting the target size
     if args.target_size is None:
-        args.target_size = get_default_target_size(args.dataset)
+        args.target_size = default_configs.get_default_target_size(args.dataset)
     else:
         args.target_size = (args.target_size, args.target_size)
     # check the input shape

@@ -31,6 +31,22 @@ def get_num_classes(dataset_name, num_classes=None):
     return num_classes
 
 
+def get_default_target_size(dataset_name):
+    if dataset_name in ['imagenet', 'leaf', 'fruits', 'wcs', 'wcs_full']:
+        target_size = 224
+    elif 'wcs_lms' in dataset_name:
+        target_size = 128
+    elif 'cifar' in dataset_name or 'stl' in dataset_name:
+        target_size = 32
+    else:
+        sys.exit(
+            'Default target_size is not defined for dataset %s' % dataset_name
+        )
+
+    target_size = (target_size, target_size)
+    return target_size
+
+
 def get_default_dataset_paths(dataset_name, train_dir=None, validation_dir=None,
                               data_dir=None):
     pre_path = '/home/arash/Software/'
