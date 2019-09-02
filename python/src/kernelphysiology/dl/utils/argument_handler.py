@@ -89,14 +89,14 @@ def common_arg_parser(description):
     parser.add_argument(
         '--print_freq',
         type=int,
-        default=1000,
+        default=100,
         help='Frequency of reporting (default: 100)'
     )
     parser.add_argument(
         '--top_k',
         type=int,
-        default=None,
-        help='Accuracy of top K elements (default: None)'
+        default=5,
+        help='Accuracy of top K elements (default: 5)'
     )
 
     data_dir_group = parser.add_argument_group('data path')
@@ -857,8 +857,12 @@ def check_args(parser, argvs, script_type):
 
     # checking whether traindir and valdir are provided
     if args.data_dir is not None:
-        args.train_dir = os.path.join(args.data_dir, 'train')
-        args.validation_dir = os.path.join(args.data_dir, 'validation')
+        if 'cifar' in args.dataset:
+            args.train_dir = args.data_dir
+            args.validation_dir = args.data_dir
+        else:
+            args.train_dir = os.path.join(args.data_dir, 'train')
+            args.validation_dir = os.path.join(args.data_dir, 'validation')
     else:
         args.train_dir = args.train_dir
         args.validation_dir = args.validation_dir
@@ -873,11 +877,6 @@ def check_args(parser, argvs, script_type):
 
     # check the input shape
     args.input_shape = get_input_shape(args.target_size)
-
-    # setting the default top_k
-    if args.top_k is None:
-        if args.dataset == 'imagenet':
-            args.top_k = 5
 
     # setting the batch size
     if args.batch_size is None:

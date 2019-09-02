@@ -239,10 +239,12 @@ def main_worker(gpu, ngpus_per_node, args):
         )
         other_transformations.append(current_preprocessing)
 
+    target_size = get_default_target_size(args.dataset)
+
     # loading the training set
     train_dataset = get_train_dataset(
         args.dataset, args.train_dir, colour_transformations,
-        other_transformations, chns_transformation, normalize
+        other_transformations, chns_transformation, normalize, target_size
     )
 
     if args.distributed:
@@ -260,8 +262,6 @@ def main_worker(gpu, ngpus_per_node, args):
     )
 
     # loading validation set
-    target_size = get_default_target_size(args.dataset)
-
     validation_dataset = get_validation_dataset(
         args.dataset, args.validation_dir, colour_transformations, [],
         chns_transformation, normalize, target_size

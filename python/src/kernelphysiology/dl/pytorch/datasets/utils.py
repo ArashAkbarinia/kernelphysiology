@@ -14,7 +14,7 @@ import torchvision.datasets as datasets
 def prepare_transformations_train(dataset_name, colour_transformations,
                                   other_transformations, chns_transformation,
                                   normalize, target_size):
-    if dataset_name == 'imagenet':
+    if 'cifar' in dataset_name or dataset_name == 'imagenet':
         transformations = transforms.Compose([
             transforms.RandomResizedCrop(target_size),
             *colour_transformations,
@@ -52,7 +52,7 @@ def prepare_transformations_train(dataset_name, colour_transformations,
 def prepare_transformations_test(dataset_name, colour_transformations,
                                  other_transformations, chns_transformation,
                                  normalize, target_size):
-    if dataset_name == 'imagenet':
+    if 'cifar' in dataset_name or dataset_name == 'imagenet':
         transformations = transforms.Compose([
             transforms.Resize(target_size),
             transforms.CenterCrop(target_size),
@@ -87,7 +87,7 @@ def prepare_transformations_test(dataset_name, colour_transformations,
 
 def get_validation_dataset(dataset_name, valdir, colour_transformations,
                            other_transformations, chns_transformation,
-                           normalize, target_size=224):
+                           normalize, target_size):
     transformations = prepare_transformations_test(
         dataset_name, colour_transformations,
         other_transformations, chns_transformation,
@@ -96,6 +96,14 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
     if dataset_name == 'imagenet':
         validation_dataset = datasets.ImageFolder(
             valdir, transformations
+        )
+    elif dataset_name == 'cifar10':
+        validation_dataset = datasets.CIFAR10(
+            valdir, train=False, download=False, transform=transformations
+        )
+    elif dataset_name == 'cifar100':
+        validation_dataset = datasets.CIFAR100(
+            valdir, train=False, download=False, transform=transformations
         )
     elif 'wcs_lms' in dataset_name:
         # FIXME: colour transformation in lms is different from rgb or lab
@@ -116,7 +124,7 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
 # TODO: train and validation merge together
 def get_train_dataset(dataset_name, traindir, colour_transformations,
                       other_transformations, chns_transformation,
-                      normalize, target_size=224):
+                      normalize, target_size):
     transformations = prepare_transformations_train(
         dataset_name, colour_transformations,
         other_transformations, chns_transformation,
@@ -125,6 +133,14 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
     if dataset_name == 'imagenet':
         train_dataset = datasets.ImageFolder(
             traindir, transformations
+        )
+    elif dataset_name == 'cifar10':
+        train_dataset = datasets.CIFAR10(
+            traindir, train=True, download=False, transform=transformations
+        )
+    elif dataset_name == 'cifar100':
+        train_dataset = datasets.CIFAR100(
+            traindir, train=True, download=False, transform=transformations
         )
     elif 'wcs_lms' in dataset_name:
         data_loader_train = lambda x: npy_data_loader(x)
