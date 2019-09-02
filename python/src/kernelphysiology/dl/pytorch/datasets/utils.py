@@ -6,8 +6,6 @@ import numpy as np
 import random
 import sys
 
-from skimage.util import random_noise
-
 import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
@@ -106,18 +104,6 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
     else:
         sys.exit('Dataset %s is not supported.' % dataset_name)
     return train_dataset
-
-
-def get_default_target_size(dataset_name):
-    if dataset_name == 'imagenet':
-        target_size = 224
-    elif 'wcs_lms' in dataset_name:
-        target_size = 128
-    elif 'wcs_jpg' in dataset_name:
-        target_size = 128
-    else:
-        sys.exit('Dataset %s is not supported.' % dataset_name)
-    return target_size
 
 
 def npy_data_loader(input_path):

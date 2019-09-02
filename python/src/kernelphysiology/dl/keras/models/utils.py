@@ -25,6 +25,7 @@ def export_weights_to_model(weights_path, model_path, architecture, dataset, are
             return self[name]
     args = {}
     target_size = default_configs.get_default_target_size(dataset)
+    target_size = (target_size, target_size)
     args['input_shape'] = get_input_shape(target_size)
     args['network_name'] = architecture
     args['num_classes'] = default_configs.get_default_num_classes(dataset)

@@ -32,9 +32,11 @@ def get_num_classes(dataset_name, num_classes=None):
 
 
 def get_default_target_size(dataset_name):
-    if dataset_name in ['imagenet', 'leaf', 'fruits', 'wcs', 'wcs_full']:
+    if dataset_name in ['imagenet', 'leaf', 'fruits']:
         target_size = 224
     elif 'wcs_lms' in dataset_name:
+        target_size = 128
+    elif 'wcs_jpg' in dataset_name:
         target_size = 128
     elif 'cifar' in dataset_name or 'stl' in dataset_name:
         target_size = 32
@@ -43,7 +45,6 @@ def get_default_target_size(dataset_name):
             'Default target_size is not defined for dataset %s' % dataset_name
         )
 
-    target_size = (target_size, target_size)
     return target_size
 
 
