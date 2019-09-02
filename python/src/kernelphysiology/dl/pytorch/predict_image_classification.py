@@ -72,7 +72,7 @@ def main(argv):
                 manipulation_value,
                 args.mask_radius,
                 args.mask_type,
-                'lms' not in args.dataset # TODO: this should be color space
+                'lms' not in args.dataset  # TODO: this should be color space
             )
             # TODO: change args.preprocessings[j] to colour_transformation
             # TODO: perhaps for inverting chromaticity and luminance as well
@@ -127,7 +127,9 @@ def main(argv):
 
             if args.activation_map is not None:
                 model = LayerActivation(model, args.activation_map)
-                current_results = compute_activation(val_loader, model)
+                current_results = compute_activation(
+                    val_loader, model, args.print_freq
+                )
                 prepapre_testing.save_activation(
                     current_results,
                     args.experiment_name,
@@ -137,8 +139,8 @@ def main(argv):
                     manipulation_value
                 )
             else:
-                (_, _, current_results) = validate(
-                    val_loader, model, criterion
+                (_, _, current_results) = predict(
+                    val_loader, model, criterion, args.print_freq
                 )
                 prepapre_testing.save_predictions(
                     current_results,
@@ -150,7 +152,7 @@ def main(argv):
                 )
 
 
-def compute_activation(val_loader, model):
+def compute_activation(val_loader, model, print_freq=100):
     batch_time = AverageMeter()
 
     # switch to evaluate mode
@@ -181,7 +183,7 @@ def compute_activation(val_loader, model):
             batch_time.update(time.time() - end)
             end = time.time()
 
-            if i % 10 == 0:
+            if i % print_freq == 0:
                 print(
                     'Test: [{0}/{1}]\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'.format(
@@ -198,7 +200,7 @@ def compute_activation(val_loader, model):
     return prediction_output
 
 
-def validate(val_loader, model, criterion):
+def predict(val_loader, model, criterion, print_freq=100):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -251,7 +253,7 @@ def validate(val_loader, model, criterion):
             batch_time.update(time.time() - end)
             end = time.time()
 
-            if i % 10 == 0:
+            if i % print_freq == 0:
                 print(
                     'Test: [{0}/{1}]\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
