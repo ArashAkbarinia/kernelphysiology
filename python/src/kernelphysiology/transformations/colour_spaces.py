@@ -7,7 +7,7 @@ import sys
 
 from skimage.color import rgb2lab, lab2rgb
 
-from kernelphysiology.utils.imutils import normalise_channel
+from kernelphysiology.transformations.normalisations import min_max_normalise
 
 
 def rgb2dkl(x):
@@ -43,7 +43,17 @@ def opponency2rgb(image_opponent, colour_space='lab'):
         image_rgb = lab2rgb(image_opponent)
     elif colour_space == 'dkl':
         image_rgb = dkl2rgb(image_opponent)
-        image_rgb = normalise_channel(image_rgb)
+        image_rgb = min_max_normalise(image_rgb)
     else:
         sys.exit('Not supported colour space %s' % colour_space)
     return image_rgb
+
+
+def get_max_lightness(colour_space='lab'):
+    if colour_space == 'lab':
+        max_lightness = 100
+    elif colour_space == 'dkl':
+        max_lightness = 2
+    else:
+        sys.exit('Not supported colour space %s' % colour_space)
+    return max_lightness
