@@ -409,112 +409,6 @@ def get_keras_augmentation_group(parser):
     )
 
 
-def get_our_augmentation_group(parser):
-    our_augmentation_group = parser.add_argument_group('our augmentation')
-
-    our_augmentation_group.add_argument(
-        '--num_augmentation',
-        type=int,
-        default=None,
-        help='Number of types at each instance (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--contrast_range',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Contrast lower limit (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--local_contrast_variation',
-        type=float,
-        default=0,
-        help='Contrast local variation (default: 0)'
-    )
-    our_augmentation_group.add_argument(
-        '--illuminant_range',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Lower illuminant limit (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--local_illuminant_variation',
-        type=float,
-        default=0,
-        help='Illuminant local variation (default: 0)'
-    )
-    our_augmentation_group.add_argument(
-        '--gaussian_sigma',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Gaussian blurring upper limit (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--s_p_amount',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Salt&pepper upper limit (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--gaussian_amount',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Gaussian noise upper limit (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--speckle_amount',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Speckle noise upper limit (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--gamma_range',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Gamma lower and upper limits (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--poisson_noise',
-        action='store_true',
-        default=False,
-        help='Poisson noise (default: False)'
-    )
-    our_augmentation_group.add_argument(
-        '--chromatic_contrast',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Chromatic contrast lower limit (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--luminance_contrast',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Luminance contrast lower limit (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--red_green',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of red-green to be evaluated (default: None)'
-    )
-    our_augmentation_group.add_argument(
-        '--yellow_blue',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of yellow-blue to be evaluated (default: None)'
-    )
-
-
 def get_parallelisation_group(parser):
     parallelisation_group = parser.add_argument_group('parallelisation')
 
@@ -905,7 +799,6 @@ def keras_train_arg_parser(argvs):
     get_plateau_group(parser)
     get_keras_augmentation_group(parser)
     get_logging_group(parser)
-    get_our_augmentation_group(parser)
 
     return keras_check_training_args(parser, argvs)
 
@@ -1082,7 +975,7 @@ def parse_augmentations(str_command):
     if str_command is None:
         return []
     augmentation_settings = []
-    supported_augmentations = augmentation.get_supported_image_manipulations()
+    supported_augmentations = augmentation.get_training_augmentations()
 
     i = -1
     param = None
