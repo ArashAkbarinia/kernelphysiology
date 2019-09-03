@@ -22,6 +22,7 @@ from kernelphysiology.dl.pytorch.models.utils import which_network
 from kernelphysiology.dl.pytorch.models.utils import LayerActivation
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
+from kernelphysiology.dl.pytorch.datasets.utils import is_dataset_pil_image
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import argument_handler
 from kernelphysiology.dl.utils import prepapre_testing
@@ -65,7 +66,7 @@ def main(argv):
                 manipulation_value,
                 args.mask_radius,
                 args.mask_type,
-                'lms' not in args.dataset  # TODO: this should be color space
+                is_dataset_pil_image(args.dataset)
             )
             # TODO: perhaps for inverting chromaticity and luminance as well
             # FIXME: for less than 3 channels in lab it wont work

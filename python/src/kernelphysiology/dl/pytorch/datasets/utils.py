@@ -169,6 +169,13 @@ def npy_data_loader(input_path):
     return lms_image
 
 
+def is_dataset_pil_image(dataset_name):
+    if 'wcs_lms' in dataset_name:
+        return False
+    else:
+        return True
+
+
 class Numpy2Tensor(object):
     """Converting a numpy array to a tensor image.
     """

@@ -30,6 +30,7 @@ from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.datasets.utils import get_train_dataset
 from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
+from kernelphysiology.dl.pytorch.datasets.utils import is_dataset_pil_image
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.utils import argument_handler
@@ -235,7 +236,7 @@ def main_worker(gpu, ngpus_per_node, args):
             args.contrast_range,
             args.mask_radius,
             args.mask_type,
-            'lms' not in args.dataset  # TODO: this should be color spaces
+            is_dataset_pil_image(args.dataset)
         )
         other_transformations.append(current_preprocessing)
 
