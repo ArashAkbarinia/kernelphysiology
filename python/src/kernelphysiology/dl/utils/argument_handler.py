@@ -13,7 +13,7 @@ from kernelphysiology.dl.utils import default_configs
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
-def colour_space_group(parser):
+def get_colour_space_group(parser):
     colour_space_group = parser.add_argument_group('colour space')
 
     colour_space_group.add_argument(
@@ -28,7 +28,7 @@ def colour_space_group(parser):
         help='The colour space of network (default: RGB)'
     )
 
-    # TODO: merge this with colour space
+    # TODO: at the moment this is not used, and lab is used
     colour_space_group.add_argument(
         '--opponent_space',
         type=str,
@@ -59,204 +59,9 @@ def colour_space_group(parser):
     )
 
 
-def common_arg_parser(description):
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument(
-        dest='dataset',
-        type=str,
-        help='Name of the dataset'
-    )
-    # TODO: add choices
-    # TODO: distinguish between architecture and network
-    parser.add_argument(
-        dest='network_name',
-        type=str,
-        help='Name of the architecture or network'
-    )
-    parser.add_argument(
-        '--num_classes',
-        type=int,
-        default=None,
-        help='Number of classes for unknown datasets (default: None)'
-    )
-
-    parser.add_argument(
-        '--experiment_name',
-        type=str,
-        default='Ex',
-        help='The name of the experiment (default: Ex)'
-    )
-    parser.add_argument(
-        '--print_freq',
-        type=int,
-        default=100,
-        help='Frequency of reporting (default: 100)'
-    )
-    parser.add_argument(
-        '--top_k',
-        type=int,
-        default=5,
-        help='Accuracy of top K elements (default: 5)'
-    )
-
-    data_dir_group = parser.add_argument_group('data path')
-    data_dir_group.add_argument(
-        '--data_dir',
-        type=str,
-        default=None,
-        help='The path to the data directory (default: None)'
-    )
-    data_dir_group.add_argument(
-        '--train_dir',
-        type=str,
-        default=None,
-        help='The path to the train directory (default: None)'
-    )
-    data_dir_group.add_argument(
-        '--validation_dir',
-        type=str,
-        default=None,
-        help='The path to the validation directory (default: None)'
-    )
-
-    parser.add_argument(
-        '--gpus',
-        nargs='+',
-        type=int,
-        default=[0],
-        help='List of GPUs to be used (default: [0])'
-    )
-    # TODO: change the default according to training or testing
-    parser.add_argument(
-        '-j', '--workers',
-        type=int,
-        default=1,
-        help='Number of workers for image generator (default: 1)'
-    )
-
-    parser.add_argument(
-        '-b', '--batch_size',
-        type=int,
-        default=None,
-        help='Batch size (default: according to dataset)'
-    )
-    parser.add_argument(
-        '--target_size',
-        type=int,
-        default=None,
-        help='Target size (default: according to dataset)'
-    )
-    # TODO: this is not implemented in Pytorch
-    parser.add_argument(
-        '--preprocessing',
-        type=str,
-        default=None,
-        help='The preprocessing function (default: according to network)'
-    )
-    # TODO: this is not implemented in Pytorch
-    # FIXME: could cause errors if names mismatch and it should be merged with
-    # output parameters
-    parser.add_argument(
-        '--dynamic_gt',
-        nargs='+',
-        type=str,
-        default=None,
-        help='Generating dynamically ground-truth (default: None)'
-    )
-    parser.add_argument(
-        '--task_type',
-        type=str,
-        choices=[
-            'classification',
-            'detection'
-        ],
-        default=None,
-        help='The task to prform by network (default: None)'
-    )
-
-    colour_space_group(parser)
-    return parser
-
-
-def activation_arg_parser(argvs):
-    # FIXME: update activation pipeline
-    parser = common_arg_parser(
-        'Analysing activation of prominent nets of Keras.'
-    )
-
-    parser.add_argument(
-        '--contrasts',
-        nargs='+',
-        type=float,
-        default=[1],
-        help='List of contrasts to be evaluated (default: [1])')
-    return check_args(parser, argvs, 'activation')
-
-
-def test_arg_parser(argvs):
-    parser = common_arg_parser(
-        'Testing different image classification networks.'
-    )
-    parser.add_argument(
-        '--validation_crop_type',
-        type=str,
-        default='centre',
-        choices=[
-            'random',
-            'centre',
-            'none'
-        ],
-        help='What type of crop (default: centre)'
-    )
-    parser.add_argument(
-        '--activation_map',
-        type=str,
-        default=None,
-        help='Saving the activation maps (default: None)'
-    )
-    parser.add_argument(
-        '--mask_radius',
-        type=float,
-        default=None,
-        help='The radius of image distortion (default: None)'
-    )
-    parser.add_argument(
-        '--mask_type',
-        type=str,
-        default='circle',
-        help='The type of mask image (default: circle)'
-    )
-    parser.add_argument(
-        '--image_limit',
-        type=int,
-        default=None,
-        help='Number of images to be evaluated (default: None)'
-    )
-
-    network_manipulation_group = parser.add_argument_group()
-    network_manipulation_group.add_argument(
-        '--kill_kernels',
-        nargs='+',
-        type=str,
-        default=None,
-        help='First layer name followed by kernel indices (default: None)'
-    )
-    network_manipulation_group.add_argument(
-        '--kill_planes',
-        nargs='+',
-        type=str,
-        default=None,
-        help='Axis number followed by plane indices ax_<P1> (default: None)'
-    )
-    network_manipulation_group.add_argument(
-        '--kill_lines',
-        nargs='+',
-        type=str,
-        default=None,
-        help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
-    )
-
+def get_image_degradation_group(parser):
     image_degradation_group = parser.add_mutually_exclusive_group()
+
     image_degradation_group.add_argument(
         '--contrasts',
         nargs='+',
@@ -379,45 +184,8 @@ def test_arg_parser(argvs):
         default=False,
         help='Testing with the original RGB values (default: False)')
 
-    logging_group = parser.add_argument_group('logging')
-    logging_group.add_argument(
-        '--validation_steps',
-        type=int,
-        default=None,
-        help='Validation steps per epoch (default: all samples)')
 
-    return check_args(parser, argvs, 'testing')
-
-
-def train_arg_parser(argvs):
-    parser = common_arg_parser('Training prominent nets.')
-    parser.add_argument(
-        '--crop_type',
-        type=str,
-        default='random',
-        choices=[
-            'random',
-            'centre',
-            'none'
-        ],
-        help='What type of crop (default: random)')
-    parser.add_argument(
-        '--validation_crop_type',
-        type=str,
-        default='centre',
-        choices=[
-            'random',
-            'centre',
-            'none'
-        ],
-        help='What type of crop (default: centre)')
-    parser.add_argument(
-        '--output_types',
-        type=str,
-        nargs='+',
-        default=[],
-        help='What type of outputs to consider in model (default: None)')
-
+def get_architecture_group(parser):
     # better handling the parameters, e.g. pretrained ones are only for
     # imagenet
     architecture_group = parser.add_argument_group('architecture')
@@ -425,17 +193,20 @@ def train_arg_parser(argvs):
         '--area1layers',
         type=int,
         default=None,
-        help='The number of layers in area 1 (default: None)')
+        help='The number of layers in area 1 (default: None)'
+    )
     architecture_group.add_argument(
         '--pyramid_conv',
         type=int,
         default=1,
-        help='The number of pyramids for convolutions (default: 1)')
+        help='The number of pyramids for convolutions (default: 1)'
+    )
     architecture_group.add_argument(
         '--num_kernels',
         type=int,
         default=16,
-        help='The number of convolutional kernels (default: 16)')
+        help='The number of convolutional kernels (default: 16)'
+    )
     architecture_group.add_argument(
         '-ca', '--custom_arch',
         dest='custom_arch',
@@ -469,13 +240,17 @@ def train_arg_parser(argvs):
         '--trainable_layers',
         type=str,
         default=None,
-        help='Which layerst to train (default: all layers)')
+        help='Which layerst to train (default: all layers)'
+    )
     trainable_group.add_argument(
         '--untrainable_layers',
         type=str,
         default=None,
-        help='Which layerst not to train (default: None)')
+        help='Which layerst not to train (default: None)'
+    )
 
+
+def get_inisialisation_group(parser):
     initialisation_group = parser.add_argument_group('initialisation')
     weights_group = initialisation_group.add_mutually_exclusive_group()
     weights_group.add_argument(
@@ -555,7 +330,235 @@ def train_arg_parser(argvs):
         default=0.5,
         help='Seta of Gaussian gradient (default: 0.5)')
 
+
+def get_plateau_group(parser):
+    plateau_group = parser.add_argument_group('plateau')
+    plateau_group.add_argument(
+        '--plateau_monitor',
+        type=str,
+        default='val_loss',
+        help='The monitor metric (default: val_loss)'
+    )
+    plateau_group.add_argument(
+        '--plateau_factor',
+        type=float,
+        default=0.1,
+        help='The reduction factor (default: 0.1)'
+    )
+    plateau_group.add_argument(
+        '--plateau_patience',
+        type=float,
+        default=5,
+        help='The patience (default: 5)'
+    )
+    plateau_group.add_argument(
+        '--plateau_min_delta',
+        type=float,
+        default=0.001,
+        help='The min_delta (default: 0.001)'
+    )
+    plateau_group.add_argument(
+        '--plateau_min_lr',
+        type=float,
+        default=0.5e-6,
+        help='The min_lr (default: 0.5e-6)'
+    )
+
+
+def get_keras_augmentation_group(parser):
+    keras_augmentation_group = parser.add_argument_group('keras augmentation')
+
+    keras_augmentation_group.add_argument(
+        '--noshuffle',
+        dest='shuffle',
+        action='store_false',
+        default=True,
+        help='Stop shuffling data (default: False)'
+    )
+    keras_augmentation_group.add_argument(
+        '--horizontal_flip',
+        action='store_true',
+        default=False,
+        help='Perform horizontal flip data (default: False)'
+    )
+    keras_augmentation_group.add_argument(
+        '--vertical_flip',
+        action='store_true',
+        default=False,
+        help='Perform vertical flip (default: False)'
+    )
+    keras_augmentation_group.add_argument(
+        '--zoom_range',
+        type=float,
+        default=0,
+        help='Range of zoom agumentation (default: 0)'
+    )
+    keras_augmentation_group.add_argument(
+        '--width_shift_range',
+        type=float,
+        default=0,
+        help='Range of width shift (default: 0)'
+    )
+    keras_augmentation_group.add_argument(
+        '--height_shift_range',
+        type=float,
+        default=0,
+        help='Range of height shift (default: 0)'
+    )
+
+
+def get_our_augmentation_group(parser):
+    our_augmentation_group = parser.add_argument_group('our augmentation')
+
+    our_augmentation_group.add_argument(
+        '--num_augmentation',
+        type=int,
+        default=None,
+        help='Number of types at each instance (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--contrast_range',
+        nargs='+',
+        type=float,
+        default=None,
+        help='Contrast lower limit (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--local_contrast_variation',
+        type=float,
+        default=0,
+        help='Contrast local variation (default: 0)'
+    )
+    our_augmentation_group.add_argument(
+        '--illuminant_range',
+        nargs='+',
+        type=float,
+        default=None,
+        help='Lower illuminant limit (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--local_illuminant_variation',
+        type=float,
+        default=0,
+        help='Illuminant local variation (default: 0)'
+    )
+    our_augmentation_group.add_argument(
+        '--gaussian_sigma',
+        nargs='+',
+        type=float,
+        default=None,
+        help='Gaussian blurring upper limit (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--s_p_amount',
+        nargs='+',
+        type=float,
+        default=None,
+        help='Salt&pepper upper limit (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--gaussian_amount',
+        nargs='+',
+        type=float,
+        default=None,
+        help='Gaussian noise upper limit (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--speckle_amount',
+        nargs='+',
+        type=float,
+        default=None,
+        help='Speckle noise upper limit (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--gamma_range',
+        nargs='+',
+        type=float,
+        default=None,
+        help='Gamma lower and upper limits (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--poisson_noise',
+        action='store_true',
+        default=False,
+        help='Poisson noise (default: False)'
+    )
+    our_augmentation_group.add_argument(
+        '--chromatic_contrast',
+        nargs='+',
+        type=float,
+        default=None,
+        help='Chromatic contrast lower limit (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--luminance_contrast',
+        nargs='+',
+        type=float,
+        default=None,
+        help='Luminance contrast lower limit (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--red_green',
+        nargs='+',
+        type=float,
+        default=None,
+        help='List of red-green to be evaluated (default: None)'
+    )
+    our_augmentation_group.add_argument(
+        '--yellow_blue',
+        nargs='+',
+        type=float,
+        default=None,
+        help='List of yellow-blue to be evaluated (default: None)'
+    )
+
+
+def get_parallelisation_group(parser):
+    parallelisation_group = parser.add_argument_group('parallelisation')
+
+    parallelisation_group.add_argument(
+        '--world-size',
+        default=-1,
+        type=int,
+        help='Number of nodes for distributed training'
+    )
+    parallelisation_group.add_argument(
+        '--rank',
+        default=-1,
+        type=int,
+        help='Node rank for distributed training'
+    )
+    parallelisation_group.add_argument(
+        '--dist-url',
+        default='tcp://224.66.41.62:23456',
+        type=str,
+        help='URL used to set up distributed training'
+    )
+    parallelisation_group.add_argument(
+        '--dist-backend',
+        default='nccl',
+        type=str,
+        help='Distributed backend'
+    )
+    parallelisation_group.add_argument(
+        '--seed',
+        default=None,
+        type=int,
+        help='Seed for initializing training. '
+    )
+    parallelisation_group.add_argument(
+        '--multiprocessing_distributed',
+        action='store_true',
+        help='Use multi-processing distributed training to launch '
+             'N processes per node, which has N GPUs. This is the '
+             'fastest way to use PyTorch for either single node or '
+             'multi node data parallel training'
+    )
+
+
+def get_optimisation_group(parser):
     optimisation_group = parser.add_argument_group('optimisation')
+
     optimisation_group.add_argument(
         '--optimiser',
         type=str,
@@ -613,218 +616,313 @@ def train_arg_parser(argvs):
         help='Path to latest checkpoint (default: none)'
     )
 
-    plateau_group = parser.add_argument_group('plateau')
-    plateau_group.add_argument(
-        '--plateau_monitor',
-        type=str,
-        default='val_loss',
-        help='The monitor metric (default: val_loss)')
-    plateau_group.add_argument(
-        '--plateau_factor',
-        type=float,
-        default=0.1,
-        help='The reduction factor (default: 0.1)')
-    plateau_group.add_argument(
-        '--plateau_patience',
-        type=float,
-        default=5,
-        help='The patience (default: 5)')
-    plateau_group.add_argument(
-        '--plateau_min_delta',
-        type=float,
-        default=0.001,
-        help='The min_delta (default: 0.001)')
-    plateau_group.add_argument(
-        '--plateau_min_lr',
-        type=float,
-        default=0.5e-6,
-        help='The min_lr (default: 0.5e-6)')
 
+def get_logging_group(parser):
     logging_group = parser.add_argument_group('logging')
+
     logging_group.add_argument(
         '--log_period',
         type=int,
         default=0,
-        help='The period of logging the epochs weights (default: 0)')
+        help='The period of logging the epochs weights (default: 0)'
+    )
     logging_group.add_argument(
         '--steps_per_epoch',
         type=int,
         default=None,
-        help='Training steps per epochs (default: all samples)')
+        help='Training steps per epochs (default: all samples)'
+    )
     logging_group.add_argument(
         '--validation_steps',
         type=int,
         default=None,
-        help='Validation steps for validations (default: all samples)')
+        help='Validation steps for validations (default: all samples)'
+    )
 
-    keras_augmentation_group = parser.add_argument_group('keras augmentation')
-    keras_augmentation_group.add_argument(
-        '--noshuffle',
-        dest='shuffle',
-        action='store_false',
-        default=True,
-        help='Stop shuffling data (default: False)')
-    keras_augmentation_group.add_argument(
-        '--horizontal_flip',
-        action='store_true',
-        default=False,
-        help='Perform horizontal flip data (default: False)')
-    keras_augmentation_group.add_argument(
-        '--vertical_flip',
-        action='store_true',
-        default=False,
-        help='Perform vertical flip (default: False)')
-    keras_augmentation_group.add_argument(
-        '--zoom_range',
-        type=float,
-        default=0,
-        help='Range of zoom agumentation (default: 0)')
-    keras_augmentation_group.add_argument(
-        '--width_shift_range',
-        type=float,
-        default=0,
-        help='Range of width shift (default: 0)')
-    keras_augmentation_group.add_argument(
-        '--height_shift_range',
-        type=float,
-        default=0,
-        help='Range of height shift (default: 0)')
 
-    our_augmentation_group = parser.add_argument_group('our augmentation')
-    our_augmentation_group.add_argument(
-        '--num_augmentation',
+def common_arg_parser(description):
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        dest='dataset',
+        type=str,
+        help='Name of the dataset'
+    )
+    # TODO: add choices
+    # TODO: distinguish between architecture and network
+    parser.add_argument(
+        dest='network_name',
+        type=str,
+        help='Name of the architecture or network'
+    )
+    parser.add_argument(
+        '--num_classes',
         type=int,
         default=None,
-        help='Number of types at each instance (default: None)')
-    our_augmentation_group.add_argument(
-        '--contrast_range',
-        nargs='+',
-        type=float,
+        help='Number of classes for unknown datasets (default: None)'
+    )
+
+    parser.add_argument(
+        '--experiment_name',
+        type=str,
+        default='Ex',
+        help='The name of the experiment (default: Ex)'
+    )
+    parser.add_argument(
+        '--print_freq',
+        type=int,
+        default=100,
+        help='Frequency of reporting (default: 100)'
+    )
+    parser.add_argument(
+        '--top_k',
+        type=int,
+        default=5,
+        help='Accuracy of top K elements (default: 5)'
+    )
+
+    data_dir_group = parser.add_argument_group('data path')
+    data_dir_group.add_argument(
+        '--data_dir',
+        type=str,
         default=None,
-        help='Contrast lower limit (default: None)')
-    our_augmentation_group.add_argument(
-        '--local_contrast_variation',
-        type=float,
-        default=0,
-        help='Contrast local variation (default: 0)')
-    our_augmentation_group.add_argument(
-        '--illuminant_range',
-        nargs='+',
-        type=float,
+        help='The path to the data directory (default: None)'
+    )
+    data_dir_group.add_argument(
+        '--train_dir',
+        type=str,
         default=None,
-        help='Lower illuminant limit (default: None)')
-    our_augmentation_group.add_argument(
-        '--local_illuminant_variation',
-        type=float,
-        default=0,
-        help='Illuminant local variation (default: 0)')
-    our_augmentation_group.add_argument(
-        '--gaussian_sigma',
-        nargs='+',
-        type=float,
+        help='The path to the train directory (default: None)'
+    )
+    data_dir_group.add_argument(
+        '--validation_dir',
+        type=str,
         default=None,
-        help='Gaussian blurring upper limit (default: None)')
-    our_augmentation_group.add_argument(
-        '--s_p_amount',
+        help='The path to the validation directory (default: None)'
+    )
+
+    parser.add_argument(
+        '--gpus',
         nargs='+',
-        type=float,
+        type=int,
+        default=[0],
+        help='List of GPUs to be used (default: [0])'
+    )
+    # TODO: change the default according to training or testing
+    parser.add_argument(
+        '-j', '--workers',
+        type=int,
+        default=1,
+        help='Number of workers for image generator (default: 1)'
+    )
+
+    parser.add_argument(
+        '-b', '--batch_size',
+        type=int,
         default=None,
-        help='Salt&pepper upper limit (default: None)')
-    our_augmentation_group.add_argument(
-        '--gaussian_amount',
+        help='Batch size (default: according to dataset)'
+    )
+    parser.add_argument(
+        '--target_size',
+        type=int,
+        default=None,
+        help='Target size (default: according to dataset)'
+    )
+    # TODO: this is not implemented in Pytorch
+    parser.add_argument(
+        '--preprocessing',
+        type=str,
+        default=None,
+        help='The preprocessing function (default: according to network)'
+    )
+    # TODO: this is not implemented in Pytorch
+    # FIXME: could cause errors if names mismatch and it should be merged with
+    # output parameters
+    parser.add_argument(
+        '--dynamic_gt',
         nargs='+',
-        type=float,
+        type=str,
         default=None,
-        help='Gaussian noise upper limit (default: None)')
-    our_augmentation_group.add_argument(
-        '--speckle_amount',
-        nargs='+',
-        type=float,
+        help='Generating dynamically ground-truth (default: None)'
+    )
+    parser.add_argument(
+        '--task_type',
+        type=str,
+        choices=[
+            'classification',
+            'detection'
+        ],
         default=None,
-        help='Speckle noise upper limit (default: None)')
-    our_augmentation_group.add_argument(
-        '--gamma_range',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Gamma lower and upper limits (default: None)')
-    our_augmentation_group.add_argument(
-        '--poisson_noise',
-        action='store_true',
-        default=False,
-        help='Poisson noise (default: False)')
-    our_augmentation_group.add_argument(
+        help='The task to perform by network (default: None)'
+    )
+
+    parser.add_argument(
         '--mask_radius',
-        nargs='+',
         type=float,
         default=None,
-        help='Augmentation within this radius (default: None)')
-    our_augmentation_group.add_argument(
-        '--chromatic_contrast',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Chromatic contrast lower limit (default: None)')
-    our_augmentation_group.add_argument(
-        '--luminance_contrast',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Luminance contrast lower limit (default: None)')
-    our_augmentation_group.add_argument(
-        '--red_green',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of red-green to be evaluated (default: None)')
-    our_augmentation_group.add_argument(
-        '--yellow_blue',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of yellow-blue to be evaluated (default: None)')
+        help='The radius of image distortion (default: None)'
+    )
+    parser.add_argument(
+        '--mask_type',
+        type=str,
+        default='circle',
+        help='The type of mask image (default: circle)'
+    )
 
-    parallelisation_group = parser.add_argument_group('parallelisation')
-    parallelisation_group.add_argument(
-        '--world-size',
-        default=-1,
-        type=int,
-        help='Number of nodes for distributed training'
+    get_colour_space_group(parser)
+    return parser
+
+
+def activation_arg_parser(argvs):
+    # FIXME: update activation pipeline
+    parser = common_arg_parser(
+        'Analysing activation of prominent nets of Keras.'
     )
-    parallelisation_group.add_argument(
-        '--rank',
-        default=-1,
-        type=int,
-        help='Node rank for distributed training'
-    )
-    parallelisation_group.add_argument(
-        '--dist-url',
-        default='tcp://224.66.41.62:23456',
+
+    parser.add_argument(
+        '--contrasts',
+        nargs='+',
+        type=float,
+        default=[1],
+        help='List of contrasts to be evaluated (default: [1])')
+    return check_args(parser, argvs, 'activation')
+
+
+def keras_test_arg_parser(argvs):
+    parser = common_test_arg_parser()
+
+    parser.add_argument(
+        '--validation_crop_type',
         type=str,
-        help='URL used to set up distributed training'
+        default='centre',
+        choices=[
+            'random',
+            'centre',
+            'none'
+        ],
+        help='What type of crop (default: centre)'
     )
-    parallelisation_group.add_argument(
-        '--dist-backend',
-        default='nccl',
+
+    return check_args(parser, argvs, 'testing')
+
+
+def pytorch_test_arg_parser(argvs):
+    parser = common_test_arg_parser()
+
+    network_manipulation_group = parser.add_argument_group()
+    network_manipulation_group.add_argument(
+        '--kill_kernels',
+        nargs='+',
         type=str,
-        help='Distributed backend'
-    )
-    parallelisation_group.add_argument(
-        '--seed',
         default=None,
+        help='First layer name followed by kernel indices (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--kill_planes',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Axis number followed by plane indices ax_<P1> (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--kill_lines',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
+    )
+
+    return check_args(parser, argvs, 'testing')
+
+
+def common_test_arg_parser():
+    parser = common_arg_parser(
+        'Testing different image classification networks.'
+    )
+
+    parser.add_argument(
+        '--activation_map',
+        type=str,
+        default=None,
+        help='Saving the activation maps (default: None)'
+    )
+
+    parser.add_argument(
+        '--image_limit',
         type=int,
-        help='Seed for initializing training. '
+        default=None,
+        help='Number of images to be evaluated (default: None)'
     )
-    parallelisation_group.add_argument(
-        '--multiprocessing_distributed',
-        action='store_true',
-        help='Use multi-processing distributed training to launch '
-             'N processes per node, which has N GPUs. This is the '
-             'fastest way to use PyTorch for either single node or '
-             'multi node data parallel training'
+
+    get_image_degradation_group(parser)
+
+    logging_group = parser.add_argument_group('logging')
+    logging_group.add_argument(
+        '--validation_steps',
+        type=int,
+        default=None,
+        help='Validation steps per epoch (default: all samples)'
     )
+
+    return parser
+
+
+def keras_train_arg_parser(argvs):
+    parser = common_train_arg_parser()
+
+    parser.add_argument(
+        '--crop_type',
+        type=str,
+        default='random',
+        choices=[
+            'random',
+            'centre',
+            'none'
+        ],
+        help='What type of crop (default: random)'
+    )
+    parser.add_argument(
+        '--validation_crop_type',
+        type=str,
+        default='centre',
+        choices=[
+            'random',
+            'centre',
+            'none'
+        ],
+        help='What type of crop (default: centre)'
+    )
+    parser.add_argument(
+        '--output_types',
+        type=str,
+        nargs='+',
+        default=[],
+        help='What type of outputs to consider in model (default: None)'
+    )
+
+    get_inisialisation_group(parser)
+    get_plateau_group(parser)
+    get_keras_augmentation_group(parser)
+    get_logging_group(parser)
 
     return check_training_args(parser, argvs)
+
+
+def pytorch_train_arg_parser(argvs):
+    parser = common_train_arg_parser()
+
+    get_parallelisation_group(parser)
+
+    return check_training_args(parser, argvs)
+
+
+def common_train_arg_parser():
+    parser = common_arg_parser('Training prominent nets.')
+
+    get_architecture_group(parser)
+    get_optimisation_group(parser)
+    get_our_augmentation_group(parser)
+
+    return parser
 
 
 def check_args(parser, argvs, script_type):

@@ -47,7 +47,7 @@ best_acc1 = 0
 
 
 def main(argv):
-    args = argument_handler.train_arg_parser(argv)
+    args = argument_handler.pytorch_train_arg_parser(argv)
     if args.lr is None:
         args.lr = 0.1
     if args.decay is None:
@@ -233,7 +233,7 @@ def main_worker(gpu, ngpus_per_node, args):
         current_preprocessing = preprocessing.RandomPreprocessingTransformation(
             contrast_preprocessing,
             args.contrast_range,
-            args.contrast_radius,
+            args.mask_radius,
             args.mask_type,
             'lms' not in args.dataset  # TODO: this should be color spaces
         )

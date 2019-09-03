@@ -38,7 +38,7 @@ if __name__ == "__main__":
         '%Y-%m-%d_%H_%M_%S')
     print('Starting at: ' + start_time)
 
-    args = argument_handler.test_arg_parser(sys.argv[1:])
+    args = argument_handler.keras_test_arg_parser(sys.argv[1:])
     args = test_prominent_prepares(args)
 
     dataset_name = args.dataset.lower()

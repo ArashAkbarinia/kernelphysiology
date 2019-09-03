@@ -74,31 +74,6 @@ def channel_transformation(transformation_type, colour_space='rgb'):
     return ct
 
 
-# FIXME: this seems to be unused
-class ImageTransformation(object):
-
-    def __init__(
-            self,
-            manipulation_function,
-            manipulation_value,
-            manipulation_radius):
-        self.manipulation_function = manipulation_function
-        self.manipulation_value = manipulation_value
-        self.manipulation_radius = manipulation_radius
-
-    def __call__(self, img):
-        img = np.asarray(img, dtype='uint8')
-        manipulation_value = np.random.uniform(*self.manipulation_value)
-        img = self.manipulation_function(
-            img,
-            manipulation_value,
-            mask_radius=self.manipulation_radius
-        )
-        img *= 255
-        img = PilImage.fromarray(img.astype('uint8'), 'RGB')
-        return img
-
-
 def inv_normalise_tensor(tensor, mean, std):
     tensor = tensor.clone()
     # inverting the normalisation for each channel

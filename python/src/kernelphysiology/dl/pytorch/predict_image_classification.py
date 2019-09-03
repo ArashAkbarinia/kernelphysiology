@@ -29,7 +29,7 @@ from kernelphysiology.utils.preprocessing import which_preprocessing
 
 
 def main(argv):
-    args = argument_handler.test_arg_parser(argv)
+    args = argument_handler.pytorch_test_arg_parser(argv)
     (network_files,
      network_names,
      network_chromaticities) = prepapre_testing.prepare_networks_testting(

@@ -200,7 +200,7 @@ if __name__ == "__main__":
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
     print('Starting at: ' + start_time)
 
-    args = argument_handler.train_arg_parser(sys.argv[1:])
+    args = argument_handler.common_train_arg_parser(sys.argv[1:])
     args = train_prominent_prepares(args)
 
     dataset_name = args.dataset.lower()
