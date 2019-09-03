@@ -22,7 +22,6 @@ from kernelphysiology.dl.keras.models.utils import get_preprocessing_function
 
 
 def convert_to_uni8(img):
-    img = img * 255
     return img.astype('uint8')
 
 

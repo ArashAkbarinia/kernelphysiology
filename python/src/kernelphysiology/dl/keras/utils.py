@@ -202,6 +202,7 @@ def contrast_generator(batches, contrast_range):
         batch_x, data_y = next(batches)
         data_x = np.zeros(batch_x.shape)
         for i in range(batch_x.shape[0]):
-            data_x[i,] = adjust_contrast(batch_x[i,], np.random.uniform(
-                *contrast_range)) * 255
+            data_x[i,] = adjust_contrast(
+                batch_x[i,], np.random.uniform(*contrast_range)
+            )
         yield data_x, data_y

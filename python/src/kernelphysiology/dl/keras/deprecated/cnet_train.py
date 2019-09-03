@@ -85,7 +85,7 @@ def start_training(args):
         args.parallel_model = parallel_model
 
     # to train the network with a different contrast
-    args.x_train = adjust_contrast(args.x_train, args.train_contrast / 100) * 255
+    args.x_train = adjust_contrast(args.x_train, args.train_contrast / 100)
 
     args.x_train = cnet.preprocess_input(args.x_train)
     args.x_test = cnet.preprocess_input(args.x_test)

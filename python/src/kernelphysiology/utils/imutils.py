@@ -1,11 +1,10 @@
 """
-Utility functoins for image processing.
+Utility functions for image processing.
 """
 
 from skimage.util import random_noise
 from skimage.color import rgb2gray, rgb2lab, lab2rgb
 from skimage.draw import rectangle
-from skimage import feature
 
 import numpy as np
 import math
@@ -13,6 +12,22 @@ import math
 import cv2
 
 from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
+from kernelphysiology.filterfactory.mask import create_mask_image_canny
+from kernelphysiology.filterfactory.mask import create_mask_image
+
+
+def im2double_max(image):
+    if image.dtype == 'uint8':
+        image = image.astype('float32')
+        return image / 255, 255
+    else:
+        image = image.astype('float32')
+        max_pixel = np.max(image)
+        if 1 < max_pixel <= 255:
+            return image / 255, 255
+        else:
+            image /= max_pixel
+            return image, max_pixel
 
 
 def im2double(image):
@@ -22,75 +37,11 @@ def im2double(image):
     else:
         image = image.astype('float32')
         max_pixel = np.max(image)
-        if max_pixel > 1 and max_pixel <= 255:
+        if 1 < max_pixel <= 255:
             return image / 255
         else:
-            # FIXME: not handling these cases
+            image /= max_pixel
             return image
-
-
-def create_mask_image_canny(image, sigma=1.0, low_threshold=0.9,
-                            high_threshold=0.9, use_quantiles=True):
-    image_mask = np.zeros(image.shape, np.uint8)
-    if sigma is not None:
-        # convert to 0-1
-        image = image.astype('float32')
-        max_pixel = image.max()
-        image /= max_pixel
-
-        if len(image.shape) > 2:
-            chns = image.shape[2]
-            # convert the image to one channel
-            image = image.sum(axis=2)
-        else:
-            chns = 1
-
-        sigma_sign = np.sign(sigma)
-        if sigma_sign == -1:
-            sigma = np.abs(sigma)
-
-        image_mask = feature.canny(
-            image, sigma, low_threshold, high_threshold,
-            use_quantiles=use_quantiles
-        )
-
-        # repeating this for number of channels in input image
-        if chns != 1:
-            image_mask = np.expand_dims(image_mask, axis=2)
-            image_mask = np.repeat(image_mask, chns, axis=2)
-
-        image_mask = image_mask.astype('uint8')
-        if sigma_sign == 1:
-            image_mask = 1 - image_mask
-    return image_mask
-
-
-def create_mask_image(image, mask_radius=None, is_circle=True):
-    """Creating a mask image with given radius or given side"""
-    image_mask = np.zeros(image.shape, np.uint8)
-    if mask_radius is not None:
-        radius_sign = np.sign(mask_radius)
-        if radius_sign == -1:
-            mask_radius = np.abs(mask_radius)
-        rows = image.shape[0]
-        cols = image.shape[1]
-        smaller_side = np.minimum(rows, cols)
-        mask_radius = int(math.floor(mask_radius * smaller_side * 0.5))
-        if mask_radius >= 3:
-            centre = (int(math.floor(cols / 2)), int(math.floor(rows / 2)))
-            if is_circle:
-                image_mask = cv2.circle(
-                    image_mask, centre, mask_radius, (1, 1, 1), -1
-                )
-            else:
-                rect = (centre[0] - mask_radius, centre[1] - mask_radius,
-                        2 * mask_radius, 2 * mask_radius)
-                image_mask = cv2.rectangle(
-                    image_mask, rect, (1, 1, 1), -1
-                )
-            if radius_sign == 1:
-                image_mask = 1 - image_mask
-    return image_mask
 
 
 # TODO: merge it with Keras image manipulation class
@@ -121,10 +72,10 @@ def get_random_crop_params(img, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.)):
 
     # Fallback to central crop
     in_ratio = img.shape[0] / img.shape[1]
-    if (in_ratio < min(ratio)):
+    if in_ratio < min(ratio):
         w = img.shape[0]
         h = w / min(ratio)
-    elif (in_ratio > max(ratio)):
+    elif in_ratio > max(ratio):
         h = img.shape[1]
         w = h * max(ratio)
     else:  # whole image
@@ -186,30 +137,33 @@ def crop_image_centre(img, target_size, extended_crop=None):
 
 
 def invert_colour_opponency(image, mask_radius=None, colour_space='lab'):
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
     rg = image_opponent[:, :, 1].copy()
     image_opponent[:, :, 1] = image_opponent[:, :, 2].copy()
     image_opponent[:, :, 2] = rg
 
     output = opponency2rgb(image_opponent, colour_space=colour_space)
+    output *= max_pixel
     return output
 
 
 def invert_chromaticity(image, mask_radius=None, colour_space='lab'):
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
     image_opponent[:, :, 1:3] *= -1
     output = opponency2rgb(image_opponent, colour_space=colour_space)
+    output *= max_pixel
     return output
 
 
 def invert_lightness(image, mask_radius=None, colour_space='lab'):
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
     max_lightness = get_max_lightness(colour_space=colour_space)
     image_opponent[:, :, 0] = max_lightness - image_opponent[:, :, 0]
     output = opponency2rgb(image_opponent, colour_space=colour_space)
+    output *= max_pixel
     return output
 
 
@@ -295,9 +249,10 @@ def keep_red_channel(image, amount, mask_radius=None):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    output = im2double(image)
+    output, max_pixel = im2double_max(image)
     output[:, :, 1] *= amount
     output[:, :, 2] *= amount
+    output *= max_pixel
     return output
 
 
@@ -305,9 +260,10 @@ def keep_green_channel(image, amount, mask_radius=None):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    output = im2double(image)
+    output, max_pixel = im2double_max(image)
     output[:, :, 0] *= amount
     output[:, :, 2] *= amount
+    output *= max_pixel
     return output
 
 
@@ -315,9 +271,10 @@ def keep_blue_channel(image, amount, mask_radius=None):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    output = im2double(image)
+    output, max_pixel = im2double_max(image)
     output[:, :, 0] *= amount
     output[:, :, 1] *= amount
+    output *= max_pixel
     return output
 
 
@@ -325,10 +282,11 @@ def reduce_red_green(image, amount, mask_radius=None, colour_space='lab'):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
     image_opponent[:, :, 1] *= amount
     output = opponency2rgb(image_opponent, colour_space=colour_space)
+    output *= max_pixel
     return output
 
 
@@ -336,10 +294,11 @@ def reduce_yellow_blue(image, amount, mask_radius=None, colour_space='lab'):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
     image_opponent[:, :, 2] *= amount
     output = opponency2rgb(image_opponent, colour_space=colour_space)
+    output *= max_pixel
     return output
 
 
@@ -347,10 +306,11 @@ def reduce_chromaticity(image, amount, mask_radius=None, colour_space='lab'):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
     image_opponent[:, :, 1:3] *= amount
     output = opponency2rgb(image_opponent, colour_space=colour_space)
+    output *= max_pixel
     return output
 
 
@@ -358,12 +318,13 @@ def reduce_lightness(image, amount, mask_radius=None, colour_space='lab'):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_opponent = rgb2opponency(image, colour_space=colour_space)
     max_lightness = get_max_lightness(colour_space=colour_space)
     image_opponent[:, :, 0] = ((1 - amount) / 2 + np.multiply(
         image_opponent[:, :, 0] / max_lightness, amount)) * max_lightness
     output = opponency2rgb(image_opponent, colour_space=colour_space)
+    output *= max_pixel
     return output
 
 
@@ -379,10 +340,7 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None,
     assert (contrast_level >= 0.0), 'contrast_level too low.'
     assert (contrast_level <= 1.0), 'contrast_level too high.'
 
-    # image = im2double(image)
-    image = image.astype('float32')
-    max_pixel = image.max()
-    image /= max_pixel
+    image, max_pixel = im2double_max(image)
 
     image_org = image.copy()
     if mask_type == 'circle':
@@ -395,12 +353,11 @@ def adjust_contrast(image, contrast_level, pixel_variatoin=0, mask_radius=None,
     min_contrast = contrast_level - pixel_variatoin
     max_contrast = contrast_level + pixel_variatoin
 
-    contrast_level_mat = np.random.uniform(
+    contrast_mat = np.random.uniform(
         low=min_contrast, high=max_contrast, size=image.shape
     )
 
-    image_contrast = (1 - contrast_level_mat) / 2.0 + np.multiply(
-        image, contrast_level_mat)
+    image_contrast = (1 - contrast_mat) / 2.0 + np.multiply(image, contrast_mat)
     output = image_org * image_mask + image_contrast * (1 - image_mask)
     output *= max_pixel
     return output
@@ -419,89 +376,103 @@ def grayscale_contrast(image, contrast_level, mask_radius=None):
 
 
 def adjust_gamma(image, gamma, mask_radius=None):
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
     image_gamma = image ** gamma
     output = image_org * image_mask + image_gamma * (1 - image_mask)
+    output *= max_pixel
     return output
 
 
 def gaussian_blur(image, sigmax, sigmay=None, meanx=0, meany=0, theta=0,
                   mask_radius=None):
-    '''
+    """
     Blurring the image with a Gaussian kernel.
-    '''
-    image = im2double(image)
+    """
+    image, max_pixel = im2double_max(image)
     image_org = image.copy()
+
     image_mask = create_mask_image(image, mask_radius)
 
-    g_kernel = gaussian_kernel2(sigmax=sigmax, sigmay=sigmay, meanx=meanx,
-                                meany=meany, theta=theta)
+    g_kernel = gaussian_kernel2(
+        sigmax=sigmax, sigmay=sigmay, meanx=meanx, meany=meany, theta=theta
+    )
     image_blur = cv2.filter2D(image, -1, g_kernel)
     output = image_org * image_mask + image_blur * (1 - image_mask)
+
+    output *= max_pixel
     return output
 
 
 def adjust_illuminant(image, illuminant, pixel_variatoin=0, mask_radius=None):
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
     for i in range(image.shape[2]):
         min_illuminant = illuminant[i] - pixel_variatoin
         max_illuminant = illuminant[i] + pixel_variatoin
-        illuminant_i = np.random.uniform(low=min_illuminant,
-                                         high=max_illuminant,
-                                         size=image[:, :, i].shape)
+        illuminant_i = np.random.uniform(
+            low=min_illuminant, high=max_illuminant, size=image[:, :, i].shape
+        )
         image[:, :, i] = image[:, :, i] * illuminant_i
 
     output = image_org * image_mask + image * (1 - image_mask)
+    output *= max_pixel
     return output
 
 
 def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True,
               mask_radius=None):
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(image, mode='s&p', seed=seed, clip=clip,
-                               salt_vs_pepper=salt_vs_pepper, amount=amount)
+    image_noise = random_noise(
+        image, mode='s&p', seed=seed, clip=clip,
+        salt_vs_pepper=salt_vs_pepper, amount=amount
+    )
     output = image_org * image_mask + image_noise * (1 - image_mask)
+    output *= max_pixel
     return output
 
 
 def speckle_noise(image, var, seed=None, clip=True, mask_radius=None):
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(image, mode='speckle', seed=seed, clip=clip,
-                               var=var)
+    image_noise = random_noise(
+        image, mode='speckle', seed=seed, clip=clip, var=var
+    )
     output = image_org * image_mask + image_noise * (1 - image_mask)
+    output *= max_pixel
     return output
 
 
 def gaussian_noise(image, var, seed=None, clip=True, mask_radius=None):
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
-    image_noise = random_noise(image, mode='gaussian', seed=seed, clip=clip,
-                               var=var)
+    image_noise = random_noise(
+        image, mode='gaussian', seed=seed, clip=clip, var=var
+    )
     output = image_org * image_mask + image_noise * (1 - image_mask)
+    output *= max_pixel
     return output
 
 
 def poisson_noise(image, seed=None, clip=True, mask_radius=None):
-    image = im2double(image)
+    image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_radius)
 
     image_noise = random_noise(image, mode='poisson', seed=seed, clip=clip)
     output = image_org * image_mask + image_noise * (1 - image_mask)
+    output *= max_pixel
     return output
 
 
@@ -520,33 +491,35 @@ def simulate_distance(image, distance_factor, mask_radius=None):
 
 # TODO: add other shapes as well
 def random_occlusion(image, object_instances=1, object_ratio=0.05):
-    out = im2double(image)
-    (rows, cols, chns) = out.shape
+    output, max_pixel = im2double_max(image)
+    (rows, cols, chns) = output.shape
     extent = (round(rows * object_ratio), round(cols * object_ratio))
     for i in range(object_instances):
         rand_row = np.random.randint(0 + extent[0], rows - extent[0])
         rand_col = np.random.randint(0 + extent[1], cols - extent[1])
         start = (rand_row, rand_col)
         # FIXME: if backend shape is different
-        (rr, cc) = rectangle(start, extent=extent, shape=out.shape[0:2])
-        out[rr.astype('int64'), cc.astype('int64'), :] = 1
-    return out
+        (rr, cc) = rectangle(start, extent=extent, shape=output.shape[0:2])
+        output[rr.astype('int64'), cc.astype('int64'), :] = 1
+    output *= max_pixel
+    return output
 
 
-# TODO: we're returning everything in 0 to 1, should convert it back to the
-# original range
 def local_std(image, window_size=(5, 5)):
-    '''
+    """
     Computing the local standard deviation of an image.
-    '''
-    image = im2double(image)
+    """
+    image, max_pixel = im2double_max(image)
 
     npixels = window_size[0] * window_size[1]
     kernel = np.ones(window_size, np.float32) / npixels
     # TODO: consider different border treatment
     avg_image = cv2.filter2D(image, -1, kernel)
     std_image = cv2.filter2D((image - avg_image) ** 2, -1, kernel) ** 0.5
-    return (std_image, avg_image)
+
+    std_image *= max_pixel
+    avg_image *= max_pixel
+    return std_image, avg_image
 
 
 def normalise_channel(x, low=0, high=1, minv=None, maxv=None):

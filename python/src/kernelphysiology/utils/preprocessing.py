@@ -36,7 +36,7 @@ def nothing_preprocessing(img, _, mask_radius=None, mask_type='circle',
 
 def occlusion_preprocessing(img, var, mask_radius=None,
                             preprocessing_function=None):
-    img = random_occlusion(img, object_instances=1, object_ratio=var) * 255
+    img = random_occlusion(img, object_instances=1, object_ratio=var)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -44,7 +44,7 @@ def occlusion_preprocessing(img, var, mask_radius=None,
 
 def speckle_noise_preprocessing(img, var, mask_radius=None,
                                 preprocessing_function=None):
-    img = speckle_noise(img, var, mask_radius=mask_radius) * 255
+    img = speckle_noise(img, var, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -52,7 +52,7 @@ def speckle_noise_preprocessing(img, var, mask_radius=None,
 
 def s_p_noise_preprocessing(img, amount, mask_radius=None,
                             preprocessing_function=None):
-    img = s_p_noise(img, amount, mask_radius=mask_radius) * 255
+    img = s_p_noise(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -60,7 +60,7 @@ def s_p_noise_preprocessing(img, amount, mask_radius=None,
 
 def poisson_noise_preprocessing(img, _, mask_radius=None,
                                 preprocessing_function=None):
-    img = poisson_noise(img, mask_radius=mask_radius) * 255
+    img = poisson_noise(img, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -68,7 +68,7 @@ def poisson_noise_preprocessing(img, _, mask_radius=None,
 
 def gaussian_noise_preprocessing(img, var, mask_radius=None,
                                  preprocessing_function=None):
-    img = gaussian_noise(img, var, mask_radius=mask_radius) * 255
+    img = gaussian_noise(img, var, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -78,7 +78,7 @@ def colour_constancy_preprocessing(img, illuminant, mask_radius=None,
                                    preprocessing_function=None):
     # FIXME: for now it's only one channel, make it a loop for all channels
     illuminant = (illuminant, 1, 1)
-    img = adjust_illuminant(img, illuminant, mask_radius=mask_radius) * 255
+    img = adjust_illuminant(img, illuminant, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -86,7 +86,7 @@ def colour_constancy_preprocessing(img, illuminant, mask_radius=None,
 
 def gamma_preprocessing(img, amount, mask_radius=None,
                         preprocessing_function=None):
-    img = adjust_gamma(img, amount, mask_radius=mask_radius) * 255
+    img = adjust_gamma(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -94,7 +94,7 @@ def gamma_preprocessing(img, amount, mask_radius=None,
 
 def gaussian_preprocessing(img, sigma, mask_radius=None,
                            preprocessing_function=None):
-    img = gaussian_blur(img, sigma, mask_radius=mask_radius) * 255
+    img = gaussian_blur(img, sigma, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -113,7 +113,7 @@ def contrast_preprocessing(img, contrast, mask_radius=None, mask_type='circle',
 
 def red_green_preprocessing(img, amount, mask_radius=None,
                             preprocessing_function=None):
-    img = reduce_red_green(img, amount, mask_radius=mask_radius) * 255
+    img = reduce_red_green(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -121,7 +121,7 @@ def red_green_preprocessing(img, amount, mask_radius=None,
 
 def yellow_blue_preprocessing(img, amount, mask_radius=None,
                               preprocessing_function=None):
-    img = reduce_yellow_blue(img, amount, mask_radius=mask_radius) * 255
+    img = reduce_yellow_blue(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -129,7 +129,7 @@ def yellow_blue_preprocessing(img, amount, mask_radius=None,
 
 def chromacity_preprocessing(img, amount, mask_radius=None,
                              preprocessing_function=None):
-    img = reduce_chromaticity(img, amount, mask_radius=mask_radius) * 255
+    img = reduce_chromaticity(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -137,7 +137,7 @@ def chromacity_preprocessing(img, amount, mask_radius=None,
 
 def lightness_preprocessing(img, amount, mask_radius=None,
                             preprocessing_function=None):
-    img = reduce_lightness(img, amount, mask_radius=mask_radius) * 255
+    img = reduce_lightness(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -145,7 +145,7 @@ def lightness_preprocessing(img, amount, mask_radius=None,
 
 def invert_chromaticity_preprocessing(img, _, mask_radius=None,
                                       preprocessing_function=None):
-    img = invert_chromaticity(img, mask_radius=mask_radius) * 255
+    img = invert_chromaticity(img, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -153,7 +153,7 @@ def invert_chromaticity_preprocessing(img, _, mask_radius=None,
 
 def invert_opponency_preprocessing(img, _, mask_radius=None,
                                    preprocessing_function=None):
-    img = invert_colour_opponency(img, mask_radius=mask_radius) * 255
+    img = invert_colour_opponency(img, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -161,7 +161,7 @@ def invert_opponency_preprocessing(img, _, mask_radius=None,
 
 def invert_lightness_preprocessing(img, _, mask_radius=None,
                                    preprocessing_function=None):
-    img = invert_lightness(img, mask_radius=mask_radius) * 255
+    img = invert_lightness(img, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -169,7 +169,7 @@ def invert_lightness_preprocessing(img, _, mask_radius=None,
 
 def rotate_hue_preprocessing(img, amount, mask_radius=None,
                              preprocessing_function=None):
-    img = rotate_hue(img, amount, mask_radius=mask_radius) * 255
+    img = rotate_hue(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -177,7 +177,7 @@ def rotate_hue_preprocessing(img, amount, mask_radius=None,
 
 def keep_red_preprocessing(img, amount, mask_radius=None,
                            preprocessing_function=None):
-    img = keep_red_channel(img, amount, mask_radius=mask_radius) * 255
+    img = keep_red_channel(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -185,7 +185,7 @@ def keep_red_preprocessing(img, amount, mask_radius=None,
 
 def keep_green_preprocessing(img, amount, mask_radius=None,
                              preprocessing_function=None):
-    img = keep_green_channel(img, amount, mask_radius=mask_radius) * 255
+    img = keep_green_channel(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img
@@ -193,7 +193,7 @@ def keep_green_preprocessing(img, amount, mask_radius=None,
 
 def keep_blue_preprocessing(img, amount, mask_radius=None,
                             preprocessing_function=None):
-    img = keep_blue_channel(img, amount, mask_radius=mask_radius) * 255
+    img = keep_blue_channel(img, amount, mask_radius=mask_radius)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img

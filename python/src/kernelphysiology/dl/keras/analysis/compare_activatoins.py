@@ -35,7 +35,7 @@ def predict_network(model1, model2, args):
 
 
 def contrast_preprocessing(img, contrast, preprocessing_function=None):
-    img = adjust_contrast(img, contrast) * 255
+    img = adjust_contrast(img, contrast)
     if preprocessing_function:
         img = preprocessing_function(img)
     return img

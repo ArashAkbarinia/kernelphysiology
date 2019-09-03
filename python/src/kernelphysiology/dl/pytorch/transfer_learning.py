@@ -40,7 +40,7 @@ class NoisyImage(object):
 
     def __call__(self, x):
         x = np.asarray(x, dtype='uint8')
-        x = gaussian_noise(x, self.amount) * 255
+        x = gaussian_noise(x, self.amount)
         x = pil_image.fromarray(x.astype('uint8'), 'RGB')
         return x
 
