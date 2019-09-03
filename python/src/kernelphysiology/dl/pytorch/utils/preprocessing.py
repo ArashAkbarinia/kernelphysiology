@@ -3,7 +3,9 @@ Preparing the input image to be inputted to a network.
 """
 
 import numpy as np
+import random
 import warnings
+
 from PIL import Image as PilImage
 from PIL import ImageCms
 
@@ -121,45 +123,43 @@ class PreprocessingTransformation(object):
         return x
 
 
-class RandomPreprocessingTransformation(object):
+class RandomAugmentationTransformation(object):
 
-    def __init__(
-            self,
-            manipulation_function,
-            manipulation_value,
-            manipulation_radius,
-            mask_type='circle',
-            is_pill_img=True):
-        self.manipulation_function = manipulation_function
-        self.manipulation_value = manipulation_value
-        self.manipulation_radius = manipulation_radius
-        self.mask_type = mask_type
+    def __init__(self, augmentation_settings, num_augmentations=None,
+                 is_pill_img=True):
+        self.augmentation_settings = augmentation_settings
+        self.num_augmentations = num_augmentations
+        self.all_inds = [*range(len(self.augmentation_settings))]
         self.is_pill_img = is_pill_img
 
     def __call__(self, x):
         if self.is_pill_img:
             x = np.asarray(x, dtype='uint8')
-        manipulation_value = np.random.uniform(*self.manipulation_value)
-        if self.manipulation_radius is None:
-            mask_radius = None
+
+        # finding the manipulations to be applied
+        if self.num_augmentations is None:
+            augmentation_inds = self.all_inds
         else:
-            mask_radius = np.random.uniform(*self.manipulation_radius)
+            augmentation_inds = random.sample(
+                self.all_inds, self.num_augmentations
+            )
+            # sorting it according to the order provided by user
+            augmentation_inds.sort()
 
-        kwargs = {'mask_type': self.mask_type}
-        # TODO: make this nicer for all other manipulation functions
-        # TODO: pass low and high thresholds
-        if self.mask_type == 'canny':
-            low_threshold = np.random.uniform(0, 1)
-            high_threshold = np.random.uniform(low_threshold, 1)
-            kwargs['low_threshold'] = low_threshold
-            kwargs['high_threshold'] = high_threshold
+        for i in augmentation_inds:
+            current_augmentation = self.augmentation_settings[i].copy()
+            manipulation_function = current_augmentation['function']
+            kwargs = current_augmentation['kwargs']
 
-        x = self.manipulation_function(
-            x, manipulation_value,
-            mask_radius=mask_radius,
-            preprocessing_function=None,
-            **kwargs
-        )
+            # if the value is in the form of a list, we select a random value
+            # in between those numbers
+            for key, val in kwargs.items():
+                if isinstance(val, list):
+                    kwargs[key] = np.random.uniform(*val)
+
+            x = manipulation_function(x, **kwargs)
+
+        # converting it back to pil image
         if self.is_pill_img:
             x = PilImage.fromarray(x.astype('uint8'), 'RGB')
         return x

@@ -4,6 +4,7 @@ Creating mask images or filters.
 
 import numpy as np
 import math
+import sys
 
 from skimage import feature
 import cv2
@@ -44,7 +45,7 @@ def create_mask_image_canny(image, sigma=1.0, low_threshold=0.9,
     return image_mask
 
 
-def create_mask_image(image, mask_length=None, is_circle=True):
+def create_mask_image_shape(image, is_circle=True, mask_length=None):
     """Creating a mask image with given radius or given side"""
     image_mask = np.zeros(image.shape, np.uint8)
     if mask_length is not None:
@@ -71,4 +72,18 @@ def create_mask_image(image, mask_length=None, is_circle=True):
                 )
             if radius_sign == 1:
                 image_mask = 1 - image_mask
+    return image_mask
+
+
+def create_mask_image(image, mask_type, **kwargs):
+    if mask_type is None:
+        image_mask = np.zeros(image.shape, np.uint8)
+    elif mask_type == 'circle':
+        image_mask = create_mask_image_shape(image, True, **kwargs)
+    elif mask_type == 'square':
+        image_mask = create_mask_image_shape(image, False, **kwargs)
+    elif mask_type == 'canny':
+        image_mask = create_mask_image_canny(image, **kwargs)
+    else:
+        sys.exit('Unsupported mask type %s' % mask_type)
     return image_mask

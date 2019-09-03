@@ -35,15 +35,7 @@ from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.utils import argument_handler
 from kernelphysiology.utils.path_utils import create_dir
-from kernelphysiology.utils.preprocessing import contrast_preprocessing
 
-model_names = sorted(
-    name for name in models.__dict__
-    if (
-            name.islower() and not name.startswith("__")
-            and callable(models.__dict__[name])
-    )
-)
 best_acc1 = 0
 
 
@@ -56,13 +48,11 @@ def main(argv):
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]
 
+    # TODO: why load weights is False?
     args.out_dir = prepare_training.prepare_output_directories(
-        dataset_name=args.dataset,
-        network_name=args.network_name,
-        optimiser='sgd',
-        load_weights=False,
-        experiment_name=args.experiment_name,
-        framework='pytorch'
+        dataset_name=args.dataset, network_name=args.network_name,
+        optimiser='sgd', load_weights=False,
+        experiment_name=args.experiment_name, framework='pytorch'
     )
 
     if args.seed is not None:
@@ -73,8 +63,7 @@ def main(argv):
             'You have chosen to seed training. '
             'This will turn on the CUDNN deterministic setting, '
             'which can slow down your training considerably! '
-            'You may see unexpected behavior when restarting '
-            'from checkpoints.'
+            'You may see unexpected behavior when restarting from checkpoints.'
         )
 
     if args.gpus is not None:
@@ -100,12 +89,11 @@ def main(argv):
         )
     else:
         # Simply call main_worker function
-        main_worker(args.gpus, ngpus_per_node, args)
+        main_worker(ngpus_per_node, args)
 
 
-def main_worker(gpu, ngpus_per_node, args):
+def main_worker(ngpus_per_node, args):
     global best_acc1
-    args.gpus = gpu
 
     mean, std = get_preprocessing_function(
         args.colour_space, args.colour_transformation
@@ -120,7 +108,7 @@ def main_worker(gpu, ngpus_per_node, args):
         if args.multiprocessing_distributed:
             # For multiprocessing distributed training, rank needs to be the
             # global rank among all the processes
-            args.rank = args.rank * ngpus_per_node + gpu
+            args.rank = args.rank * ngpus_per_node + args.gpus
         dist.init_process_group(
             backend=args.dist_backend,
             init_method=args.dist_url,
@@ -221,24 +209,18 @@ def main_worker(gpu, ngpus_per_node, args):
     normalize = transforms.Normalize(mean=mean, std=std)
 
     colour_transformations = preprocessing.colour_transformation(
-        args.colour_transformation,
-        args.colour_space
+        args.colour_transformation, args.colour_space
     )
     chns_transformation = preprocessing.channel_transformation(
-        args.colour_transformation,
-        args.colour_space
+        args.colour_transformation, args.colour_space
     )
     other_transformations = []
-    if args.contrast_range is not None:
-        args.contrast_range = np.array(args.contrast_range)
-        current_preprocessing = preprocessing.RandomPreprocessingTransformation(
-            contrast_preprocessing,
-            args.contrast_range,
-            args.mask_radius,
-            args.mask_type,
+    if args.num_augmentations != 0:
+        augmentations = preprocessing.RandomAugmentationTransformation(
+            args.augmentation_settings, args.num_augmentations,
             is_dataset_pil_image(args.dataset)
         )
-        other_transformations.append(current_preprocessing)
+        other_transformations.append(augmentations)
 
     target_size = get_default_target_size(args.dataset)
 

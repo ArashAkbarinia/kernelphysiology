@@ -9,7 +9,9 @@ import numpy as np
 import warnings
 import math
 
+from kernelphysiology.utils.controls import isfloat
 from kernelphysiology.dl.utils import default_configs
+from kernelphysiology.dl.utils import augmentation
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
@@ -784,7 +786,7 @@ def activation_arg_parser(argvs):
         type=float,
         default=[1],
         help='List of contrasts to be evaluated (default: [1])')
-    return check_args(parser, argvs, 'activation')
+    return check_common_args(parser, argvs, 'activation')
 
 
 def keras_test_arg_parser(argvs):
@@ -802,7 +804,7 @@ def keras_test_arg_parser(argvs):
         help='What type of crop (default: centre)'
     )
 
-    return check_args(parser, argvs, 'testing')
+    return check_common_args(parser, argvs, 'testing')
 
 
 def pytorch_test_arg_parser(argvs):
@@ -831,7 +833,7 @@ def pytorch_test_arg_parser(argvs):
         help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
     )
 
-    return check_args(parser, argvs, 'testing')
+    return check_common_args(parser, argvs, 'testing')
 
 
 def common_test_arg_parser():
@@ -903,8 +905,9 @@ def keras_train_arg_parser(argvs):
     get_plateau_group(parser)
     get_keras_augmentation_group(parser)
     get_logging_group(parser)
+    get_our_augmentation_group(parser)
 
-    return check_training_args(parser, argvs)
+    return keras_check_training_args(parser, argvs)
 
 
 def pytorch_train_arg_parser(argvs):
@@ -912,7 +915,21 @@ def pytorch_train_arg_parser(argvs):
 
     get_parallelisation_group(parser)
 
-    return check_training_args(parser, argvs)
+    parser.add_argument(
+        '-na', '--num_augmentations',
+        type=int,
+        default=None,
+        help='Number of augmentations applied to each image (default: None)'
+    )
+    parser.add_argument(
+        '-as', '--augmentation_settings',
+        nargs='+',
+        type=str,
+        default=None,
+        help='List of augmentations to be conducted (default: None)'
+    )
+
+    return pytorch_check_training_args(parser, argvs)
 
 
 def common_train_arg_parser():
@@ -920,12 +937,11 @@ def common_train_arg_parser():
 
     get_architecture_group(parser)
     get_optimisation_group(parser)
-    get_our_augmentation_group(parser)
 
     return parser
 
 
-def check_args(parser, argvs, script_type):
+def check_common_args(parser, argvs, script_type):
     # HINT: this is just in order to get rid of EXIF warnings
     warnings.filterwarnings(
         'ignore',
@@ -1018,8 +1034,30 @@ def check_args(parser, argvs, script_type):
     return args
 
 
-def check_training_args(parser, argvs):
-    args = check_args(parser, argvs, 'training')
+def pytorch_check_training_args(parser, argvs):
+    args = check_common_args(parser, argvs, 'training')
+
+    # checking augmentation parameters
+    args.augmentation_settings = parse_augmentations(args.augmentation_settings)
+    if len(args.augmentation_settings) == 0:
+        args.num_augmentations = 0
+    elif args.num_augmentations is not None:
+        if args.num_augmentations == 0:
+            sys.exit(
+                'When augmentation_settings flag is used, '
+                'num_augmentations should be bigger than 0.'
+            )
+        elif args.num_augmentations > len(args.augmentation_settings):
+            warnings.warn(
+                'num_augmentations larger than augmentation_settings, '
+                'it will be set to the maximum of augmentation_settings.'
+            )
+        args.num_augmentations = len(args.augmentation_settings)
+    return args
+
+
+def keras_check_training_args(parser, argvs):
+    args = check_common_args(parser, argvs, 'training')
 
     # checking augmentation parameters
     augmentation_types = get_augmentation_types(args)
@@ -1038,6 +1076,45 @@ def check_training_args(parser, argvs):
             'num_augmentation flag must be specified'
         )
     return args
+
+
+def parse_augmentations(str_command):
+    if str_command is None:
+        return []
+    augmentation_settings = []
+    supported_augmentations = augmentation.get_supported_image_manipulations()
+
+    i = -1
+    param = None
+    for key in str_command:
+        print(key)
+        if key[0:2] == 'f_' and key[2:] in supported_augmentations:
+            key = key[2:]
+            i += 1
+            augmentation_settings.append(dict())
+            augmentation_settings[i]['function'] = supported_augmentations[key]
+            augmentation_settings[i]['kwargs'] = dict()
+            param = None
+        elif i != -1 and 'function' in augmentation_settings[i]:
+            # if starts with k_, consider it as key
+            if key[0:2] == 'k_':
+                param = key[2:]
+                augmentation_settings[i]['kwargs'][param] = []
+            else:
+                val = key
+                if isfloat(val):
+                    val = float(val)
+                augmentation_settings[i]['kwargs'][param].append(val)
+        else:
+            warnings.warn('Ignoring argument %s' % key)
+
+    for i in range(len(augmentation_settings)):
+        for key in augmentation_settings[i]['kwargs'].keys():
+            if len(augmentation_settings[i]['kwargs'][key]) == 1:
+                elm0 = augmentation_settings[i]['kwargs'][key][0]
+                augmentation_settings[i]['kwargs'][key] = elm0
+
+    return augmentation_settings
 
 
 def get_augmentation_types(args):
