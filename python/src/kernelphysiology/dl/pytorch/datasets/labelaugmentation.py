@@ -1,28 +1,31 @@
-import torch
-import torchvision.datasets as datasets
-import torchvision.transforms as transforms
+"""
+Label augmentation.
+"""
+
+from torch.utils.data import Dataset
+
 import numpy as np
 import glob
 import random
-import time
 
 from PIL import Image
 
 
 def pil_loader(path):
-    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+    # copied from torchvision/datasets/folder.py
     with open(path, 'rb') as f:
         img = Image.open(f)
         return img.convert('RGB')
 
 
-def initialize_neglabels_correct(targets, v_total_images, neg_labels, num_images_label, num_images_label_orig):
+def initialize_neglabels_correct(targets, v_total_images, neg_labels,
+                                 num_images_label, num_images_label_orig):
     correct = 1
     newlabels = []
     for i in v_total_images:
-
-        newlabel, num_images_label = select_newlabel(targets[i], neg_labels, num_images_label,
-                                                     num_images_label_orig)
+        newlabel, num_images_label = select_newlabel(
+            targets[i], neg_labels, num_images_label, num_images_label_orig
+        )
 
         if newlabel == -1:
             print('No luck!!!!')
@@ -31,12 +34,12 @@ def initialize_neglabels_correct(targets, v_total_images, neg_labels, num_images
 
         # Add it to target list
         newlabels.append(newlabel)
-        # print( newlabel )
 
     return correct, newlabels
 
 
-def select_newlabel(current_label, neg_labels, num_images_label, num_images_label_orig):
+def select_newlabel(current_label, neg_labels, num_images_label,
+                    num_images_label_orig):
     aux = neg_labels.copy()
     aux[current_label] = False
     aux = aux[aux != False]
@@ -58,7 +61,7 @@ def select_newlabel(current_label, neg_labels, num_images_label, num_images_labe
     return aux[data], num_images_label
 
 
-class AugmentedLabelDataset(torch.utils.data.Dataset):
+class AugmentedLabelDataset(Dataset):
 
     def __init__(self, data_root, transform=None, loader=pil_loader):
         self.data_root = data_root
@@ -88,26 +91,35 @@ class AugmentedLabelDataset(torch.utils.data.Dataset):
         # Indirect labels (implicit labels)
         # Go through all labels and define the range for selecting random images
         v_total_images = np.arange(0, len(self.targets))
-        neg_labels = np.arange(max(self.targets) + 1, (max(self.targets) + 1) * 2)
+        neg_labels = np.arange(
+            max(self.targets) + 1, (max(self.targets) + 1) * 2
+        )
         num_images_label = np.array(num_images_label)
 
         # In case of emergency (not lucky) use one copy
         num_images_label_orig = num_images_label.copy()
 
-        initialize_neglabels(self, v_total_images, neg_labels, num_images_label, num_images_label_orig)
+        self.initialize_neglabels(
+            v_total_images, neg_labels, num_images_label, num_images_label_orig
+        )
 
         for i in v_total_images:
             self.image_paths.append(self.image_paths_neg[i])
-            self.targets.append(np.asscalar(self.targets_neg[i]))
+            self.targets.append(self.targets_neg[i].item())
 
-    def initialize_neglabels(self, v_total_images, neg_labels, num_images_label, num_images_label_orig):
+    def initialize_neglabels(self, v_total_images, neg_labels, num_images_label,
+                             num_images_label_orig):
 
-        correct, newlabels = initialize_neglabels_correct(self.targets, v_total_images, neg_labels, num_images_label,
-                                                          num_images_label_orig)
+        correct, newlabels = initialize_neglabels_correct(
+            self.targets, v_total_images, neg_labels,
+            num_images_label, num_images_label_orig
+        )
 
         while correct == 0:
-            correct, newlabels = initialize_neglabels_correct(self.targets, v_total_images, neg_labels,
-                                                              num_images_label_orig.copy(), num_images_label_orig)
+            correct, newlabels = initialize_neglabels_correct(
+                self.targets, v_total_images, neg_labels,
+                num_images_label_orig.copy(), num_images_label_orig
+            )
 
         sort_i = sorted(range(len(newlabels)), key=lambda k: newlabels[k])
 
