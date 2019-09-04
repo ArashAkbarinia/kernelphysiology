@@ -397,26 +397,28 @@ def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True,
     return output
 
 
-def speckle_noise(image, var, seed=None, clip=True, mask_type=None, **kwargs):
+def speckle_noise(image, amount, seed=None, clip=True, mask_type=None,
+                  **kwargs):
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)
 
     image_noise = random_noise(
-        image, mode='speckle', seed=seed, clip=clip, var=var
+        image, mode='speckle', seed=seed, clip=clip, var=amount
     )
     output = image_org * image_mask + image_noise * (1 - image_mask)
     output *= max_pixel
     return output
 
 
-def gaussian_noise(image, var, seed=None, clip=True, mask_type=None, **kwargs):
+def gaussian_noise(image, amount, seed=None, clip=True, mask_type=None,
+                   **kwargs):
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)
 
     image_noise = random_noise(
-        image, mode='gaussian', seed=seed, clip=clip, var=var
+        image, mode='gaussian', seed=seed, clip=clip, var=amount
     )
     output = image_org * image_mask + image_noise * (1 - image_mask)
     output *= max_pixel

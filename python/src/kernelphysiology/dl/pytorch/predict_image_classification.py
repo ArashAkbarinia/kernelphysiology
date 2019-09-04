@@ -26,7 +26,6 @@ from kernelphysiology.dl.pytorch.datasets.utils import is_dataset_pil_image
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import argument_handler
 from kernelphysiology.dl.utils import prepapre_testing
-from kernelphysiology.utils.preprocessing import which_preprocessing
 
 
 def main(argv):
@@ -43,10 +42,6 @@ def main(argv):
     criterion = nn.CrossEntropyLoss().cuda(gpu)
     cudnn.benchmark = True
 
-    (image_manipulation_type,
-     image_manipulation_values,
-     image_manipulation_function) = which_preprocessing(args)
-
     for j, current_network in enumerate(network_files):
         # which architecture
         (model, target_size) = which_network(
@@ -59,25 +54,24 @@ def main(argv):
         )
         normalize = transforms.Normalize(mean=mean, std=std)
 
-        # FIXME: for now it only supports classification
-        for i, manipulation_value in enumerate(image_manipulation_values):
-            current_preprocessing = preprocessing.PreprocessingTransformation(
-                image_manipulation_function,
-                manipulation_value,
-                args.mask_radius,
-                args.mask_type,
-                is_dataset_pil_image(args.dataset)
+        manipulation_values = args.parameters['kwargs'][args.manipulation]
+        manipulation_name = args.parameters['f_name']
+        for i, manipulation_value in enumerate(manipulation_values):
+            args.parameters['kwargs'][args.manipulation] = manipulation_value
+            prediction_transformation = preprocessing.PredictionTransformation(
+                args.parameters, is_dataset_pil_image(args.dataset)
             )
             # TODO: perhaps for inverting chromaticity and luminance as well
             # FIXME: for less than 3 channels in lab it wont work
-            if (image_manipulation_type == 'original_rgb' or
-                    (image_manipulation_type == 'red_green'
+            if (
+                    manipulation_name == 'original_rgb' or
+                    (manipulation_name == 'red_green'
                      and network_chromaticities[j] == 'dichromat_rg') or
-                    (image_manipulation_type == 'yellow_blue'
+                    (manipulation_name == 'yellow_blue'
                      and network_chromaticities[j] == 'dichromat_yb') or
-                    (image_manipulation_type == 'chromaticity'
+                    (manipulation_name == 'chromaticity'
                      and network_chromaticities[j] == 'monochromat') or
-                    (image_manipulation_type == 'lightness'
+                    (manipulation_name == 'lightness'
                      and network_chromaticities[j] == 'lightness')
             ):
                 colour_transformations = []
@@ -91,11 +85,11 @@ def main(argv):
                 network_chromaticities[j], args.colour_space
             )
 
-            other_transformations = [current_preprocessing]
+            other_transformations = [prediction_transformation]
 
             print(
                 'Processing network %s and %s %f' %
-                (current_network, image_manipulation_type, manipulation_value)
+                (current_network, manipulation_name, manipulation_value)
             )
 
             # which dataset
@@ -119,31 +113,23 @@ def main(argv):
             if args.activation_map is not None:
                 model = LayerActivation(model, args.activation_map)
                 current_results = compute_activation(
-                    val_loader, model, args.print_freq
+                    val_loader, model, gpu, args.print_freq
                 )
                 prepapre_testing.save_activation(
-                    current_results,
-                    args.experiment_name,
-                    network_names[j],
-                    args.dataset,
-                    image_manipulation_type,
-                    manipulation_value
+                    current_results, args.experiment_name, network_names[j],
+                    args.dataset, manipulation_name, manipulation_value
                 )
             else:
                 (_, _, current_results) = predict(
-                    val_loader, model, criterion, args.print_freq
+                    val_loader, model, criterion, gpu, args.print_freq
                 )
                 prepapre_testing.save_predictions(
-                    current_results,
-                    args.experiment_name,
-                    network_names[j],
-                    args.dataset,
-                    image_manipulation_type,
-                    manipulation_value
+                    current_results, args.experiment_name, network_names[j],
+                    args.dataset, manipulation_name, manipulation_value
                 )
 
 
-def compute_activation(val_loader, model, print_freq=100):
+def compute_activation(val_loader, model, gpu_num, print_freq=100):
     batch_time = AverageMeter()
 
     # switch to evaluate mode
@@ -153,8 +139,8 @@ def compute_activation(val_loader, model, print_freq=100):
     with torch.no_grad():
         end = time.time()
         for i, (input_imgs, target) in enumerate(val_loader):
-            if 0 is not None:
-                input_imgs = input_imgs.cuda(0, non_blocking=True)
+            if gpu_num is not None:
+                input_imgs = input_imgs.cuda(gpu_num, non_blocking=True)
 
             # compute output
             pred_outs = model(input_imgs).cpu().numpy()
@@ -191,7 +177,7 @@ def compute_activation(val_loader, model, print_freq=100):
     return prediction_output
 
 
-def predict(val_loader, model, criterion, print_freq=100):
+def predict(val_loader, model, criterion, gpu_num, print_freq=100):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -204,10 +190,9 @@ def predict(val_loader, model, criterion, print_freq=100):
     with torch.no_grad():
         end = time.time()
         for i, (input_imgs, target) in enumerate(val_loader):
-            # FIXME: this is supposed to be args.gpu
-            if 0 is not None:
-                input_imgs = input_imgs.cuda(0, non_blocking=True)
-            target = target.cuda(0, non_blocking=True)
+            if gpu_num is not None:
+                input_imgs = input_imgs.cuda(gpu_num, non_blocking=True)
+            target = target.cuda(gpu_num, non_blocking=True)
 
             # compute output
             output = model(input_imgs)

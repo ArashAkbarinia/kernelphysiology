@@ -5,7 +5,6 @@ Handling input arguments for training/testing a network.
 import os
 import sys
 import argparse
-import numpy as np
 import warnings
 import math
 
@@ -59,132 +58,6 @@ def get_colour_space_group(parser):
         ],
         help='The preprocessing colour transformation (default: trichromat)'
     )
-
-
-def get_image_degradation_group(parser):
-    image_degradation_group = parser.add_mutually_exclusive_group()
-
-    image_degradation_group.add_argument(
-        '--contrasts',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of contrasts to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--gaussian_sigma',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of Gaussian sigmas to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--s_p_noise',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of salt and pepper noise to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--speckle_noise',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of speckle noise to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--gaussian_noise',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of Gaussian noise to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--poisson_noise',
-        action='store_true',
-        default=False,
-        help='Poisson noise to be evaluated (default: False)')
-    image_degradation_group.add_argument(
-        '--gammas',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of gammas to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--illuminants',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of illuminations to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--occlusion',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of occlusions to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--chromaticity',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of chromaticity to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--red_green',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of red-green to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--yellow_blue',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of yellow-blue to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--lightness',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of lightness to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--invert_chromaticity',
-        action='store_true',
-        default=False,
-        help='Inverting chromaticity to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--invert_opponency',
-        action='store_true',
-        default=False,
-        help='Inverting colour opponency to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--invert_lightness',
-        action='store_true',
-        default=False,
-        help='Inverting lightness to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--rotate_hue',
-        nargs='+',
-        type=float,
-        default=None,
-        help='Rotating hues to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--keep_red',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of keeping red to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--keep_blue',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of keeping blue to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--keep_green',
-        nargs='+',
-        type=float,
-        default=None,
-        help='List of keeping green to be evaluated (default: None)')
-    image_degradation_group.add_argument(
-        '--original_rgb',
-        action='store_true',
-        default=False,
-        help='Testing with the original RGB values (default: False)')
 
 
 def get_architecture_group(parser):
@@ -651,19 +524,6 @@ def common_arg_parser(description):
         help='The task to perform by network (default: None)'
     )
 
-    parser.add_argument(
-        '--mask_radius',
-        type=float,
-        default=None,
-        help='The radius of image distortion (default: None)'
-    )
-    parser.add_argument(
-        '--mask_type',
-        type=str,
-        default='circle',
-        help='The type of mask image (default: circle)'
-    )
-
     get_colour_space_group(parser)
     return parser
 
@@ -727,7 +587,19 @@ def pytorch_test_arg_parser(argvs):
         help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
     )
 
-    return check_common_args(parser, argvs, 'testing')
+    return pytorch_check_test_args(parser, argvs)
+
+
+def pytorch_check_test_args(parser, argvs):
+    args = check_common_args(parser, argvs, 'testing')
+
+    # checking augmentation parameters
+    args.manipulation, args.parameters = create_manipulation_list(
+        args.manipulation, args.parameters,
+        augmentation.get_testing_augmentations()
+    )
+
+    return args
 
 
 def common_test_arg_parser():
@@ -749,7 +621,20 @@ def common_test_arg_parser():
         help='Number of images to be evaluated (default: None)'
     )
 
-    get_image_degradation_group(parser)
+    parser.add_argument(
+        '--manipulation',
+        type=str,
+        default=None,
+        help='Image manipulation type to be evaluated (default: None)'
+    )
+
+    parser.add_argument(
+        '--parameters',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Parameters passed to the evaluation function (default: None)'
+    )
 
     logging_group = parser.add_argument_group('logging')
     logging_group.add_argument(
@@ -931,7 +816,9 @@ def pytorch_check_training_args(parser, argvs):
     args = check_common_args(parser, argvs, 'training')
 
     # checking augmentation parameters
-    args.augmentation_settings = parse_augmentations(args.augmentation_settings)
+    args.augmentation_settings = prepare_augmentations(
+        args.augmentation_settings, augmentation.get_training_augmentations()
+    )
     if len(args.augmentation_settings) == 0:
         args.num_augmentations = 0
     elif args.num_augmentations is not None:
@@ -951,105 +838,90 @@ def pytorch_check_training_args(parser, argvs):
 
 def keras_check_training_args(parser, argvs):
     args = check_common_args(parser, argvs, 'training')
-
-    # checking augmentation parameters
-    augmentation_types = get_augmentation_types(args)
-    if args.num_augmentation is not None:
-        # there should be at least one sort of augmentation in this case
-        if not augmentation_types:
-            sys.exit(
-                'When num_augmentation flag is used, '
-                'at least one sort of augmentation should be specified'
-            )
-        else:
-            args.augmentation_types = np.array(augmentation_types)
-    elif len(augmentation_types) > 0:
-        sys.exit(
-            'When one sort of augmentation is used '
-            'num_augmentation flag must be specified'
-        )
     return args
 
 
-def parse_augmentations(str_command):
-    if str_command is None:
-        return []
-    augmentation_settings = []
-    supported_augmentations = augmentation.get_training_augmentations()
-
-    i = -1
-    param = None
-    for key in str_command:
-        print(key)
-        if key[0:2] == 'f_' and key[2:] in supported_augmentations:
-            key = key[2:]
-            i += 1
-            augmentation_settings.append(dict())
-            augmentation_settings[i]['function'] = supported_augmentations[key]
-            augmentation_settings[i]['kwargs'] = dict()
-            param = None
-        elif i != -1 and 'function' in augmentation_settings[i]:
-            # if starts with k_, consider it as key
-            if key[0:2] == 'k_':
-                param = key[2:]
-                augmentation_settings[i]['kwargs'][param] = []
-            else:
-                val = key
-                if isfloat(val):
-                    val = float(val)
-                augmentation_settings[i]['kwargs'][param].append(val)
-        else:
-            warnings.warn('Ignoring argument %s' % key)
-
+def prepare_augmentations(augmentation_settings, supported_functions):
+    augmentation_settings = parse_image_modifications(
+        augmentation_settings, supported_functions=supported_functions
+    )
     for i in range(len(augmentation_settings)):
         for key in augmentation_settings[i]['kwargs'].keys():
             if len(augmentation_settings[i]['kwargs'][key]) == 1:
                 elm0 = augmentation_settings[i]['kwargs'][key][0]
                 augmentation_settings[i]['kwargs'][key] = elm0
-
     return augmentation_settings
 
 
-def get_augmentation_types(args):
-    # TODO make them one variable with name and make sure they're two
-    # elements
-    augmentation_types = []
-    if args.illuminant_range is not None:
-        args.illuminant_range = np.array(args.illuminant_range)
-        augmentation_types.append('illuminant')
-    if args.contrast_range is not None:
-        args.contrast_range = np.array(args.contrast_range)
-        augmentation_types.append('contrast')
-    if args.gaussian_sigma is not None:
-        args.gaussian_sigma = np.array(args.gaussian_sigma)
-        augmentation_types.append('blur')
-    if args.s_p_amount is not None:
-        args.s_p_amount = np.array(args.s_p_amount)
-        augmentation_types.append('s_p')
-    if args.gaussian_amount is not None:
-        args.gaussian_amount = np.array(args.gaussian_amount)
-        augmentation_types.append('gaussian')
-    if args.speckle_amount is not None:
-        args.speckle_amount = np.array(args.speckle_amount)
-        augmentation_types.append('speckle')
-    if args.gamma_range is not None:
-        args.gamma_range = np.array(args.gamma_range)
-        augmentation_types.append('gamma')
-    if args.poisson_noise is True:
-        augmentation_types.append('poisson')
-    if args.chromatic_contrast is not None:
-        args.chromatic_contrast = np.array(args.chromatic_contrast)
-        augmentation_types.append('chromatic_contrast')
-    if args.luminance_contrast is not None:
-        args.luminance_contrast = np.array(args.luminance_contrast)
-        augmentation_types.append('luminance_contrast')
-    if args.yellow_blue is not None:
-        args.yellow_blue = np.array(args.yellow_blue)
-        augmentation_types.append('yellow_blue')
-    if args.red_green is not None:
-        args.red_green = np.array(args.red_green)
-        augmentation_types.append('red_green')
-    return augmentation_types
+def create_manipulation_list(manipulation, parameters, supported_functions):
+    parameters = parse_image_modifications(
+        parameters, supported_functions=supported_functions
+    )
+    if len(parameters) > 1:
+        sys.exit(
+            'Currently only one manipulation at a time is supported.'
+        )
+    elif len(parameters) == 0:
+        if manipulation is None:
+            manipulation = '_nothing'
+            parameters = {
+                'function': supported_functions['original'],
+                'kwargs': {manipulation: [0]},
+                'f_name': 'original'
+            }
+        else:
+            sys.exit(
+                'Manipulation %s requires parameters.' % manipulation
+            )
+    else:
+        parameters = parameters[0]
+
+        manipulation_exist = False
+        for key in parameters['kwargs'].keys():
+            # if key is manipulation we keep it as list to iterate over it
+            if key == manipulation or manipulation is None:
+                manipulation = key
+                manipulation_exist = True
+            elif len(parameters['kwargs'][key]) == 1:
+                elm0 = parameters['kwargs'][key][0]
+                parameters['kwargs'][key] = elm0
+        if manipulation_exist is False:
+            sys.exit(
+                'Manipulation %s not found in parameters.' % manipulation
+            )
+    return manipulation, parameters
+
+
+def parse_image_modifications(str_command, supported_functions):
+    if str_command is None:
+        return []
+    functions_settings = []
+
+    i = -1
+    param = None
+    for key in str_command:
+        if key[0:2] == 'f_' and key[2:] in supported_functions:
+            key = key[2:]
+            i += 1
+            functions_settings.append(dict())
+            functions_settings[i]['function'] = supported_functions[key]
+            functions_settings[i]['kwargs'] = dict()
+            functions_settings[i]['f_name'] = key
+            param = None
+        elif i != -1 and 'function' in functions_settings[i]:
+            # if starts with k_, consider it as key
+            if key[0:2] == 'k_':
+                param = key[2:]
+                functions_settings[i]['kwargs'][param] = []
+            else:
+                val = key
+                if isfloat(val):
+                    val = float(val)
+                functions_settings[i]['kwargs'][param].append(val)
+        else:
+            warnings.warn('Ignoring argument %s' % key)
+
+    return functions_settings
 
 
 def check_task_type(dataset, task_type=None):

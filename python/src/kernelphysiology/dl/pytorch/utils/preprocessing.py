@@ -93,31 +93,22 @@ def normalise_tensor(tensor, mean, std):
     return tensor
 
 
-class PreprocessingTransformation(object):
+class PredictionTransformation(object):
 
-    def __init__(
-            self,
-            manipulation_function,
-            manipulation_value,
-            manipulation_radius,
-            mask_type='circle',
-            is_pill_img=True):
-        self.manipulation_function = manipulation_function
-        self.manipulation_value = manipulation_value
-        self.manipulation_radius = manipulation_radius
-        self.mask_type = mask_type
+    def __init__(self, parameters, is_pill_img=True):
+        self.parameters = parameters
         self.is_pill_img = is_pill_img
 
     def __call__(self, x):
         if self.is_pill_img:
             x = np.asarray(x, dtype='uint8')
-        # FIXME: this will crash for any other manipulation except contrast
-        x = self.manipulation_function(
-            x, self.manipulation_value,
-            mask_radius=self.manipulation_radius,
-            mask_type=self.mask_type,
-            preprocessing_function=None
-        )
+
+        manipulation_function = self.parameters['function']
+        kwargs = self.parameters['kwargs']
+
+        x = manipulation_function(x, **kwargs)
+
+        # converting it back to pil image
         if self.is_pill_img:
             x = PilImage.fromarray(x.astype('uint8'), 'RGB')
         return x
