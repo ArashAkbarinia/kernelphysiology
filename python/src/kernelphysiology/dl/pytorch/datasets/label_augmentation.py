@@ -132,7 +132,7 @@ class AugmentedLabelDataset(Dataset):
             img = self.transform(img)
 
         target = self.all_targets[index]
-        return path, target
+        return img, target
 
     def __len__(self):
         n = len(self.image_paths)

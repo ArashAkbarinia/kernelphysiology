@@ -96,21 +96,16 @@ def prepare_transformations_test(dataset_name, colour_transformations,
 
 def get_validation_dataset(dataset_name, valdir, colour_transformations,
                            other_transformations, chns_transformation,
-                           normalize, target_size, augment_labels):
+                           normalize, target_size):
     transformations = prepare_transformations_test(
         dataset_name, colour_transformations,
         other_transformations, chns_transformation,
         normalize, target_size
     )
     if dataset_name == 'imagenet':
-        if augment_labels:
-            validation_dataset = label_augmentation.AugmentedLabelDataset(
-                valdir, transformations
-            )
-        else:
-            validation_dataset = datasets.ImageFolder(
-                valdir, transformations
-            )
+        validation_dataset = datasets.ImageFolder(
+            valdir, transformations
+        )
     elif dataset_name == 'cifar10':
         validation_dataset = datasets.CIFAR10(
             valdir, train=False, download=False, transform=transformations

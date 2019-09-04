@@ -249,7 +249,6 @@ def main_worker(ngpus_per_node, args):
     validation_dataset = get_validation_dataset(
         args.dataset, args.validation_dir, colour_transformations, [],
         chns_transformation, normalize, target_size,
-        args.augment_labels
     )
 
     val_loader = torch.utils.data.DataLoader(
@@ -267,6 +266,10 @@ def main_worker(ngpus_per_node, args):
         if args.distributed:
             train_sampler.set_epoch(epoch)
         adjust_learning_rate(optimizer, epoch, args)
+
+        # if doing label augmentation, shuffle the labels
+        if args.augment_labels:
+            train_loader.dataset.shuffle_augmented_labels()
 
         # train for one epoch
         train_log = train(
