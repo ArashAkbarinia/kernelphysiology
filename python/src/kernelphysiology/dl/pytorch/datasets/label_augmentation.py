@@ -68,47 +68,42 @@ class AugmentedLabelDataset(Dataset):
         self.loader = loader
         self.transform = transform
 
-        all_subfolders = sorted(glob.glob(self.data_root + '/*/'))
-
         # Direct labels (explicit labels)
         self.image_paths = []
         self.targets = []
 
-        self.image_paths_neg = []
-        self.targets_neg = []
+        self.num_images_label = []
 
-        num_images_label = []
+        self.read_real_labels()
+        self.shuffle_augmented_labels()
 
+    def read_real_labels(self):
+        all_subfolders = sorted(glob.glob(self.data_root + '/*/'))
         for target_id, sub_folder in enumerate(all_subfolders):
-            count_images_in = 0
-            for image_path in glob.glob(sub_folder + '*.JPEG'):
+            sub_folder_imgs = sorted(glob.glob(sub_folder + '*.JPEG'))
+            for image_path in sub_folder_imgs:
                 self.image_paths.append(image_path)
                 self.targets.append(target_id)
-                count_images_in += 1
+            self.num_images_label.append(len(sub_folder_imgs))
 
-            num_images_label.append(count_images_in)
-
+    def shuffle_augmented_labels(self):
         # Indirect labels (implicit labels)
-        # Go through all labels and define the range for selecting random images
+        image_paths_neg, targets_neg = self.initialize_neglabels()
+
+        self.all_image_paths = self.image_paths + image_paths_neg
+        self.all_targets = self.targets + targets_neg
+
+    def initialize_neglabels(self):
         v_total_images = np.arange(0, len(self.targets))
         neg_labels = np.arange(
             max(self.targets) + 1, (max(self.targets) + 1) * 2
         )
-        num_images_label = np.array(num_images_label)
+
+        # Go through all labels and define the range for selecting random images
+        num_images_label = np.array(self.num_images_label)
 
         # In case of emergency (not lucky) use one copy
         num_images_label_orig = num_images_label.copy()
-
-        self.initialize_neglabels(
-            v_total_images, neg_labels, num_images_label, num_images_label_orig
-        )
-
-        for i in v_total_images:
-            self.image_paths.append(self.image_paths_neg[i])
-            self.targets.append(self.targets_neg[i].item())
-
-    def initialize_neglabels(self, v_total_images, neg_labels, num_images_label,
-                             num_images_label_orig):
 
         correct, newlabels = initialize_neglabels_correct(
             self.targets, v_total_images, neg_labels,
@@ -123,18 +118,21 @@ class AugmentedLabelDataset(Dataset):
 
         sort_i = sorted(range(len(newlabels)), key=lambda k: newlabels[k])
 
+        image_paths_neg = []
+        targets_neg = []
         for i in v_total_images:
-            self.image_paths_neg.append(self.image_paths[sort_i[i]])
-            self.targets_neg.append(newlabels[sort_i[i]])
+            image_paths_neg.append(self.image_paths[sort_i[i]])
+            targets_neg.append(newlabels[sort_i[i]].item())
+        return image_paths_neg, targets_neg
 
     def __getitem__(self, index):
-        path = self.image_paths[index]
+        path = self.all_image_paths[index]
         img = self.loader(path)
         if self.transform is not None:
             img = self.transform(img)
 
-        target = self.targets[index]
-        return img, target
+        target = self.all_targets[index]
+        return path, target
 
     def __len__(self):
         n = len(self.image_paths)
