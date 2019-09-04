@@ -706,6 +706,14 @@ def pytorch_train_arg_parser(argvs):
         default=None,
         help='List of augmentations to be conducted (default: None)'
     )
+    # FIXME: when on, num_classes should eb authomatically computed
+    # FIXME: implement for CIFAr and others
+    parser.add_argument(
+        '--augment_labels',
+        dest='augment_labels',
+        action='store_true',
+        help='Augmenting labels of ground-truth (False)'
+    )
 
     return pytorch_check_training_args(parser, argvs)
 

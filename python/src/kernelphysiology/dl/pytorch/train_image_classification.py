@@ -227,7 +227,8 @@ def main_worker(ngpus_per_node, args):
     # loading the training set
     train_dataset = get_train_dataset(
         args.dataset, args.train_dir, colour_transformations,
-        other_transformations, chns_transformation, normalize, target_size
+        other_transformations, chns_transformation, normalize, target_size,
+        args.augment_labels
     )
 
     if args.distributed:
@@ -247,7 +248,8 @@ def main_worker(ngpus_per_node, args):
     # loading validation set
     validation_dataset = get_validation_dataset(
         args.dataset, args.validation_dir, colour_transformations, [],
-        chns_transformation, normalize, target_size
+        chns_transformation, normalize, target_size,
+        args.augment_labels
     )
 
     val_loader = torch.utils.data.DataLoader(

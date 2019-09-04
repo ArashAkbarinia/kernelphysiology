@@ -10,6 +10,8 @@ import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
+from kernelphysiology.dl.pytorch.datasets import label_augmentation
+
 
 def prepare_transformations_train(dataset_name, colour_transformations,
                                   other_transformations, chns_transformation,
@@ -94,16 +96,21 @@ def prepare_transformations_test(dataset_name, colour_transformations,
 
 def get_validation_dataset(dataset_name, valdir, colour_transformations,
                            other_transformations, chns_transformation,
-                           normalize, target_size):
+                           normalize, target_size, augment_labels):
     transformations = prepare_transformations_test(
         dataset_name, colour_transformations,
         other_transformations, chns_transformation,
         normalize, target_size
     )
     if dataset_name == 'imagenet':
-        validation_dataset = datasets.ImageFolder(
-            valdir, transformations
-        )
+        if augment_labels:
+            validation_dataset = label_augmentation.AugmentedLabelDataset(
+                valdir, transformations
+            )
+        else:
+            validation_dataset = datasets.ImageFolder(
+                valdir, transformations
+            )
     elif dataset_name == 'cifar10':
         validation_dataset = datasets.CIFAR10(
             valdir, train=False, download=False, transform=transformations
@@ -131,16 +138,21 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
 # TODO: train and validation merge together
 def get_train_dataset(dataset_name, traindir, colour_transformations,
                       other_transformations, chns_transformation,
-                      normalize, target_size):
+                      normalize, target_size, augment_labels):
     transformations = prepare_transformations_train(
         dataset_name, colour_transformations,
         other_transformations, chns_transformation,
         normalize, target_size
     )
     if dataset_name == 'imagenet':
-        train_dataset = datasets.ImageFolder(
-            traindir, transformations
-        )
+        if augment_labels:
+            train_dataset = label_augmentation.AugmentedLabelDataset(
+                traindir, transformations
+            )
+        else:
+            train_dataset = datasets.ImageFolder(
+                traindir, transformations
+            )
     elif dataset_name == 'cifar10':
         train_dataset = datasets.CIFAR10(
             traindir, train=True, download=False, transform=transformations
