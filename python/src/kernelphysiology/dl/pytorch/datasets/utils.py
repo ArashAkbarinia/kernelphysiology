@@ -9,6 +9,7 @@ import sys
 import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+from torch.utils.data import ConcatDataset
 
 from kernelphysiology.dl.pytorch.datasets import label_augmentation
 
@@ -140,14 +141,20 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
         normalize, target_size
     )
     if dataset_name == 'imagenet':
+        train_dataset = datasets.ImageFolder(
+            traindir, transformations
+        )
         if augment_labels:
-            train_dataset = label_augmentation.AugmentedLabelDataset(
-                traindir, transformations
+            # for label augmentation, we don't want to perform crazy cropping
+            augmented_transformations = prepare_transformations_test(
+                dataset_name, colour_transformations,
+                other_transformations, chns_transformation,
+                normalize, target_size
             )
-        else:
-            train_dataset = datasets.ImageFolder(
-                traindir, transformations
+            augmented_dataset = label_augmentation.AugmentedLabelDataset(
+                traindir, augmented_transformations
             )
+            train_dataset = ConcatDataset([train_dataset, augmented_dataset])
     elif dataset_name == 'cifar10':
         train_dataset = datasets.CIFAR10(
             traindir, train=True, download=False, transform=transformations

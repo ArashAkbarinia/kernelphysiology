@@ -90,8 +90,8 @@ class AugmentedLabelDataset(Dataset):
         # Indirect labels (implicit labels)
         image_paths_neg, targets_neg = self.initialize_neglabels()
 
-        self.all_image_paths = self.image_paths + image_paths_neg
-        self.all_targets = self.targets + targets_neg
+        self.all_image_paths = image_paths_neg.copy()
+        self.all_targets = targets_neg.copy()
 
     def initialize_neglabels(self):
         v_total_images = np.arange(0, len(self.targets))

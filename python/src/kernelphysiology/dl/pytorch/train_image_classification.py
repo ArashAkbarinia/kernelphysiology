@@ -266,7 +266,7 @@ def main_worker(ngpus_per_node, args):
 
         # if doing label augmentation, shuffle the labels
         if args.augment_labels:
-            train_loader.dataset.shuffle_augmented_labels()
+            train_loader.dataset.datasets[1].shuffle_augmented_labels()
 
         # train for one epoch
         train_log = train(
