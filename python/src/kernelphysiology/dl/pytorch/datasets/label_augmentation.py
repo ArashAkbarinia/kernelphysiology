@@ -53,11 +53,18 @@ def select_newlabel(current_label, neg_labels, num_images_label,
     return aux[data], num_images_label
 
 
+IMG_EXTENSIONS = [
+    '.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', 'webp'
+]
+
+
 class AugmentedLabelDataset(Dataset):
 
-    def __init__(self, data_root, transform=None, loader=pil_loader):
+    def __init__(self, data_root, transform=None, loader=pil_loader,
+                 extensions=IMG_EXTENSIONS):
         self.data_root = data_root
         self.loader = loader
+        self.extensions = extensions
         self.transform = transform
 
         # Direct labels (explicit labels)
@@ -72,7 +79,16 @@ class AugmentedLabelDataset(Dataset):
     def read_real_labels(self):
         all_subfolders = sorted(glob.glob(self.data_root + '/*/'))
         for target_id, sub_folder in enumerate(all_subfolders):
-            sub_folder_imgs = sorted(glob.glob(sub_folder + '*.JPEG'))
+            sub_folder_imgs = []
+            # reading all extensions
+            for extension in self.extensions:
+                sub_folder_imgs.extend(
+                    sorted(glob.glob(sub_folder + '*' + extension))
+                )
+                # with upper case
+                sub_folder_imgs.extend(
+                    sorted(glob.glob(sub_folder + '*' + extension.upper()))
+                )
             for image_path in sub_folder_imgs:
                 self.image_paths.append(image_path)
                 self.targets.append(target_id)
