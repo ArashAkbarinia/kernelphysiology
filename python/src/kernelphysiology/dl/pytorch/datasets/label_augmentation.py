@@ -3,19 +3,11 @@ Label augmentation.
 """
 
 from torch.utils.data import Dataset
+from torchvision.datasets.folder import pil_loader
 
 import numpy as np
 import glob
 import random
-
-from PIL import Image
-
-
-def pil_loader(path):
-    # copied from torchvision/datasets/folder.py
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
 
 
 def initialize_neglabels_correct(targets, v_total_images, neg_labels,
