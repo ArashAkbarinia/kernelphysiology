@@ -45,7 +45,7 @@ def main(argv):
     for j, current_network in enumerate(network_files):
         # which architecture
         (model, target_size) = which_network(
-            current_network, args.task_type, args.dataset,
+            current_network, args.task_type, args.num_classes,
             args.kill_kernels, args.kill_planes, args.kill_lines
         )
         model = model.cuda(gpu)

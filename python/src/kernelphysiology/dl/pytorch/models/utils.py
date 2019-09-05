@@ -136,7 +136,7 @@ def lesion_planes(model, layer, kernel, kill_planes):
     for p_item in kill_planes:
         if p_item.isdigit():
             plane_index = int(p_item)
-            if axis_num == None:
+            if axis_num is None:
                 sys.exit(
                     'The order of planes to be killed should follow '
                     'ax_<NUMBER> and plane indices. Invalid axis %d' %
@@ -192,7 +192,7 @@ def lesion_kernels(model, kill_kernels, kill_planes=None, kill_lines=None):
     return model
 
 
-def which_network_classification(network_name, dataset, kill_kernels=None,
+def which_network_classification(network_name, num_classes, kill_kernels=None,
                                  kill_planes=None, kill_lines=None):
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
@@ -200,16 +200,16 @@ def which_network_classification(network_name, dataset, kill_kernels=None,
         if 'customs' in checkpoint:
             customs = checkpoint['customs']
         model = which_architecture(
-            checkpoint['arch'], customs=customs, dataset=dataset
+            checkpoint['arch'], num_classes, customs=customs
         )
 
         # TODO: for each dataset a class of network should be defined
-        if dataset == 'leaf':
-            num_ftrs = model.fc.in_features
-            model.fc = nn.Linear(num_ftrs, 30)
-        elif dataset == 'fruits':
-            num_ftrs = model.fc.in_features
-            model.fc = nn.Linear(num_ftrs, 23)
+        # if dataset == 'leaf':
+        #     num_ftrs = model.fc.in_features
+        #     model.fc = nn.Linear(num_ftrs, 30)
+        # elif dataset == 'fruits':
+        #     num_ftrs = model.fc.in_features
+        #     model.fc = nn.Linear(num_ftrs, 23)
         # FIXME: this is for transfer learning or adding a dropout
         # elif 'wcs' in dataset:
         #     if '_330' in dataset:
@@ -222,7 +222,8 @@ def which_network_classification(network_name, dataset, kill_kernels=None,
     elif network_name == 'inception_v3':
         target_size = 299
         model = pmodels.__dict__[network_name](
-            pretrained=True, aux_logits=False)
+            pretrained=True, aux_logits=False
+        )
     else:
         model = pmodels.__dict__[network_name](pretrained=True)
         target_size = 224
@@ -231,21 +232,19 @@ def which_network_classification(network_name, dataset, kill_kernels=None,
     return model, target_size
 
 
-def which_network(network_name, task_type, dataset, kill_kernels=None,
+def which_network(network_name, task_type, num_classes, kill_kernels=None,
                   kill_planes=None, kill_lines=None):
     # FIXME: network should be acosiated to dataset
     if task_type == 'classification':
         (model, target_size) = which_network_classification(
-            network_name,
-            dataset,
-            kill_kernels,
-            kill_planes,
-            kill_lines
+            network_name, num_classes, kill_kernels, kill_planes, kill_lines
         )
+    else:
+        sys.exit('Currently only classification is supported.')
     return model, target_size
 
 
-def which_architecture(network_name, customs=None, dataset='imagenet'):
+def which_architecture(network_name, num_classes, customs=None):
     if customs is None:
         if network_name == 'inception_v3':
             model = pmodels.__dict__[network_name](
@@ -254,15 +253,6 @@ def which_architecture(network_name, customs=None, dataset='imagenet'):
         else:
             model = pmodels.__dict__[network_name](pretrained=False)
     else:
-        if 'wcs' in dataset:
-            if '_330' in dataset:
-                num_classes = 330
-            elif '_1600' in dataset:
-                num_classes = 1600
-        else:
-            # assuming imagenet
-            num_classes = 1000
-
         pooling_type = customs['pooling_type']
         if 'in_chns' in customs:
             in_chns = customs['in_chns']
@@ -270,10 +260,8 @@ def which_architecture(network_name, customs=None, dataset='imagenet'):
             # assuming if it doesn't exist, it's 3
             in_chns = 3
         model = custom_models.__dict__[network_name](
-            pretrained=False,
-            pooling_type=pooling_type,
-            in_chns=in_chns,
-            num_classes=num_classes
+            pretrained=False, pooling_type=pooling_type,
+            in_chns=in_chns, num_classes=num_classes
         )
     return model
 

@@ -120,8 +120,7 @@ def main_worker(ngpus_per_node, args):
     if args.custom_arch:
         print('Custom model!')
         model = custom_models.__dict__[args.network_name](
-            pooling_type=args.pooling_type,
-            in_chns=len(mean),
+            pooling_type=args.pooling_type, in_chns=len(mean),
             num_classes=args.num_classes
         )
     elif args.pretrained:
@@ -168,10 +167,8 @@ def main_worker(ngpus_per_node, args):
 
     # optimiser
     optimizer = torch.optim.SGD(
-        model.parameters(),
-        args.lr,
-        momentum=args.momentum,
-        weight_decay=args.decay
+        model.parameters(), args.lr,
+        momentum=args.momentum, weight_decay=args.decay
     )
 
     model_progress = []

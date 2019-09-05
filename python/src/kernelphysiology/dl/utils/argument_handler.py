@@ -706,7 +706,7 @@ def pytorch_train_arg_parser(argvs):
         default=None,
         help='List of augmentations to be conducted (default: None)'
     )
-    # FIXME: when on, num_classes should eb authomatically computed
+    # TODO: other than doubleing labels?
     # FIXME: implement for CIFAr and others
     parser.add_argument(
         '--augment_labels',
@@ -822,6 +822,10 @@ def check_common_args(parser, argvs, script_type):
 
 def pytorch_check_training_args(parser, argvs):
     args = check_common_args(parser, argvs, 'training')
+
+    if args.augment_labels:
+        args.num_classes *= 2
+        args.custom_arch = True
 
     # checking augmentation parameters
     args.augmentation_settings = prepare_augmentations(
