@@ -13,18 +13,21 @@ from PIL import Image
 
 
 def initialize_neglabels_correct(targets, v_total_images, neg_labels,
-                                 num_images_label, num_images_label_orig):
+                                 num_images_label_org):
+    num_images_label_c1 = num_images_label_org.copy()
+    # num_images_label_org = num_images_label.copy()
+
     correct = 1
     newlabels = []
     for i in v_total_images:
-        newlabel, num_images_label = select_newlabel(
-            targets[i], neg_labels, num_images_label, num_images_label_orig
+        newlabel, num_images_label_c1 = select_newlabel(
+            targets[i], neg_labels, num_images_label_c1, num_images_label_org
         )
 
         if newlabel == -1:
             print('No luck!!!!')
             correct = 0
-            return correct, num_images_label_orig
+            return correct, num_images_label_org
 
         # Add it to target list
         newlabels.append(newlabel)
@@ -86,17 +89,15 @@ class AugmentedLabelArray(Dataset):
         )
 
         # In case of emergency (not lucky) use one copy
-        num_images_label_orig = self.num_samples_label.copy()
+        num_images_label_c1 = self.num_samples_label.copy()
 
         correct, newlabels = initialize_neglabels_correct(
-            self.targets, v_total_images, neg_labels,
-            num_images_label_orig.copy(), num_images_label_orig
+            self.targets, v_total_images, neg_labels, num_images_label_c1
         )
 
         while correct == 0:
             correct, newlabels = initialize_neglabels_correct(
-                self.targets, v_total_images, neg_labels,
-                num_images_label_orig.copy(), num_images_label_orig
+                self.targets, v_total_images, neg_labels, num_images_label_c1
             )
 
         sort_i = sorted(range(len(newlabels)), key=lambda k: newlabels[k])
@@ -181,20 +182,15 @@ class AugmentedLabelDataset(Dataset):
         )
 
         # Go through all labels and define the range for selecting random images
-        num_images_label = np.array(self.num_images_label)
-
-        # In case of emergency (not lucky) use one copy
-        num_images_label_orig = num_images_label.copy()
+        num_images_label = np.array(self.num_images_label).copy()
 
         correct, newlabels = initialize_neglabels_correct(
-            self.targets, v_total_images, neg_labels,
-            num_images_label, num_images_label_orig
+            self.targets, v_total_images, neg_labels, num_images_label
         )
 
         while correct == 0:
             correct, newlabels = initialize_neglabels_correct(
-                self.targets, v_total_images, neg_labels,
-                num_images_label_orig.copy(), num_images_label_orig
+                self.targets, v_total_images, neg_labels, num_images_label
             )
 
         sort_i = sorted(range(len(newlabels)), key=lambda k: newlabels[k])
