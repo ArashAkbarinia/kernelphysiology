@@ -9,6 +9,8 @@ import numpy as np
 import glob
 import random
 
+from PIL import Image
+
 
 def initialize_neglabels_correct(targets, v_total_images, neg_labels,
                                  num_images_label, num_images_label_orig):
@@ -53,6 +55,75 @@ def select_newlabel(current_label, neg_labels, num_images_label,
     return aux[data], num_images_label
 
 
+class AugmentedLabelArray(Dataset):
+    def __init__(self, data, targets, transform=None):
+        self.data = data
+        self.targets = targets
+        self.transform = transform
+
+        self.num_samples_label = self.compute_images_per_label()
+        self.shuffle_augmented_labels()
+
+    def compute_images_per_label(self):
+        unique_labels = np.unique(np.array(self.targets))
+        num_samples_label = []
+        for label in unique_labels:
+            num_samples_label.append(self.targets.count(label))
+        return np.array(num_samples_label)
+
+    def shuffle_augmented_labels(self):
+        # Indirect labels (implicit labels)
+        data_neg, targets_neg = self.initialize_neglabels()
+
+        self.data_neg = data_neg.copy()
+        self.targets_neg = targets_neg.copy()
+
+    def initialize_neglabels(self):
+        # TODO: a lot of duplicate code between this and imagenet
+        v_total_images = np.arange(0, len(self.targets))
+        neg_labels = np.arange(
+            max(self.targets) + 1, (max(self.targets) + 1) * 2
+        )
+
+        # In case of emergency (not lucky) use one copy
+        num_images_label_orig = self.num_samples_label.copy()
+
+        correct, newlabels = initialize_neglabels_correct(
+            self.targets, v_total_images, neg_labels,
+            num_images_label_orig.copy(), num_images_label_orig
+        )
+
+        while correct == 0:
+            correct, newlabels = initialize_neglabels_correct(
+                self.targets, v_total_images, neg_labels,
+                num_images_label_orig.copy(), num_images_label_orig
+            )
+
+        sort_i = sorted(range(len(newlabels)), key=lambda k: newlabels[k])
+
+        data_neg = np.zeros(self.data.shape, dtype=self.data.dtype)
+        targets_neg = []
+        for i in v_total_images:
+            data_neg[i] = self.data[sort_i[i]]
+            targets_neg.append(newlabels[sort_i[i]].item())
+        return data_neg, targets_neg
+
+    def __getitem__(self, index):
+        img, target = self.data_neg[index], self.targets_neg[index]
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.targets_neg)
+
+
 IMG_EXTENSIONS = [
     '.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', 'webp'
 ]
@@ -61,7 +132,9 @@ IMG_EXTENSIONS = [
 class AugmentedLabelDataset(Dataset):
 
     def __init__(self, data_root, transform=None, loader=pil_loader,
-                 extensions=IMG_EXTENSIONS):
+                 extensions=None):
+        if extensions is None:
+            extensions = IMG_EXTENSIONS
         self.data_root = data_root
         self.loader = loader
         self.extensions = extensions

@@ -134,7 +134,7 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
 # TODO: train and validation merge together
 def get_train_dataset(dataset_name, traindir, colour_transformations,
                       other_transformations, chns_transformation,
-                      normalize, target_size, augment_labels):
+                      normalize, target_size, augment_labels=False):
     transformations = prepare_transformations_train(
         dataset_name, colour_transformations,
         other_transformations, chns_transformation,
@@ -144,17 +144,6 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
         train_dataset = datasets.ImageFolder(
             traindir, transformations
         )
-        if augment_labels:
-            # for label augmentation, we don't want to perform crazy cropping
-            augmented_transformations = prepare_transformations_test(
-                dataset_name, colour_transformations,
-                other_transformations, chns_transformation,
-                normalize, target_size
-            )
-            augmented_dataset = label_augmentation.AugmentedLabelDataset(
-                traindir, augmented_transformations
-            )
-            train_dataset = ConcatDataset([train_dataset, augmented_dataset])
     elif dataset_name == 'cifar10':
         train_dataset = datasets.CIFAR10(
             traindir, train=True, download=False, transform=transformations
@@ -175,6 +164,33 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
         )
     else:
         sys.exit('Dataset %s is not supported.' % dataset_name)
+
+    if augment_labels:
+        # for label augmentation, we don't want to perform crazy cropping
+        augmented_transformations = prepare_transformations_test(
+            dataset_name, colour_transformations,
+            other_transformations, chns_transformation,
+            normalize, target_size
+        )
+        if dataset_name == 'imagenet':
+            augmented_dataset = label_augmentation.AugmentedLabelDataset(
+                traindir, augmented_transformations
+            )
+        elif dataset_name == 'cifar10':
+            augmented_dataset = label_augmentation.AugmentedLabelArray(
+                train_dataset.data, train_dataset.targets,
+                augmented_transformations
+            )
+        elif dataset_name == 'cifar100':
+            augmented_dataset = label_augmentation.AugmentedLabelArray(
+                train_dataset.data, train_dataset.targets,
+                augmented_transformations
+            )
+        else:
+            sys.exit('Augmented dataset %s is not supported.' % dataset_name)
+
+        train_dataset = ConcatDataset([train_dataset, augmented_dataset])
+
     return train_dataset
 
 
