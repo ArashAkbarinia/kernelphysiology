@@ -115,7 +115,6 @@ def main_worker(ngpus_per_node, args):
             rank=args.rank
         )
     # create model
-    # TODO: num_classes should be added to saves file, probably?
     if args.custom_arch:
         print('Custom model!')
         model = custom_models.__dict__[args.network_name](
@@ -180,10 +179,11 @@ def main_worker(ngpus_per_node, args):
             checkpoint = torch.load(args.resume, map_location='cpu')
             args.initial_epoch = checkpoint['epoch']
             best_acc1 = checkpoint['best_acc1']
+            model.load_state_dict(checkpoint['state_dict'])
             if args.gpus is not None:
                 # best_acc1 may be from a checkpoint from a different GPU
                 best_acc1 = best_acc1.to(args.gpus)
-            model.load_state_dict(checkpoint['state_dict'])
+                model = model.cuda(args.gpus)
             optimizer.load_state_dict(checkpoint['optimizer'])
             print(
                 "=> loaded checkpoint '{}' (epoch {})".format(
@@ -291,8 +291,11 @@ def main_worker(ngpus_per_node, args):
                 {
                     'epoch': epoch + 1,
                     'arch': args.network_name,
-                    'customs': {'pooling_type': args.pooling_type,
-                                'in_chns': len(mean)},
+                    'customs': {
+                        'pooling_type': args.pooling_type,
+                        'in_chns': len(mean),
+                        'num_classes': args.num_classes
+                    },
                     'state_dict': model.state_dict(),
                     'best_acc1': best_acc1,
                     'optimizer': optimizer.state_dict(),

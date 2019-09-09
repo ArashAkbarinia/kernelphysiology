@@ -213,9 +213,10 @@ def which_network_classification(network_name, num_classes, kill_kernels=None,
         customs = None
         if 'customs' in checkpoint:
             customs = checkpoint['customs']
-        model = which_architecture(
-            checkpoint['arch'], num_classes, customs=customs
-        )
+        # TODO: num_classes is just for backward compatibility
+        if 'num_classes' not in customs:
+            customs['num_classes'] = num_classes
+        model = which_architecture(checkpoint['arch'], customs=customs)
 
         # TODO: for each dataset a class of network should be defined
         # if dataset == 'leaf':
@@ -258,7 +259,7 @@ def which_network(network_name, task_type, num_classes, kill_kernels=None,
     return model, target_size
 
 
-def which_architecture(network_name, num_classes, customs=None):
+def which_architecture(network_name, customs=None):
     if customs is None:
         if network_name == 'inception_v3':
             model = pmodels.__dict__[network_name](
@@ -268,6 +269,7 @@ def which_architecture(network_name, num_classes, customs=None):
             model = pmodels.__dict__[network_name](pretrained=False)
     else:
         pooling_type = customs['pooling_type']
+        num_classes = customs['num_classes']
         if 'in_chns' in customs:
             in_chns = customs['in_chns']
         else:
