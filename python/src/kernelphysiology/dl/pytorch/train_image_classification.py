@@ -5,7 +5,6 @@ Pytorch training script for various datasets and image manipulations.
 import os
 import sys
 import random
-import time
 import warnings
 import numpy as np
 
@@ -23,8 +22,8 @@ import torchvision.models as models
 
 from kernelphysiology.dl.pytorch import models as custom_models
 from kernelphysiology.dl.pytorch.utils import preprocessing
-from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
-from kernelphysiology.dl.pytorch.utils.misc import accuracy
+from kernelphysiology.dl.pytorch.utils.misc import train_on_data
+from kernelphysiology.dl.pytorch.utils.misc import validate_on_data
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
@@ -269,12 +268,12 @@ def main_worker(ngpus_per_node, args):
             train_loader.dataset.datasets[1].shuffle_augmented_labels()
 
         # train for one epoch
-        train_log = train(
+        train_log = train_on_data(
             train_loader, model, criterion, optimizer, epoch, args
         )
 
         # evaluate on validation set
-        validation_log = validate(
+        validation_log = validate_on_data(
             val_loader, model, criterion, args
         )
 
@@ -302,122 +301,6 @@ def main_worker(ngpus_per_node, args):
                 is_best, out_folder=args.out_dir
             )
         np.savetxt(file_path, np.array(model_progress), delimiter=',')
-
-
-def train(train_loader, model, criterion, optimizer, epoch, args):
-    batch_time = AverageMeter()
-    data_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
-
-    if args.top_k is None:
-        topks = (1,)
-    else:
-        topks = (1, args.top_k)
-
-    # switch to train mode
-    model.train()
-
-    end = time.time()
-    for i, (input_image, target) in enumerate(train_loader):
-        # measure data loading time
-        data_time.update(time.time() - end)
-
-        if args.gpus is not None:
-            input_image = input_image.cuda(args.gpus, non_blocking=True)
-        target = target.cuda(args.gpus, non_blocking=True)
-
-        # compute output
-        output = model(input_image)
-        loss = criterion(output, target)
-
-        # measure accuracy and record loss
-        acc1, acc5 = accuracy(output, target, topk=topks)
-        losses.update(loss.item(), input_image.size(0))
-        top1.update(acc1[0], input_image.size(0))
-        top5.update(acc5[0], input_image.size(0))
-
-        # compute gradient and do SGD step
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-
-        # printing the accuracy at certain intervals
-        if i % args.print_freq == 0:
-            print(
-                'Epoch: [{0}][{1}/{2}]\t'
-                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                    epoch, i, len(train_loader), batch_time=batch_time,
-                    data_time=data_time, loss=losses, top1=top1, top5=top5
-                )
-            )
-    return [epoch, batch_time.avg, losses.avg, top1.avg, top5.avg]
-
-
-def validate(val_loader, model, criterion, args):
-    batch_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
-
-    if args.top_k is None:
-        topks = (1,)
-    else:
-        topks = (1, args.top_k)
-
-    # switch to evaluate mode
-    model.eval()
-
-    with torch.no_grad():
-        end = time.time()
-        for i, (input_image, target) in enumerate(val_loader):
-            if args.gpus is not None:
-                input_image = input_image.cuda(args.gpus, non_blocking=True)
-            target = target.cuda(args.gpus, non_blocking=True)
-
-            # compute output
-            output = model(input_image)
-            loss = criterion(output, target)
-
-            # measure accuracy and record loss
-            acc1, acc5 = accuracy(output, target, topk=topks)
-            losses.update(loss.item(), input_image.size(0))
-            top1.update(acc1[0], input_image.size(0))
-            top5.update(acc5[0], input_image.size(0))
-
-            # measure elapsed time
-            batch_time.update(time.time() - end)
-            end = time.time()
-
-            # printing the accuracy at certain intervals
-            if i % args.print_freq == 0:
-                print(
-                    'Test: [{0}/{1}]\t'
-                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                    'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                    'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                        i, len(val_loader), batch_time=batch_time, loss=losses,
-                        top1=top1, top5=top5
-                    )
-                )
-        # printing the accuracy of the epoch
-        print(
-            ' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(
-                top1=top1, top5=top5
-            )
-        )
-
-    return [batch_time.avg, losses.avg, top1.avg, top5.avg]
 
 
 if __name__ == '__main__':
