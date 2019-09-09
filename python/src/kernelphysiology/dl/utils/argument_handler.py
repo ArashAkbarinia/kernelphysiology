@@ -132,7 +132,8 @@ def get_inisialisation_group(parser):
         '--load_weights',
         type=str,
         default=None,
-        help='Whether loading weights from a model (default: None)')
+        help='Whether loading weights from a model (default: None)'
+    )
     initialisation_choices = [
         'dog',
         'randdog',
@@ -142,68 +143,81 @@ def get_inisialisation_group(parser):
         'g1',
         'g2',
         'gaussian',
-        'all']
+        'all'
+    ]
     weights_group.add_argument(
         '--initialise',
         type=str,
         default=None,
         choices=initialisation_choices,
-        help='Using a specific initialisation of weights (default: None)')
+        help='Using a specific initialisation of weights (default: None)'
+    )
     initialisation_group.add_argument(
         '--same_channels',
         action='store_true',
         default=False,
-        help='Identical weights for channels of a kernel (default: False)')
+        help='Identical weights for channels of a kernel (default: False)'
+    )
     initialisation_group.add_argument(
         '--tog_sigma',
         type=float,
         default=1,
-        help='Sigma of ToG (default: 1)')
+        help='Sigma of ToG (default: 1)'
+    )
     initialisation_group.add_argument(
         '--tog_surround',
         type=float,
         default=5,
-        help='Surround enlargement in ToG (default: 5)')
+        help='Surround enlargement in ToG (default: 5)'
+    )
     initialisation_group.add_argument(
         '--g_sigmax',
         type=float,
         default=1,
-        help='Sigma-x of Gaussian (default: 1)')
+        help='Sigma-x of Gaussian (default: 1)'
+    )
     initialisation_group.add_argument(
         '--g_sigmay',
         type=float,
         default=None,
-        help='Sigma-y of Gaussian (default: None)')
+        help='Sigma-y of Gaussian (default: None)'
+    )
     initialisation_group.add_argument(
         '--g_meanx',
         type=float,
         default=0,
-        help='Mean-x of Gaussian (default: 0)')
+        help='Mean-x of Gaussian (default: 0)'
+    )
     initialisation_group.add_argument(
         '--g_meany',
         type=float,
         default=0,
-        help='Mean-y of Gaussian (default: 0)')
+        help='Mean-y of Gaussian (default: 0)'
+    )
     initialisation_group.add_argument(
         '--g_theta',
         type=float,
         default=0,
-        help='Theta of Gaussian (default: 0)')
+        help='Theta of Gaussian (default: 0)'
+    )
     initialisation_group.add_argument(
         '--gg_sigma',
         type=float,
         default=1,
-        help='Sigma of Gaussian gradient (default: 1)')
+        help='Sigma of Gaussian gradient (default: 1)'
+    )
     initialisation_group.add_argument(
         '--gg_theta',
         type=float,
         default=math.pi / 2,
-        help='Theta of Gaussian gradient (default: pi/2)')
+        help='Theta of Gaussian gradient (default: pi/2)'
+    )
     initialisation_group.add_argument(
         '--gg_seta',
         type=float,
         default=0.5,
-        help='Seta of Gaussian gradient (default: 0.5)')
+        help='Seta of Gaussian gradient (default: 0.5)'
+    )
 
 
 def get_plateau_group(parser):
@@ -379,9 +393,9 @@ def get_optimisation_group(parser):
     # TODO: whether it should belong to optimisation group
     optimisation_group.add_argument(
         '--resume',
-        default='',
+        default=None,
         type=str,
-        help='Path to latest checkpoint (default: none)'
+        help='Path to latest checkpoint (default: None)'
     )
 
 
@@ -712,6 +726,21 @@ def pytorch_train_arg_parser(argvs):
         dest='augment_labels',
         action='store_true',
         help='Augmenting labels of ground-truth (False)'
+    )
+
+    # TODO: num_classes is just for backward compatibility
+    parser.add_argument(
+        '--old_classes',
+        default=None,
+        type=int,
+        help='Number of new classes (default: None)'
+    )
+
+    parser.add_argument(
+        '--transfer_weights',
+        type=str,
+        default=None,
+        help='Whether transferring weights from a model (default: None)'
     )
 
     return pytorch_check_training_args(parser, argvs)

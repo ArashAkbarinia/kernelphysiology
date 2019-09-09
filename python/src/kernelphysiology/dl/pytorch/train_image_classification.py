@@ -27,6 +27,8 @@ from kernelphysiology.dl.pytorch.utils.misc import validate_on_data
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.models.utils import which_network
+from kernelphysiology.dl.pytorch.models.utils import NewClassificationModel
 from kernelphysiology.dl.pytorch.datasets.utils import get_train_dataset
 from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
 from kernelphysiology.dl.pytorch.datasets.utils import is_dataset_pil_image
@@ -115,7 +117,13 @@ def main_worker(ngpus_per_node, args):
             rank=args.rank
         )
     # create model
-    if args.custom_arch:
+    if args.transfer_weights is not None:
+        print('Transferred model!')
+        (model, _) = which_network(
+            args.transfer_weights, args.task_type, args.old_classes
+        )
+        model = NewClassificationModel(model, args.num_classes)
+    elif args.custom_arch:
         print('Custom model!')
         model = custom_models.__dict__[args.network_name](
             pooling_type=args.pooling_type, in_chns=len(mean),
@@ -173,7 +181,7 @@ def main_worker(ngpus_per_node, args):
     # optionally resume from a checkpoint
     # TODO: it would be best if resume load the architecture from this file
     # TODO: merge with which_architecture
-    if args.resume:
+    if args.resume is not None:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume, map_location='cpu')
