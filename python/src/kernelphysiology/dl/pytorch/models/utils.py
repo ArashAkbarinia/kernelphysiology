@@ -36,29 +36,36 @@ class LayerActivation(nn.Module):
         super(LayerActivation, self).__init__()
 
         # FIXME: only for resnet at this point
-        name_split = layer_name.split('.')
-        last_layer = 4
-        sub_layer = None
-        sub_conv = None
-        if 'layer' in name_split[0]:
-            layer_num = int(name_split[1])
-            conv_num = int(name_split[2][-1])
-            if name_split[0] == 'layer1':
-                layerx = model.layer1
-                last_layer = 4
-            elif name_split[0] == 'layer2':
-                layerx = model.layer2
-                last_layer = 5
-            elif name_split[0] == 'layer3':
-                layerx = model.layer3
-                last_layer = 6
-            elif name_split[0] == 'layer4':
-                layerx = model.layer4
-                last_layer = 7
-            sub_layer, sub_conv = _get_conv(layerx, layer_num, conv_num)
-        self.features = nn.Sequential(*list(model.children())[:last_layer])
-        self.sub_layer = sub_layer
-        self.sub_conv = sub_conv
+        self.sub_layer = None
+        self.sub_conv = None
+        if layer_name == 'fc':
+            self.features = nn.Sequential(*list(model.children())[:-1])
+        elif layer_name == 'avgpool':
+            self.features = nn.Sequential(*list(model.children())[:-2])
+        else:
+            name_split = layer_name.split('.')
+            last_layer = 4
+            sub_layer = None
+            sub_conv = None
+            if 'layer' in name_split[0]:
+                layer_num = int(name_split[1])
+                conv_num = int(name_split[2][-1])
+                if name_split[0] == 'layer1':
+                    layerx = model.layer1
+                    last_layer = 4
+                elif name_split[0] == 'layer2':
+                    layerx = model.layer2
+                    last_layer = 5
+                elif name_split[0] == 'layer3':
+                    layerx = model.layer3
+                    last_layer = 6
+                elif name_split[0] == 'layer4':
+                    layerx = model.layer4
+                    last_layer = 7
+                sub_layer, sub_conv = _get_conv(layerx, layer_num, conv_num)
+            self.features = nn.Sequential(*list(model.children())[:last_layer])
+            self.sub_layer = sub_layer
+            self.sub_conv = sub_conv
 
     def forward(self, x):
         x = self.features(x)
