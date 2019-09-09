@@ -166,32 +166,43 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
         sys.exit('Dataset %s is not supported.' % dataset_name)
 
     if augment_labels:
-        # for label augmentation, we don't want to perform crazy cropping
-        augmented_transformations = prepare_transformations_test(
-            dataset_name, colour_transformations,
+        augmented_dataset = get_augmented_dataset(
+            dataset_name, traindir, colour_transformations,
             other_transformations, chns_transformation,
-            normalize, target_size
+            normalize, target_size, train_dataset
         )
-        if dataset_name == 'imagenet':
-            augmented_dataset = label_augmentation.AugmentedLabelDataset(
-                traindir, augmented_transformations
-            )
-        elif dataset_name == 'cifar10':
-            augmented_dataset = label_augmentation.AugmentedLabelArray(
-                train_dataset.data, train_dataset.targets,
-                augmented_transformations
-            )
-        elif dataset_name == 'cifar100':
-            augmented_dataset = label_augmentation.AugmentedLabelArray(
-                train_dataset.data, train_dataset.targets,
-                augmented_transformations
-            )
-        else:
-            sys.exit('Augmented dataset %s is not supported.' % dataset_name)
 
         train_dataset = ConcatDataset([train_dataset, augmented_dataset])
 
     return train_dataset
+
+
+def get_augmented_dataset(dataset_name, traindir, colour_transformations,
+                          other_transformations, chns_transformation,
+                          normalize, target_size, original_train):
+    # for label augmentation, we don't want to perform crazy cropping
+    augmented_transformations = prepare_transformations_test(
+        dataset_name, colour_transformations,
+        other_transformations, chns_transformation,
+        normalize, target_size
+    )
+    if dataset_name == 'imagenet':
+        augmented_dataset = label_augmentation.AugmentedLabelDataset(
+            traindir, augmented_transformations
+        )
+    elif dataset_name == 'cifar10':
+        augmented_dataset = label_augmentation.AugmentedLabelArray(
+            original_train.data, original_train.targets,
+            augmented_transformations
+        )
+    elif dataset_name == 'cifar100':
+        augmented_dataset = label_augmentation.AugmentedLabelArray(
+            original_train.data, original_train.targets,
+            augmented_transformations
+        )
+    else:
+        sys.exit('Augmented dataset %s is not supported.' % dataset_name)
+    return augmented_dataset
 
 
 def npy_data_loader(input_path):
