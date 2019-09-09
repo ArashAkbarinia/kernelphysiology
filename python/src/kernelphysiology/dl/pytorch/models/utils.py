@@ -104,6 +104,20 @@ class IntermediateModel(nn.Module):
         return x
 
 
+class NewClassificationModel(nn.Module):
+    def __init__(self, original_model, num_classes):
+        super(NewClassificationModel, self).__init__()
+
+        org_classes = original_model.fc.in_features
+        self.features = nn.Sequential(*list(original_model.children())[:-1])
+        self.fc = nn.Linear(org_classes, num_classes)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
+
 def lesion_lines(model, layer, kernel, kill_lines):
     for l_item in kill_lines:
         # pattern <P1>_<L1>_<P2>_<L2>
