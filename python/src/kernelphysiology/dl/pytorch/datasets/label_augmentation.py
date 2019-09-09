@@ -139,7 +139,7 @@ IMG_EXTENSIONS = [
 ]
 
 
-class AugmentedLabelDataset(Dataset):
+class AugmentedLabelFolder(Dataset):
 
     def __init__(self, data_root, transform=None, loader=pil_loader,
                  extensions=None):

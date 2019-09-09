@@ -187,7 +187,7 @@ def get_augmented_dataset(dataset_name, traindir, colour_transformations,
         normalize, target_size
     )
     if dataset_name == 'imagenet':
-        augmented_dataset = label_augmentation.AugmentedLabelDataset(
+        augmented_dataset = label_augmentation.AugmentedLabelFolder(
             traindir, augmented_transformations
         )
     elif dataset_name == 'cifar10':
