@@ -43,8 +43,8 @@ def main(argv):
     args = argument_handler.pytorch_train_arg_parser(argv)
     if args.lr is None:
         args.lr = 0.1
-    if args.decay is None:
-        args.decay = 1e-4
+    if args.weight_decay is None:
+        args.weight_decay = 1e-4
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]
 
@@ -168,7 +168,7 @@ def main_worker(ngpus_per_node, args):
     # optimiser
     optimizer = torch.optim.SGD(
         model.parameters(), args.lr,
-        momentum=args.momentum, weight_decay=args.decay
+        momentum=args.momentum, weight_decay=args.weight_decay
     )
 
     model_progress = []

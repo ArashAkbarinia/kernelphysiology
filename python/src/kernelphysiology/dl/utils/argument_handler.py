@@ -346,9 +346,8 @@ def get_optimisation_group(parser):
         type=float,
         help='The momentum for optimisation (default 0.9)'
     )
-    # TODO: change the name to weight_decay
     optimisation_group.add_argument(
-        '-wd', '--decay',
+        '-wd', '--weight_decay',
         type=float,
         default=None,
         help='The decay weight parameter (default: None)'
@@ -366,7 +365,7 @@ def get_optimisation_group(parser):
         help='The custom learning rate scheduler (default: None)'
     )
     optimisation_group.add_argument(
-        '--epochs',
+        '-e', '--epochs',
         type=int,
         default=90,
         help='Number of epochs (default: 90)'

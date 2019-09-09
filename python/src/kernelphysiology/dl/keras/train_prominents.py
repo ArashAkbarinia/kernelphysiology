@@ -115,8 +115,8 @@ def start_training_generator(args):
     # optimisation
     if args.lr is None:
         args.lr = get_default_lrs(optimiser_name=args.optimiser)
-    if args.decay is None:
-        args.decay = get_default_decays(optimiser_name=args.optimiser)
+    if args.weight_decay is None:
+        args.weight_decay = get_default_decays(optimiser_name=args.optimiser)
     opt = set_optimisation(args)
 
     logging.info('Optimiser %s: %s' % (args.optimiser, opt.get_config()))

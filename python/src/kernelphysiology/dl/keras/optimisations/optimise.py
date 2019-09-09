@@ -36,7 +36,7 @@ def get_default_lrs(optimiser_name):
 def set_optimisation(args):
     # TODO: add more optimisers and parametrise from argument line
     lr = args.lr
-    decay = args.decay
+    decay = args.weight_decay
     if args.optimiser.lower() == 'adam':
         beta_1 = 0.9
         beta_2 = 0.999
