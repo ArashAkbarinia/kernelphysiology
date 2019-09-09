@@ -12,38 +12,36 @@ import random
 from PIL import Image
 
 
-def initialize_neglabels_correct(targets, v_total_images, neg_labels,
-                                 num_images_label_org):
+def _initialize_neg_labels_correct(targets, v_total_images, neg_labels,
+                                   num_images_label_org):
     num_images_label_c1 = num_images_label_org.copy()
-    # num_images_label_org = num_images_label.copy()
 
     correct = 1
-    newlabels = []
+    new_labels = []
     for i in v_total_images:
-        newlabel, num_images_label_c1 = select_newlabel(
+        new_label, num_images_label_c1 = _select_new_label(
             targets[i], neg_labels, num_images_label_c1, num_images_label_org
         )
 
-        if newlabel == -1:
+        if new_label == -1:
             print('No luck!!!!')
-            correct = 0
-            return correct, num_images_label_org
+            return 0, num_images_label_org
 
         # Add it to target list
-        newlabels.append(newlabel)
+        new_labels.append(new_label)
 
-    return correct, newlabels
+    return correct, new_labels
 
 
-def select_newlabel(current_label, neg_labels, num_images_label,
-                    num_images_label_orig):
+def _select_new_label(current_label, neg_labels, num_images_label,
+                      num_images_label_orig):
     aux = neg_labels.copy()
-    aux[current_label] = False
-    aux = aux[aux != False]
+    aux[current_label] = -1
+    aux = aux[aux != -1]
 
     aux_im = num_images_label.copy()
-    aux_im[current_label] = False
-    aux_im = aux_im[aux_im != False]
+    aux_im[current_label] = -1
+    aux_im = aux_im[aux_im != -1]
 
     data = random.sample(range(0, len(aux)), 1)
 
@@ -60,7 +58,7 @@ def select_newlabel(current_label, neg_labels, num_images_label,
 
 def _get_negative_sample_array(targets):
     total_images = np.arange(0, len(targets))
-    neg_labels = np.arange(max(targets) + 1, (max(targets) + 1) * 2)
+    neg_labels = np.arange(0, max(targets) + 1)
     return total_images, neg_labels
 
 
@@ -68,12 +66,9 @@ def _get_new_labels(num_samples_label, targets, v_total_samples, neg_labels):
     # In case of emergency (not lucky) use one copy
     num_images_label_c1 = num_samples_label.copy()
 
-    correct, new_labels = initialize_neglabels_correct(
-        targets, v_total_samples, neg_labels, num_images_label_c1
-    )
-
+    correct = 0
     while correct == 0:
-        correct, new_labels = initialize_neglabels_correct(
+        correct, new_labels = _initialize_neg_labels_correct(
             targets, v_total_samples, neg_labels, num_images_label_c1
         )
 
@@ -82,10 +77,11 @@ def _get_new_labels(num_samples_label, targets, v_total_samples, neg_labels):
 
 
 class AugmentedLabelArray(Dataset):
-    def __init__(self, data, targets, transform=None):
+    def __init__(self, data, targets, transform=None, target_transform=None):
         self.data = data
         self.targets = targets
         self.transform = transform
+        self.target_transform = target_transform
 
         self.num_samples_label = self.compute_images_per_label()
         self.shuffle_augmented_labels()
@@ -99,12 +95,12 @@ class AugmentedLabelArray(Dataset):
 
     def shuffle_augmented_labels(self):
         # Indirect labels (implicit labels)
-        data_neg, targets_neg = self.initialize_neglabels()
+        data_neg, targets_neg = self.initialize_neg_labels()
 
         self.data_neg = data_neg.copy()
         self.targets_neg = targets_neg.copy()
 
-    def initialize_neglabels(self):
+    def initialize_neg_labels(self):
         v_total_samples, neg_labels = _get_negative_sample_array(self.targets)
 
         sort_i, new_labels = _get_new_labels(
@@ -127,6 +123,8 @@ class AugmentedLabelArray(Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
 
         return img, target
 
@@ -141,14 +139,15 @@ IMG_EXTENSIONS = [
 
 class AugmentedLabelFolder(Dataset):
 
-    def __init__(self, data_root, transform=None, loader=pil_loader,
-                 extensions=None):
+    def __init__(self, data_root, transform=None, target_transform=None,
+                 loader=pil_loader, extensions=None):
         if extensions is None:
             extensions = IMG_EXTENSIONS
         self.data_root = data_root
         self.loader = loader
         self.extensions = extensions
         self.transform = transform
+        self.target_transform = target_transform
 
         (self.image_paths,
          self.targets,
@@ -179,12 +178,12 @@ class AugmentedLabelFolder(Dataset):
 
     def shuffle_augmented_labels(self):
         # Indirect labels (implicit labels)
-        image_paths_neg, targets_neg = self.initialize_neglabels()
+        image_paths_neg, targets_neg = self.initialize_neg_labels()
 
         self.all_image_paths = image_paths_neg.copy()
         self.all_targets = targets_neg.copy()
 
-    def initialize_neglabels(self):
+    def initialize_neg_labels(self):
         v_total_samples, neg_labels = _get_negative_sample_array(self.targets)
 
         sort_i, new_labels = _get_new_labels(
@@ -200,11 +199,12 @@ class AugmentedLabelFolder(Dataset):
 
     def __getitem__(self, index):
         path = self.all_image_paths[index]
-        img = self.loader(path)
+        img, target = self.loader(path), self.all_targets[index]
+
         if self.transform is not None:
             img = self.transform(img)
-
-        target = self.all_targets[index]
+        if self.target_transform is not None:
+            target = self.target_transform(target)
         return img, target
 
     def __len__(self):
