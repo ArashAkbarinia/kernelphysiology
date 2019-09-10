@@ -95,27 +95,26 @@ class AugmentedLabelArray(Dataset):
 
     def shuffle_augmented_labels(self):
         # Indirect labels (implicit labels)
-        data_neg, targets_neg = self.initialize_neg_labels()
+        ind_map_to_org, targets_neg = self.initialize_neg_labels()
 
-        self.data_neg = data_neg.copy()
+        self.ind_map_to_org = ind_map_to_org.copy()
         self.targets_neg = targets_neg.copy()
 
     def initialize_neg_labels(self):
         v_total_samples, neg_labels = _get_negative_sample_array(self.targets)
 
-        sort_i, new_labels = _get_new_labels(
+        ind_map_to_org, new_labels = _get_new_labels(
             self.num_samples_label, self.targets, v_total_samples, neg_labels
         )
 
-        data_neg = np.zeros(self.data.shape, dtype=self.data.dtype)
         targets_neg = []
         for i in v_total_samples:
-            data_neg[i] = self.data[sort_i[i]]
-            targets_neg.append(new_labels[sort_i[i]].item())
-        return data_neg, targets_neg
+            targets_neg.append(new_labels[ind_map_to_org[i]].item())
+        return ind_map_to_org, targets_neg
 
     def __getitem__(self, index):
-        img, target = self.data_neg[index], self.targets_neg[index]
+        img = self.data[self.ind_map_to_org[index]]
+        target_neg = self.targets_neg[index]
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
@@ -124,9 +123,9 @@ class AugmentedLabelArray(Dataset):
         if self.transform is not None:
             img = self.transform(img)
         if self.target_transform is not None:
-            target = self.target_transform(target)
+            target_neg = self.target_transform(target_neg)
 
-        return img, target
+        return img, target_neg
 
     def __len__(self):
         return len(self.targets_neg)
@@ -178,34 +177,32 @@ class AugmentedLabelFolder(Dataset):
 
     def shuffle_augmented_labels(self):
         # Indirect labels (implicit labels)
-        image_paths_neg, targets_neg = self.initialize_neg_labels()
+        ind_map_to_org, targets_neg = self.initialize_neg_labels()
 
-        self.all_image_paths = image_paths_neg.copy()
-        self.all_targets = targets_neg.copy()
+        self.ind_map_to_org = ind_map_to_org.copy()
+        self.targets_neg = targets_neg.copy()
 
     def initialize_neg_labels(self):
         v_total_samples, neg_labels = _get_negative_sample_array(self.targets)
 
-        sort_i, new_labels = _get_new_labels(
+        ind_map_to_org, new_labels = _get_new_labels(
             self.num_samples_label, self.targets, v_total_samples, neg_labels
         )
 
-        image_paths_neg = []
         targets_neg = []
         for i in v_total_samples:
-            image_paths_neg.append(self.image_paths[sort_i[i]])
-            targets_neg.append(new_labels[sort_i[i]].item())
-        return image_paths_neg, targets_neg
+            targets_neg.append(new_labels[ind_map_to_org[i]].item())
+        return ind_map_to_org, targets_neg
 
     def __getitem__(self, index):
-        path = self.all_image_paths[index]
-        img, target = self.loader(path), self.all_targets[index]
+        path = self.image_paths[self.ind_map_to_org[index]]
+        img, target_neg = self.loader(path), self.targets_neg[index]
 
         if self.transform is not None:
             img = self.transform(img)
         if self.target_transform is not None:
-            target = self.target_transform(target)
-        return img, target
+            target_neg = self.target_transform(target_neg)
+        return img, target_neg
 
     def __len__(self):
-        return len(self.all_image_paths)
+        return len(self.image_paths)
