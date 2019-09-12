@@ -491,3 +491,14 @@ def get_colour_inds(chromaticity_type):
 
 def max_pixel_ind(im):
     return np.unravel_index(np.argmax(im, axis=None), im.shape)
+
+
+def top_pixeld_ind(im, percentage):
+    assert (percentage >= 0.0), 'percentage too low.'
+    assert (percentage <= 1.0), 'percentage too high.'
+    sorted_inds = np.unravel_index(np.argsort(im, axis=None), im.shape)
+    num_elements = im.size
+    selected_pixels = int(np.floor(num_elements * percentage) + 1)
+    rows = sorted_inds[0][-1:-selected_pixels:-1]
+    cols = sorted_inds[1][-1:-selected_pixels:-1]
+    return (rows, cols)
