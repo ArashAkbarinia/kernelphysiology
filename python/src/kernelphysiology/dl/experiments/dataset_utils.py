@@ -153,6 +153,13 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
             traindir.replace('cifar10', 'cifar100'), train=True, download=False,
             transform=transformations
         )
+        train_dataset.data = np.concatenate(
+            (train_dataset.data, neg_dataset.data[0:5000]), axis=0
+        )
+        train_dataset.targets.extend([10] * 5000)
+        train_dataset = label_augmentation.ExplicitNegativeLabelArray(
+            train_dataset.data, train_dataset.targets, transformations
+        )
     elif dataset_name == 'cifar100':
         train_dataset = datasets.CIFAR100(
             traindir, train=True, download=False, transform=transformations
@@ -174,49 +181,7 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
     else:
         sys.exit('Dataset %s is not supported.' % dataset_name)
 
-    target_transform = None
-    train_dataset = get_augmented_dataset(
-        dataset_name, traindir, colour_transformations,
-        other_transformations, chns_transformation, normalize, target_size,
-        train_dataset, target_transform, neg_dataset
-    )
-
     return train_dataset
-
-
-def get_augmented_dataset(dataset_name, traindir, colour_transformations,
-                          other_transformations, chns_transformation,
-                          normalize, target_size, original_train,
-                          target_transform, neg_dataset):
-    # for label augmentation, we don't want to perform crazy cropping
-    augmented_transformations = prepare_transformations_test(
-        dataset_name, colour_transformations,
-        other_transformations, chns_transformation,
-        normalize, target_size
-    )
-    # FIXME: implement for imagenet
-    if dataset_name == 'imagenet':
-        augmented_dataset = label_augmentation.RandomNegativeLabelFolder(
-            traindir, augmented_transformations, target_transform
-        )
-    elif dataset_name == 'cifar10':
-        original_train.data = np.concatenate(
-            (original_train.data, neg_dataset.data[0:5000]), axis=0
-        )
-        original_train.targets.extend([10] * 5000)
-        augmented_dataset = label_augmentation.ExplicitNegativeLabelArray(
-            original_train.data, original_train.targets,
-            augmented_transformations, target_transform
-        )
-    elif dataset_name == 'cifar100':
-        # FIXME: implement negative for cifar100
-        augmented_dataset = label_augmentation.ExplicitNegativeLabelArray(
-            original_train.data, original_train.targets,
-            augmented_transformations, target_transform
-        )
-    else:
-        sys.exit('Augmented dataset %s is not supported.' % dataset_name)
-    return augmented_dataset
 
 
 def npy_data_loader(input_path):
