@@ -142,8 +142,9 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
         normalize, target_size
     )
     if dataset_name == 'imagenet':
-        train_dataset = datasets.ImageFolder(
-            traindir, transformations
+        negative_root = '/home/arash/Software/imagenet/negative_images/'
+        train_dataset = label_augmentation.ExplicitNegativeLabelFolder(
+            traindir, negative_root, transformations
         )
     elif dataset_name == 'cifar10':
         train_dataset = datasets.CIFAR10(
