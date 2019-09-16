@@ -255,7 +255,7 @@ class ResNet(nn.Module):
         self.groups = groups
         self.base_width = width_per_group
         # FIXME: this is just for cifar and imagenet, change based on im size
-        if num_classes == 10:
+        if num_classes == 10 or num_classes == 100:
             conv1_kernel_size = 3
             conv1_stride = 1
             conv1_padding = 1

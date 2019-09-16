@@ -83,7 +83,8 @@ class ExplicitNegativeLabelArray(Dataset):
         self.targets_pos = targets
         self.transform = transform
         self.target_transform = target_transform
-        self.num_classes = max(targets)
+        # max is correct, given targets start from 0
+        self.num_pos_classes = max(targets)
 
     def __getitem__(self, index):
         img = self.data[index]
@@ -98,8 +99,9 @@ class ExplicitNegativeLabelArray(Dataset):
         if self.target_transform is not None:
             target_pos = self.target_transform(target_pos)
 
-        target_neg = np.ones((self.num_classes))
-        if target_pos < self.num_classes:
+        target_neg = np.ones(self.num_pos_classes)
+        # we consider the last label as negative for all
+        if target_pos < self.num_pos_classes:
             target_neg[target_pos] = 0
 
         target_neg = torch.tensor(target_neg, dtype=torch.float32)
@@ -168,6 +170,68 @@ class RandomNegativeLabelArray(Dataset):
 IMG_EXTENSIONS = [
     '.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', 'webp'
 ]
+
+
+class ExplicitNegativeLabelFolder(Dataset):
+    def __init__(self, data_root, negative_root, transform=None,
+                 target_transform=None, loader=pil_loader, extensions=None):
+        if extensions is None:
+            extensions = IMG_EXTENSIONS
+        self.data_root = data_root
+        self.negative_root = negative_root
+        self.loader = loader
+        self.extensions = extensions
+        self.transform = transform
+        self.target_transform = target_transform
+
+        (self.image_paths,
+         self.targets,
+         self.num_samples_label) = self.read_real_labels()
+        self.num_pos_classes = len(self.num_samples_label) - 1
+
+    def read_real_labels(self):
+        all_subfolders = sorted(glob.glob(self.data_root + '/*/'))
+        # adding the nagative folder
+        all_subfolders.append(self.negative_root)
+        image_paths = []
+        targets = []
+        num_images_label = []
+        for target_id, sub_folder in enumerate(all_subfolders):
+            sub_folder_imgs = []
+            # reading all extensions
+            for extension in self.extensions:
+                sub_folder_imgs.extend(
+                    sorted(glob.glob(sub_folder + '*' + extension))
+                )
+                # with upper case
+                sub_folder_imgs.extend(
+                    sorted(glob.glob(sub_folder + '*' + extension.upper()))
+                )
+            for image_path in sub_folder_imgs:
+                image_paths.append(image_path)
+                targets.append(target_id)
+            num_images_label.append(len(sub_folder_imgs))
+        return image_paths, targets, np.array(num_images_label)
+
+    def __getitem__(self, index):
+        path = self.image_paths[index]
+        img, target_pos = self.loader(path), self.targets[index]
+
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target_pos = self.target_transform(target_pos)
+
+        target_neg = np.ones(self.num_pos_classes)
+        if target_pos < self.num_pos_classes:
+            target_neg[target_pos] = 0
+
+        target_neg = torch.tensor(target_neg, dtype=torch.float32)
+
+        return img, target_pos, target_neg
+
+    def __len__(self):
+        return len(self.targets)
 
 
 class RandomNegativeLabelFolder(Dataset):
