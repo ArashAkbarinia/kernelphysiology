@@ -393,7 +393,7 @@ def validate_on_data(val_loader, model, criterion, args):
 
     with torch.no_grad():
         end = time.time()
-        for i, (input_image, target, _) in enumerate(val_loader):
+        for i, (input_image, target) in enumerate(val_loader):
             if args.gpus is not None:
                 input_image = input_image.cuda(args.gpus, non_blocking=True)
             target = target.cuda(args.gpus, non_blocking=True)
