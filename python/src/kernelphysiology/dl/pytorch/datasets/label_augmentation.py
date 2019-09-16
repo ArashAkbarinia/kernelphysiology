@@ -2,6 +2,7 @@
 Label augmentation.
 """
 
+import torch
 from torch.utils.data import Dataset
 from torchvision.datasets.folder import pil_loader
 
@@ -74,6 +75,40 @@ def _get_new_labels(num_samples_label, targets, v_total_samples, neg_labels):
 
     sort_i = sorted(range(len(new_labels)), key=lambda k: new_labels[k])
     return sort_i, new_labels
+
+
+class ExplicitNegativeLabelArray(Dataset):
+    def __init__(self, data, targets, transform=None, target_transform=None):
+        self.data = data
+        self.targets_pos = targets
+        self.transform = transform
+        self.target_transform = target_transform
+        # FIXME: accoring to dataset
+        self.num_classes = 10
+
+    def __getitem__(self, index):
+        img = self.data[index]
+        target_pos = self.targets_pos[index]
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target_pos = self.target_transform(target_pos)
+
+        target_neg = np.ones((self.num_classes))
+        if target_pos < self.num_classes:
+            target_neg[target_pos] = 0
+
+        target_neg = torch.tensor(target_neg, dtype=torch.float32)
+
+        return img, target_pos, target_neg
+
+    def __len__(self):
+        return len(self.targets_pos)
 
 
 class RandomNegativeLabelArray(Dataset):

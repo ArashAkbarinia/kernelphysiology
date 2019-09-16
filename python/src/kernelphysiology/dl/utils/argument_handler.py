@@ -728,6 +728,15 @@ def pytorch_train_arg_parser(argvs):
         help='Augmenting labels of ground-truth (False)'
     )
 
+    # TODO: this is not supported by all
+    parser.add_argument(
+        '--neg_params',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Negative sample parameters (default: None)'
+    )
+
     # TODO: num_classes is just for backward compatibility
     parser.add_argument(
         '--old_classes',
