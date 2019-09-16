@@ -168,6 +168,13 @@ def get_train_dataset(dataset_name, traindir, colour_transformations,
             traindir.replace('cifar100', 'cifar10'), train=True, download=False,
             transform=transformations
         )
+        train_dataset.data = np.concatenate(
+            (train_dataset.data, neg_dataset.data[0:500]), axis=0
+        )
+        train_dataset.targets.extend([100] * 500)
+        train_dataset = label_augmentation.ExplicitNegativeLabelArray(
+            train_dataset.data, train_dataset.targets, transformations
+        )
     elif 'wcs_lms' in dataset_name:
         data_loader_train = lambda x: npy_data_loader(x)
 

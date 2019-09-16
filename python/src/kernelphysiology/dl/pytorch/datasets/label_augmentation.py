@@ -83,8 +83,7 @@ class ExplicitNegativeLabelArray(Dataset):
         self.targets_pos = targets
         self.transform = transform
         self.target_transform = target_transform
-        # FIXME: accoring to dataset
-        self.num_classes = 10
+        self.num_classes = max(targets)
 
     def __getitem__(self, index):
         img = self.data[index]
