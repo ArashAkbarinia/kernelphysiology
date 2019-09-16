@@ -190,16 +190,16 @@ def get_augmented_dataset(dataset_name, traindir, colour_transformations,
         normalize, target_size
     )
     if dataset_name == 'imagenet':
-        augmented_dataset = label_augmentation.AugmentedLabelFolder(
+        augmented_dataset = label_augmentation.RandomNegativeLabelFolder(
             traindir, augmented_transformations, target_transform
         )
     elif dataset_name == 'cifar10':
-        augmented_dataset = label_augmentation.AugmentedLabelArray(
+        augmented_dataset = label_augmentation.RandomNegativeLabelArray(
             original_train.data, original_train.targets,
             augmented_transformations, target_transform
         )
     elif dataset_name == 'cifar100':
-        augmented_dataset = label_augmentation.AugmentedLabelArray(
+        augmented_dataset = label_augmentation.RandomNegativeLabelArray(
             original_train.data, original_train.targets,
             augmented_transformations, target_transform
         )

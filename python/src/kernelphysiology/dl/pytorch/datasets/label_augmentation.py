@@ -76,7 +76,7 @@ def _get_new_labels(num_samples_label, targets, v_total_samples, neg_labels):
     return sort_i, new_labels
 
 
-class AugmentedLabelArray(Dataset):
+class RandomNegativeLabelArray(Dataset):
     def __init__(self, data, targets, transform=None, target_transform=None):
         self.data = data
         self.targets = targets
@@ -136,7 +136,7 @@ IMG_EXTENSIONS = [
 ]
 
 
-class AugmentedLabelFolder(Dataset):
+class RandomNegativeLabelFolder(Dataset):
 
     def __init__(self, data_root, transform=None, target_transform=None,
                  loader=pil_loader, extensions=None):
