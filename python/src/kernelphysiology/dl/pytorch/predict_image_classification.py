@@ -42,6 +42,8 @@ def main(argv):
     criterion = nn.CrossEntropyLoss().cuda(gpu)
     cudnn.benchmark = True
 
+    manipulation_values = args.parameters['kwargs'][args.manipulation]
+    manipulation_name = args.parameters['f_name']
     for j, current_network in enumerate(network_files):
         # which architecture
         (model, target_size) = which_network(
@@ -54,8 +56,6 @@ def main(argv):
         )
         normalize = transforms.Normalize(mean=mean, std=std)
 
-        manipulation_values = args.parameters['kwargs'][args.manipulation]
-        manipulation_name = args.parameters['f_name']
         for i, manipulation_value in enumerate(manipulation_values):
             args.parameters['kwargs'][args.manipulation] = manipulation_value
             prediction_transformation = preprocessing.PredictionTransformation(
