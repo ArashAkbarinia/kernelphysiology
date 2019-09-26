@@ -272,7 +272,7 @@ class ResNet(nn.Module):
             fcm = 2
         elif layers[3] == 0:
             fcm = 4
-        self.fc = nn.Linear(self.inplanes * fcm * block.expansion, num_classes)
+        self.fc = nn.Linear(inplanes * fcm * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
