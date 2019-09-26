@@ -129,7 +129,8 @@ def main_worker(ngpus_per_node, args):
                 args.network_name == 'resnet_bottleneck_custom'):
             model = custom_models.__dict__[args.network_name](
                 args.blocks, pooling_type=args.pooling_type,
-                in_chns=len(mean), num_classes=args.num_classes
+                in_chns=len(mean), num_classes=args.num_classes,
+                inplanes=args.num_kernels
             )
         else:
             model = custom_models.__dict__[args.network_name](
@@ -310,7 +311,8 @@ def main_worker(ngpus_per_node, args):
                         'pooling_type': args.pooling_type,
                         'in_chns': len(mean),
                         'num_classes': args.num_classes,
-                        'blocks': args.blocks
+                        'blocks': args.blocks,
+                        'num_kernels': args.num_kernels
                     },
                     'state_dict': model.state_dict(),
                     'best_acc1': best_acc1,

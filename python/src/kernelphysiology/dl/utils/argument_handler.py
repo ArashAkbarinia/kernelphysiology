@@ -79,8 +79,8 @@ def get_architecture_group(parser):
     architecture_group.add_argument(
         '--num_kernels',
         type=int,
-        default=16,
-        help='The number of convolutional kernels (default: 16)'
+        default=64,
+        help='The number of convolutional kernels (default: 64)'
     )
     architecture_group.add_argument(
         '-ca', '--custom_arch',
