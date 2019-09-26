@@ -9,9 +9,11 @@ from .utils import load_state_dict_from_url
 __all__ = [
     'ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
     'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
-    'resnet_basic_0000', 'resnet_basic_2000', 'resnet_basic_2200',
-    'resnet_basic_2220', 'resnet_bottleneck_0000', 'resnet_bottleneck_2000',
-    'resnet_bottleneck_2200', 'resnet_bottleneck_2220', 'resnet_bottleneck_2222'
+    'resnet_basic_custom', 'resnet_basic_1111', 'resnet_basic_2111',
+    'resnet_basic_2211', 'resnet_basic_2221',
+    'resnet_bottleneck_custom', 'resnet_bottleneck_1111',
+    'resnet_bottleneck_2111', 'resnet_bottleneck_2211',
+    'resnet_bottleneck_2221', 'resnet_bottleneck_2222'
 ]
 
 model_urls = {
@@ -214,7 +216,8 @@ class ResNet(nn.Module):
                  zero_init_residual=False,
                  groups=1, width_per_group=64,
                  replace_stride_with_dilation=None,
-                 norm_layer=None, pooling_type='max', in_chns=3):
+                 norm_layer=None, pooling_type='max', in_chns=3,
+                 inplanes=64):
         # TODO: pass pooling_type as an argument
         super(ResNet, self).__init__()
         if norm_layer is None:
@@ -222,41 +225,60 @@ class ResNet(nn.Module):
         self._norm_layer = norm_layer
 
         self.in_chns = in_chns
-        self.inplanes = 64
+        self.inplanes = inplanes
         self.dilation = 1
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
             # the 2x2 stride with a dilated convolution instead
             replace_stride_with_dilation = [False, False, False]
         if len(replace_stride_with_dilation) != 3:
-            raise ValueError("replace_stride_with_dilation should be None "
-                             "or a 3-element tuple, got {}".format(
-                replace_stride_with_dilation))
+            raise ValueError(
+                "replace_stride_with_dilation should be None "
+                "or a 3-element tuple, got {}".format(
+                    replace_stride_with_dilation
+                )
+            )
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(self.in_chns, self.inplanes,
-                               kernel_size=7, stride=2,
-                               padding=3,
-                               bias=False)
+        self.conv1 = nn.Conv2d(
+            self.in_chns, self.inplanes, kernel_size=7, stride=2, padding=3,
+            bias=False
+        )
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
-        self.contrast_pool = self._contrast_pooling(self.inplanes, pooling_type,
-                                                    kernel_size=3, stride=2,
-                                                    padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2,
-                                       dilate=replace_stride_with_dilation[0])
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2,
-                                       dilate=replace_stride_with_dilation[1])
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
-                                       dilate=replace_stride_with_dilation[2])
+        self.contrast_pool = self._contrast_pooling(
+            self.inplanes, pooling_type, kernel_size=3, stride=2, padding=1
+        )
+        self.layer1 = self._make_layer(block, self.inplanes, layers[0])
+        self.layer2 = self._make_layer(
+            block, inplanes * 2, layers[1], stride=2,
+            dilate=replace_stride_with_dilation[0]
+        )
+        self.layer3 = self._make_layer(
+            block, inplanes * 4, layers[2], stride=2,
+            dilate=replace_stride_with_dilation[1]
+        )
+        self.layer4 = self._make_layer(
+            block, inplanes * 8, layers[3], stride=2,
+            dilate=replace_stride_with_dilation[2]
+        )
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        fcm = 8
+        if layers[0] == 0:
+            raise ValueError('At least one layer should have planes')
+        elif layers[1] == 0:
+            fcm = 1
+        elif layers[2] == 0:
+            fcm = 2
+        elif layers[3] == 0:
+            fcm = 4
+        self.fc = nn.Linear(self.inplanes * fcm * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out',
-                                        nonlinearity='relu')
+                nn.init.kaiming_normal_(
+                    m.weight, mode='fan_out', nonlinearity='relu'
+                )
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -272,28 +294,36 @@ class ResNet(nn.Module):
                     nn.init.constant_(m.bn2.weight, 0)
 
     def _make_layer(self, block, planes, blocks, stride=1, dilate=False):
-        norm_layer = self._norm_layer
-        downsample = None
-        previous_dilation = self.dilation
-        if dilate:
-            self.dilation *= stride
-            stride = 1
-        if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                conv1x1(self.inplanes, planes * block.expansion, stride),
-                norm_layer(planes * block.expansion),
-            )
-
         layers = []
-        layers.append(
-            block(self.inplanes, planes, stride, downsample, self.groups,
-                  self.base_width, previous_dilation, norm_layer))
-        self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, groups=self.groups,
-                                base_width=self.base_width,
-                                dilation=self.dilation,
-                                norm_layer=norm_layer))
+        # if None, nothing in this layer
+        if blocks > 0:
+            norm_layer = self._norm_layer
+            downsample = None
+            previous_dilation = self.dilation
+            if dilate:
+                self.dilation *= stride
+                stride = 1
+            if stride != 1 or self.inplanes != planes * block.expansion:
+                downsample = nn.Sequential(
+                    conv1x1(self.inplanes, planes * block.expansion, stride),
+                    norm_layer(planes * block.expansion),
+                )
+
+            layers.append(
+                block(
+                    self.inplanes, planes, stride, downsample, self.groups,
+                    self.base_width, previous_dilation, norm_layer
+                )
+            )
+            self.inplanes = planes * block.expansion
+            for _ in range(1, blocks):
+                layers.append(
+                    block(
+                        self.inplanes, planes, groups=self.groups,
+                        base_width=self.base_width, dilation=self.dilation,
+                        norm_layer=norm_layer
+                    )
+                )
 
         return nn.Sequential(*layers)
 
@@ -301,8 +331,11 @@ class ResNet(nn.Module):
                           padding=1):
         layers = []
         layers.append(
-            ContrastPoolingBlock(planes, pooling_type, kernel_size=kernel_size,
-                                 stride=stride, padding=padding))
+            ContrastPoolingBlock(
+                planes, pooling_type, kernel_size=kernel_size,
+                stride=stride, padding=padding
+            )
+        )
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -332,47 +365,58 @@ def _resnet(arch, inplanes, planes, pretrained, progress, **kwargs):
     return model
 
 
-def resnet_basic_0000(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-Basic-0000 model.
+def resnet_basic_custom(planes, pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-Custom model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet_basic_0000', BasicBlock, [0, 0, 0, 0], pretrained,
+    # TODO: should we pass arch name in case of URL?
+    return _resnet('', BasicBlock, planes, pretrained, progress, **kwargs)
+
+
+def resnet_basic_1111(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-1111 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_basic_1111', BasicBlock, [1, 1, 1, 1], pretrained,
                    progress, **kwargs)
 
 
-def resnet_basic_2000(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-Basic-2000 model.
+def resnet_basic_2111(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-2111 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet_basic_2000', BasicBlock, [2, 0, 0, 0], pretrained,
+    return _resnet('resnet_basic_2111', BasicBlock, [2, 1, 1, 1], pretrained,
                    progress, **kwargs)
 
 
-def resnet_basic_2200(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-Basic-2200 model.
+def resnet_basic_2211(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-2211 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet_basic_2200', BasicBlock, [2, 2, 0, 0], pretrained,
+    return _resnet('resnet_basic_2211', BasicBlock, [2, 2, 1, 1], pretrained,
                    progress, **kwargs)
 
 
-def resnet_basic_2220(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-Basic-2220 model.
+def resnet_basic_2221(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-2221 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet_basic_2220', BasicBlock, [2, 2, 2, 0], pretrained,
+    return _resnet('resnet_basic_2221', BasicBlock, [2, 2, 2, 1], pretrained,
                    progress, **kwargs)
 
 
@@ -398,47 +442,58 @@ def resnet34(pretrained=False, progress=True, **kwargs):
                    **kwargs)
 
 
-def resnet_bottleneck_0000(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-Bottleneck-0000 model.
+def resnet_bottleneck_custom(planes, pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Basic-Custom model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet_bottleneck_0000', Bottleneck, [0, 0, 0, 0],
+    # TODO: should we pass arch name in case of URL?
+    return _resnet('', Bottleneck, planes, pretrained, progress, **kwargs)
+
+
+def resnet_bottleneck_1111(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Bottleneck-1111 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet_bottleneck_1111', Bottleneck, [1, 1, 1, 1],
                    pretrained, progress, **kwargs)
 
 
-def resnet_bottleneck_2000(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-Bottleneck-2000 model.
+def resnet_bottleneck_2111(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Bottleneck-2111 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet_bottleneck_2000', Bottleneck, [2, 0, 0, 0],
+    return _resnet('resnet_bottleneck_2111', Bottleneck, [2, 1, 1, 1],
                    pretrained, progress, **kwargs)
 
 
-def resnet_bottleneck_2200(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-Bottleneck-2200 model.
+def resnet_bottleneck_2211(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Bottleneck-2211 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet_bottleneck_2200', Bottleneck, [2, 2, 0, 0],
+    return _resnet('resnet_bottleneck_2211', Bottleneck, [2, 2, 1, 1],
                    pretrained, progress, **kwargs)
 
 
-def resnet_bottleneck_2220(pretrained=False, progress=True, **kwargs):
-    """Constructs a ResNet-Bottleneck-2220 model.
+def resnet_bottleneck_2221(pretrained=False, progress=True, **kwargs):
+    """Constructs a ResNet-Bottleneck-2221 model.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _resnet('resnet_bottleneck_2220', Bottleneck, [2, 2, 2, 0],
+    return _resnet('resnet_bottleneck_2221', Bottleneck, [2, 2, 2, 1],
                    pretrained, progress, **kwargs)
 
 

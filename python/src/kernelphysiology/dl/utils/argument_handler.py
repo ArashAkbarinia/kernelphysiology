@@ -108,6 +108,13 @@ def get_architecture_group(parser):
         action='store_true',
         help='Use pre-trained model'
     )
+    architecture_group.add_argument(
+        '--blocks',
+        nargs='+',
+        type=int,
+        default=None,
+        help='Number of layers in every block (default: None)'
+    )
 
     trainable_group = architecture_group.add_argument_group('layers')
     trainable_group = trainable_group.add_mutually_exclusive_group()

@@ -125,10 +125,17 @@ def main_worker(ngpus_per_node, args):
         model = NewClassificationModel(model, args.num_classes)
     elif args.custom_arch:
         print('Custom model!')
-        model = custom_models.__dict__[args.network_name](
-            pooling_type=args.pooling_type, in_chns=len(mean),
-            num_classes=args.num_classes
-        )
+        if (args.network_name == 'resnet_basic_custom' or
+                args.network_name == 'resnet_bottleneck_custom'):
+            model = custom_models.__dict__[args.network_name](
+                args.blocks, pooling_type=args.pooling_type,
+                in_chns=len(mean), num_classes=args.num_classes
+            )
+        else:
+            model = custom_models.__dict__[args.network_name](
+                pooling_type=args.pooling_type, in_chns=len(mean),
+                num_classes=args.num_classes
+            )
     elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.network_name))
         model = models.__dict__[args.network_name](pretrained=True)
