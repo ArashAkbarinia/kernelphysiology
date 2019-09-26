@@ -356,8 +356,8 @@ class ResNet(nn.Module):
         return x
 
 
-def _resnet(arch, inplanes, planes, pretrained, progress, **kwargs):
-    model = ResNet(inplanes, planes, **kwargs)
+def _resnet(arch, block_type, planes, pretrained, progress, **kwargs):
+    model = ResNet(block_type, planes, **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)
