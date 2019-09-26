@@ -282,10 +282,17 @@ def which_architecture(network_name, customs=None):
         else:
             # assuming if it doesn't exist, it's 3
             in_chns = 3
-        model = custom_models.__dict__[network_name](
-            pretrained=False, pooling_type=pooling_type,
-            in_chns=in_chns, num_classes=num_classes
-        )
+        # differentiating between custom models and nominal one
+        if 'blocks' in customs and customs['blocks'] is not None:
+            model = custom_models.__dict__[network_name](
+                customs['blocks'], pretrained=False, pooling_type=pooling_type,
+                in_chns=in_chns, num_classes=num_classes
+            )
+        else:
+            model = custom_models.__dict__[network_name](
+                pretrained=False, pooling_type=pooling_type,
+                in_chns=in_chns, num_classes=num_classes
+            )
     return model
 
 

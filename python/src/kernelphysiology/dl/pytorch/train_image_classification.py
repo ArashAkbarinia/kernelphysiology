@@ -309,7 +309,8 @@ def main_worker(ngpus_per_node, args):
                     'customs': {
                         'pooling_type': args.pooling_type,
                         'in_chns': len(mean),
-                        'num_classes': args.num_classes
+                        'num_classes': args.num_classes,
+                        'blocks': args.blocks
                     },
                     'state_dict': model.state_dict(),
                     'best_acc1': best_acc1,
