@@ -502,3 +502,39 @@ def top_pixeld_ind(im, percentage):
     rows = sorted_inds[0][-1:-selected_pixels:-1]
     cols = sorted_inds[1][-1:-selected_pixels:-1]
     return (rows, cols)
+
+
+def heat_map_from_point(point, target_size, g_kernel=None, sigma=1.5):
+    if g_kernel is None:
+        g_kernel = gaussian_kernel2(sigma)
+    rows = target_size[0]
+    cols = target_size[1]
+    pr = point[0]
+    pc = point[1]
+
+    heat_map = np.zeros((rows, cols, 1))
+    if pr > 0 and pc > 0:
+        sr = pr - (g_kernel.shape[0] // 2)
+        sc = pc - (g_kernel.shape[1] // 2)
+        # making sure they're within the range of image
+        gsr = np.maximum(0, -sr)
+        gsc = np.maximum(0, -sc)
+
+        er = sr + g_kernel.shape[0]
+        ec = sc + g_kernel.shape[1]
+        # making sure they're within the range of image
+        sr = np.maximum(0, sr)
+        sc = np.maximum(0, sc)
+
+        ger = np.minimum(
+            g_kernel.shape[0], g_kernel.shape[0] - (er - rows)
+        )
+        gec = np.minimum(
+            g_kernel.shape[1], g_kernel.shape[1] - (ec - cols)
+        )
+
+        er = np.minimum(er, rows)
+        ec = np.minimum(ec, cols)
+        g_max = g_kernel[gsr:ger, gsc:gec].max()
+        heat_map[sr:er, sc:ec, 0] = g_kernel[gsr:ger, gsc:gec] / g_max
+    return heat_map

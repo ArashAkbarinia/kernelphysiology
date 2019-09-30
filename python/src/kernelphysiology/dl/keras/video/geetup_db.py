@@ -8,45 +8,8 @@ import keras
 import keras.backend as K
 from keras.preprocessing import image
 
-from kernelphysiology.filterfactory import gaussian
-
-
-def heat_map_from_fixation(fixation_point, target_size, gaussian_kernel=None,
-                           gaussian_sigma=1.5):
-    if gaussian_kernel is None:
-        gaussian_kernel = gaussian.gaussian_kernel2(gaussian_sigma)
-    rows = target_size[0]
-    cols = target_size[1]
-    fpr = fixation_point[0]
-    fpc = fixation_point[1]
-
-    fixation_map = np.zeros((rows, cols, 1))
-    if fpr > 0 and fpc > 0:
-        sr = fpr - (gaussian_kernel.shape[0] // 2)
-        sc = fpc - (gaussian_kernel.shape[1] // 2)
-        # making sure they're within the range of image
-        gsr = np.maximum(0, -sr)
-        gsc = np.maximum(0, -sc)
-
-        er = sr + gaussian_kernel.shape[0]
-        ec = sc + gaussian_kernel.shape[1]
-        # making sure they're within the range of image
-        sr = np.maximum(0, sr)
-        sc = np.maximum(0, sc)
-
-        er_diff = er - rows
-        ec_diff = ec - cols
-        ger = np.minimum(gaussian_kernel.shape[0],
-                         gaussian_kernel.shape[0] - er_diff)
-        gec = np.minimum(gaussian_kernel.shape[1],
-                         gaussian_kernel.shape[1] - ec_diff)
-
-        er = np.minimum(er, rows)
-        ec = np.minimum(ec, cols)
-        g_max = gaussian_kernel[gsr:ger, gsc:gec].max()
-        fixation_map[sr:er, sc:ec, 0] = \
-            (gaussian_kernel[gsr:ger, gsc:gec] / g_max)
-    return fixation_map
+from kernelphysiology.utils.imutils import heat_map_from_point
+from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 
 
 def map_point_to_image_size(point, target_size, org_size):
@@ -78,23 +41,31 @@ class GeetupGenerator(keras.utils.Sequence):
         self.shuffle = shuffle
         self.only_name_and_gt = only_name_and_gt
         self.grey_scale = self.num_chns == 1
-        self.gaussian_kernel = gaussian.gaussian_kernel2(gaussian_sigma)
+        self.gaussian_kernel = gaussian_kernel2(gaussian_sigma)
         self.only_last_frame = not all_frames
 
         if K.image_data_format() == 'channels_last':
-            self.in_shape = (self.sequence_length,
-                             *self.target_size,
-                             self.num_chns)
-            self.out_shape = (self.sequence_length,
-                              *self.target_size,
-                              1)
+            self.in_shape = (
+                self.sequence_length,
+                *self.target_size,
+                self.num_chns
+            )
+            self.out_shape = (
+                self.sequence_length,
+                *self.target_size,
+                1
+            )
         elif K.image_data_format() == 'channels_first':
-            self.in_shape = (self.sequence_length,
-                             self.num_chns,
-                             *self.target_size)
-            self.out_shape = (self.sequence_length,
-                              1,
-                              *self.target_size)
+            self.in_shape = (
+                self.sequence_length,
+                self.num_chns,
+                *self.target_size
+            )
+            self.out_shape = (
+                self.sequence_length,
+                1,
+                *self.target_size
+            )
 
         self.num_sequences = 0
         for f in video_list:
@@ -188,10 +159,10 @@ class GeetupGenerator(keras.utils.Sequence):
                     current_img = current_img.resize(self.target_size[::-1])
                     current_img = image.img_to_array(current_img)
                     x_batch[i, j,] = current_img
-                    y_batch[i, j,] = heat_map_from_fixation(
+                    y_batch[i, j,] = heat_map_from_point(
                         gt_resized,
                         target_size=self.target_size,
-                        gaussian_kernel=self.gaussian_kernel
+                        g_kernel=self.gaussian_kernel
                     )
 
         if self.only_name_and_gt is False:
@@ -204,8 +175,9 @@ class GeetupGenerator(keras.utils.Sequence):
             if self.only_last_frame:
                 y_batch = np.reshape(y_batch[:, -1, ], (-1, 1, rows * cols, 1))
             else:
-                y_batch = np.reshape(y_batch,
-                                     (-1, self.sequence_length, rows * cols, 1))
+                y_batch = np.reshape(
+                    y_batch, (-1, self.sequence_length, rows * cols, 1)
+                )
         else:
             if self.only_last_frame:
                 x_batch = np.reshape(x_batch[:, -1, ], (-1, 1, 1))
