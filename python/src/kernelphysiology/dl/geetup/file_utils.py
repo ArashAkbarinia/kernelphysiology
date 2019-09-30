@@ -10,6 +10,7 @@ import glob
 
 def cleanup_dataset(dataset_dir):
     for subject_dir in sorted(glob.glob(dataset_dir + '/*/')):
+        print(subject_dir)
         cleanup_subject(subject_dir)
 
 
