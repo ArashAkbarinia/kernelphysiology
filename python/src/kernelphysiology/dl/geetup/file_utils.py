@@ -43,13 +43,15 @@ def cleanup_subject(subject_dir):
             video_list = sorted(glob.glob(video_dir + '/*.jpg'))
             current_num_frames = len(video_list)
             video_ind = video_dir.split('/')[-2].split('_')[-1]
+            ignore_video_dir = '%s/Ignore_CutVid_%s/' % (segment, video_ind)
+            if video_dir[-4:-1] == 'BAD':
+                os.rename(video_dir, ignore_video_dir)
             gts = np.loadtxt(segment + '/SUBSAMP_EYETR_' + video_ind + '.txt')
             if gts.shape[0] != current_num_frames:
                 logging.info(
                     '%s contains %d frames but %d fixation points' %
                     (video_dir, current_num_frames, gts.shape[0])
                 )
-                ignore_video_dir = '%s/Ignore_CutVid_%s/' % (segment, video_ind)
                 os.rename(video_dir, ignore_video_dir)
                 continue
 
