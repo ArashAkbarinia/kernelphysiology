@@ -39,7 +39,7 @@ def cleanup_subject(subject_dir):
     margin = 5
     for segment in sorted(glob.glob(subject_dir + '/segments/*/')):
         for video_dir in sorted(glob.glob(segment + '/CutVid_*/')):
-            video_list = glob.glob(video_dir + '/*.jpg')
+            video_list = sorted(glob.glob(video_dir + '/*.jpg'))
             current_num_frames = len(video_list)
             video_ind = video_dir.split('/')[-2].split('_')[-1]
             gts = np.loadtxt(segment + '/SUBSAMP_EYETR_' + video_ind + '.txt')
@@ -54,6 +54,7 @@ def cleanup_subject(subject_dir):
 
             # ignoring all fixation points that are around corner
             conds = create_gt_conds(gts, margin, rows, cols)
+            gts = np.round(gts).astype('int')
 
             selected_imgs = []
             discarded_imgs = []
