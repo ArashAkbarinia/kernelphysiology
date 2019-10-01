@@ -7,9 +7,11 @@ import pickle
 import os
 import random
 
+import torch
 from torch.utils.data import Dataset
 from torchvision.datasets.folder import pil_loader
 from torchvision import transforms
+from torchvision.transforms.functional import hflip
 
 from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
@@ -72,13 +74,15 @@ def get_validation_dataset(pickle_file, target_size):
 
 
 def _init_videos(video_list):
+    video_paths = []
     all_videos = []
     num_sequences = 0
     for f, video_info in enumerate(video_list):
+        video_paths.append(video_info[0])
         num_sequences += video_info[2]
         for j in range(video_info[2]):
             all_videos.append([f, video_info[1], j])
-    return all_videos, num_sequences
+    return all_videos, num_sequences, video_paths
 
 
 class GeetupDataset(Dataset):
@@ -95,7 +99,9 @@ class GeetupDataset(Dataset):
         self.sequence_length = sequence_length
         self.all_gts = all_gts
 
-        self.all_videos, self.num_sequences = self.__read_pickle()
+        (self.all_videos,
+         self.num_sequences,
+         self.video_paths) = self.__read_pickle()
 
     def __read_pickle(self):
         f = open(self.pickle_file, 'rb')
@@ -106,23 +112,23 @@ class GeetupDataset(Dataset):
             self.frames_gap = f_data['frames_gap']
         if self.sequence_length is None:
             self.sequence_length = f_data['sequence_length']
-        self.video_list = f_data['video_list']
-        all_videos, num_sequences = _init_videos(self.video_list)
+        video_list = f_data['video_list']
+        all_videos, num_sequences, video_paths = _init_videos(video_list)
         print('Read %d sequences' % num_sequences)
-        return all_videos, num_sequences
+        return all_videos, num_sequences, video_paths
 
     def __getitem__(self, idx):
         vid_info = self.all_videos[idx]
 
         # read data
-        segment_dir = self.video_list[vid_info[0]]
+        segment_dir = self.video_paths[vid_info[0]]
         video_num = vid_info[1]
         frame_0 = vid_info[2]
         frame_n = frame_0 + self.sequence_length * self.frames_gap
         all_frames = [i for i in range(frame_0, frame_n, self.frames_gap)]
 
         video_path = '%s/CutVid_%s/' % (segment_dir, video_num)
-        f_selected = '%s/SELECTED_IMGS_%s.txt/' % (segment_dir, video_num)
+        f_selected = '%s/SELECTED_IMGS_%s.txt' % (segment_dir, video_num)
         selected_imgs = np.loadtxt(f_selected, dtype=str, delimiter=',')
 
         x_item = []
@@ -139,7 +145,7 @@ class GeetupDataset(Dataset):
             img = pil_loader(image_path)
 
             if do_for_entire_sequence:
-                img = img[:, ::-1, ].copy()
+                img = hflip(img)
 
             if self.transform is not None:
                 img = self.transform(img)
@@ -158,8 +164,8 @@ class GeetupDataset(Dataset):
                 if self.target_transform is not None:
                     gt = self.target_transform(gt)
                 y_item.append(gt)
-        x_item = np.array(x_item)
-        y_item = np.array(y_item)
+        x_item = torch.stack(x_item, dim=0)
+        y_item = torch.stack(y_item, dim=0)
 
         return x_item, y_item
 
