@@ -119,11 +119,17 @@ def argument_parser():
 
     process_group = parser.add_argument_group('process')
     process_group.add_argument(
-        '--batch_size',
-        dest='batch_size',
+        '-j', '--workers',
         type=int,
-        default=8,
-        help='Batch size (default: 8)'
+        default=1,
+        help='Number of workers for image generator (default: 1)'
+    )
+
+    process_group.add_argument(
+        '-b', '--batch_size',
+        type=int,
+        default=None,
+        help='Batch size (default: according to dataset)'
     )
     process_group.add_argument(
         '--gpus',
