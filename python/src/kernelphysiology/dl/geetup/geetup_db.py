@@ -106,8 +106,8 @@ class GeetupDataset(Dataset):
             self.frames_gap = f_data['frames_gap']
         if self.sequence_length is None:
             self.sequence_length = f_data['sequence_length']
-        video_list = f_data['video_list']
-        all_videos, num_sequences = _init_videos(video_list)
+        self.video_list = f_data['video_list']
+        all_videos, num_sequences = _init_videos(self.video_list)
         print('Read %d sequences' % num_sequences)
         return all_videos, num_sequences
 
@@ -115,7 +115,7 @@ class GeetupDataset(Dataset):
         vid_info = self.all_videos[idx]
 
         # read data
-        segment_dir = vid_info[0]
+        segment_dir = self.video_list[vid_info[0]]
         video_num = vid_info[1]
         frame_0 = vid_info[2]
         frame_n = frame_0 + self.sequence_length * self.frames_gap
