@@ -121,7 +121,7 @@ def main(args):
     torch.cuda.set_device(args.gpus)
     model = model.cuda(args.gpus)
 
-    args.target_size = (360, 640)
+    args.target_size = [360, 640]
 
     validation_pickle = os.path.join(args.data_dir, args.validation_file)
     validation_dataset = geetup_db.get_validation_dataset(

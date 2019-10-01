@@ -27,9 +27,7 @@ class HeatMapFixationPoint(object):
         self.gaussian_kernel = gaussian_kernel2(gaussian_sigma)
 
     def __call__(self, point):
-        point = map_point_to_image_size(
-            point, self.target_size, self.org_size
-        )
+        point = map_point_to_image_size( point, self.target_size, self.org_size)
         img = heat_map_from_point(
             point, target_size=self.target_size, g_kernel=self.gaussian_kernel
         )
@@ -159,7 +157,7 @@ class GeetupDataset(Dataset):
                 gt = gt[::-1]
 
                 if do_for_entire_sequence:
-                    gt[1] = img.shape[1] - gt[1]
+                    gt[1] = img.shape[2] - gt[1]
 
                 if self.target_transform is not None:
                     gt = self.target_transform(gt)

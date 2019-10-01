@@ -12,7 +12,7 @@ from kernelphysiology.utils.path_utils import create_dir
 
 
 def map_point_to_image_size(point, target_size, org_size):
-    if target_size == org_size:
+    if target_size[0] == org_size[0] and target_size[1] == org_size[1]:
         return point
     rows = target_size[0]
     cols = target_size[1]
