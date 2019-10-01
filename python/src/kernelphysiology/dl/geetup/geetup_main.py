@@ -11,6 +11,7 @@ from functools import partial
 from functools import update_wrapper
 
 import torch
+import torch.nn as nn
 
 from kernelphysiology.dl.geetup import geetup_db
 from kernelphysiology.dl.geetup import geetup_net
@@ -155,6 +156,7 @@ def main(args):
 
     args.initial_epoch = 0
     args.print_freq = 10
+    args.criterion = nn.KLDivLoss().cuda(args.gpus)
     epochs(model, train_loader, validation_loader, optimizer, args)
 
 

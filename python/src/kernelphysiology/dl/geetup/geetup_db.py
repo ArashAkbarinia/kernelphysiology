@@ -108,6 +108,7 @@ class GeetupDataset(Dataset):
             self.sequence_length = f_data['sequence_length']
         video_list = f_data['video_list']
         all_videos, num_sequences = _init_videos(video_list)
+        print('Read %d sequences' % num_sequences)
         return all_videos, num_sequences
 
     def __getitem__(self, idx):
