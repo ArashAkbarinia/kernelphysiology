@@ -11,6 +11,18 @@ import glob
 from kernelphysiology.utils.path_utils import create_dir
 
 
+def map_point_to_image_size(point, target_size, org_size):
+    if target_size == org_size:
+        return point
+    rows = target_size[0]
+    cols = target_size[1]
+    org_rows = org_size[0]
+    org_cols = org_size[1]
+    new_p_row = int(round(point[0] * (rows / org_rows)))
+    new_p_col = int(round(point[1] * (cols / org_cols)))
+    return [new_p_row, new_p_col]
+
+
 def cleanup_dataset(dataset_dir):
     for subject_dir in sorted(glob.glob(dataset_dir + '/*/')):
         print(subject_dir)

@@ -8,18 +8,9 @@ import keras
 import keras.backend as K
 from keras.preprocessing import image
 
+from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
 from kernelphysiology.utils.imutils import heat_map_from_point
 from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
-
-
-def map_point_to_image_size(point, target_size, org_size):
-    rows = target_size[0]
-    cols = target_size[1]
-    org_rows = org_size[0]
-    org_cols = org_size[1]
-    fpr = int(round(point[0] * (rows / org_rows)))
-    fpc = int(round(point[1] * (cols / org_cols)))
-    return fpr, fpc
 
 
 class GeetupGenerator(keras.utils.Sequence):

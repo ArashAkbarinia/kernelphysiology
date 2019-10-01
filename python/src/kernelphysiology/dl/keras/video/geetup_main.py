@@ -25,7 +25,7 @@ from kernelphysiology.utils.imutils import max_pixel_ind
 from kernelphysiology.utils.path_utils import create_dir
 from kernelphysiology.dl.keras.video import geetup_net
 from kernelphysiology.dl.keras.video import geetup_db
-from kernelphysiology.dl.keras.video import geetup_opts
+from kernelphysiology.dl.geetup import geetup_opts
 
 
 def euc_error(y_true, y_pred, target_size, axis=2):

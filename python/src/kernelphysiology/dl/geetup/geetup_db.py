@@ -5,11 +5,70 @@ Creating dataset objects for GEETUP in PyTorch environment.
 import numpy as np
 import pickle
 import os
+import random
 
 from torch.utils.data import Dataset
 from torchvision.datasets.folder import pil_loader
+from torchvision import transforms
 
+from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
+from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.utils.controls import isint
+from kernelphysiology.utils.imutils import heat_map_from_point
+from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
+
+
+class HeatMapFixationPoint(object):
+    def __init__(self, target_size, org_size, gaussian_sigma=2.5):
+        self.target_size = target_size
+        self.org_size = org_size
+        self.gaussian_kernel = gaussian_kernel2(gaussian_sigma)
+
+    def __call__(self, point):
+        point = map_point_to_image_size(
+            point, self.target_size, self.org_size
+        )
+        img = heat_map_from_point(
+            point, target_size=self.target_size, g_kernel=self.gaussian_kernel
+        )
+        return img
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(target_size={})'.format(
+            self.target_size
+        )
+
+
+def get_train_dataset(pickle_file, target_size):
+    mean, std = get_preprocessing_function('rgb', 'trichromat')
+    normalise = transforms.Normalize(mean=mean, std=std)
+    img_transform = transforms.Compose([
+        transforms.Resize(target_size), transforms.ToTensor(), normalise,
+    ])
+    target_transform = transforms.Compose([
+        HeatMapFixationPoint(target_size, (360, 640)), transforms.ToTensor()
+    ])
+    common_transforms = []
+    train_dataset = GeetupDataset(
+        pickle_file, img_transform, target_transform, common_transforms
+    )
+    return train_dataset
+
+
+def get_validation_dataset(pickle_file, target_size):
+    mean, std = get_preprocessing_function('rgb', 'trichromat')
+    normalise = transforms.Normalize(mean=mean, std=std)
+    img_transform = transforms.Compose([
+        transforms.Resize(target_size), transforms.ToTensor(), normalise,
+    ])
+    target_transform = transforms.Compose([
+        HeatMapFixationPoint(target_size, (360, 640)), transforms.ToTensor()
+    ])
+    common_transforms = None
+    train_dataset = GeetupDataset(
+        pickle_file, img_transform, target_transform, common_transforms
+    )
+    return train_dataset
 
 
 def _init_videos(video_list):
@@ -24,12 +83,14 @@ def _init_videos(video_list):
 
 class GeetupDataset(Dataset):
     def __init__(self, pickle_file, transform=None, target_transform=None,
-                 all_gts=True, frames_gap=None, sequence_length=None):
+                 common_transforms=None, all_gts=True, frames_gap=None,
+                 sequence_length=None):
         super(GeetupDataset, self).__init__()
 
         self.pickle_file = pickle_file
         self.transform = transform
         self.target_transform = target_transform
+        self.common_transforms = common_transforms
         self.frames_gap = frames_gap
         self.sequence_length = sequence_length
         self.all_gts = all_gts
@@ -65,9 +126,20 @@ class GeetupDataset(Dataset):
 
         x_item = []
         y_item = []
+
+        # TODO: for now, just horizontal flipping
+        do_for_entire_sequence = False
+        if self.common_transforms is not None:
+            if random.random() < 0.5:
+                do_for_entire_sequence = True
+
         for j, frame_num in enumerate(all_frames):
             image_path = os.path.join(video_path, selected_imgs[frame_num][0])
             img = pil_loader(image_path)
+
+            if do_for_entire_sequence:
+                img = img[:, ::-1, ].copy()
+
             if self.transform is not None:
                 img = self.transform(img)
             x_item.append(img)
@@ -76,6 +148,12 @@ class GeetupDataset(Dataset):
                 gt = selected_imgs[frame_num][1]
                 gt = gt.replace('[', '').replace(']', '').split(' ')
                 gt = [int(i) for i in gt if isint(i)]
+                # in the file it's stored as x and y, rather than rows and cols
+                gt = gt[::-1]
+
+                if do_for_entire_sequence:
+                    gt[1] = img.shape[1] - gt[1]
+
                 if self.target_transform is not None:
                     gt = self.target_transform(gt)
                 y_item.append(gt)
