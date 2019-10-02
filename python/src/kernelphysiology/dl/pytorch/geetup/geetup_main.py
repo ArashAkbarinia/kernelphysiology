@@ -20,6 +20,19 @@ from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
 from kernelphysiology.utils.path_utils import create_dir
 
 
+def euclidean_error(x, y):
+    cumulative_error = 0
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            max_ind_a = torch.argmax(x[i, j].squeeze())
+            max_ind_b = torch.argmax(y[i, j].squeeze())
+            cumulative_error += np.linalg.norm(
+                np.asarray(np.unravel_index(max_ind_a, x.shape[2:])) -
+                np.asarray(np.unravel_index(max_ind_b, x.shape[2:]))
+            )
+    return cumulative_error / (x.shape[0] * x.shape[1])
+
+
 def epochs(model, train_loader, validation_loader, optimizer, args):
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
         optimizer,
@@ -39,6 +52,7 @@ def train(model, train_loader, optimizer, criterion, epoch, args):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
+    eucs = AverageMeter()
 
     # switch to train mode
     model.train()
@@ -57,6 +71,7 @@ def train(model, train_loader, optimizer, criterion, epoch, args):
 
         # measure accuracy and record loss
         losses.update(loss.item(), x_input.size(0))
+        eucs.update(euclidean_error(y_target, output), x_input.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -73,9 +88,10 @@ def train(model, train_loader, optimizer, criterion, epoch, args):
                 'Epoch: [{0}][{1}/{2}]\t'
                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                 'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                'Loss {loss.val:.4f} ({loss.avg:.4f})'.format(
+                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                'Euc {euc.val:.4f} ({euc.avg:.4f})'.format(
                     epoch, step, len(train_loader), batch_time=batch_time,
-                    data_time=data_time, loss=losses
+                    data_time=data_time, loss=losses, euc=eucs
                 )
             )
 
