@@ -132,6 +132,13 @@ def inverse_mean_std(mean, std):
     return mean_inv, std_inv
 
 
+def normalize_inverse(tensor, mean, std, inplace=False):
+    mean_inv, std_inv = inverse_mean_std(mean, std)
+    return torchvision.transforms.functional.normalize(
+        tensor, mean_inv, std_inv, inplace=inplace
+    )
+
+
 class NormalizeInverse(torchvision.transforms.Normalize):
     """
     Undoes the normalization and returns the reconstructed images in the input
