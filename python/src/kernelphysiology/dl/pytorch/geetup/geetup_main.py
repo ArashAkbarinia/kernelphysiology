@@ -7,17 +7,12 @@ import sys
 import os
 import logging
 
-from functools import partial
-from functools import update_wrapper
-
 import torch
 import torch.nn as nn
 
-from kernelphysiology.dl.geetup import geetup_db
-from kernelphysiology.dl.geetup import geetup_net
+from kernelphysiology.dl.pytorch.geetup import geetup_net, geetup_db
 from kernelphysiology.dl.geetup import geetup_opts
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
-from kernelphysiology.utils.imutils import max_pixel_ind
 from kernelphysiology.utils.path_utils import create_dir
 
 
