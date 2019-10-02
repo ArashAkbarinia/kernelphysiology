@@ -23,14 +23,13 @@ from kernelphysiology.utils.path_utils import create_dir
 def euclidean_error(x, y):
     cumulative_error = 0
     for i in range(x.shape[0]):
-        for j in range(x.shape[1]):
-            max_ind_a = torch.argmax(x[i, j].squeeze())
-            max_ind_b = torch.argmax(y[i, j].squeeze())
-            cumulative_error += np.linalg.norm(
-                np.asarray(np.unravel_index(max_ind_a, x.shape[2:])) -
-                np.asarray(np.unravel_index(max_ind_b, x.shape[2:]))
-            )
-    return cumulative_error / (x.shape[0] * x.shape[1])
+        max_x = torch.argmax(x[i].squeeze())
+        max_y = torch.argmax(y[i].squeeze())
+        max_x = [max_x / x.shape[2], max_x % x.shape[2]]
+        max_y = [max_y / x.shape[2], max_y % x.shape[2]]
+        sum_error = (max_x[0] - max_y[0]) ** 2 + (max_x[1] - max_y[1]) ** 2
+        cumulative_error += torch.sqrt(sum_error.float())
+    return cumulative_error / x.shape[0]
 
 
 def epochs(model, train_loader, validation_loader, optimizer, args):
