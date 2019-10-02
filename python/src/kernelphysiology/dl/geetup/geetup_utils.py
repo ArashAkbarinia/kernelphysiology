@@ -135,7 +135,7 @@ def subject_frame_limits(subject_dir, frames_gap=10, sequence_length=9):
 
 def dataset_frame_list(dataset_dir, frames_gap=10, sequence_length=9):
     dataset_data = []
-    for subject_dir in glob.glob(dataset_dir + '/*/'):
+    for subject_dir in sorted(glob.glob(dataset_dir + '/*/')):
         subject_data = subject_frame_limits(
             subject_dir, frames_gap=frames_gap, sequence_length=sequence_length
         )
