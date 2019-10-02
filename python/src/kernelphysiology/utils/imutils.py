@@ -512,7 +512,7 @@ def heat_map_from_point(point, target_size, g_kernel=None, sigma=1.5):
     pr = point[0]
     pc = point[1]
 
-    heat_map = np.zeros((rows, cols, 1))
+    heat_map = np.zeros((rows, cols, 1), dtype=np.float32)
     if pr > 0 and pc > 0:
         sr = pr - (g_kernel.shape[0] // 2)
         sc = pc - (g_kernel.shape[1] // 2)
