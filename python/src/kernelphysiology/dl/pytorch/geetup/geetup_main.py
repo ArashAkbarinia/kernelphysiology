@@ -94,6 +94,7 @@ def process_random_image(model, validation_loader, normalize_inverse, args):
             # PyTorch has this order: batch, frame, channel, width, height
             current_image = normalize_inverse(x_input[b, -1].squeeze()).numpy()
             current_image = np.transpose(current_image, (1, 2, 0))
+            current_image = (current_image * 255).astype('uint8')
             gt = y_target[b].squeeze()
             pred = gt
             _ = geetup_visualise.draw_circle_results(
