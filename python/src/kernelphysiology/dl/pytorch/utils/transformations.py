@@ -2,6 +2,7 @@
 Transformations on tensors without going to CPU.
 """
 
+import numpy as np
 import warnings
 from scipy import linalg
 
@@ -125,8 +126,8 @@ def lab2rgb(lab):
 
 
 def inverse_mean_std(mean, std):
-    mean = torch.as_tensor(mean)
-    std = torch.as_tensor(std)
+    mean = np.array(mean)
+    std = np.array(std)
     std_inv = 1 / (std + 1e-7)
     mean_inv = -mean * std_inv
     return mean_inv, std_inv

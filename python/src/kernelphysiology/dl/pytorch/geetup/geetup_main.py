@@ -85,15 +85,15 @@ def process_random_image(model, validation_loader, normalize_inverse, args):
         x_input = x_input.to(args.gpus)
 
         # inversing the normalisation done before calling the network
-        x_input = normalize_inverse(x_input).detach().cpu().numpy()
-        # PyTorch has this order: batch, frame channel, width, height
-        x_input = np.transpose(x_input, (0, 1, 3, 4, 2))
+        x_input = x_input.clone().detach().cpu()
 
         y_target = y_target.numpy()
 
         for b in range(y_target.shape[0]):
             file_name = '%s/image_%d_%d.jpg' % (args.log_dir, step, b)
-            current_image = x_input[b, -1].squeeze()
+            # PyTorch has this order: batch, frame, channel, width, height
+            current_image = normalize_inverse(x_input[b, -1].squeeze()).numpy()
+            current_image = np.transpose(current_image, (1, 2, 0))
             gt = y_target[b].squeeze()
             pred = gt
             _ = geetup_visualise.draw_circle_results(
@@ -101,7 +101,7 @@ def process_random_image(model, validation_loader, normalize_inverse, args):
             )
 
         # TODO: make it nicer
-        if step == 10:
+        if step == 0:
             break
 
 
