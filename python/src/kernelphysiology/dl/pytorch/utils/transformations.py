@@ -4,7 +4,9 @@ Transformations on tensors without going to CPU.
 
 import warnings
 from scipy import linalg
+
 import torch
+import torchvision
 
 np_xyz_from_rgb = [[0.412453, 0.357580, 0.180423],
                    [0.212671, 0.715160, 0.072169],
@@ -120,3 +122,25 @@ def rgb2lab(rgb):
 
 def lab2rgb(lab):
     return xyz2rgb(lab2xyz(lab))
+
+
+def inverse_mean_std(mean, std):
+    mean = torch.as_tensor(mean)
+    std = torch.as_tensor(std)
+    std_inv = 1 / (std + 1e-7)
+    mean_inv = -mean * std_inv
+    return mean_inv, std_inv
+
+
+class NormalizeInverse(torchvision.transforms.Normalize):
+    """
+    Undoes the normalization and returns the reconstructed images in the input
+    domain.
+    """
+
+    def __init__(self, mean, std):
+        mean_inv, std_inv = inverse_mean_std(mean, std)
+        super().__init__(mean=mean_inv, std=std_inv)
+
+    def __call__(self, tensor):
+        return super().__call__(tensor.clone())
