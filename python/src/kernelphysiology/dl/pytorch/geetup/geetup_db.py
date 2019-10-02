@@ -21,7 +21,7 @@ from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 
 
 class HeatMapFixationPoint(object):
-    def __init__(self, target_size, org_size, gaussian_sigma=2.5):
+    def __init__(self, target_size, org_size, gaussian_sigma=25):
         self.target_size = target_size
         self.org_size = org_size
         self.gaussian_kernel = gaussian_kernel2(gaussian_sigma)
