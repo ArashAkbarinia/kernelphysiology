@@ -9,6 +9,13 @@ import os
 import glob
 
 from kernelphysiology.utils.path_utils import create_dir
+from kernelphysiology.utils.imutils import max_pixel_ind
+
+
+def max_pixel_euclidean_distance(a, b):
+    a_ind = np.asarray(max_pixel_ind(a))
+    b_ind = np.asarray(max_pixel_ind(b))
+    return np.linalg.norm(a_ind - b_ind)
 
 
 def map_point_to_image_size(point, target_size, org_size):

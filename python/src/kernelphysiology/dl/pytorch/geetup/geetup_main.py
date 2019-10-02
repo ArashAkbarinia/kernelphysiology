@@ -6,13 +6,17 @@ import time
 import sys
 import os
 import logging
+import numpy as np
 
 import torch
 import torch.nn as nn
 
 from kernelphysiology.dl.pytorch.geetup import geetup_net, geetup_db
 from kernelphysiology.dl.geetup import geetup_opts
+from kernelphysiology.dl.geetup import geetup_visualise
+from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
+from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
 from kernelphysiology.utils.path_utils import create_dir
 
 
@@ -76,6 +80,31 @@ def train(model, train_loader, optimizer, criterion, epoch, args):
             )
 
 
+def process_random_image(model, validation_loader, normalize_inverse, args):
+    for step, (x_input, y_target) in enumerate(validation_loader):
+        x_input = x_input.to(args.gpus)
+
+        # inversing the normalisation done before calling the network
+        x_input = normalize_inverse(x_input).detach().cpu().numpy()
+        # PyTorch has this order: batch, frame channel, width, height
+        x_input = np.transpose(x_input, (0, 1, 3, 4, 2))
+
+        y_target = y_target.numpy()
+
+        for b in range(y_target.shape[0]):
+            file_name = '%s/image_%d_%d.jpg' % (args.log_dir, step, b)
+            current_image = x_input[b, -1].squeeze()
+            gt = y_target[b].squeeze()
+            pred = gt
+            _ = geetup_visualise.draw_circle_results(
+                current_image, gt, pred, file_name
+            )
+
+        # TODO: make it nicer
+        if step == 10:
+            break
+
+
 def main(args):
     os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
     gpus = [*range(len(args.gpus))]
@@ -126,6 +155,12 @@ def main(args):
         validation_dataset, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True
     )
+
+    if args.random is not None:
+        mean, std = get_preprocessing_function('rgb', 'trichromat')
+        normalize_inverse = NormalizeInverse(mean, std)
+        process_random_image(model, validation_loader, normalize_inverse, args)
+        return
 
     # FIXME: the evaluation
     if args.evaluate:

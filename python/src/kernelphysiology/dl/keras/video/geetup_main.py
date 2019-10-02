@@ -10,7 +10,6 @@ from keras.callbacks import CSVLogger
 from keras.utils import multi_gpu_model
 
 import tensorflow as tf
-import cv2
 
 import numpy as np
 import sys
@@ -26,6 +25,7 @@ from kernelphysiology.utils.path_utils import create_dir
 from kernelphysiology.dl.keras.video import geetup_net
 from kernelphysiology.dl.keras.video import geetup_db
 from kernelphysiology.dl.geetup import geetup_opts
+from kernelphysiology.dl.geetup import geetup_visualise
 
 
 def euc_error(y_true, y_pred, target_size, axis=2):
@@ -65,34 +65,6 @@ def wrapped_partial(func, *args, **kwargs):
     partial_func = partial(func, *args, **kwargs)
     update_wrapper(partial_func, func)
     return partial_func
-
-
-def visualise_results(current_image, gt, pred, file_name):
-    rows, cols, _ = current_image.shape
-    gt_pixel = max_pixel_ind(
-        np.reshape(gt.squeeze(), (rows, cols))
-    )
-    # [::-1] because OpenCV point is XY, which is opposite of rows, cols
-    cv2.circle(current_image, gt_pixel[::-1], 15, (0, 255, 0))
-
-    pred_pixel = max_pixel_ind(
-        np.reshape(pred.squeeze(), (rows, cols))
-    )
-    cv2.circle(current_image, pred_pixel[::-1], 15, (0, 0, 255))
-
-    euc_dis = np.linalg.norm(
-        np.asarray(pred_pixel) - np.asarray(gt_pixel))
-    cx = round(cols / 2)
-    cy = round(rows / 2)
-    cv2.putText(current_image, str(int(euc_dis)), (cx, cy),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255))
-    cv2.imwrite(file_name, current_image)
-
-
-def euc_error_image(pred, gt):
-    pred_ind = np.asarray(max_pixel_ind(pred))
-    gt_ind = np.asarray(max_pixel_ind(gt))
-    return np.linalg.norm(pred_ind - gt_ind)
 
 
 def evaluate(model, args, validation_name, only_name_and_gt=False):
@@ -211,8 +183,9 @@ def random_image(model, args):
                             (args.log_dir, ran_ind, b, f)
                 current_image = x[b, f,].squeeze()
                 current_image = current_image[:, :, [2, 1, 0]].copy()
-                visualise_results(current_image, y[b, f,],
-                                  pred_fix[b, f,], file_name)
+                _ = geetup_visualise.draw_circle_results(
+                    current_image, y[b, f,], pred_fix[b, f,], file_name
+                )
                 # only saving the first batch, since the others are very similar
                 break
 
