@@ -27,7 +27,7 @@ class HeatMapFixationPoint(object):
         self.gaussian_kernel = gaussian_kernel2(gaussian_sigma)
 
     def __call__(self, point):
-        point = map_point_to_image_size( point, self.target_size, self.org_size)
+        point = map_point_to_image_size(point, self.target_size, self.org_size)
         img = heat_map_from_point(
             point, target_size=self.target_size, g_kernel=self.gaussian_kernel
         )
@@ -85,7 +85,7 @@ def _init_videos(video_list):
 
 class GeetupDataset(Dataset):
     def __init__(self, pickle_file, transform=None, target_transform=None,
-                 common_transforms=None, all_gts=True, frames_gap=None,
+                 common_transforms=None, all_gts=False, frames_gap=None,
                  sequence_length=None):
         super(GeetupDataset, self).__init__()
 
@@ -164,6 +164,7 @@ class GeetupDataset(Dataset):
                 y_item.append(gt)
         x_item = torch.stack(x_item, dim=0)
         y_item = torch.stack(y_item, dim=0)
+        y_item = torch.squeeze(y_item)
 
         return x_item, y_item
 

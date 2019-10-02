@@ -106,6 +106,8 @@ class TASED_v2(nn.Module):
         )
 
     def forward(self, x):
+        # in their architecture, channel is first then frame.
+        x = x.permute(0, 2, 1, 3, 4)
         y3 = self.base1(x)
         y = self.maxp2(y3)
         y3 = self.maxm2(y3)
