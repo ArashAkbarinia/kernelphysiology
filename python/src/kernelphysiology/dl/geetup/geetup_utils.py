@@ -279,3 +279,19 @@ def create_sample_dataset(output_folder, dataset_dir, frames_gap=10,
         output_sub_folder, video_list, frames_gap, sequence_length,
         test_all_subjects_template,
     )
+
+
+def change_video_paths(in_file, old, new, out_file, prefix=''):
+    f = open(in_file, 'rb')
+    data = pickle.load(f)
+    f.close()
+
+    data['prefix'] = prefix
+    for i in range(len(data['video_list'])):
+        new_path = data['video_list'][i][0]
+        new_path = new_path.replace(old, new)
+        data['video_list'][i][0] = new_path
+
+    f = open(out_file, 'wb')
+    pickle.dump(data, f)
+    f.close()
