@@ -21,13 +21,16 @@ def which_network(network_name):
 
 
 def which_architecture(architecture):
-    # TODO: support other architectures
-    return TASED_v2()
+    if architecture.lower() == 'tased':
+        return Tased()
 
 
-class TASED_v2(nn.Module):
+class Tased(nn.Module):
+    eps = 1e-5
+    momentum = 0.1
+
     def __init__(self):
-        super(TASED_v2, self).__init__()
+        super(Tased, self).__init__()
         self.base1 = nn.Sequential(
             SepConv3d(3, 64, kernel_size=7, stride=2, padding=3),
             nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
@@ -68,12 +71,14 @@ class TASED_v2(nn.Module):
         )
         self.convtsp1 = nn.Sequential(
             nn.Conv3d(1024, 1024, kernel_size=1, stride=1, bias=False),
-            nn.BatchNorm3d(1024, eps=1e-3, momentum=0.001, affine=True),
+            nn.BatchNorm3d(1024, eps=Tased.eps, momentum=Tased.momentum,
+                           affine=True),
             nn.ReLU(),
 
             nn.ConvTranspose3d(1024, 832, kernel_size=(1, 3, 3), stride=1,
                                padding=(0, 1, 1), bias=False),
-            nn.BatchNorm3d(832, eps=1e-3, momentum=0.001, affine=True),
+            nn.BatchNorm3d(832, eps=Tased.eps, momentum=Tased.momentum,
+                           affine=True),
             nn.ReLU(),
         )
         self.unpool1 = nn.MaxUnpool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2),
@@ -81,7 +86,8 @@ class TASED_v2(nn.Module):
         self.convtsp2 = nn.Sequential(
             nn.ConvTranspose3d(832, 480, kernel_size=(1, 3, 3), stride=1,
                                padding=(0, 1, 1), bias=False),
-            nn.BatchNorm3d(480, eps=1e-3, momentum=0.001, affine=True),
+            nn.BatchNorm3d(480, eps=Tased.eps, momentum=Tased.momentum,
+                           affine=True),
             nn.ReLU(),
         )
         self.unpool2 = nn.MaxUnpool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
@@ -89,7 +95,8 @@ class TASED_v2(nn.Module):
         self.convtsp3 = nn.Sequential(
             nn.ConvTranspose3d(480, 192, kernel_size=(1, 3, 3), stride=1,
                                padding=(0, 1, 1), bias=False),
-            nn.BatchNorm3d(192, eps=1e-3, momentum=0.001, affine=True),
+            nn.BatchNorm3d(192, eps=Tased.eps, momentum=Tased.momentum,
+                           affine=True),
             nn.ReLU(),
         )
         self.unpool3 = nn.MaxUnpool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
@@ -97,21 +104,25 @@ class TASED_v2(nn.Module):
         self.convtsp4 = nn.Sequential(
             nn.ConvTranspose3d(192, 64, kernel_size=(1, 4, 4), stride=(1, 2, 2),
                                padding=(0, 1, 1), bias=False),
-            nn.BatchNorm3d(64, eps=1e-3, momentum=0.001, affine=True),
+            nn.BatchNorm3d(64, eps=Tased.eps, momentum=Tased.momentum,
+                           affine=True),
             nn.ReLU(),
 
             nn.Conv3d(64, 64, kernel_size=(2, 1, 1), stride=(2, 1, 1),
                       bias=False),
-            nn.BatchNorm3d(64, eps=1e-3, momentum=0.001, affine=True),
+            nn.BatchNorm3d(64, eps=Tased.eps, momentum=Tased.momentum,
+                           affine=True),
             nn.ReLU(),
 
             nn.ConvTranspose3d(64, 4, kernel_size=1, stride=1, bias=False),
-            nn.BatchNorm3d(4, eps=1e-3, momentum=0.001, affine=True),
+            nn.BatchNorm3d(4, eps=Tased.eps, momentum=Tased.momentum,
+                           affine=True),
             nn.ReLU(),
 
             nn.Conv3d(4, 4, kernel_size=(2, 1, 1), stride=(2, 1, 1),
                       bias=False),
-            nn.BatchNorm3d(4, eps=1e-3, momentum=0.001, affine=True),
+            nn.BatchNorm3d(4, eps=Tased.eps, momentum=Tased.momentum,
+                           affine=True),
             nn.ReLU(),
 
             nn.ConvTranspose3d(4, 4, kernel_size=(1, 4, 4), stride=(1, 2, 2),
@@ -153,7 +164,8 @@ class BasicConv3d(nn.Module):
         super(BasicConv3d, self).__init__()
         self.conv = nn.Conv3d(in_planes, out_planes, kernel_size=kernel_size,
                               stride=stride, padding=padding, bias=False)
-        self.bn = nn.BatchNorm3d(out_planes, eps=1e-3, momentum=0.001,
+        self.bn = nn.BatchNorm3d(out_planes, eps=Tased.eps,
+                                 momentum=Tased.momentum,
                                  affine=True)
         self.relu = nn.ReLU()
 
@@ -171,7 +183,8 @@ class SepConv3d(nn.Module):
                                 kernel_size=(1, kernel_size, kernel_size),
                                 stride=(1, stride, stride),
                                 padding=(0, padding, padding), bias=False)
-        self.bn_s = nn.BatchNorm3d(out_planes, eps=1e-3, momentum=0.001,
+        self.bn_s = nn.BatchNorm3d(out_planes, eps=Tased.eps,
+                                   momentum=Tased.momentum,
                                    affine=True)
         self.relu_s = nn.ReLU()
 
@@ -179,7 +192,8 @@ class SepConv3d(nn.Module):
                                 kernel_size=(kernel_size, 1, 1),
                                 stride=(stride, 1, 1), padding=(padding, 0, 0),
                                 bias=False)
-        self.bn_t = nn.BatchNorm3d(out_planes, eps=1e-3, momentum=0.001,
+        self.bn_t = nn.BatchNorm3d(out_planes, eps=Tased.eps,
+                                   momentum=Tased.momentum,
                                    affine=True)
         self.relu_t = nn.ReLU()
 
