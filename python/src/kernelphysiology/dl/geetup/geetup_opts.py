@@ -36,26 +36,22 @@ def argument_parser():
     data_group = parser.add_argument_group('data')
     data_group.add_argument(
         '--data_dir',
-        dest='data_dir',
         type=str,
         help='Path to the data folder'
     )
     data_group.add_argument(
         '--train_file',
-        dest='train_file',
         type=str,
         help='Path to the training file'
     )
     data_group.add_argument(
         '--validation_file',
-        dest='validation_file',
         type=str,
         help='Path to the validation file'
     )
     # This parameter is only for testing generalisation across frame gaps
     data_group.add_argument(
         '--frames_gap',
-        dest='frames_gap',
         type=int,
         help='Gaps between frames when reading the video (default: from data)'
     )
@@ -75,7 +71,6 @@ def argument_parser():
 
     parser.add_argument(
         '--experiment_name',
-        dest='experiment_name',
         type=str,
         default='experiment_name',
         help='Name of the current experiment (default: experiment_name)'
@@ -88,7 +83,6 @@ def argument_parser():
     )
     parser.add_argument(
         '--random',
-        dest='random',
         nargs='+',
         type=int,
         default=None,
@@ -98,7 +92,6 @@ def argument_parser():
     architecture_group = parser.add_argument_group('architecture')
     architecture_group.add_argument(
         '--weights',
-        dest='weights',
         type=str,
         default=None,
         help='Path to the weights of a network'
