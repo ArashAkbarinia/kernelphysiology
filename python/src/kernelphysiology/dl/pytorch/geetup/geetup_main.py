@@ -58,8 +58,8 @@ def epochs(model, train_loader, validation_loader, optimizer, args):
 
         model_progress.append([*train_log, *validation_log])
 
-        # remember best acc@1 and save checkpoint
-        euc_distance = validation_log[3]
+        # remember best euclidean distance and save checkpoint
+        euc_distance = validation_log[2]
         is_best = euc_distance < best_euc
         best_euc = max(euc_distance, best_euc)
 
