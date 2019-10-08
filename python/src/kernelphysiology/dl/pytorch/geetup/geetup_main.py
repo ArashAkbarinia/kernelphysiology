@@ -93,12 +93,11 @@ def validate(validation_loader, model, criterion, args):
     losses = AverageMeter()
     eucs = AverageMeter()
 
-    # switch to train mode
+    # switch to evaluation mode
     model.eval()
 
     with torch.no_grad():
         end = time.time()
-        # TODO: it's too much to do for all
         for step, (x_input, y_target) in enumerate(validation_loader):
             # measure data loading time
             data_time.update(time.time() - end)
@@ -187,29 +186,37 @@ def train(train_loader, model, optimizer, criterion, epoch, args):
 
 
 def process_random_image(model, validation_loader, normalize_inverse, args):
-    for step, (x_input, y_target) in enumerate(validation_loader):
-        x_input = x_input.to(args.gpus)
+    # switch to evaluation mode
+    model.eval()
 
-        # inversing the normalisation done before calling the network
-        x_input = x_input.clone().detach().cpu()
+    with torch.no_grad():
+        for step, (x_input, y_target) in enumerate(validation_loader):
+            x_input = x_input.to(args.gpus)
+            output = model(x_input)
+            output = output.clone().detach().cpu().numpy()
 
-        y_target = y_target.numpy()
+            # inversing the normalisation done before calling the network
+            x_input = x_input.clone().detach().cpu()
 
-        for b in range(y_target.shape[0]):
-            file_name = '%s/image_%d_%d.jpg' % (args.out_dir, step, b)
-            # PyTorch has this order: batch, frame, channel, width, height
-            current_image = normalize_inverse(x_input[b, -1].squeeze()).numpy()
-            current_image = np.transpose(current_image, (1, 2, 0))
-            current_image = (current_image * 255).astype('uint8')
-            gt = y_target[b].squeeze()
-            pred = gt
-            _ = geetup_visualise.draw_circle_results(
-                current_image, gt, pred, file_name
-            )
+            y_target = y_target.numpy()
 
-        # TODO: make it nicer
-        if step == 0:
-            break
+            for b in range(y_target.shape[0]):
+                file_name = '%s/image_%d_%d.jpg' % (args.out_dir, step, b)
+                # PyTorch has this order: batch, frame, channel, width, height
+                current_image = normalize_inverse(
+                    x_input[b, -1].squeeze()
+                ).numpy()
+                current_image = np.transpose(current_image, (1, 2, 0))
+                current_image = (current_image * 255).astype('uint8')
+                gt = y_target[b].squeeze()
+                pred = output[b].squeeze()
+                _ = geetup_visualise.draw_circle_results(
+                    current_image, gt, pred, file_name
+                )
+
+            # TODO: make it nicer
+            if step == 0:
+                break
 
 
 def main(args):
