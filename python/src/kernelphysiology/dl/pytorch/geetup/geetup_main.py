@@ -218,8 +218,13 @@ def main(args):
     # FIXME: cant take more than one GPU
     args.gpus = gpus[0]
 
+    # creating the model
+    model, architecture = geetup_net.which_network(args.architecture)
+    torch.cuda.set_device(args.gpus)
+    model = model.cuda(args.gpus)
+
     args.out_dir = prepare_training.prepare_output_directories(
-        dataset_name='geetup', network_name=args.architecture,
+        dataset_name='geetup', network_name=architecture,
         optimiser='sgd', load_weights=False,
         experiment_name=args.experiment_name, framework='pytorch'
     )
@@ -228,11 +233,6 @@ def main(args):
         filename=args.out_dir + '/experiment_info.log', filemode='w',
         format='%(levelname)s: %(message)s', level=logging.INFO
     )
-
-    # creating the model
-    model = geetup_net.which_network(args.architecture)
-    torch.cuda.set_device(args.gpus)
-    model = model.cuda(args.gpus)
 
     validation_pickle = os.path.join(args.data_dir, args.validation_file)
     validation_dataset = geetup_db.get_validation_dataset(

@@ -2,6 +2,7 @@
 Options of the GEETUP.
 """
 
+import os
 import sys
 import argparse
 
@@ -13,7 +14,8 @@ def check_args(parser, argv):
     if args.evaluate:
         if args.validation_file is None:
             sys.exit('The validation file should be specified')
-        if args.architecture != 'centre' and args.weights is None:
+        if (args.architecture != 'centre' and
+                not os.path.isfile(args.architecture)):
             sys.exit('Models weights most be specified.')
     else:
         if args.data_dir is None:
