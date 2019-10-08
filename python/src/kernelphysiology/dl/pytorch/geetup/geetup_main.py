@@ -127,6 +127,9 @@ def validate(validation_loader, model, criterion, args):
                         data_time=data_time, loss=losses, euc=eucs
                     )
                 )
+            if (args.validation_samples is not None and
+                    (step * args.batch_size) >= args.validation_samples):
+                break
         # printing the accuracy of the epoch
         print(
             ' * Loss {loss.avg:.3f} Euc {euc.avg:.3f}'.format(
@@ -146,7 +149,6 @@ def train(train_loader, model, optimizer, criterion, epoch, args):
     model.train()
 
     end = time.time()
-    # TODO: it's too much to do for all
     for step, (x_input, y_target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
@@ -182,6 +184,9 @@ def train(train_loader, model, optimizer, criterion, epoch, args):
                     data_time=data_time, loss=losses, euc=eucs
                 )
             )
+        if (args.train_samples is not None and
+                (step * args.batch_size) >= args.train_samples):
+            break
     return [epoch, batch_time.avg, losses.avg, eucs.avg]
 
 

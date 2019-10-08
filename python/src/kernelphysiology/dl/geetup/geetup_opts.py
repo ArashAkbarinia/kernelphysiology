@@ -132,8 +132,20 @@ def argument_parser():
     optimisation_group.add_argument(
         '-e', '--epochs',
         type=int,
-        default=15,
-        help='Number of epochs (default: 15)'
+        default=90,
+        help='Number of epochs (default: 90)'
+    )
+    optimisation_group.add_argument(
+        '-ts', '--train_samples',
+        type=int,
+        default=None,
+        help='Number of training samples per epoch (default: all)'
+    )
+    optimisation_group.add_argument(
+        '-vs', '--validation_samples',
+        type=int,
+        default=None,
+        help='Number of validation samples per epoch (default: all)'
     )
     optimisation_group.add_argument(
         '--initial_epoch',
