@@ -2,11 +2,24 @@
 Collection of architectures for GEETUP in PyTorch.
 """
 
+import os
+
 import torch
 from torch import nn
 
 
-def which_architecture():
+def which_network(network_name):
+    if os.path.isfile(network_name):
+        checkpoint = torch.load(network_name, map_location='cpu')
+        network = which_architecture(checkpoint['arch'])
+        network.load_state_dict(checkpoint['state_dict'])
+    else:
+        network = which_architecture(network_name)
+    return network
+
+
+def which_architecture(architecture):
+    # TODO: support other architectures
     return TASED_v2()
 
 

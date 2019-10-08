@@ -65,10 +65,10 @@ def get_validation_dataset(pickle_file, target_size):
         HeatMapFixationPoint(target_size, (360, 640)), transforms.ToTensor()
     ])
     common_transforms = None
-    train_dataset = GeetupDataset(
+    validation_dataset = GeetupDataset(
         pickle_file, img_transform, target_transform, common_transforms
     )
-    return train_dataset
+    return validation_dataset
 
 
 def _init_videos(video_list):

@@ -19,7 +19,6 @@ from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
 from kernelphysiology.dl.utils import prepare_training
-from kernelphysiology.utils.path_utils import create_dir
 
 
 def euclidean_error(x, y):
@@ -231,7 +230,7 @@ def main(args):
     )
 
     # creating the model
-    model = geetup_net.which_architecture()
+    model = geetup_net.which_network(args.architecture)
     torch.cuda.set_device(args.gpus)
     model = model.cuda(args.gpus)
 
@@ -250,8 +249,11 @@ def main(args):
         process_random_image(model, validation_loader, normalize_inverse, args)
         return
 
-    # FIXME: the evaluation
+    args.criterion = nn.BCELoss().cuda(args.gpus)
     if args.evaluate:
+        validation_log = validate(
+            validation_loader, model, args.criterion, args
+        )
         return
 
     training_pickle = os.path.join(args.data_dir, args.train_file)
@@ -269,7 +271,6 @@ def main(args):
         momentum=args.momentum, weight_decay=args.weight_decay
     )
 
-    args.criterion = nn.BCELoss().cuda(args.gpus)
     epochs(model, train_loader, validation_loader, optimizer, args)
 
 
