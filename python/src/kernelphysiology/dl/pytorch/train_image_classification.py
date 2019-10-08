@@ -321,7 +321,11 @@ def main_worker(ngpus_per_node, args):
                 },
                 is_best, out_folder=args.out_dir
             )
-        np.savetxt(file_path, np.array(model_progress), delimiter=',')
+        # TODO: get this header directly as a dictionary keys
+        header = 'epoch,t_time,t_loss,t_top1,t_top5,v_time,v_loss,v_top1,v_top5'
+        np.savetxt(
+            file_path, np.array(model_progress), delimiter=',', header=header
+        )
 
 
 if __name__ == '__main__':

@@ -11,12 +11,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from kernelphysiology.dl.pytorch.geetup import geetup_net, geetup_db
 from kernelphysiology.dl.geetup import geetup_opts
 from kernelphysiology.dl.geetup import geetup_visualise
+from kernelphysiology.dl.pytorch.geetup import geetup_net, geetup_db
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
+from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
+from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.utils.path_utils import create_dir
 
 
@@ -39,15 +41,104 @@ def epochs(model, train_loader, validation_loader, optimizer, args):
         last_epoch=args.initial_epoch - 1
     )
 
+    file_path = os.path.join(args.out_dir, 'model_progress.csv')
+    model_progress = []
+
+    best_euc = np.inf
     criterion = args.criterion
     for epoch in range(args.initial_epoch, args.epochs):
         scheduler.step(epoch=epoch)
-        train(model, train_loader, optimizer, criterion, epoch, args)
+        train_log = train(
+            train_loader, model, optimizer, criterion, epoch, args
+        )
+
+        validation_log = validate(
+            validation_loader, model, criterion, args
+        )
+
+        model_progress.append([*train_log, *validation_log])
+
+        # remember best acc@1 and save checkpoint
+        euc_distance = validation_log[3]
+        is_best = euc_distance < best_euc
+        best_euc = max(euc_distance, best_euc)
+
+        # TODO: many of these parameters don't exist as of now
+        save_checkpoint(
+            {
+                'epoch': epoch + 1,
+                'arch': args.architecture,
+                'customs': {
+                    'pooling_type': None,
+                    'in_chns': 3,
+                    'blocks': None,
+                    'num_kernels': None
+                },
+                'state_dict': model.state_dict(),
+                'best_euc': best_euc,
+                'optimizer': optimizer.state_dict(),
+                'target_size': args.target_size,
+            },
+            is_best, out_folder=args.out_dir
+        )
+        # TODO: get this header directly as a dictionary keys
+        header = 'epoch,t_time,t_loss,t_euc,v_time,v_loss,v_euc'
+        np.savetxt(
+            file_path, np.array(model_progress), delimiter=',', header=header
+        )
 
 
-def train(model, train_loader, optimizer, criterion, epoch, args):
-    model.train()
+def validate(validation_loader, model, criterion, args):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+    eucs = AverageMeter()
 
+    # switch to train mode
+    model.eval()
+
+    with torch.no_grad():
+        end = time.time()
+        # TODO: it's too much to do for all
+        for step, (x_input, y_target) in enumerate(validation_loader):
+            # measure data loading time
+            data_time.update(time.time() - end)
+
+            x_input = x_input.to(args.gpus)
+            y_target = y_target.to(args.gpus)
+
+            output = model(x_input)
+            loss = criterion(output, y_target)
+
+            # measure accuracy and record loss
+            losses.update(loss.item(), x_input.size(0))
+            eucs.update(euclidean_error(y_target, output), x_input.size(0))
+
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
+
+            # printing the accuracy at certain intervals
+            if step % args.print_freq == 0:
+                print(
+                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Euc {euc.val:.4f} ({euc.avg:.4f})'.format(
+                        step, len(validation_loader), batch_time=batch_time,
+                        data_time=data_time, loss=losses, euc=eucs
+                    )
+                )
+        # printing the accuracy of the epoch
+        print(
+            ' * Loss {loss.avg:.3f} Euc {euc.avg:.3f}'.format(
+                loss=losses, euc=eucs
+            )
+        )
+    return [batch_time.avg, losses.avg, eucs.avg]
+
+
+def train(train_loader, model, optimizer, criterion, epoch, args):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -93,6 +184,7 @@ def train(model, train_loader, optimizer, criterion, epoch, args):
                     data_time=data_time, loss=losses, euc=eucs
                 )
             )
+    return [epoch, batch_time.avg, losses.avg, eucs.avg]
 
 
 def process_random_image(model, validation_loader, normalize_inverse, args):
@@ -105,7 +197,7 @@ def process_random_image(model, validation_loader, normalize_inverse, args):
         y_target = y_target.numpy()
 
         for b in range(y_target.shape[0]):
-            file_name = '%s/image_%d_%d.jpg' % (args.log_dir, step, b)
+            file_name = '%s/image_%d_%d.jpg' % (args.out_dir, step, b)
             # PyTorch has this order: batch, frame, channel, width, height
             current_image = normalize_inverse(x_input[b, -1].squeeze()).numpy()
             current_image = np.transpose(current_image, (1, 2, 0))
@@ -127,32 +219,14 @@ def main(args):
     # FIXME: cant take more than one GPU
     args.gpus = gpus[0]
 
-    create_dir(args.log_dir)
-    # for training organise the output file
-    if args.evaluate is False:
-        # add architecture to directory
-        args.log_dir = os.path.join(args.log_dir, args.architecture)
-        create_dir(args.log_dir)
-        # add frame based or time integration to directory
-        if args.frame_based:
-            time_or_frame = 'frame_based'
-        else:
-            time_or_frame = 'time_integration'
-        args.log_dir = os.path.join(args.log_dir, time_or_frame)
-        create_dir(args.log_dir)
-        # add scratch or fine tune to directory
-        if args.weights is None:
-            new_or_tune = 'scratch'
-        else:
-            new_or_tune = 'fine_tune'
-        args.log_dir = os.path.join(args.log_dir, new_or_tune)
-        create_dir(args.log_dir)
-    # add experiment name to directory
-    args.log_dir = os.path.join(args.log_dir, args.experiment_name)
-    create_dir(args.log_dir)
+    args.out_dir = prepare_training.prepare_output_directories(
+        dataset_name='geetup', network_name=args.architecture,
+        optimiser='sgd', load_weights=False,
+        experiment_name=args.experiment_name, framework='pytorch'
+    )
 
     logging.basicConfig(
-        filename=args.log_dir + '/experiment_info.log', filemode='w',
+        filename=args.out_dir + '/experiment_info.log', filemode='w',
         format='%(levelname)s: %(message)s', level=logging.INFO
     )
 
@@ -160,8 +234,6 @@ def main(args):
     model = geetup_net.which_architecture()
     torch.cuda.set_device(args.gpus)
     model = model.cuda(args.gpus)
-
-    args.target_size = [360, 640]
 
     validation_pickle = os.path.join(args.data_dir, args.validation_file)
     validation_dataset = geetup_db.get_validation_dataset(
@@ -192,17 +264,12 @@ def main(args):
     )
 
     # optimiser
-    args.lr = 0.1
-    args.momentum = 0.9
-    args.weight_decay = 0
     optimizer = torch.optim.SGD(
         model.parameters(), args.lr,
         momentum=args.momentum, weight_decay=args.weight_decay
     )
 
-    args.initial_epoch = 0
-    args.print_freq = 10
-    args.criterion = nn.KLDivLoss().cuda(args.gpus)
+    args.criterion = nn.BCELoss().cuda(args.gpus)
     epochs(model, train_loader, validation_loader, optimizer, args)
 
 

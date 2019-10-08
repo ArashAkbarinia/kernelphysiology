@@ -63,14 +63,14 @@ def argument_parser():
         default=False,
         help='Train and evaluate on all frames in a sequence (default: False)'
     )
-
-    parser.add_argument(
-        '--log_dir',
-        dest='log_dir',
-        type=str,
-        default='log_dir',
-        help='Path to the logging directory (default: log_dir)'
+    data_group.add_argument(
+        '--target_size',
+        nargs='+',
+        type=int,
+        default=[360, 640],
+        help='Target size (default: [360, 640])'
     )
+
     parser.add_argument(
         '--experiment_name',
         dest='experiment_name',
@@ -93,15 +93,6 @@ def argument_parser():
         help='Number of random images to try (default: None)'
     )
 
-    train_group = parser.add_argument_group('train')
-    train_group.add_argument(
-        '--epochs',
-        dest='epochs',
-        type=int,
-        default=15,
-        help='Number of epochs (default: 15)'
-    )
-
     architecture_group = parser.add_argument_group('architecture')
     architecture_group.add_argument(
         '--weights',
@@ -117,6 +108,38 @@ def argument_parser():
         help='Make the model frame based (default: False)'
     )
 
+    optimisation_group = parser.add_argument_group('optimisation')
+    optimisation_group.add_argument(
+        '--lr', '--learning_rate',
+        type=float,
+        default=0.1,
+        help='The learning rate parameter (default: 0.1)'
+    )
+    optimisation_group.add_argument(
+        '--momentum',
+        default=0.9,
+        type=float,
+        help='The momentum for optimisation (default 0.9)'
+    )
+    optimisation_group.add_argument(
+        '-wd', '--weight_decay',
+        type=float,
+        default=0,
+        help='The decay weight parameter (default: 0)'
+    )
+    optimisation_group.add_argument(
+        '-e', '--epochs',
+        type=int,
+        default=15,
+        help='Number of epochs (default: 15)'
+    )
+    optimisation_group.add_argument(
+        '--initial_epoch',
+        type=int,
+        default=0,
+        help='The initial epoch number (default: 0)'
+    )
+
     process_group = parser.add_argument_group('process')
     process_group.add_argument(
         '-j', '--workers',
@@ -124,7 +147,6 @@ def argument_parser():
         default=1,
         help='Number of workers for image generator (default: 1)'
     )
-
     process_group.add_argument(
         '-b', '--batch_size',
         type=int,
@@ -137,5 +159,11 @@ def argument_parser():
         type=int,
         default=[0],
         help='List of GPUs to be used (default: [0])'
+    )
+    process_group.add_argument(
+        '--print_freq',
+        type=int,
+        default=100,
+        help='Frequency of reporting (default: 100)'
     )
     return parser
