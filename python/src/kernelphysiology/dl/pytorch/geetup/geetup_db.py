@@ -96,7 +96,6 @@ class GeetupDataset(Dataset):
         self.frames_gap = frames_gap
         self.sequence_length = sequence_length
         self.all_gts = all_gts
-        self.prefix = ''
 
         (self.all_videos,
          self.num_sequences,
@@ -112,8 +111,9 @@ class GeetupDataset(Dataset):
         if self.sequence_length is None:
             self.sequence_length = f_data['sequence_length']
         video_list = f_data['video_list']
-        if 'prefix' in f_data:
-            self.prefix = f_data['prefix']
+        self.base_path_img = f_data['base_path_img']
+        self.base_path_txt = f_data['base_path_txt']
+        self.prefix = f_data['prefix']
         all_videos, num_sequences, video_paths = _init_videos(video_list)
         print('Read %d sequences' % num_sequences)
         return all_videos, num_sequences, video_paths
@@ -128,8 +128,12 @@ class GeetupDataset(Dataset):
         frame_n = frame_0 + self.sequence_length * self.frames_gap
         all_frames = [i for i in range(frame_0, frame_n, self.frames_gap)]
 
-        video_path = '%s/CutVid_%s/%s' % (segment_dir, video_num, self.prefix)
-        f_selected = '%s/SELECTED_IMGS_%s.txt' % (segment_dir, video_num)
+        video_path = '%s/%s/CutVid_%s/%s' % (
+            self.base_path_img, segment_dir, video_num, self.prefix
+        )
+        f_selected = '%s/%s/SELECTED_IMGS_%s.txt' % (
+            self.base_path_txt, segment_dir, video_num
+        )
         selected_imgs = np.loadtxt(f_selected, dtype=str, delimiter=',')
 
         x_item = []

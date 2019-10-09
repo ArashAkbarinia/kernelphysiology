@@ -281,17 +281,45 @@ def create_sample_dataset(output_folder, dataset_dir, frames_gap=10,
     )
 
 
-def change_video_paths(in_file, old, new, out_file, prefix=''):
+def change_base_path_img(in_file, old, new, out_file):
     f = open(in_file, 'rb')
     data = pickle.load(f)
     f.close()
 
-    data['prefix'] = prefix
-    for i in range(len(data['video_list'])):
-        new_path = data['video_list'][i][0]
-        new_path = new_path.replace(old, new)
-        data['video_list'][i][0] = new_path
+    # changing the base path
+    new_base = data['base_path_img']
+    new_base = new_base.replace(old, new)
+    data['base_path_img'] = new_base
 
     f = open(out_file, 'wb')
+    pickle.dump(data, f)
+    f.close()
+
+
+def extract_base_path_recursive(in_folder, base_path, prefix=''):
+    for folder in sorted(glob.glob(in_folder + '/*/')):
+        print(folder)
+        for in_file in sorted(glob.glob(folder + '/*.pickle')):
+            extract_base_path(in_file, base_path, prefix)
+
+
+def extract_base_path(in_file, base_path, prefix=''):
+    f = open(in_file, 'rb')
+    data = pickle.load(f)
+    f.close()
+
+    # adding the base path
+    data['base_path_img'] = base_path
+    data['base_path_txt'] = base_path
+
+    # adding the prefix
+    data['prefix'] = prefix
+
+    for i in range(len(data['video_list'])):
+        new_path = data['video_list'][i][0]
+        new_path = new_path.replace(base_path, '')
+        data['video_list'][i][0] = new_path
+
+    f = open(in_file, 'wb')
     pickle.dump(data, f)
     f.close()
