@@ -281,6 +281,17 @@ def create_sample_dataset(output_folder, dataset_dir, frames_gap=10,
     )
 
 
+def change_base_path_img_recursive(in_folder, old, new, out_folder):
+    create_dir(out_folder)
+    for current_in in sorted(glob.glob(in_folder + '/*/')):
+        print(current_in)
+        current_out = current_in.replace(in_folder, out_folder)
+        create_dir(current_out)
+        for in_file in sorted(glob.glob(current_in + '/*.pickle')):
+            out_file = in_file.replace(in_folder, out_folder)
+            change_base_path_img(in_file, old, new, out_file)
+
+
 def change_base_path_img(in_file, old, new, out_file):
     f = open(in_file, 'rb')
     data = pickle.load(f)
