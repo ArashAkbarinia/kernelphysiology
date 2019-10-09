@@ -310,6 +310,28 @@ def change_base_path_img(in_file, old, new, out_file, prefix=''):
     f.close()
 
 
+def remove_segment_video_list_recursive(in_folder, segment):
+    for folder in sorted(glob.glob(in_folder + '/*/')):
+        print(folder)
+        for in_file in sorted(glob.glob(folder + '/*.pickle')):
+            remove_segment_video_list(in_file, segment)
+
+
+def remove_segment_video_list(in_file, segment):
+    f = open(in_file, 'rb')
+    data = pickle.load(f)
+    f.close()
+
+    for i in range(len(data['video_list'])):
+        new_path = data['video_list'][i][0]
+        new_path = new_path.replace(segment, '')
+        data['video_list'][i][0] = new_path
+
+    f = open(in_file, 'wb')
+    pickle.dump(data, f)
+    f.close()
+
+
 def extract_base_path_recursive(in_folder, base_path, prefix=''):
     for folder in sorted(glob.glob(in_folder + '/*/')):
         print(folder)
