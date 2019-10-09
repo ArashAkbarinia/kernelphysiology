@@ -25,8 +25,8 @@ from kernelphysiology.dl.utils import prepare_training
 def euclidean_error_with_point(x, y):
     max_x = torch.argmax(x)
     max_y = torch.argmax(y)
-    max_x = [max_x / x.shape[2], max_x % x.shape[2]]
-    max_y = [max_y / x.shape[2], max_y % x.shape[2]]
+    max_x = [max_x / x.shape[1], max_x % x.shape[1]]
+    max_y = [max_y / x.shape[1], max_y % x.shape[1]]
     sum_error = (max_x[0] - max_y[0]) ** 2 + (max_x[1] - max_y[1]) ** 2
     return torch.sqrt(sum_error.float()), max_x, max_y
 
