@@ -146,6 +146,12 @@ def argument_parser():
         default=0,
         help='The initial epoch number (default: 0)'
     )
+    optimisation_group.add_argument(
+        '--resume',
+        default=None,
+        type=str,
+        help='Path to latest checkpoint (default: None)'
+    )
 
     process_group = parser.add_argument_group('process')
     process_group.add_argument(

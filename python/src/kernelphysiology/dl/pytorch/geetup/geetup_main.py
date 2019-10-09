@@ -44,6 +44,32 @@ def euclidean_error_batch(x, y):
 
 
 def epochs(model, train_loader, validation_loader, optimizer, args):
+    model_progress = []
+    best_euc = np.inf
+    # optionally resume from a checkpoint
+    if args.resume is not None:
+        if os.path.isfile(args.resume):
+            print("=> loading checkpoint '{}'".format(args.resume))
+            checkpoint = torch.load(args.resume, map_location='cpu')
+            args.initial_epoch = checkpoint['epoch']
+            best_euc = checkpoint['best_euc']
+            model.load_state_dict(checkpoint['state_dict'])
+            if args.gpus is not None:
+                best_euc = best_euc.to(args.gpus)
+                model = model.cuda(args.gpus)
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            print(
+                "=> loaded checkpoint '{}' (epoch {})".format(
+                    args.resume, checkpoint['epoch']
+                )
+            )
+            model_progress_path = args.resume.replace(
+                'checkpoint.pth.tar', 'model_progress.csv'
+            )
+            if os.path.exists(model_progress_path):
+                model_progress = np.loadtxt(model_progress_path, delimiter=',')
+                model_progress = model_progress.tolist()
+
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
         optimizer,
         milestones=[int(args.epochs * 0.33), int(args.epochs * 0.66)],
@@ -51,9 +77,6 @@ def epochs(model, train_loader, validation_loader, optimizer, args):
     )
 
     file_path = os.path.join(args.out_dir, 'model_progress.csv')
-    model_progress = []
-
-    best_euc = np.inf
     criterion = args.criterion
     for epoch in range(args.initial_epoch, args.epochs):
         scheduler.step(epoch=epoch)
