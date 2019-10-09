@@ -130,6 +130,7 @@ def validate(validation_loader, model, criterion, args):
             # printing the accuracy at certain intervals
             if step % args.print_freq == 0:
                 print(
+                    'Step: {0}/{1}\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                     'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -195,6 +196,7 @@ def predict(validation_loader, model, criterion, args):
             # printing the accuracy at certain intervals
             if step % args.print_freq == 0:
                 print(
+                    'Step: {0}/{1}\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                     'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
