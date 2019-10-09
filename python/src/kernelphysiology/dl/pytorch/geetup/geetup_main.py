@@ -159,8 +159,8 @@ def predict(validation_loader, model, criterion, args):
     # switch to evaluation mode
     model.eval()
 
-    all_eucs = torch.zeros(validation_loader.__len__())
-    all_preds = torch.zeros((validation_loader.__len__(), 2))
+    all_eucs = np.zeros(validation_loader.__len__())
+    all_preds = np.zeros((validation_loader.__len__(), 2))
 
     with torch.no_grad():
         end = time.time()
@@ -189,7 +189,7 @@ def predict(validation_loader, model, criterion, args):
                 pred = output[b].squeeze()
                 euc_dis, _, pred_p = euclidean_error_with_point(gt, pred)
                 all_eucs[out_ind] = euc_dis
-                all_preds[out_ind] = pred_p
+                all_preds[out_ind] = np.array(pred_p)
                 out_ind += 1
 
             # printing the accuracy at certain intervals
@@ -212,8 +212,6 @@ def predict(validation_loader, model, criterion, args):
                 loss=losses, euc=eucs
             )
         )
-        all_eucs = all_eucs.numpy()
-        all_preds = all_preds.numpy()
     preds_out = {'eucs': all_eucs, 'preds': all_preds}
     return preds_out
 
@@ -345,7 +343,7 @@ def main(args):
         predict_outs = predict(
             validation_loader, model, args.criterion, args
         )
-        for key, item in predict_outs:
+        for key, item in predict_outs.items():
             result_file = '%s/%s.pickle' % (args.out_dir, key)
             pickle_out = open(result_file, 'wb')
             pickle.dump(item, pickle_out)
