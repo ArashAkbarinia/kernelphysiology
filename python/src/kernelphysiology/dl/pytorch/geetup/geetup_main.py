@@ -160,8 +160,8 @@ def predict(validation_loader, model, criterion, args):
     # switch to evaluation mode
     model.eval()
 
-    all_eucs = np.zeros(validation_loader.__len__())
-    all_preds = np.zeros((validation_loader.__len__(), 2))
+    all_eucs = np.zeros(validation_loader.dataset.num_sequences)
+    all_preds = np.zeros((validation_loader.dataset.num_sequences, 2))
 
     with torch.no_grad():
         end = time.time()
