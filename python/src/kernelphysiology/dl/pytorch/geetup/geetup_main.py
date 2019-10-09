@@ -6,6 +6,7 @@ import time
 import sys
 import os
 import logging
+import pickle
 import numpy as np
 
 import torch
@@ -21,15 +22,24 @@ from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
 from kernelphysiology.dl.utils import prepare_training
 
 
+def euclidean_error_with_point(x, y):
+    max_x = torch.argmax(x)
+    max_y = torch.argmax(y)
+    max_x = [max_x / x.shape[2], max_x % x.shape[2]]
+    max_y = [max_y / x.shape[2], max_y % x.shape[2]]
+    sum_error = (max_x[0] - max_y[0]) ** 2 + (max_x[1] - max_y[1]) ** 2
+    return torch.sqrt(sum_error.float()), max_x, max_y
+
+
 def euclidean_error(x, y):
+    euc_distance, _, _ = euclidean_error_with_point(x, y)
+    return euc_distance
+
+
+def euclidean_error_batch(x, y):
     cumulative_error = 0
     for i in range(x.shape[0]):
-        max_x = torch.argmax(x[i].squeeze())
-        max_y = torch.argmax(y[i].squeeze())
-        max_x = [max_x / x.shape[2], max_x % x.shape[2]]
-        max_y = [max_y / x.shape[2], max_y % x.shape[2]]
-        sum_error = (max_x[0] - max_y[0]) ** 2 + (max_x[1] - max_y[1]) ** 2
-        cumulative_error += torch.sqrt(sum_error.float())
+        cumulative_error += euclidean_error(x[i].squeeze(), y[i].squeeze())
     return cumulative_error / x.shape[0]
 
 
@@ -110,7 +120,8 @@ def validate(validation_loader, model, criterion, args):
 
             # measure accuracy and record loss
             losses.update(loss.item(), x_input.size(0))
-            eucs.update(euclidean_error(y_target, output), x_input.size(0))
+            eucs.update(euclidean_error_batch(y_target, output),
+                        x_input.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -139,6 +150,74 @@ def validate(validation_loader, model, criterion, args):
     return [batch_time.avg, losses.avg, eucs.avg]
 
 
+def predict(validation_loader, model, criterion, args):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+    eucs = AverageMeter()
+
+    # switch to evaluation mode
+    model.eval()
+
+    all_eucs = torch.zeros(validation_loader.__len__())
+    all_preds = torch.zeros((validation_loader.__len__(), 2))
+
+    with torch.no_grad():
+        end = time.time()
+        out_ind = 0
+        for step, (x_input, y_target) in enumerate(validation_loader):
+            # measure data loading time
+            data_time.update(time.time() - end)
+
+            x_input = x_input.to(args.gpus)
+            y_target = y_target.to(args.gpus)
+
+            output = model(x_input)
+            loss = criterion(output, y_target)
+
+            # measure accuracy and record loss
+            losses.update(loss.item(), x_input.size(0))
+            eucs.update(euclidean_error_batch(y_target, output),
+                        x_input.size(0))
+
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
+
+            for b in range(y_target.shape[0]):
+                gt = y_target[b].squeeze()
+                pred = output[b].squeeze()
+                euc_dis, _, pred_p = euclidean_error_with_point(gt, pred)
+                all_eucs[out_ind] = euc_dis
+                all_preds[out_ind] = pred_p
+                out_ind += 1
+
+            # printing the accuracy at certain intervals
+            if step % args.print_freq == 0:
+                print(
+                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Euc {euc.val:.4f} ({euc.avg:.4f})'.format(
+                        step, len(validation_loader), batch_time=batch_time,
+                        data_time=data_time, loss=losses, euc=eucs
+                    )
+                )
+            if (args.validation_samples is not None and
+                    (step * args.batch_size) >= args.validation_samples):
+                break
+        # printing the accuracy of the epoch
+        print(
+            ' * Loss {loss.avg:.3f} Euc {euc.avg:.3f}'.format(
+                loss=losses, euc=eucs
+            )
+        )
+        all_eucs = all_eucs.numpy()
+        all_preds = all_preds.numpy()
+    preds_out = {'eucs': all_eucs, 'preds': all_preds}
+    return preds_out
+
+
 def train(train_loader, model, optimizer, criterion, epoch, args):
     batch_time = AverageMeter()
     data_time = AverageMeter()
@@ -161,7 +240,7 @@ def train(train_loader, model, optimizer, criterion, epoch, args):
 
         # measure accuracy and record loss
         losses.update(loss.item(), x_input.size(0))
-        eucs.update(euclidean_error(y_target, output), x_input.size(0))
+        eucs.update(euclidean_error_batch(y_target, output), x_input.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -263,9 +342,14 @@ def main(args):
 
     args.criterion = nn.BCELoss().cuda(args.gpus)
     if args.evaluate:
-        validation_log = validate(
+        predict_outs = predict(
             validation_loader, model, args.criterion, args
         )
+        for key, item in predict_outs:
+            result_file = '%s/%s.pickle' % (args.out_dir, key)
+            pickle_out = open(result_file, 'wb')
+            pickle.dump(item, pickle_out)
+            pickle_out.close()
         return
 
     training_pickle = os.path.join(args.data_dir, args.train_file)
