@@ -3,6 +3,7 @@ Collection of architectures for GEETUP in PyTorch.
 """
 
 import os
+import sys
 
 import torch
 from torch import nn
@@ -23,6 +24,25 @@ def which_network(network_name):
 def which_architecture(architecture):
     if architecture.lower() == 'tased':
         return Tased()
+    elif architecture.lower() == 'centre':
+        return CentreModel()
+    else:
+        sys.exit('Architecture %s not supported.' % architecture)
+
+
+class CentreModel(nn.Module):
+
+    def __init__(self):
+        super(CentreModel, self).__init__()
+
+    def forward(self, x):
+        x = torch.zeros(
+            [x.shape[0], x.shape[3], x.shape[4]], device=x.device
+        )
+        centre_row = round(x.shape[1] / 2)
+        centre_col = round(x.shape[2] / 2)
+        x[:, centre_row, centre_col] = 1
+        return x
 
 
 class Tased(nn.Module):
