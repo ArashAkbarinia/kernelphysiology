@@ -344,7 +344,7 @@ def main(args):
             validation_loader, model, args.criterion, args
         )
         for key, item in predict_outs.items():
-            result_file = '%s/%s.pickle' % (args.out_dir, key)
+            result_file = '%s/%s_%s' % (args.out_dir, key, args.validation_file)
             pickle_out = open(result_file, 'wb')
             pickle.dump(item, pickle_out)
             pickle_out.close()
