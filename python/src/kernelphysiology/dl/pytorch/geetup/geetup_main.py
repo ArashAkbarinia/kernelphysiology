@@ -55,7 +55,6 @@ def epochs(model, train_loader, validation_loader, optimizer, args):
             best_euc = checkpoint['best_euc']
             model.load_state_dict(checkpoint['state_dict'])
             if args.gpus is not None:
-                best_euc = best_euc.to(args.gpus)
                 model = model.cuda(args.gpus)
             optimizer.load_state_dict(checkpoint['optimizer'])
             print(
