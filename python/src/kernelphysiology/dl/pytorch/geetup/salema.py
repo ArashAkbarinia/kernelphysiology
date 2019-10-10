@@ -1,5 +1,6 @@
 """
 https://github.com/Linardos/SalEMA
+original target size 192x256
 """
 
 import torch
@@ -41,7 +42,7 @@ class Salema(nn.Module):
             x_i = x[:, i].squeeze()
             state, saliency_map = self.model(input_=x_i, prev_state=state)
 
-        saliency_map = saliency_map.squeeze(0)
+        saliency_map = saliency_map.squeeze()
         return saliency_map
 
 

@@ -1,5 +1,6 @@
 """
 https://github.com/MichiganCOG/TASED-Net
+original target size 224x384
 """
 
 import torch
