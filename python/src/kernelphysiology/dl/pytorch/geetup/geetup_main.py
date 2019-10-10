@@ -332,7 +332,7 @@ def main(args):
     args.gpus = gpus[0]
 
     # creating the model
-    model, architecture = geetup_net.which_network(args.architecture)
+    model, architecture, mean_std = geetup_net.which_network(args.architecture)
     torch.cuda.set_device(args.gpus)
     model = model.cuda(args.gpus)
 
@@ -349,7 +349,7 @@ def main(args):
 
     validation_pickle = os.path.join(args.data_dir, args.validation_file)
     validation_dataset = geetup_db.get_validation_dataset(
-        validation_pickle, target_size=args.target_size
+        validation_pickle, args.target_size, mean_std
     )
     validation_loader = torch.utils.data.DataLoader(
         validation_dataset, batch_size=args.batch_size, shuffle=False,
@@ -376,7 +376,7 @@ def main(args):
 
     training_pickle = os.path.join(args.data_dir, args.train_file)
     train_dataset = geetup_db.get_train_dataset(
-        training_pickle, target_size=args.target_size
+        training_pickle, args.target_size, mean_std
     )
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True,

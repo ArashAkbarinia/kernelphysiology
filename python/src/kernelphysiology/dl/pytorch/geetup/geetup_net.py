@@ -10,15 +10,18 @@ from torch import nn
 
 
 def which_network(network_name):
+    mean_std = None
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
         architecture = checkpoint['arch']
         network = which_architecture(architecture)
         network.load_state_dict(checkpoint['state_dict'])
+        if 'mean_std' in checkpoint:
+            mean_std = checkpoint['mean_std']
     else:
         network = which_architecture(network_name)
         architecture = network_name
-    return network, architecture
+    return network, architecture, mean_std
 
 
 def which_architecture(architecture):

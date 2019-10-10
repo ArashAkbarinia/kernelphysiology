@@ -39,8 +39,11 @@ class HeatMapFixationPoint(object):
         )
 
 
-def get_train_dataset(pickle_file, target_size):
-    mean, std = get_preprocessing_function('rgb', 'trichromat')
+def get_train_dataset(pickle_file, target_size, mean_std=None):
+    if mean_std is None:
+        mean, std = get_preprocessing_function('rgb', 'trichromat')
+    else:
+        mean, std = mean_std
     normalise = transforms.Normalize(mean=mean, std=std)
     img_transform = transforms.Compose([
         transforms.Resize(target_size), transforms.ToTensor(), normalise,
@@ -55,8 +58,11 @@ def get_train_dataset(pickle_file, target_size):
     return train_dataset
 
 
-def get_validation_dataset(pickle_file, target_size):
-    mean, std = get_preprocessing_function('rgb', 'trichromat')
+def get_validation_dataset(pickle_file, target_size, mean_std=None):
+    if mean_std is None:
+        mean, std = get_preprocessing_function('rgb', 'trichromat')
+    else:
+        mean, std = mean_std
     normalise = transforms.Normalize(mean=mean, std=std)
     img_transform = transforms.Compose([
         transforms.Resize(target_size), transforms.ToTensor(), normalise,
