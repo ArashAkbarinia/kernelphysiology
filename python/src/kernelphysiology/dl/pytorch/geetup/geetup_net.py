@@ -8,6 +8,8 @@ import sys
 import torch
 from torch import nn
 
+from .salema import Salema
+
 
 def which_network(network_name):
     mean_std = None
@@ -27,6 +29,8 @@ def which_network(network_name):
 def which_architecture(architecture):
     if architecture.lower() == 'tased':
         return Tased()
+    elif architecture.lower() == 'salema':
+        return Salema()
     elif architecture.lower() == 'centre':
         return CentreModel()
     else:
