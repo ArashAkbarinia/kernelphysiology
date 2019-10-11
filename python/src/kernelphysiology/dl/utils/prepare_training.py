@@ -22,11 +22,12 @@ def prepare_output_directories(dataset_name, network_name, optimiser,
     # organise the dataset according to their parents
     if 'wcs' in dataset_name:
         dataset_parent = 'wcs'
+    elif 'geetup' in dataset_name:
+        dataset_parent = 'geetup'
+        dataset_name = dataset_name.replace('geetup_', '')
     else:
         dataset_parent = ''.join([i for i in dataset_name if not i.isdigit()])
-    dataset_parent_path = os.path.join(
-        framework_folder_path, '%s' % dataset_parent
-    )
+    dataset_parent_path = os.path.join(framework_folder_path, dataset_parent)
 
     create_dir(dataset_parent_path)
     dataset_child_path = os.path.join(dataset_parent_path, dataset_name)

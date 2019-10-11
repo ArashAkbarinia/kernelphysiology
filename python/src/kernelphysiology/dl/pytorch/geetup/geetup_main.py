@@ -337,7 +337,7 @@ def main(args):
     model = model.cuda(args.gpus)
 
     args.out_dir = prepare_training.prepare_output_directories(
-        dataset_name='geetup', network_name=architecture,
+        dataset_name='geetup_' + args.dataset, network_name=architecture,
         optimiser='sgd', load_weights=False,
         experiment_name=args.experiment_name, framework='pytorch'
     )

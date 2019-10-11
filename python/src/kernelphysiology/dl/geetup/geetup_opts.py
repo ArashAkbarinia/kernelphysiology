@@ -28,6 +28,11 @@ def check_args(parser, argv):
 def argument_parser():
     parser = argparse.ArgumentParser(description='GEETUP Train/Test')
     parser.add_argument(
+        dest='dataset',
+        type=str,
+        help='Name of the dataset'
+    )
+    parser.add_argument(
         dest='architecture',
         type=str,
         help='Type of architecture to be used'
