@@ -3,12 +3,13 @@ Functions to manage the GEETUP dataset.
 """
 
 import numpy as np
-import pickle
 import logging
 import os
 import glob
 
 from kernelphysiology.utils.path_utils import create_dir
+from kernelphysiology.utils.path_utils import write_pickle
+from kernelphysiology.utils.path_utils import read_pickle
 from kernelphysiology.utils.imutils import max_pixel_ind
 
 
@@ -143,7 +144,9 @@ def dataset_frame_list(dataset_dir, frames_gap=10, sequence_length=9):
     return dataset_data
 
 
-def get_random_video_indices(video_list, num_randoms):
+def _random_video_indices(video_list, percent, exclude_list=None):
+    if exclude_list is None:
+        exclude_list = []
     experiments_inds = []
     previous_experiment = video_list[0][0]
     start_ind = 0
@@ -155,129 +158,181 @@ def get_random_video_indices(video_list, num_randoms):
             previous_experiment = v[0]
 
     random_videos = []
-    for e_ind in experiments_inds:
-        rand_ints = set([])
-        if abs(e_ind[0] - e_ind[1]) < (num_randoms + 2):
-            continue
-        while len(rand_ints) < num_randoms:
-            rand_ints.add(np.random.randint(e_ind[0], e_ind[1]))
-        while len(rand_ints) > 0:
-            current_ind = rand_ints.pop()
-            random_videos.append(current_ind)
+    for i, e_ind in enumerate(experiments_inds):
+        current_experiment_inds = [*range(e_ind[0], e_ind[1])]
+        num_elemnts = round(len(current_experiment_inds) * percent)
+        for ri in exclude_list:
+            if ri in current_experiment_inds:
+                current_experiment_inds.remove(ri)
+        np.random.shuffle(current_experiment_inds)
+        random_videos.extend(current_experiment_inds[:num_elemnts])
+
     return random_videos
 
 
-def create_train_test_sets(video_list, test_experiments=None, num_randoms=7,
-                           test_all_subjects_template=None):
-    if test_experiments is None:
-        test_experiments = [1, 7, 13, 21, 26, 33, 39]
+def get_inidividual_name(video_path, num_persons):
+    for j in range(1, num_persons):
+        experiment_name = 'Part%.3d' % j
+        if experiment_name in video_path:
+            return experiment_name
+    return None
 
-    random_videos = get_random_video_indices(video_list, num_randoms)
+
+def _is_in_video_paths(video, videos_set):
+    for j in videos_set:
+        experiment_name = 'Part%.3d' % j
+        if experiment_name in video:
+            return True
+    return False
+
+
+def _is_in_subj_clips(clip, clips_set):
+    for j in clips_set:
+        if clip[0] == j[0] and clip[1] == j[1]:
+            return True
+    return False
+
+
+def _is_in_clips_set(video_ind, subjs_set, exp_name, random_set, video):
+    if subjs_set is None:
+        if video_ind in random_set:
+            return True
+    else:
+        if _is_in_subj_clips(video, subjs_set[exp_name]):
+            return True
+    return False
+
+
+def create_train_test_sets(video_list, test_subjs=None, val_subjs=None,
+                           nontrain=0.40, test_clips=None, val_clips=None):
+    if test_subjs is None:
+        test_subjs = [13, 20, 23, 33, 39]
+    if val_subjs is None:
+        val_subjs = [1, 7, 13, 21, 26]
+
+    # TODO: right now essentially test_clips and val_clips are connected to
+    #  eachother, the exclude_list passed should support dictionaries
+    nontrain /= 2
+    if test_clips is None:
+        random_test = _random_video_indices(video_list, nontrain, None)
+    if val_clips is None:
+        random_val = _random_video_indices(video_list, nontrain, random_test)
 
     all_sets = {
         'training_both_routes': [],
         'training_route_1': [],
         'training_route_2': [],
-        'testing_inter_subjects': [],
-        'testing_all_subjects': [],
+        'validation': [],
+        'testing': [],
     }
 
-    for i, v in enumerate(video_list):
-        is_for_training = True
-        for j in test_experiments:
-            experiment_name = 'Part%.3d' % j
-            if experiment_name in v[0]:
-                all_sets['testing_inter_subjects'].append(v)
-                is_for_training = False
-                break
+    num_persons = 45
+    # creating individualised data
+    for v_ind in range(1, num_persons):
+        exp_name = 'Part%.3d' % v_ind
+        all_sets[exp_name] = {'training': [], 'validation': [], 'testing': []}
 
-        if test_all_subjects_template is None:
-            if i in random_videos:
-                all_sets['testing_all_subjects'].append(v)
-                is_for_training = False
-        else:
-            for j in test_all_subjects_template:
-                if v[0] == j[0] and v[1] == j[1]:
-                    all_sets['testing_all_subjects'].append(v)
-                    is_for_training = False
-                    break
+    for v_ind, vid in enumerate(video_list):
+        is_for_training = True
+        if _is_in_video_paths(vid[0], test_subjs):
+            all_sets['testing'].append(vid)
+            is_for_training = False
+        elif _is_in_video_paths(vid[0], val_subjs):
+            all_sets['validation'].append(vid)
+            is_for_training = False
+
+        exp_name = get_inidividual_name(vid[0], num_persons)
+        if _is_in_clips_set(v_ind, test_clips, exp_name, random_test, vid):
+            all_sets[exp_name]['testing'].append(vid)
+            is_for_training = False
+        elif _is_in_clips_set(v_ind, val_clips, exp_name, random_val, vid):
+            all_sets[exp_name]['validation'].append(vid)
+            is_for_training = False
 
         if is_for_training:
-            all_sets['training_both_routes'].append(v)
-            if 'Route2' in v[0]:
-                all_sets['training_route_2'].append(v)
+            all_sets['training_both_routes'].append(vid)
+            all_sets[exp_name]['training'].append(vid)
+            if 'Route2' in vid[0]:
+                all_sets['training_route_2'].append(vid)
             else:
-                all_sets['training_route_1'].append(v)
+                all_sets['training_route_1'].append(vid)
     return all_sets
 
 
-def check_folder_create(output_folder, dataset_dir, frames_gap=10,
-                        sequence_length=9):
-    create_dir(output_folder)
-    dir_name = 'gap_%.3d_seq_%.3d' % (frames_gap, sequence_length)
-    output_folder = os.path.join(output_folder, dir_name)
-    create_dir(output_folder)
-    video_file = output_folder + '/video_list.pickle'
+def check_folder_create(out_folder, dataset_dir, frames_gap=10, seq_length=9):
+    create_dir(out_folder)
+    dir_name = 'gap_%.3d_seq_%.3d' % (frames_gap, seq_length)
+    out_folder = os.path.join(out_folder, dir_name)
+    create_dir(out_folder)
+    video_file = out_folder + '/video_list.pickle'
     if os.path.exists(video_file):
-        pickle_in = open(video_file, 'rb')
-        pickle_info = pickle.load(pickle_in)
-        pickle_in.close()
+        pickle_info = read_pickle(video_file)
         video_list = pickle_info['video_list']
     else:
         video_list = dataset_frame_list(
-            dataset_dir, frames_gap=frames_gap, sequence_length=sequence_length
+            dataset_dir, frames_gap=frames_gap, sequence_length=seq_length
         )
         pickle_info = {
             'video_list': video_list,
-            'sequence_length': sequence_length,
+            'sequence_length': seq_length,
             'frames_gap': frames_gap
         }
         # saving all video list
-        pickle_out = open(video_file, 'wb')
-        pickle.dump(pickle_info, pickle_out)
-        pickle_out.close()
-    return video_list, output_folder
+        write_pickle(video_file, pickle_info)
+    return video_list, out_folder
 
 
-def check_train_test_create(output_folder, video_list, frames_gap,
-                            sequence_length, test_all_subjects_template=None):
+def _save_video_dic(key, item, out_folder, seq_length, frames_gap):
+    create_dir(out_folder)
+    video_info = {
+        'video_list': item,
+        'sequence_length': seq_length,
+        'frames_gap': frames_gap
+    }
+    video_file = out_folder + '/' + key + '.pickle'
+    write_pickle(video_file, video_info)
+
+
+def _save_all_items(data, out_folder, **kwargs):
+    for key, item in data.items():
+        if isinstance(item, dict):
+            _save_all_items(item, os.path.join(out_folder, key), **kwargs)
+            print(key, len(item['training']), len(item['testing']),
+                  len(item['validation']))
+        else:
+            _save_video_dic(key, item, out_folder, **kwargs)
+
+
+def check_train_test_create(out_folder, video_list, frames_gap, seq_length,
+                            test_clips=None, val_clips=None):
     all_sets = create_train_test_sets(
-        video_list, test_all_subjects_template=test_all_subjects_template
+        video_list, test_clips=test_clips, val_clips=val_clips
+    )
+    _save_all_items(
+        all_sets, out_folder, seq_length=seq_length, frames_gap=frames_gap
     )
 
-    for key, item in all_sets.items():
-        pickle_info = {
-            'video_list': item,
-            'sequence_length': sequence_length,
-            'frames_gap': frames_gap
-        }
-        video_file = output_folder + '/' + key + '.pickle'
-        pickle_out = open(video_file, 'wb')
-        pickle.dump(pickle_info, pickle_out)
-        pickle_out.close()
-        print(
-            '#videos %d, seq %d, gap %d' %
-            (len(item), pickle_info['sequence_length'],
-             pickle_info['frames_gap'])
-        )
+
+def _read_all_subjects_pickle(in_folder, file_type):
+    all_clips = {}
+    for pickle_file in sorted(glob.glob(in_folder + '/Part*/')):
+        video_info_010009 = read_pickle(pickle_file + file_type + '.pickle')
+        part_name = pickle_file.replace(in_folder, '').replace('/', '')
+        all_clips[part_name] = video_info_010009['video_list']
 
 
-def create_sample_dataset(output_folder, dataset_dir, frames_gap=10,
-                          sequence_length=9):
-    video_list, output_sub_folder = check_folder_create(
-        output_folder, dataset_dir, frames_gap, sequence_length
+def create_sample_dataset(out_folder, dataset_dir, frames_gap=10, seq_length=9):
+    video_list, out_subfolder = check_folder_create(
+        out_folder, dataset_dir, frames_gap, seq_length
     )
-    test_all_subjects_template = None
-    if frames_gap != 10 or sequence_length != 9:
-        name_010009 = '/gap_010_seq_009'
-        pickle_in = open(
-            output_folder + name_010009 + '/testing_all_subjects.pickle', 'rb'
-        )
-        video_info_010009 = pickle.load(pickle_in)
-        test_all_subjects_template = video_info_010009['video_list']
+    test_clips = None
+    val_clips = None
+    if frames_gap != 10 or seq_length != 9:
+        path_010009 = os.path.join(out_folder, 'gap_010_seq_009')
+        test_clips = _read_all_subjects_pickle(path_010009, 'testing')
+        val_clips = _read_all_subjects_pickle(path_010009, 'validation')
     check_train_test_create(
-        output_sub_folder, video_list, frames_gap, sequence_length,
-        test_all_subjects_template,
+        out_subfolder, video_list, frames_gap, seq_length, test_clips, val_clips
     )
 
 
@@ -293,9 +348,7 @@ def change_base_path_recursive(in_folder, old, new, out_folder, prefix=''):
 
 
 def change_base_path(in_file, old, new, out_file, prefix=''):
-    f = open(in_file, 'rb')
-    data = pickle.load(f)
-    f.close()
+    data = read_pickle(in_file)
 
     # changing the base path
     new_base = data['base_path_img']
@@ -309,9 +362,7 @@ def change_base_path(in_file, old, new, out_file, prefix=''):
     # changing the prefix
     data['prefix'] = prefix
 
-    f = open(out_file, 'wb')
-    pickle.dump(data, f)
-    f.close()
+    write_pickle(out_file, data)
 
 
 def remove_segment_video_list_recursive(in_folder, segment):
@@ -322,18 +373,14 @@ def remove_segment_video_list_recursive(in_folder, segment):
 
 
 def remove_segment_video_list(in_file, segment):
-    f = open(in_file, 'rb')
-    data = pickle.load(f)
-    f.close()
+    data = read_pickle(in_file)
 
     for i in range(len(data['video_list'])):
         new_path = data['video_list'][i][0]
         new_path = new_path.replace(segment, '')
         data['video_list'][i][0] = new_path
 
-    f = open(in_file, 'wb')
-    pickle.dump(data, f)
-    f.close()
+    write_pickle(in_file, data)
 
 
 def extract_base_path_recursive(in_folder, base_path, prefix=''):
@@ -344,9 +391,7 @@ def extract_base_path_recursive(in_folder, base_path, prefix=''):
 
 
 def extract_base_path(in_file, base_path, prefix=''):
-    f = open(in_file, 'rb')
-    data = pickle.load(f)
-    f.close()
+    data = read_pickle(in_file)
 
     # adding the base path
     data['base_path_img'] = base_path
@@ -360,6 +405,4 @@ def extract_base_path(in_file, base_path, prefix=''):
         new_path = new_path.replace(base_path, '')
         data['video_list'][i][0] = new_path
 
-    f = open(in_file, 'wb')
-    pickle.dump(data, f)
-    f.close()
+    write_pickle(in_file, data)
