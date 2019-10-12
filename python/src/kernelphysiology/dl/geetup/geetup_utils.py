@@ -213,8 +213,10 @@ def create_train_test_sets(video_list, test_subjs=None, val_subjs=None,
     # TODO: right now essentially test_clips and val_clips are connected to
     #  eachother, the exclude_list passed should support dictionaries
     nontrain /= 2
+    random_test = None
+    random_val = None
     if test_clips is None:
-        random_test = _random_video_indices(video_list, nontrain, None)
+        random_test = _random_video_indices(video_list, nontrain, random_val)
     if val_clips is None:
         random_val = _random_video_indices(video_list, nontrain, random_test)
 
@@ -266,29 +268,27 @@ def check_folder_create(out_folder, dataset_dir, frames_gap=10, seq_length=9):
     create_dir(out_folder)
     video_file = out_folder + '/video_list.pickle'
     if os.path.exists(video_file):
-        pickle_info = read_pickle(video_file)
-        video_list = pickle_info['video_list']
+        video_info = read_pickle(video_file)
     else:
         video_list = dataset_frame_list(
             dataset_dir, frames_gap=frames_gap, sequence_length=seq_length
         )
-        pickle_info = {
+        video_info = {
             'video_list': video_list,
             'sequence_length': seq_length,
             'frames_gap': frames_gap
         }
+        video_info = extract_base_path_dic(video_info, dataset_dir, prefix='')
         # saving all video list
-        write_pickle(video_file, pickle_info)
-    return video_list, out_folder
+        write_pickle(video_file, video_info)
+    return video_info, out_folder
 
 
-def _save_video_dic(key, item, out_folder, seq_length, frames_gap):
+def _save_video_dic(key, item, out_folder, **kwargs):
     create_dir(out_folder)
-    video_info = {
-        'video_list': item,
-        'sequence_length': seq_length,
-        'frames_gap': frames_gap
-    }
+    video_info = {'video_list': item}
+    for kwarg_key, kwarg_item in kwargs.items():
+        video_info[kwarg_key] = kwarg_item
     video_file = out_folder + '/' + key + '.pickle'
     write_pickle(video_file, video_info)
 
@@ -297,20 +297,17 @@ def _save_all_items(data, out_folder, **kwargs):
     for key, item in data.items():
         if isinstance(item, dict):
             _save_all_items(item, os.path.join(out_folder, key), **kwargs)
-            print(key, len(item['training']), len(item['testing']),
-                  len(item['validation']))
         else:
             _save_video_dic(key, item, out_folder, **kwargs)
 
 
-def check_train_test_create(out_folder, video_list, frames_gap, seq_length,
-                            test_clips=None, val_clips=None):
+def check_train_test_create(out_folder, video_info, test_clips=None,
+                            val_clips=None):
     all_sets = create_train_test_sets(
-        video_list, test_clips=test_clips, val_clips=val_clips
+        video_info['video_list'], test_clips=test_clips, val_clips=val_clips
     )
-    _save_all_items(
-        all_sets, out_folder, seq_length=seq_length, frames_gap=frames_gap
-    )
+    del video_info['video_list']
+    _save_all_items(all_sets, out_folder, **video_info)
 
 
 def _read_all_subjects_pickle(in_folder, file_type):
@@ -319,10 +316,11 @@ def _read_all_subjects_pickle(in_folder, file_type):
         video_info_010009 = read_pickle(pickle_file + file_type + '.pickle')
         part_name = pickle_file.replace(in_folder, '').replace('/', '')
         all_clips[part_name] = video_info_010009['video_list']
+    return all_clips
 
 
 def create_sample_dataset(out_folder, dataset_dir, frames_gap=10, seq_length=9):
-    video_list, out_subfolder = check_folder_create(
+    video_info, out_subfolder = check_folder_create(
         out_folder, dataset_dir, frames_gap, seq_length
     )
     test_clips = None
@@ -332,7 +330,7 @@ def create_sample_dataset(out_folder, dataset_dir, frames_gap=10, seq_length=9):
         test_clips = _read_all_subjects_pickle(path_010009, 'testing')
         val_clips = _read_all_subjects_pickle(path_010009, 'validation')
     check_train_test_create(
-        out_subfolder, video_list, frames_gap, seq_length, test_clips, val_clips
+        out_subfolder, video_info, test_clips, val_clips
     )
 
 
@@ -392,7 +390,11 @@ def extract_base_path_recursive(in_folder, base_path, prefix=''):
 
 def extract_base_path(in_file, base_path, prefix=''):
     data = read_pickle(in_file)
+    data = extract_base_path_dic(data, base_path, prefix)
+    write_pickle(in_file, data)
 
+
+def extract_base_path_dic(data, base_path, prefix=''):
     # adding the base path
     data['base_path_img'] = base_path
     data['base_path_txt'] = base_path
@@ -404,5 +406,4 @@ def extract_base_path(in_file, base_path, prefix=''):
         new_path = data['video_list'][i][0]
         new_path = new_path.replace(base_path, '')
         data['video_list'][i][0] = new_path
-
-    write_pickle(in_file, data)
+    return data
