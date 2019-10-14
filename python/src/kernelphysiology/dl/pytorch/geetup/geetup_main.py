@@ -18,8 +18,10 @@ from kernelphysiology.dl.pytorch.geetup import geetup_net, geetup_db
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
+from kernelphysiology.dl.pytorch.utils.misc import prepare_device
 from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
 from kernelphysiology.dl.utils import prepare_training
+from kernelphysiology.dl.utils.argument_handler import set_visible_gpus
 
 
 def euclidean_error_with_point(x, y):
@@ -54,8 +56,7 @@ def epochs(model, train_loader, validation_loader, optimizer, args):
             args.initial_epoch = checkpoint['epoch']
             best_euc = checkpoint['best_euc']
             model.load_state_dict(checkpoint['state_dict'])
-            if args.gpus is not None:
-                model = model.cuda(args.gpus)
+            model = model.to(args.device)
             optimizer.load_state_dict(checkpoint['optimizer'])
             print(
                 "=> loaded checkpoint '{}' (epoch {})".format(
@@ -134,8 +135,8 @@ def validate(validation_loader, model, criterion, args):
             # measure data loading time
             data_time.update(time.time() - end)
 
-            x_input = x_input.to(args.gpus)
-            y_target = y_target.to(args.gpus)
+            x_input = x_input.to(args.device)
+            y_target = y_target.to(args.device)
 
             output = model(x_input)
             loss = criterion(output, y_target)
@@ -192,8 +193,8 @@ def predict(validation_loader, model, criterion, args):
             # measure data loading time
             data_time.update(time.time() - end)
 
-            x_input = x_input.to(args.gpus)
-            y_target = y_target.to(args.gpus)
+            x_input = x_input.to(args.device)
+            y_target = y_target.to(args.device)
 
             output = model(x_input)
             loss = criterion(output, y_target)
@@ -254,8 +255,8 @@ def train(train_loader, model, optimizer, criterion, epoch, args):
         # measure data loading time
         data_time.update(time.time() - end)
 
-        x_input = x_input.to(args.gpus)
-        y_target = y_target.to(args.gpus)
+        x_input = x_input.to(args.device)
+        y_target = y_target.to(args.device)
 
         output = model(x_input)
         loss = criterion(output, y_target)
@@ -297,7 +298,7 @@ def process_random_image(model, validation_loader, normalize_inverse, args):
 
     with torch.no_grad():
         for step, (x_input, y_target) in enumerate(validation_loader):
-            x_input = x_input.to(args.gpus)
+            x_input = x_input.to(args.device)
             output = model(x_input)
             output = output.clone().detach().cpu().numpy()
 
@@ -326,15 +327,13 @@ def process_random_image(model, validation_loader, normalize_inverse, args):
 
 
 def main(args):
-    os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
-    gpus = [*range(len(args.gpus))]
-    # FIXME: cant take more than one GPU
-    args.gpus = gpus[0]
+    args.gpus = set_visible_gpus(args.gpus)
+    args.device = prepare_device(args.gpus)
 
     # creating the model
     model, architecture, mean_std = geetup_net.which_network(args.architecture)
-    torch.cuda.set_device(args.gpus)
-    model = model.cuda(args.gpus)
+    torch.cuda.set_device(args.device)
+    model = model.to(args.device)
 
     args.out_dir = prepare_training.prepare_output_directories(
         dataset_name='geetup_' + args.dataset, network_name=architecture,
@@ -362,7 +361,7 @@ def main(args):
         process_random_image(model, validation_loader, normalize_inverse, args)
         return
 
-    args.criterion = nn.BCELoss().cuda(args.gpus)
+    args.criterion = nn.BCELoss().to(args.device)
     if args.evaluate:
         predict_outs = predict(
             validation_loader, model, args.criterion, args

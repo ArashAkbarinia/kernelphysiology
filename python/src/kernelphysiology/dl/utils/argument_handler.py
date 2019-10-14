@@ -771,6 +771,13 @@ def common_train_arg_parser():
     return parser
 
 
+def set_visible_gpus(gpus):
+    if gpus[0] != -1 or gpus is None:
+        gpus = []
+    os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in gpus)
+    return gpus
+
+
 def check_common_args(parser, argvs, script_type):
     # HINT: this is just in order to get rid of EXIF warnings
     warnings.filterwarnings(
@@ -842,7 +849,7 @@ def check_common_args(parser, argvs, script_type):
                 'default batch_size are used for dataset %s' % args.dataset
             )
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in args.gpus)
+    args.gpus = set_visible_gpus(args.gpus)
     args.gpus = [*range(len(args.gpus))]
 
     # workers

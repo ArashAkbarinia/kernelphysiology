@@ -186,3 +186,11 @@ def validate_on_data(val_loader, model, criterion, args):
         )
 
     return [batch_time.avg, losses.avg, top1.avg, top5.avg]
+
+
+def prepare_device(gpus):
+    if gpus == None or len(gpus) == 0:
+        device = torch.device('cpu')
+    else:
+        device = torch.device('cuda')
+    return device
