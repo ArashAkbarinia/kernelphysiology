@@ -332,7 +332,6 @@ def main(args):
 
     # creating the model
     model, architecture, mean_std = geetup_net.which_network(args.architecture)
-    torch.cuda.set_device(args.device)
     model = model.to(args.device)
 
     args.out_dir = prepare_training.prepare_output_directories(

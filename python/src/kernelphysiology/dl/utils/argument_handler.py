@@ -772,7 +772,7 @@ def common_train_arg_parser():
 
 
 def set_visible_gpus(gpus):
-    if gpus[0] != -1 or gpus is None:
+    if gpus[0] == -1 or gpus is None:
         gpus = []
     os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in gpus)
     return gpus
