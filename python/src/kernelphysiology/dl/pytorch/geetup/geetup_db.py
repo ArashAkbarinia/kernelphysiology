@@ -124,7 +124,7 @@ class GeetupDataset(Dataset):
         print('Read %d sequences' % num_sequences)
         return all_videos, num_sequences, video_paths
 
-    def __getitem__(self, idx):
+    def _prepare_item(self, idx):
         vid_info = self.all_videos[idx]
 
         # read data
@@ -141,6 +141,17 @@ class GeetupDataset(Dataset):
             self.base_path_txt, segment_dir, video_num
         )
         selected_imgs = np.loadtxt(f_selected, dtype=str, delimiter=',')
+        return all_frames, video_path, selected_imgs
+
+    def _parse_gt_line(self, gt):
+        gt = gt.replace('[', '').replace(']', '').split(' ')
+        gt = [int(i) for i in gt if isint(i)]
+        # in the file it's stored as x and y, rather than rows and cols
+        gt = gt[::-1]
+        return gt
+
+    def __getitem__(self, idx):
+        all_frames, video_path, selected_imgs = self._prepare_item(idx)
 
         x_item = []
         y_item = []
@@ -163,11 +174,7 @@ class GeetupDataset(Dataset):
             x_item.append(img)
 
             if self.all_gts or j == len(all_frames) - 1:
-                gt = selected_imgs[frame_num][1]
-                gt = gt.replace('[', '').replace(']', '').split(' ')
-                gt = [int(i) for i in gt if isint(i)]
-                # in the file it's stored as x and y, rather than rows and cols
-                gt = gt[::-1]
+                gt = self._parse_gt_line(selected_imgs[frame_num][1])
 
                 if do_for_entire_sequence:
                     gt[1] = img.shape[2] - gt[1]
@@ -183,3 +190,21 @@ class GeetupDataset(Dataset):
 
     def __len__(self):
         return len(self.all_videos)
+
+
+class GeetupDatasetInformative(GeetupDataset):
+    def __getitem__(self, idx):
+        all_frames, video_path, selected_imgs = self._prepare_item(idx)
+
+        x_item = []
+        y_item = []
+
+        for j, frame_num in enumerate(all_frames):
+            image_path = os.path.join(video_path, selected_imgs[frame_num][0])
+            x_item.append(image_path)
+
+            if self.all_gts or j == len(all_frames) - 1:
+                gt = self._parse_gt_line(selected_imgs[frame_num][1])
+                y_item.append(gt)
+
+        return x_item, y_item
