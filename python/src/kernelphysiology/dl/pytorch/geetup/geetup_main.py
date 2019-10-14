@@ -6,7 +6,6 @@ import time
 import sys
 import os
 import logging
-import pickle
 import numpy as np
 
 import torch
@@ -22,6 +21,7 @@ from kernelphysiology.dl.pytorch.utils.misc import prepare_device
 from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.utils.argument_handler import set_visible_gpus
+from kernelphysiology.utils.path_utils import write_pickle
 
 
 def euclidean_error_with_point(x, y):
@@ -366,10 +366,11 @@ def main(args):
             validation_loader, model, args.criterion, args
         )
         for key, item in predict_outs.items():
-            result_file = '%s/%s_%s' % (args.out_dir, key, args.validation_file)
-            pickle_out = open(result_file, 'wb')
-            pickle.dump(item, pickle_out)
-            pickle_out.close()
+            file_name = '_'.join(e for e in [key, *args.out_prefix])
+            result_file = '%s/%s_%s' % (
+                args.out_dir, file_name, args.validation_file
+            )
+            write_pickle(result_file, item)
         return
 
     training_pickle = os.path.join(args.data_dir, args.train_file)

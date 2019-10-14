@@ -81,6 +81,13 @@ def argument_parser():
         help='Name of the current experiment (default: experiment_name)'
     )
     parser.add_argument(
+        '--out_prefix',
+        nargs='+',
+        type=str,
+        default=[],
+        help='List of prefixes added to output file (default:)'
+    )
+    parser.add_argument(
         '--evaluate',
         action='store_true',
         default=False,
