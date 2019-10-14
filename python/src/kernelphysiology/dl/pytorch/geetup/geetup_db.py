@@ -89,6 +89,14 @@ def _init_videos(video_list):
     return all_videos, num_sequences, video_paths
 
 
+def _parse_gt_line(gt):
+    gt = gt.replace('[', '').replace(']', '').split(' ')
+    gt = [int(i) for i in gt if isint(i)]
+    # in the file it's stored as x and y, rather than rows and cols
+    gt = gt[::-1]
+    return gt
+
+
 class GeetupDataset(Dataset):
     def __init__(self, pickle_file, transform=None, target_transform=None,
                  common_transforms=None, all_gts=False, frames_gap=None,
@@ -143,13 +151,6 @@ class GeetupDataset(Dataset):
         selected_imgs = np.loadtxt(f_selected, dtype=str, delimiter=',')
         return all_frames, video_path, selected_imgs
 
-    def _parse_gt_line(self, gt):
-        gt = gt.replace('[', '').replace(']', '').split(' ')
-        gt = [int(i) for i in gt if isint(i)]
-        # in the file it's stored as x and y, rather than rows and cols
-        gt = gt[::-1]
-        return gt
-
     def __getitem__(self, idx):
         all_frames, video_path, selected_imgs = self._prepare_item(idx)
 
@@ -174,7 +175,7 @@ class GeetupDataset(Dataset):
             x_item.append(img)
 
             if self.all_gts or j == len(all_frames) - 1:
-                gt = self._parse_gt_line(selected_imgs[frame_num][1])
+                gt = _parse_gt_line(selected_imgs[frame_num][1])
 
                 if do_for_entire_sequence:
                     gt[1] = img.shape[2] - gt[1]
@@ -204,7 +205,7 @@ class GeetupDatasetInformative(GeetupDataset):
             x_item.append(image_path)
 
             if self.all_gts or j == len(all_frames) - 1:
-                gt = self._parse_gt_line(selected_imgs[frame_num][1])
+                gt = _parse_gt_line(selected_imgs[frame_num][1])
                 y_item.append(gt)
 
         return x_item, y_item
