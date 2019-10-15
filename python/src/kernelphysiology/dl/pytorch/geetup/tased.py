@@ -11,14 +11,20 @@ class Tased(nn.Module):
     eps = 1e-5
     momentum = 0.1
 
-    def __init__(self):
+    def __init__(self, kf=1):
         super(Tased, self).__init__()
+        n64 = int(64 * kf)
+        n192 = int(192 * kf)
+        n480 = int(480 * kf)
+        n832 = int(832 * kf)
+        n1024 = int(1024 * kf)
+
         self.base1 = nn.Sequential(
-            SepConv3d(3, 64, kernel_size=7, stride=2, padding=3),
+            SepConv3d(3, n64, kernel_size=7, stride=2, padding=3),
             nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
                          padding=(0, 1, 1)),
-            BasicConv3d(64, 64, kernel_size=1, stride=1),
-            SepConv3d(64, 192, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n64, n64, kernel_size=1, stride=1),
+            SepConv3d(n64, n192, kernel_size=3, stride=1, padding=1),
         )
         self.maxp2 = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
                                   padding=(0, 1, 1))
@@ -27,8 +33,8 @@ class Tased(nn.Module):
         self.maxt2 = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
                                   padding=(0, 1, 1), return_indices=True)
         self.base2 = nn.Sequential(
-            Mixed_3b(),
-            Mixed_3c(),
+            Mixed_3b(kf),
+            Mixed_3c(kf),
         )
         self.maxp3 = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=(2, 2, 2),
                                   padding=(1, 1, 1))
@@ -37,66 +43,67 @@ class Tased(nn.Module):
         self.maxt3 = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
                                   padding=(0, 1, 1), return_indices=True)
         self.base3 = nn.Sequential(
-            Mixed_4b(),
-            Mixed_4c(),
-            Mixed_4d(),
-            Mixed_4e(),
-            Mixed_4f(),
+            Mixed_4b(kf),
+            Mixed_4c(kf),
+            Mixed_4d(kf),
+            Mixed_4e(kf),
+            Mixed_4f(kf),
         )
         self.maxt4 = nn.MaxPool3d(kernel_size=(2, 1, 1), stride=(2, 1, 1),
                                   padding=(0, 0, 0))
         self.maxp4 = nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2),
                                   padding=(0, 0, 0), return_indices=True)
         self.base4 = nn.Sequential(
-            Mixed_5b(),
-            Mixed_5c(),
+            Mixed_5b(kf),
+            Mixed_5c(kf),
         )
         self.convtsp1 = nn.Sequential(
-            nn.Conv3d(1024, 1024, kernel_size=1, stride=1, bias=False),
-            nn.BatchNorm3d(1024, eps=Tased.eps, momentum=Tased.momentum,
+            nn.Conv3d(n1024, n1024, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm3d(n1024, eps=Tased.eps, momentum=Tased.momentum,
                            affine=True),
             nn.ReLU(),
 
-            nn.ConvTranspose3d(1024, 832, kernel_size=(1, 3, 3), stride=1,
+            nn.ConvTranspose3d(n1024, n832, kernel_size=(1, 3, 3), stride=1,
                                padding=(0, 1, 1), bias=False),
-            nn.BatchNorm3d(832, eps=Tased.eps, momentum=Tased.momentum,
+            nn.BatchNorm3d(n832, eps=Tased.eps, momentum=Tased.momentum,
                            affine=True),
             nn.ReLU(),
         )
         self.unpool1 = nn.MaxUnpool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2),
                                       padding=(0, 0, 0))
         self.convtsp2 = nn.Sequential(
-            nn.ConvTranspose3d(832, 480, kernel_size=(1, 3, 3), stride=1,
+            nn.ConvTranspose3d(n832, n480, kernel_size=(1, 3, 3), stride=1,
                                padding=(0, 1, 1), bias=False),
-            nn.BatchNorm3d(480, eps=Tased.eps, momentum=Tased.momentum,
+            nn.BatchNorm3d(n480, eps=Tased.eps, momentum=Tased.momentum,
                            affine=True),
             nn.ReLU(),
         )
         self.unpool2 = nn.MaxUnpool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
                                       padding=(0, 1, 1))
         self.convtsp3 = nn.Sequential(
-            nn.ConvTranspose3d(480, 192, kernel_size=(1, 3, 3), stride=1,
+            nn.ConvTranspose3d(n480, n192, kernel_size=(1, 3, 3), stride=1,
                                padding=(0, 1, 1), bias=False),
-            nn.BatchNorm3d(192, eps=Tased.eps, momentum=Tased.momentum,
+            nn.BatchNorm3d(n192, eps=Tased.eps, momentum=Tased.momentum,
                            affine=True),
             nn.ReLU(),
         )
         self.unpool3 = nn.MaxUnpool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
                                       padding=(0, 1, 1))
         self.convtsp4 = nn.Sequential(
-            nn.ConvTranspose3d(192, 64, kernel_size=(1, 4, 4), stride=(1, 2, 2),
+            nn.ConvTranspose3d(n192, n64, kernel_size=(1, 4, 4),
+                               stride=(1, 2, 2),
                                padding=(0, 1, 1), bias=False),
-            nn.BatchNorm3d(64, eps=Tased.eps, momentum=Tased.momentum,
+            nn.BatchNorm3d(n64, eps=Tased.eps, momentum=Tased.momentum,
                            affine=True),
             nn.ReLU(),
 
-            nn.Conv3d(64, 64, kernel_size=(2, 1, 1), stride=(2, 1, 1),
+            nn.Conv3d(n64, n64, kernel_size=(2, 1, 1), stride=(2, 1, 1),
                       bias=False),
-            nn.BatchNorm3d(64, eps=Tased.eps, momentum=Tased.momentum,
+            nn.BatchNorm3d(n64, eps=Tased.eps, momentum=Tased.momentum,
                            affine=True),
             nn.ReLU(),
 
-            nn.ConvTranspose3d(64, 4, kernel_size=1, stride=1, bias=False),
+            nn.ConvTranspose3d(n64, 4, kernel_size=1, stride=1, bias=False),
             nn.BatchNorm3d(4, eps=Tased.eps, momentum=Tased.momentum,
                            affine=True),
             nn.ReLU(),
@@ -191,23 +198,29 @@ class SepConv3d(nn.Module):
 
 
 class Mixed_3b(nn.Module):
-    def __init__(self):
+    def __init__(self, kf):
+        n16 = int(16 * kf)
+        n32 = int(32 * kf)
+        n64 = int(64 * kf)
+        n96 = int(96 * kf)
+        n128 = int(128 * kf)
+        n192 = int(192 * kf)
         super(Mixed_3b, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv3d(192, 64, kernel_size=1, stride=1),
+            BasicConv3d(n192, n64, kernel_size=1, stride=1),
         )
         self.branch1 = nn.Sequential(
-            BasicConv3d(192, 96, kernel_size=1, stride=1),
-            SepConv3d(96, 128, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n192, n96, kernel_size=1, stride=1),
+            SepConv3d(n96, n128, kernel_size=3, stride=1, padding=1),
         )
         self.branch2 = nn.Sequential(
-            BasicConv3d(192, 16, kernel_size=1, stride=1),
-            SepConv3d(16, 32, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n192, n16, kernel_size=1, stride=1),
+            SepConv3d(n16, n32, kernel_size=3, stride=1, padding=1),
         )
         self.branch3 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(3, 3, 3), stride=1, padding=1),
-            BasicConv3d(192, 32, kernel_size=1, stride=1),
+            BasicConv3d(n192, n32, kernel_size=1, stride=1),
         )
 
     def forward(self, x):
@@ -221,22 +234,29 @@ class Mixed_3b(nn.Module):
 
 
 class Mixed_3c(nn.Module):
-    def __init__(self):
+    def __init__(self, kf):
+        n32 = int(32 * kf)
+        n64 = int(64 * kf)
+        n96 = int(96 * kf)
+        n128 = int(128 * kf)
+        n192 = int(192 * kf)
+        n256 = int(256 * kf)
+
         super(Mixed_3c, self).__init__()
         self.branch0 = nn.Sequential(
-            BasicConv3d(256, 128, kernel_size=1, stride=1),
+            BasicConv3d(n256, n128, kernel_size=1, stride=1),
         )
         self.branch1 = nn.Sequential(
-            BasicConv3d(256, 128, kernel_size=1, stride=1),
-            SepConv3d(128, 192, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n256, n128, kernel_size=1, stride=1),
+            SepConv3d(n128, n192, kernel_size=3, stride=1, padding=1),
         )
         self.branch2 = nn.Sequential(
-            BasicConv3d(256, 32, kernel_size=1, stride=1),
-            SepConv3d(32, 96, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n256, n32, kernel_size=1, stride=1),
+            SepConv3d(n32, n96, kernel_size=3, stride=1, padding=1),
         )
         self.branch3 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(3, 3, 3), stride=1, padding=1),
-            BasicConv3d(256, 64, kernel_size=1, stride=1),
+            BasicConv3d(n256, n64, kernel_size=1, stride=1),
         )
 
     def forward(self, x):
@@ -249,23 +269,30 @@ class Mixed_3c(nn.Module):
 
 
 class Mixed_4b(nn.Module):
-    def __init__(self):
+    def __init__(self, kf):
+        n16 = int(16 * kf)
+        n48 = int(48 * kf)
+        n64 = int(64 * kf)
+        n96 = int(96 * kf)
+        n192 = int(192 * kf)
+        n208 = int(208 * kf)
+        n480 = int(480 * kf)
         super(Mixed_4b, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv3d(480, 192, kernel_size=1, stride=1),
+            BasicConv3d(n480, n192, kernel_size=1, stride=1),
         )
         self.branch1 = nn.Sequential(
-            BasicConv3d(480, 96, kernel_size=1, stride=1),
-            SepConv3d(96, 208, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n480, n96, kernel_size=1, stride=1),
+            SepConv3d(n96, n208, kernel_size=3, stride=1, padding=1),
         )
         self.branch2 = nn.Sequential(
-            BasicConv3d(480, 16, kernel_size=1, stride=1),
-            SepConv3d(16, 48, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n480, n16, kernel_size=1, stride=1),
+            SepConv3d(n16, n48, kernel_size=3, stride=1, padding=1),
         )
         self.branch3 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(3, 3, 3), stride=1, padding=1),
-            BasicConv3d(480, 64, kernel_size=1, stride=1),
+            BasicConv3d(n480, n64, kernel_size=1, stride=1),
         )
 
     def forward(self, x):
@@ -278,23 +305,29 @@ class Mixed_4b(nn.Module):
 
 
 class Mixed_4c(nn.Module):
-    def __init__(self):
+    def __init__(self, kf):
+        n24 = int(24 * kf)
+        n64 = int(64 * kf)
+        n112 = int(112 * kf)
+        n160 = int(160 * kf)
+        n224 = int(224 * kf)
+        n512 = int(512 * kf)
         super(Mixed_4c, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv3d(512, 160, kernel_size=1, stride=1),
+            BasicConv3d(n512, n160, kernel_size=1, stride=1),
         )
         self.branch1 = nn.Sequential(
-            BasicConv3d(512, 112, kernel_size=1, stride=1),
-            SepConv3d(112, 224, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n512, n112, kernel_size=1, stride=1),
+            SepConv3d(n112, n224, kernel_size=3, stride=1, padding=1),
         )
         self.branch2 = nn.Sequential(
-            BasicConv3d(512, 24, kernel_size=1, stride=1),
-            SepConv3d(24, 64, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n512, n24, kernel_size=1, stride=1),
+            SepConv3d(n24, n64, kernel_size=3, stride=1, padding=1),
         )
         self.branch3 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(3, 3, 3), stride=1, padding=1),
-            BasicConv3d(512, 64, kernel_size=1, stride=1),
+            BasicConv3d(n512, n64, kernel_size=1, stride=1),
         )
 
     def forward(self, x):
@@ -307,23 +340,28 @@ class Mixed_4c(nn.Module):
 
 
 class Mixed_4d(nn.Module):
-    def __init__(self):
+    def __init__(self, kf):
+        n24 = int(24 * kf)
+        n64 = int(64 * kf)
+        n128 = int(128 * kf)
+        n256 = int(256 * kf)
+        n512 = int(512 * kf)
         super(Mixed_4d, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv3d(512, 128, kernel_size=1, stride=1),
+            BasicConv3d(n512, n128, kernel_size=1, stride=1),
         )
         self.branch1 = nn.Sequential(
-            BasicConv3d(512, 128, kernel_size=1, stride=1),
-            SepConv3d(128, 256, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n512, n128, kernel_size=1, stride=1),
+            SepConv3d(n128, n256, kernel_size=3, stride=1, padding=1),
         )
         self.branch2 = nn.Sequential(
-            BasicConv3d(512, 24, kernel_size=1, stride=1),
-            SepConv3d(24, 64, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n512, n24, kernel_size=1, stride=1),
+            SepConv3d(n24, n64, kernel_size=3, stride=1, padding=1),
         )
         self.branch3 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(3, 3, 3), stride=1, padding=1),
-            BasicConv3d(512, 64, kernel_size=1, stride=1),
+            BasicConv3d(n512, n64, kernel_size=1, stride=1),
         )
 
     def forward(self, x):
@@ -336,23 +374,29 @@ class Mixed_4d(nn.Module):
 
 
 class Mixed_4e(nn.Module):
-    def __init__(self):
+    def __init__(self, kf):
+        n32 = int(32 * kf)
+        n64 = int(64 * kf)
+        n112 = int(112 * kf)
+        n144 = int(144 * kf)
+        n288 = int(288 * kf)
+        n512 = int(512 * kf)
         super(Mixed_4e, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv3d(512, 112, kernel_size=1, stride=1),
+            BasicConv3d(n512, n112, kernel_size=1, stride=1),
         )
         self.branch1 = nn.Sequential(
-            BasicConv3d(512, 144, kernel_size=1, stride=1),
-            SepConv3d(144, 288, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n512, n144, kernel_size=1, stride=1),
+            SepConv3d(n144, n288, kernel_size=3, stride=1, padding=1),
         )
         self.branch2 = nn.Sequential(
-            BasicConv3d(512, 32, kernel_size=1, stride=1),
-            SepConv3d(32, 64, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n512, n32, kernel_size=1, stride=1),
+            SepConv3d(n32, n64, kernel_size=3, stride=1, padding=1),
         )
         self.branch3 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(3, 3, 3), stride=1, padding=1),
-            BasicConv3d(512, 64, kernel_size=1, stride=1),
+            BasicConv3d(n512, n64, kernel_size=1, stride=1),
         )
 
     def forward(self, x):
@@ -365,23 +409,29 @@ class Mixed_4e(nn.Module):
 
 
 class Mixed_4f(nn.Module):
-    def __init__(self):
+    def __init__(self, kf):
+        n32 = int(32 * kf)
+        n128 = int(128 * kf)
+        n160 = int(160 * kf)
+        n256 = int(256 * kf)
+        n320 = int(320 * kf)
+        n528 = int(528 * kf)
         super(Mixed_4f, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv3d(528, 256, kernel_size=1, stride=1),
+            BasicConv3d(n528, n256, kernel_size=1, stride=1),
         )
         self.branch1 = nn.Sequential(
-            BasicConv3d(528, 160, kernel_size=1, stride=1),
-            SepConv3d(160, 320, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n528, n160, kernel_size=1, stride=1),
+            SepConv3d(n160, n320, kernel_size=3, stride=1, padding=1),
         )
         self.branch2 = nn.Sequential(
-            BasicConv3d(528, 32, kernel_size=1, stride=1),
-            SepConv3d(32, 128, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n528, n32, kernel_size=1, stride=1),
+            SepConv3d(n32, n128, kernel_size=3, stride=1, padding=1),
         )
         self.branch3 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(3, 3, 3), stride=1, padding=1),
-            BasicConv3d(528, 128, kernel_size=1, stride=1),
+            BasicConv3d(n528, n128, kernel_size=1, stride=1),
         )
 
     def forward(self, x):
@@ -394,23 +444,29 @@ class Mixed_4f(nn.Module):
 
 
 class Mixed_5b(nn.Module):
-    def __init__(self):
+    def __init__(self, kf):
+        n32 = int(32 * kf)
+        n128 = int(128 * kf)
+        n160 = int(160 * kf)
+        n256 = int(256 * kf)
+        n320 = int(320 * kf)
+        n832 = int(832 * kf)
         super(Mixed_5b, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv3d(832, 256, kernel_size=1, stride=1),
+            BasicConv3d(n832, n256, kernel_size=1, stride=1),
         )
         self.branch1 = nn.Sequential(
-            BasicConv3d(832, 160, kernel_size=1, stride=1),
-            SepConv3d(160, 320, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n832, n160, kernel_size=1, stride=1),
+            SepConv3d(n160, n320, kernel_size=3, stride=1, padding=1),
         )
         self.branch2 = nn.Sequential(
-            BasicConv3d(832, 32, kernel_size=1, stride=1),
-            SepConv3d(32, 128, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n832, n32, kernel_size=1, stride=1),
+            SepConv3d(n32, n128, kernel_size=3, stride=1, padding=1),
         )
         self.branch3 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(3, 3, 3), stride=1, padding=1),
-            BasicConv3d(832, 128, kernel_size=1, stride=1),
+            BasicConv3d(n832, n128, kernel_size=1, stride=1),
         )
 
     def forward(self, x):
@@ -423,23 +479,28 @@ class Mixed_5b(nn.Module):
 
 
 class Mixed_5c(nn.Module):
-    def __init__(self):
+    def __init__(self, kf):
+        n48 = int(48 * kf)
+        n128 = int(128 * kf)
+        n192 = int(192 * kf)
+        n384 = int(384 * kf)
+        n832 = int(832 * kf)
         super(Mixed_5c, self).__init__()
 
         self.branch0 = nn.Sequential(
-            BasicConv3d(832, 384, kernel_size=1, stride=1),
+            BasicConv3d(n832, n384, kernel_size=1, stride=1),
         )
         self.branch1 = nn.Sequential(
-            BasicConv3d(832, 192, kernel_size=1, stride=1),
-            SepConv3d(192, 384, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n832, n192, kernel_size=1, stride=1),
+            SepConv3d(n192, n384, kernel_size=3, stride=1, padding=1),
         )
         self.branch2 = nn.Sequential(
-            BasicConv3d(832, 48, kernel_size=1, stride=1),
-            SepConv3d(48, 128, kernel_size=3, stride=1, padding=1),
+            BasicConv3d(n832, n48, kernel_size=1, stride=1),
+            SepConv3d(n48, n128, kernel_size=3, stride=1, padding=1),
         )
         self.branch3 = nn.Sequential(
             nn.MaxPool3d(kernel_size=(3, 3, 3), stride=1, padding=1),
-            BasicConv3d(832, 128, kernel_size=1, stride=1),
+            BasicConv3d(n832, n128, kernel_size=1, stride=1),
         )
 
     def forward(self, x):
