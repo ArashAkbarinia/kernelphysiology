@@ -308,6 +308,7 @@ class ResNet(nn.Module):
         x = F.upsample(x, size=input_size)
         x = self.saliency(x)
         x = self.sigmoid(x)
+        x = x.view(x.size(0), x.size(3), x.size(4))
 
         return x
 
