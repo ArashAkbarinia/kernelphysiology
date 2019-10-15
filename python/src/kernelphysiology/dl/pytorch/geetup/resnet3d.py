@@ -286,6 +286,9 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        # in their architecture, channel is first then frame.
+        x = x.permute(0, 2, 1, 3, 4)
+
         input_size = [1, *x.size()[-2:]]
         x = self.conv1(x)
         x = self.bn1(x)
