@@ -13,31 +13,33 @@ from .tased import Tased
 from . import resnet3d
 
 
-def which_network(network_name):
+def which_network(network_name, **kwargs):
     mean_std = None
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
         architecture = checkpoint['arch']
-        network = which_architecture(architecture)
+        if 'kwargs' in checkpoint:
+            kwargs = checkpoint['kwargs']
+        else:
+            kwargs = dict()
+        network = which_architecture(architecture, **kwargs)
         network.load_state_dict(checkpoint['state_dict'])
         if 'mean_std' in checkpoint:
             mean_std = checkpoint['mean_std']
     else:
-        network = which_architecture(network_name)
+        network = which_architecture(network_name, **kwargs)
         architecture = network_name
     return network, architecture, mean_std
 
 
-def which_architecture(architecture):
+def which_architecture(architecture, **kwargs):
     if architecture.lower() == 'tased':
-        return Tased()
+        return Tased(**kwargs)
     elif architecture.lower() == 'salema':
         return Salema()
     elif architecture.lower() == 'centre':
         return CentreModel()
     elif 'resnet' in architecture.lower():
-        import importlib
-        importlib.reload(resnet3d)
         return resnet3d.__dict__[architecture]()
     else:
         sys.exit('Architecture %s not supported.' % architecture)
