@@ -10,6 +10,7 @@ from torch import nn
 
 from .salema import Salema
 from .tased import Tased
+from . import resnet3d
 
 
 def which_network(network_name):
@@ -34,6 +35,10 @@ def which_architecture(architecture):
         return Salema()
     elif architecture.lower() == 'centre':
         return CentreModel()
+    elif 'resnet' in architecture.lower():
+        import importlib
+        importlib.reload(resnet3d)
+        return resnet3d.__dict__[architecture]()
     else:
         sys.exit('Architecture %s not supported.' % architecture)
 
