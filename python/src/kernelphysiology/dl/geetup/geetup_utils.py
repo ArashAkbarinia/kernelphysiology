@@ -372,22 +372,28 @@ def change_base_path(in_file, old, new, out_file, prefix=''):
     write_pickle(out_file, data)
 
 
-def change_extension_recursive(in_folder, new_extension, out_folder):
+# TODO: make all other recursive folders like this
+def change_pickles_recursive(in_folder, out_folder, **kwargs):
     create_dir(out_folder)
     for current_in in sorted(glob.glob(in_folder + '/*/')):
         print(current_in)
         current_out = current_in.replace(in_folder, out_folder)
-        create_dir(current_out)
-        for in_file in sorted(glob.glob(current_in + '/*.pickle')):
-            out_file = in_file.replace(in_folder, out_folder)
-            change_extension(in_file, new_extension, out_file)
+        change_pickles_dir(current_in, current_out, **kwargs)
+        change_pickles_recursive(current_in, current_out, **kwargs)
 
 
-def change_extension(in_file, new_extension, out_file):
+def change_pickles_dir(in_folder, out_folder, **kwargs):
+    create_dir(out_folder)
+    for in_file in sorted(glob.glob(in_folder + '/*.pickle')):
+        out_file = in_file.replace(in_folder, out_folder)
+        change_pickles(in_file, out_file, **kwargs)
+
+
+def change_pickles(in_file, out_file, **kwargs):
     data = read_pickle(in_file)
 
-    # changing the extension
-    data['extension'] = new_extension
+    for key, item in kwargs.items():
+        data[key] = item
 
     write_pickle(out_file, data)
 
