@@ -308,18 +308,25 @@ def process_random_image(model, validation_loader, normalize_inverse, args):
             y_target = y_target.numpy()
 
             for b in range(y_target.shape[0]):
-                file_name = '%s/image_%d_%d.jpg' % (args.out_dir, step, b)
-                # PyTorch has this order: batch, frame, channel, width, height
-                current_image = normalize_inverse(
-                    x_input[b, -1].squeeze()
-                ).numpy()
-                current_image = np.transpose(current_image, (1, 2, 0))
-                current_image = (current_image * 255).astype('uint8')
                 gt = y_target[b].squeeze()
                 pred = output[b].squeeze()
-                _ = geetup_visualise.draw_circle_results(
-                    current_image, gt, pred, file_name
-                )
+                if args.draw_results:
+                    # PyTorch has this order: batch, frame, channel, width, height
+                    current_image = normalize_inverse(
+                        x_input[b, -1].squeeze()
+                    ).numpy()
+                    current_image = np.transpose(current_image, (1, 2, 0))
+                    current_image = (current_image * 255).astype('uint8')
+                    file_name = '%s/image_%d_%d.jpg' % (args.out_dir, step, b)
+                    _ = geetup_visualise.draw_circle_results(
+                        current_image, gt, pred, file_name
+                    )
+                if args.save_gt:
+                    file_name = '%s/image_%d_%d_g.jpg' % (args.out_dir, step, b)
+                    geetup_visualise.save_heatmap(gt, file_name)
+                if args.save_pred:
+                    file_name = '%s/image_%d_%d_p.jpg' % (args.out_dir, step, b)
+                    geetup_visualise.save_heatmap(pred, file_name)
 
             # TODO: make it nicer
             if step == 0:

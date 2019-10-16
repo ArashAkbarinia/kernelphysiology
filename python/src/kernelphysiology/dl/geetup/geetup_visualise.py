@@ -34,3 +34,10 @@ def draw_circle_results(img_org, gt, pred, out_file=None):
     if out_file is not None:
         cv2.imwrite(out_file, img_out)
     return img_out
+
+
+def save_heatmap(heatmap, out_file):
+    heatmap = heatmap.copy()
+    heatmap /= heatmap.max()
+    heatmap *= 255
+    cv2.imwrite(out_file, heatmap.astype('uint8'))

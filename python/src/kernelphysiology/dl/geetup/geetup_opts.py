@@ -100,6 +100,24 @@ def argument_parser():
         default=None,
         help='Number of random images to try (default: None)'
     )
+    parser.add_argument(
+        '--save_gt',
+        action='store_true',
+        default=False,
+        help='Saving the ground truth to an image (default: False)'
+    )
+    parser.add_argument(
+        '--save_pred',
+        action='store_true',
+        default=False,
+        help='Saving the prediction to an image (default: False)'
+    )
+    parser.add_argument(
+        '--draw_results',
+        action='store_true',
+        default=False,
+        help='Drawing the prediciton and GT on top of image (default: False)'
+    )
 
     architecture_group = parser.add_argument_group('architecture')
     architecture_group.add_argument(
