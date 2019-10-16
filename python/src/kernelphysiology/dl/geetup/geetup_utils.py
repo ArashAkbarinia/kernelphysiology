@@ -208,7 +208,7 @@ def create_train_test_sets(video_list, test_subjs=None, val_subjs=None,
     if test_subjs is None:
         test_subjs = [13, 20, 23, 33, 39]
     if val_subjs is None:
-        val_subjs = [1, 7, 13, 21, 26]
+        val_subjs = [1, 7, 21, 26, 44]
 
     # TODO: right now essentially test_clips and val_clips are connected to
     #  eachother, the exclude_list passed should support dictionaries
