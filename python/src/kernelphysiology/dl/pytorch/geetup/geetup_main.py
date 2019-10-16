@@ -343,6 +343,12 @@ def main(args):
     )
     model = model.to(args.device)
 
+    # TODO: fix this solution
+    if mean_std is None and args.in_chns == 1:
+        mean = [0.5]
+        std = [0.25]
+        mean_std = [mean, std]
+
     args.out_dir = prepare_training.prepare_output_directories(
         dataset_name='geetup_' + args.dataset, network_name=architecture,
         optimiser='sgd', load_weights=False,
