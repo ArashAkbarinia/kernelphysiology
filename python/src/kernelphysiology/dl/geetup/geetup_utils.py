@@ -372,6 +372,26 @@ def change_base_path(in_file, old, new, out_file, prefix=''):
     write_pickle(out_file, data)
 
 
+def change_extension_recursive(in_folder, new_extension, out_folder):
+    create_dir(out_folder)
+    for current_in in sorted(glob.glob(in_folder + '/*/')):
+        print(current_in)
+        current_out = current_in.replace(in_folder, out_folder)
+        create_dir(current_out)
+        for in_file in sorted(glob.glob(current_in + '/*.pickle')):
+            out_file = in_file.replace(in_folder, out_folder)
+            change_extension(in_file, new_extension, out_file)
+
+
+def change_extension(in_file, new_extension, out_file):
+    data = read_pickle(in_file)
+
+    # changing the extension
+    data['extension'] = new_extension
+
+    write_pickle(out_file, data)
+
+
 def remove_segment_video_list_recursive(in_folder, segment):
     for folder in sorted(glob.glob(in_folder + '/*/')):
         print(folder)
