@@ -42,8 +42,8 @@ def _cityscape_folder(im_list, dir_path, id2color=None):
     return all_results
 
 
-def report_cityscape(input_folder, out_dir=None, out_suffix='',
-                     file_exp='SELECTED_IMGS_*.txt'):
+def report_cityscape(input_folder, out_dir=None, prefix_dir='pred_mask',
+                     out_name='cityscape_stats', in_exp='SELECTED_IMGS_*.txt'):
     if out_dir is None:
         out_dir = input_folder
     for part_dir in sorted(glob.glob(input_folder + '/*/')):
@@ -52,16 +52,21 @@ def report_cityscape(input_folder, out_dir=None, out_suffix='',
         save_part_segment = save_part + '/segments/'
         create_dir(os.path.join(out_dir, save_part_segment))
         for video_dir in sorted(glob.glob(part_dir + '/segments/*/')):
+            print(video_dir)
             save_segment_dir = save_part_segment + video_dir.split('/')[-2]
             create_dir(os.path.join(out_dir, save_segment_dir))
-            for selected_txt in sorted(glob.glob(video_dir + file_exp)):
+            for selected_txt in sorted(glob.glob(video_dir + in_exp)):
                 vid_ind = selected_txt.split('/')[-1][:-4].split('_')[-1]
-                imgs_dir = os.path.join(video_dir, 'CutVid_%s' % vid_ind)
+                imgs_dir = os.path.join(
+                    video_dir, 'CutVid_%s/%s' % (vid_ind, prefix_dir)
+                )
                 im_list = np.loadtxt(selected_txt, dtype=str, delimiter=',')
                 current_result = _cityscape_folder(im_list, imgs_dir)
                 out_file = os.path.join(
-                    video_dir, 'cityscape_stats_s%s.txt', out_suffix
+                    video_dir, '%s_%s.txt' % (out_name, vid_ind)
                 )
+                header = 'im_name,gaze_label,pixels_per_labels'
                 np.savetxt(
-                    out_file, np.array(current_result), delimiter=',', fmt='%s'
+                    out_file, np.array(current_result), delimiter=';', fmt='%s',
+                    header=header
                 )
