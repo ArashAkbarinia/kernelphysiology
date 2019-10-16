@@ -11,6 +11,15 @@ from kernelphysiology.utils.path_utils import create_dir
 from kernelphysiology.utils.path_utils import write_pickle
 from kernelphysiology.utils.path_utils import read_pickle
 from kernelphysiology.utils.imutils import max_pixel_ind
+from kernelphysiology.utils.controls import isint
+
+
+def parse_gt_line(gt):
+    gt = gt.replace('[', '').replace(']', '').split(' ')
+    gt = [int(i) for i in gt if isint(i)]
+    # in the file it's stored as x and y, rather than rows and cols
+    gt = gt[::-1]
+    return gt
 
 
 def max_pixel_euclidean_distance(a, b):

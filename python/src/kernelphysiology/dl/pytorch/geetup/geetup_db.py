@@ -14,8 +14,8 @@ from torchvision import transforms
 from torchvision.transforms.functional import hflip
 
 from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
+from kernelphysiology.dl.geetup.geetup_utils import parse_gt_line
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
-from kernelphysiology.utils.controls import isint
 from kernelphysiology.utils.imutils import heat_map_from_point
 from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 
@@ -92,14 +92,6 @@ def _init_videos(video_list):
         for j in range(video_info[2]):
             all_videos.append([f, video_info[1], j])
     return all_videos, num_sequences, video_paths
-
-
-def _parse_gt_line(gt):
-    gt = gt.replace('[', '').replace(']', '').split(' ')
-    gt = [int(i) for i in gt if isint(i)]
-    # in the file it's stored as x and y, rather than rows and cols
-    gt = gt[::-1]
-    return gt
 
 
 class GeetupDataset(Dataset):
@@ -180,7 +172,7 @@ class GeetupDataset(Dataset):
             x_item.append(img)
 
             if self.all_gts or j == len(all_frames) - 1:
-                gt = _parse_gt_line(selected_imgs[frame_num][1])
+                gt = parse_gt_line(selected_imgs[frame_num][1])
 
                 if do_for_entire_sequence:
                     gt[1] = img.shape[2] - gt[1]
@@ -210,7 +202,7 @@ class GeetupDatasetInformative(GeetupDataset):
             x_item.append(image_path)
 
             if self.all_gts or j == len(all_frames) - 1:
-                gt = _parse_gt_line(selected_imgs[frame_num][1])
+                gt = parse_gt_line(selected_imgs[frame_num][1])
                 y_item.append(gt)
 
         return x_item, y_item
