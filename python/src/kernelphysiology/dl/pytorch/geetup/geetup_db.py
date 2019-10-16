@@ -97,7 +97,7 @@ def _init_videos(video_list):
 
 
 def _npy_loader(input_path):
-    img = np.load(input_path).astype(np.float32)
+    img = np.load(input_path).astype(np.float32).squeeze()
     img = Image.fromarray(img, mode='F')
     # FIXME: this is not a proper solution
     img = img.resize((360, 640)[::-1])
