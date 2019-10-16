@@ -11,7 +11,7 @@ class Tased(nn.Module):
     eps = 1e-5
     momentum = 0.1
 
-    def __init__(self, kf=1):
+    def __init__(self, kf=1, in_chns=3):
         super(Tased, self).__init__()
         n64 = int(64 * kf)
         n192 = int(192 * kf)
@@ -20,7 +20,7 @@ class Tased(nn.Module):
         n1024 = int(1024 * kf)
 
         self.base1 = nn.Sequential(
-            SepConv3d(3, n64, kernel_size=7, stride=2, padding=3),
+            SepConv3d(in_chns, n64, kernel_size=7, stride=2, padding=3),
             nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2),
                          padding=(0, 1, 1)),
             BasicConv3d(n64, n64, kernel_size=1, stride=1),

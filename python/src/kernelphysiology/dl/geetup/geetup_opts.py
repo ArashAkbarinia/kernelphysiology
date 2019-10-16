@@ -132,6 +132,13 @@ def argument_parser():
         default=False,
         help='Make the model frame based (default: False)'
     )
+    # TODO: it's better to make in_chns based on colour space, etc.
+    architecture_group.add_argument(
+        '--in_chns',
+        type=int,
+        default=3,
+        help='Number of input channels (default: 3)'
+    )
 
     optimisation_group = parser.add_argument_group('optimisation')
     optimisation_group.add_argument(

@@ -198,12 +198,10 @@ class BottleneckTranspose(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, shortcut_type='B', last_fc=True):
-        self.last_fc = last_fc
-
-        self.inplanes = 64
+    def __init__(self, block, layers, shortcut_type='B', in_chns=3):
         super(ResNet, self).__init__()
-        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2),
+        self.inplanes = 64
+        self.conv1 = nn.Conv3d(in_chns, 64, kernel_size=7, stride=(1, 2, 2),
                                padding=(3, 3, 3), bias=False)
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)

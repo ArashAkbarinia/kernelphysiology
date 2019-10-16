@@ -40,7 +40,7 @@ def which_architecture(architecture, **kwargs):
     elif architecture.lower() == 'centre':
         return CentreModel()
     elif 'resnet' in architecture.lower():
-        return resnet3d.__dict__[architecture]()
+        return resnet3d.__dict__[architecture](**kwargs)
     else:
         sys.exit('Architecture %s not supported.' % architecture)
 

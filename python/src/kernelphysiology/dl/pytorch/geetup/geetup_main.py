@@ -338,7 +338,9 @@ def main(args):
     args.device = prepare_device(args.gpus)
 
     # creating the model
-    model, architecture, mean_std = geetup_net.which_network(args.architecture)
+    model, architecture, mean_std = geetup_net.which_network(
+        args.architecture, in_chns=args.in_chns
+    )
     model = model.to(args.device)
 
     args.out_dir = prepare_training.prepare_output_directories(

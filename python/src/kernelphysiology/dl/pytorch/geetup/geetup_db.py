@@ -7,6 +7,8 @@ import pickle
 import os
 import random
 
+from PIL import Image
+
 import torch
 from torch.utils.data import Dataset
 from torchvision.datasets.folder import pil_loader
@@ -94,6 +96,12 @@ def _init_videos(video_list):
     return all_videos, num_sequences, video_paths
 
 
+def _npy_loader(input_path):
+    img = np.load(input_path).astype(np.float32)
+    img = Image.fromarray(img, mode='F')
+    return img
+
+
 class GeetupDataset(Dataset):
     def __init__(self, pickle_file, transform=None, target_transform=None,
                  common_transforms=None, all_gts=False, frames_gap=None,
@@ -107,6 +115,8 @@ class GeetupDataset(Dataset):
         self.frames_gap = frames_gap
         self.sequence_length = sequence_length
         self.all_gts = all_gts
+        self.extension = None
+        self.data_loader = pil_loader
 
         (self.all_videos,
          self.num_sequences,
@@ -125,6 +135,10 @@ class GeetupDataset(Dataset):
         self.base_path_img = f_data['base_path_img']
         self.base_path_txt = f_data['base_path_txt']
         self.prefix = f_data['prefix']
+        if 'extension' in f_data:
+            self.extension = f_data['extension']
+            if self.extension == '.npy':
+                self.data_loader = _npy_loader
         all_videos, num_sequences, video_paths = _init_videos(video_list)
         print('Read %d sequences' % num_sequences)
         return all_videos, num_sequences, video_paths
@@ -161,8 +175,12 @@ class GeetupDataset(Dataset):
                 do_for_entire_sequence = True
 
         for j, frame_num in enumerate(all_frames):
-            image_path = os.path.join(video_path, selected_imgs[frame_num][0])
-            img = pil_loader(image_path)
+            file_name = selected_imgs[frame_num][0]
+            # this is a hack to change the extension easily to .png or .npy
+            if self.extension is not None:
+                file_name = file_name[:-4] + self.extension
+            image_path = os.path.join(video_path, file_name)
+            img = self.data_loader(image_path)
 
             if do_for_entire_sequence:
                 img = hflip(img)
