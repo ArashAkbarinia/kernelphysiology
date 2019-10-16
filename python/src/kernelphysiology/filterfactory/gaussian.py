@@ -16,7 +16,7 @@ def gaussian_width(sigma, max_width=100, threshold=1e-4):
 
 
 def gaussian_kernel2(sigmax, sigmay=None, meanx=0, meany=0, theta=0, width=None,
-                     threshold=1e-4):
+                     max_width=100, threshold=1e-4):
     if sigmax == 0:
         return 1
     if sigmay is None:
@@ -26,7 +26,7 @@ def gaussian_kernel2(sigmax, sigmay=None, meanx=0, meany=0, theta=0, width=None,
         max_sigma = np.maximum(sigmax, sigmay)
     if width is None:
         sizex = gaussian_width(
-            sigma=max_sigma, max_width=100, threshold=threshold
+            sigma=max_sigma, max_width=max_width, threshold=threshold
         )
     else:
         sizex = width

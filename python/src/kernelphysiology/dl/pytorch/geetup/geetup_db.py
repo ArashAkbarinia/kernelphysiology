@@ -21,10 +21,15 @@ from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 
 
 class HeatMapFixationPoint(object):
-    def __init__(self, target_size, org_size, gaussian_sigma=25):
+    def __init__(self, target_size, org_size, gaussian_sigma=None):
         self.target_size = target_size
         self.org_size = org_size
-        self.gaussian_kernel = gaussian_kernel2(gaussian_sigma)
+        max_width = min(target_size)
+        if gaussian_sigma is None:
+            gaussian_sigma = max_width * 0.1
+        self.gaussian_kernel = gaussian_kernel2(
+            gaussian_sigma, max_width=max_width
+        )
 
     def __call__(self, point):
         point = map_point_to_image_size(point, self.target_size, self.org_size)
