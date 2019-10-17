@@ -284,7 +284,7 @@ class RandomHorizontalFlip(object):
                 for img in img_list:
                     inner_list.append(F.hflip(img))
                 out_imgs.append(inner_list)
-                return out_imgs
+            return out_imgs
         return imgs
 
     def __repr__(self):
