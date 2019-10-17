@@ -37,7 +37,7 @@ class HeatMapFixationPoint(object):
         img = heat_map_from_point(
             point, target_size=self.target_size, g_kernel=self.gaussian_kernel
         )
-        return img
+        return Image.fromarray(img, mode='F')
 
     def __repr__(self):
         return self.__class__.__name__ + '(target_size={})'.format(
