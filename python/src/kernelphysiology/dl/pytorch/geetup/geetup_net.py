@@ -20,8 +20,6 @@ def which_network(network_name, **kwargs):
         architecture = checkpoint['arch']
         if 'kwargs' in checkpoint:
             kwargs = checkpoint['kwargs']
-        else:
-            kwargs = dict()
         network = which_architecture(architecture, **kwargs)
         network.load_state_dict(checkpoint['state_dict'])
         if 'mean_std' in checkpoint:
