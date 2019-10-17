@@ -125,6 +125,7 @@ class NewClassificationModel(nn.Module):
         x = self.fc(x)
         return x
 
+
 def lesion_lines(model, layer, kernel, kill_lines):
     for l_item in kill_lines:
         # pattern <P1>_<L1>_<P2>_<L2>
@@ -298,20 +299,20 @@ def which_architecture(network_name, customs=None):
 
 
 # TODO: use different values fo preprocessing
-def get_preprocessing_function(colour_space, colour_transformation):
+def get_preprocessing_function(colour_space, colour_vision=None):
     mean = [0.5, 0.5, 0.5]
     std = [0.25, 0.25, 0.25]
     if colour_space == 'rgb':
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
+    elif colour_space == 'greyscale':
+        mean = [0.5]
+        std = [0.25]
     elif colour_space == 'lab' or colour_space == 'lms':
-        if (
-                'dichromat' in colour_transformation or
-                'anopia' in colour_transformation
-        ):
+        if 'dichromat' in colour_vision or 'anopia' in colour_vision:
             mean = [0.5, 0.5]
             std = [0.25, 0.25]
-        elif colour_transformation == 'monochromat':
+        elif colour_vision == 'monochromat':
             mean = [0.5]
             std = [0.25]
     return mean, std

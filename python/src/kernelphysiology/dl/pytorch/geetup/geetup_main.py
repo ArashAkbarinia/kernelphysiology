@@ -95,16 +95,12 @@ def epochs(model, train_loader, validation_loader, optimizer, args):
         is_best = euc_distance < best_euc
         best_euc = max(euc_distance, best_euc)
 
-        # TODO: many of these parameters don't exist as of now
         save_checkpoint(
             {
                 'epoch': epoch + 1,
                 'arch': args.architecture,
-                'customs': {
-                    'pooling_type': None,
-                    'in_chns': 3,
-                    'blocks': None,
-                    'num_kernels': None
+                'kwargs': {
+                    'in_chns': args.in_chns
                 },
                 'state_dict': model.state_dict(),
                 'best_euc': best_euc,
@@ -342,12 +338,6 @@ def main(args):
         args.architecture, in_chns=args.in_chns
     )
     model = model.to(args.device)
-
-    # TODO: fix this solution
-    if mean_std is None and args.in_chns == 1:
-        mean = [0.5]
-        std = [0.25]
-        mean_std = [mean, std]
 
     args.out_dir = prepare_training.prepare_output_directories(
         dataset_name='geetup_' + args.dataset, network_name=architecture,
