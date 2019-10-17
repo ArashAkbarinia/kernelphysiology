@@ -17,6 +17,8 @@ from torchvision.transforms.functional import hflip
 
 from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
 from kernelphysiology.dl.geetup.geetup_utils import parse_gt_line
+from ..utils.transformations import RandomResizedCrop
+from ..utils.transformations import RandomHorizontalFlip
 from kernelphysiology.utils.imutils import heat_map_from_point
 from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 
@@ -54,7 +56,7 @@ def get_train_dataset(pickle_file, target_size, mean_std):
     target_transform = transforms.Compose([
         HeatMapFixationPoint(target_size, (360, 640)), transforms.ToTensor()
     ])
-    common_transforms = []
+    common_transforms = [RandomHorizontalFlip, RandomResizedCrop]
     train_dataset = GeetupDataset(
         pickle_file, img_transform, target_transform, common_transforms
     )
@@ -163,12 +165,6 @@ class GeetupDataset(Dataset):
         x_item = []
         y_item = []
 
-        # TODO: for now, just horizontal flipping
-        do_for_entire_sequence = False
-        if self.common_transforms is not None:
-            if random.random() < 0.5:
-                do_for_entire_sequence = True
-
         for j, frame_num in enumerate(all_frames):
             file_name = selected_imgs[frame_num][0]
             # this is a hack to change the extension easily to .png or .npy
@@ -177,9 +173,6 @@ class GeetupDataset(Dataset):
             image_path = os.path.join(video_path, file_name)
             img = self.data_loader(image_path)
 
-            if do_for_entire_sequence:
-                img = hflip(img)
-
             if self.transform is not None:
                 img = self.transform(img)
             x_item.append(img)
@@ -187,12 +180,14 @@ class GeetupDataset(Dataset):
             if self.all_gts or j == len(all_frames) - 1:
                 gt = parse_gt_line(selected_imgs[frame_num][1])
 
-                if do_for_entire_sequence:
-                    gt[1] = img.shape[2] - gt[1]
-
                 if self.target_transform is not None:
                     gt = self.target_transform(gt)
                 y_item.append(gt)
+
+        if self.common_transforms is not None:
+            for c_transform in self.common_transforms:
+                x_item, y_item = c_transform([x_item, y_item])
+
         x_item = torch.stack(x_item, dim=0)
         y_item = torch.stack(y_item, dim=0)
         y_item = torch.squeeze(y_item)
