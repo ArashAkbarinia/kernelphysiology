@@ -46,6 +46,7 @@ class HeatMapFixationPoint(object):
 
 
 def get_train_dataset(pickle_file, target_size, mean_std):
+    target_size = tuple(target_size)
     mean, std = mean_std
     normalise = transforms.Normalize(mean=mean, std=std)
     img_transform = transforms.Compose([transforms.ToTensor(), normalise])
@@ -61,6 +62,7 @@ def get_train_dataset(pickle_file, target_size, mean_std):
 
 
 def get_validation_dataset(pickle_file, target_size, mean_std):
+    target_size = tuple(target_size)
     mean, std = mean_std
     normalise = transforms.Normalize(mean=mean, std=std)
     img_transform = transforms.Compose([
