@@ -51,7 +51,7 @@ def get_train_dataset(pickle_file, target_size, mean_std):
     img_transform = transforms.Compose([transforms.ToTensor(), normalise])
     target_transform = transforms.Compose([transforms.ToTensor()])
     common_transforms = [
-        RandomHorizontalFlip,
+        RandomHorizontalFlip(),
         RandomResizedCrop(target_size, scale=(0.8, 1.0))
     ]
     train_dataset = GeetupDataset(
