@@ -96,8 +96,8 @@ def _npy_loader(input_path):
 
 
 class GeetupDataset(Dataset):
-    def __init__(self, pickle_file, target_size=(360, 640), transform=None,
-                 target_transform=None, common_transforms=None, all_gts=False,
+    def __init__(self, pickle_file, transform=None, target_transform=None,
+                 common_transforms=None, all_gts=False, target_size=(360, 640),
                  frames_gap=None, sequence_length=None):
         super(GeetupDataset, self).__init__()
 
