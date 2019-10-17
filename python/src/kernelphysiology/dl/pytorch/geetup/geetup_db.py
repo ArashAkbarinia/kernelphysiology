@@ -48,12 +48,8 @@ class HeatMapFixationPoint(object):
 def get_train_dataset(pickle_file, target_size, mean_std):
     mean, std = mean_std
     normalise = transforms.Normalize(mean=mean, std=std)
-    img_transform = transforms.Compose([
-        transforms.ToTensor(), normalise,
-    ])
-    target_transform = transforms.Compose([
-        transforms.ToTensor()
-    ])
+    img_transform = transforms.Compose([transforms.ToTensor(), normalise])
+    target_transform = transforms.Compose([transforms.ToTensor()])
     common_transforms = [
         RandomHorizontalFlip,
         RandomResizedCrop(target_size, scale=(0.8, 1.0))
@@ -70,12 +66,11 @@ def get_validation_dataset(pickle_file, target_size, mean_std):
     img_transform = transforms.Compose([
         transforms.Resize(target_size), transforms.ToTensor(), normalise,
     ])
-    target_transform = transforms.Compose([
-        HeatMapFixationPoint(target_size, (360, 640)), transforms.ToTensor()
-    ])
+    target_transform = transforms.Compose([transforms.ToTensor()])
     common_transforms = None
     validation_dataset = GeetupDataset(
-        pickle_file, img_transform, target_transform, common_transforms
+        pickle_file, img_transform, target_transform, common_transforms,
+        target_size=target_size
     )
     return validation_dataset
 
@@ -101,9 +96,9 @@ def _npy_loader(input_path):
 
 
 class GeetupDataset(Dataset):
-    def __init__(self, pickle_file, transform=None, target_transform=None,
-                 common_transforms=None, all_gts=False, frames_gap=None,
-                 sequence_length=None):
+    def __init__(self, pickle_file, target_size=(360, 640), transform=None,
+                 target_transform=None, common_transforms=None, all_gts=False,
+                 frames_gap=None, sequence_length=None):
         super(GeetupDataset, self).__init__()
 
         self.pickle_file = pickle_file
@@ -115,7 +110,7 @@ class GeetupDataset(Dataset):
         self.all_gts = all_gts
         self.extension = None
         self.data_loader = pil_loader
-        self.heatmap_gt = HeatMapFixationPoint((360, 640), (360, 640))
+        self.heatmap_gt = HeatMapFixationPoint(target_size, (360, 640))
 
         (self.all_videos,
          self.num_sequences,
