@@ -5,7 +5,6 @@ Creating dataset objects for GEETUP in PyTorch environment.
 import numpy as np
 import pickle
 import os
-import random
 
 from PIL import Image
 
@@ -13,7 +12,6 @@ import torch
 from torch.utils.data import Dataset
 from torchvision.datasets.folder import pil_loader
 from torchvision import transforms
-from torchvision.transforms.functional import hflip
 
 from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
 from kernelphysiology.dl.geetup.geetup_utils import parse_gt_line
@@ -51,12 +49,15 @@ def get_train_dataset(pickle_file, target_size, mean_std):
     mean, std = mean_std
     normalise = transforms.Normalize(mean=mean, std=std)
     img_transform = transforms.Compose([
-        transforms.Resize(target_size), transforms.ToTensor(), normalise,
+        transforms.ToTensor(), normalise,
     ])
     target_transform = transforms.Compose([
-        HeatMapFixationPoint(target_size, (360, 640)), transforms.ToTensor()
+        transforms.ToTensor()
     ])
-    common_transforms = [RandomHorizontalFlip, RandomResizedCrop]
+    common_transforms = [
+        RandomHorizontalFlip,
+        RandomResizedCrop(target_size, scale=(0.8, 1.0))
+    ]
     train_dataset = GeetupDataset(
         pickle_file, img_transform, target_transform, common_transforms
     )
@@ -114,6 +115,7 @@ class GeetupDataset(Dataset):
         self.all_gts = all_gts
         self.extension = None
         self.data_loader = pil_loader
+        self.heatmap_gt = HeatMapFixationPoint((360, 640), (360, 640))
 
         (self.all_videos,
          self.num_sequences,
@@ -172,21 +174,24 @@ class GeetupDataset(Dataset):
                 file_name = file_name[:-4] + self.extension
             image_path = os.path.join(video_path, file_name)
             img = self.data_loader(image_path)
-
-            if self.transform is not None:
-                img = self.transform(img)
             x_item.append(img)
 
             if self.all_gts or j == len(all_frames) - 1:
                 gt = parse_gt_line(selected_imgs[frame_num][1])
-
-                if self.target_transform is not None:
-                    gt = self.target_transform(gt)
+                gt = self.heatmap_gt(gt)
                 y_item.append(gt)
 
+        # first common transforms
         if self.common_transforms is not None:
             for c_transform in self.common_transforms:
                 x_item, y_item = c_transform([x_item, y_item])
+        # after that other transforms
+        if self.transform is not None:
+            for i in range(len(x_item)):
+                x_item[i] = self.transform(x_item[i])
+        if self.target_transform is not None:
+            for i in range(len(y_item)):
+                y_item[i] = self.target_transform(y_item[i])
 
         x_item = torch.stack(x_item, dim=0)
         y_item = torch.stack(y_item, dim=0)
