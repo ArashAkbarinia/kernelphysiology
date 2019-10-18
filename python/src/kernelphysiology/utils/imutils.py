@@ -501,7 +501,7 @@ def top_pixeld_ind(im, percentage):
     selected_pixels = int(np.floor(num_elements * percentage) + 1)
     rows = sorted_inds[0][-1:-selected_pixels:-1]
     cols = sorted_inds[1][-1:-selected_pixels:-1]
-    return (rows, cols)
+    return rows, cols
 
 
 def heat_map_from_point(point, target_size, g_kernel=None, sigma=1.5):
