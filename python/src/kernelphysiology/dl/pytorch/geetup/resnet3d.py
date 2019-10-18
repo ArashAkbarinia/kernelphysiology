@@ -211,40 +211,47 @@ class BottleneckTranspose(nn.Module):
 # TODO: support other numbers except division by 4
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, shortcut_type='B', in_chns=3):
+    def __init__(self, block, layers, shortcut_type='B', in_chns=3,
+                 inplanes=64):
         super(ResNet, self).__init__()
-        self.inplanes = 64
-        self.conv1 = nn.Conv3d(in_chns, 64, kernel_size=7, stride=(1, 2, 2),
-                               padding=(3, 3, 3), bias=False)
-        self.bn1 = nn.BatchNorm3d(64)
+        self.in_chns = in_chns
+        self.inplanes = inplanes
+        self.conv1 = nn.Conv3d(
+            self.in_chns, self.inplanes, kernel_size=7, stride=(1, 2, 2),
+            padding=(3, 3, 3), bias=False
+        )
+        self.bn1 = nn.BatchNorm3d(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=2, padding=1)
         self.layer1 = self._make_layer(
-            block, 64, layers[0], shortcut_type
+            block, inplanes, layers[0], shortcut_type
         )
         self.layer2 = self._make_layer(
-            block, 128, layers[1], shortcut_type, stride=2
+            block, inplanes * 2, layers[1], shortcut_type, stride=2
         )
         self.layer3 = self._make_layer(
-            block, 256, layers[2], shortcut_type, stride=2
+            block, inplanes * 4, layers[2], shortcut_type, stride=2
         )
         self.layer4 = self._make_layer(
-            block, 512, layers[3], shortcut_type, stride=2
+            block, inplanes * 8, layers[3], shortcut_type, stride=2
         )
         # conv transpose layers
         self.layer1t = self._make_layer_transpose(
-            BasicBlockTranspose, 256, layers[2], shortcut_type, stride=2
+            BasicBlockTranspose, inplanes * 4, layers[2], shortcut_type,
+            stride=2
         )
         self.layer2t = self._make_layer_transpose(
-            BasicBlockTranspose, 128, layers[1], shortcut_type, stride=2
+            BasicBlockTranspose, inplanes * 2, layers[1], shortcut_type,
+            stride=2
         )
         self.layer3t = self._make_layer_transpose(
-            BasicBlockTranspose, 64, layers[0], shortcut_type, stride=2
+            BasicBlockTranspose, inplanes, layers[0], shortcut_type, stride=2
         )
+        last_planes = round(inplanes / 2)
         self.layer4t = self._make_layer_transpose(
-            BasicBlockTranspose, 32, layers[0], shortcut_type, stride=2
+            BasicBlockTranspose, last_planes, layers[0], shortcut_type, stride=2
         )
-        self.saliency = conv3x3x3(32, 1)
+        self.saliency = conv3x3x3(last_planes, 1)
         self.sigmoid = nn.Sigmoid()
 
         for m in self.modules():
