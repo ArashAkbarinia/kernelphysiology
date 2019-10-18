@@ -11,6 +11,7 @@ from torch import nn
 from .salema import Salema
 from .tased import Tased
 from . import resnet3d
+from . import wavenet3d
 
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 
@@ -47,6 +48,8 @@ def which_architecture(architecture, **kwargs):
         return CentreModel()
     elif 'resnet' in architecture.lower():
         return resnet3d.__dict__[architecture](**kwargs)
+    elif 'wavenet' in architecture.lower():
+        return wavenet3d.__dict__[architecture](**kwargs)
     else:
         sys.exit('Architecture %s not supported.' % architecture)
 
