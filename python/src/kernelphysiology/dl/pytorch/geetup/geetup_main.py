@@ -99,9 +99,7 @@ def epochs(model, train_loader, validation_loader, optimizer, args):
             {
                 'epoch': epoch + 1,
                 'arch': args.architecture,
-                'kwargs': {
-                    'in_chns': args.in_chns
-                },
+                'kwargs': args.architecture_kwargs,
                 'state_dict': model.state_dict(),
                 'best_euc': best_euc,
                 'optimizer': optimizer.state_dict(),
@@ -333,9 +331,17 @@ def main(args):
     args.gpus = set_visible_gpus(args.gpus)
     args.device = prepare_device(args.gpus)
 
+    args.architecture_kwargs = {
+        'in_chns': args.in_chns
+    }
+    # TODO: this is not a nice solution here
+    if 'wavenet' in args.architecture:
+        args.architecture_kwargs['num_kernels'] = args.num_kernels
+        args.architecture_kwargs['blocks'] = args.blocks
+
     # creating the model
     model, architecture, mean_std = geetup_net.which_network(
-        args.architecture, in_chns=args.in_chns
+        args.architecture, **args.architecture_kwargs
     )
     model = model.to(args.device)
 

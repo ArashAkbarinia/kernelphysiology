@@ -139,6 +139,19 @@ def argument_parser():
         default=3,
         help='Number of input channels (default: 3)'
     )
+    architecture_group.add_argument(
+        '--num_kernels',
+        type=int,
+        default=64,
+        help='The number of convolutional kernels (default: 64)'
+    )
+    architecture_group.add_argument(
+        '--blocks',
+        nargs='+',
+        type=int,
+        default=None,
+        help='Number of layers in every block (default: None)'
+    )
 
     optimisation_group = parser.add_argument_group('optimisation')
     optimisation_group.add_argument(

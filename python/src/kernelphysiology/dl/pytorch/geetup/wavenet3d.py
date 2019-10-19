@@ -353,15 +353,19 @@ class WaveNet(nn.Module):
         return x
 
 
-def wavenet_basic(planes, **kwargs):
+def wavenet_basic(planes=None, **kwargs):
     """Constructs a ResNet-Basic-Custom model.
     """
+    if planes is None:
+        planes = [1, 1, 1, 1]
     model = WaveNet(BasicBlock, planes, **kwargs)
     return model
 
 
-def wavenet_bottleneck(planes, **kwargs):
+def wavenet_bottleneck(planes=None, **kwargs):
     """Constructs a ResNet-Bottleneck-Custom model.
     """
+    if planes is None:
+        planes = [1, 1, 1, 1]
     model = WaveNet(Bottleneck, planes, **kwargs)
     return model

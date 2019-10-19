@@ -18,12 +18,14 @@ from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 
 def which_network(network_name, **kwargs):
     mean_std = None
+    # defining meand ans std
     if kwargs['in_chns'] == 3:
         mean, std = get_preprocessing_function('rgb')
         mean_std = [mean, std]
     elif kwargs['in_chns'] == 1:
         mean, std = get_preprocessing_function('greyscale')
         mean_std = [mean, std]
+    # checking whether it's an architecture or a network
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
         architecture = checkpoint['arch']
