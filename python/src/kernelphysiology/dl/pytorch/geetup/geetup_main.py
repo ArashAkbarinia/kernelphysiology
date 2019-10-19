@@ -336,7 +336,7 @@ def main(args):
     }
     # TODO: this is not a nice solution here
     if 'wavenet' in args.architecture:
-        args.architecture_kwargs['num_kernels'] = args.num_kernels
+        args.architecture_kwargs['inplanes'] = args.num_kernels
         args.architecture_kwargs['blocks'] = args.blocks
 
     # creating the model
