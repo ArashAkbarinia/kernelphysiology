@@ -131,7 +131,8 @@ def main(argv):
                 )
                 normalize_inverse = NormalizeInverse(mean, std)
                 visualise_input(
-                    val_loader, out_folder, normalize_inverse, args.print_freq
+                    val_loader, out_folder, normalize_inverse,
+                    manipulation_value, args.print_freq
                 )
             elif args.activation_map is not None:
                 model = LayerActivation(model, args.activation_map)
@@ -281,7 +282,8 @@ def predict(val_loader, model, criterion, gpu_num, print_freq=100):
     return top1.avg, top5.avg, prediction_output
 
 
-def visualise_input(val_loader, out_folder, normalize_inverse, print_freq=100):
+def visualise_input(val_loader, out_folder, normalize_inverse,
+                    manipulation_value, print_freq=100):
     with torch.no_grad():
         for i, (input_imgs, _) in enumerate(val_loader):
             # TODO: make it according to colour space
@@ -290,7 +292,9 @@ def visualise_input(val_loader, out_folder, normalize_inverse, print_freq=100):
                 for c in range(current_im.shape[0]):
                     current_channel = current_im[c].squeeze().numpy()
                     current_channel = (current_channel * 255).astype('uint8')
-                    file_name = '%s/image_%d_%d.jpg' % (out_folder, b, c)
+                    file_name = '%s/image_%d_%d_%s.jpg' % (
+                        out_folder, b, c, str(manipulation_value)
+                    )
                     cv2.imwrite(file_name, current_channel)
 
             # TODO: make it nicer
