@@ -189,7 +189,7 @@ def validate_on_data(val_loader, model, criterion, args):
 
 
 def prepare_device(gpus):
-    if gpus == None or len(gpus) == 0:
+    if gpus == None or len(gpus) == 0 or gpus[0] == -1:
         device = torch.device('cpu')
     else:
         device = torch.device('cuda')
