@@ -29,7 +29,7 @@ def dkl2rgb(x):
 
 
 def rgb2opponency(image_rgb, colour_space='lab'):
-    if colour_space == None:
+    if colour_space is None:
         # it's already in opponency
         image_opponent = image_rgb
     elif colour_space == 'lab':
@@ -44,7 +44,7 @@ def rgb2opponency(image_rgb, colour_space='lab'):
 def opponency2rgb(image_opponent, colour_space='lab'):
     # TODO: this is a hack to solve the problem of when the image is already in
     #  the desired colour space.
-    if colour_space == None:
+    if colour_space is None:
         # it's already in rgb
         image_rgb = image_opponent
     elif colour_space == 'lab':
