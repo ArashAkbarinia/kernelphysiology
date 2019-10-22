@@ -62,7 +62,8 @@ def main(argv):
         for i, manipulation_value in enumerate(manipulation_values):
             args.parameters['kwargs'][args.manipulation] = manipulation_value
             prediction_transformation = preprocessing.PredictionTransformation(
-                args.parameters, is_dataset_pil_image(args.dataset)
+                args.parameters, is_dataset_pil_image(args.dataset),
+                args.colour_space
             )
             # TODO: perhaps for inverting chromaticity and luminance as well
             # FIXME: for less than 3 channels in lab it wont work
