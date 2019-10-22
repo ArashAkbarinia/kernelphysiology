@@ -275,11 +275,9 @@ def visualise_input(val_loader, out_folder, normalize_inverse, print_freq=100):
         for i, (input_imgs, _) in enumerate(val_loader):
             # TODO: make it according to colour space
             for b in range(input_imgs.shape[0]):
-                current_im = input_imgs[b].squeeze()
+                current_im = normalize_inverse(input_imgs[b])
                 for c in range(current_im.shape[0]):
-                    current_channel = normalize_inverse(
-                        current_im[c].squeeze()
-                    ).numpy()
+                    current_channel = current_im[c].squeeze().numpy()
                     current_channel = (current_channel * 255).astype('uint8')
                     file_name = '%s/image_%d_%d.jpg' % (out_folder, b, c)
                     cv2.imwrite(file_name, current_channel)
