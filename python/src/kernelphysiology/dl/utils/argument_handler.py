@@ -468,6 +468,13 @@ def common_arg_parser(description):
         default=5,
         help='Accuracy of top K elements (default: 5)'
     )
+    parser.add_argument(
+        '--random_images',
+        nargs='+',
+        type=int,
+        default=None,
+        help='Number of random images to try (default: None)'
+    )
 
     data_dir_group = parser.add_argument_group('data path')
     data_dir_group.add_argument(

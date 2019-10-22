@@ -6,6 +6,8 @@ import time
 import sys
 import numpy as np
 
+import cv2
+
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -18,6 +20,7 @@ import torchvision.transforms as transforms
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy_preds
 from kernelphysiology.dl.pytorch.utils import preprocessing
+from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
 from kernelphysiology.dl.pytorch.models.utils import which_network
 from kernelphysiology.dl.pytorch.models.utils import LayerActivation
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
@@ -110,7 +113,16 @@ def main(argv):
                 num_workers=args.workers, pin_memory=True
             )
 
-            if args.activation_map is not None:
+            if args.random_images is not None:
+                out_folder = prepapre_testing.prepare_saving_dir(
+                    args.experiment_name, network_names[j],
+                    args.dataset, manipulation_name
+                )
+                normalize_inverse = NormalizeInverse(mean, std)
+                visualise_input(
+                    val_loader, out_folder, normalize_inverse, args.print_freq
+                )
+            elif args.activation_map is not None:
                 model = LayerActivation(model, args.activation_map)
                 current_results = compute_activation(
                     val_loader, model, gpu, args.print_freq
@@ -256,6 +268,26 @@ def predict(val_loader, model, criterion, gpu_num, print_freq=100):
     else:
         prediction_output = [np.concatenate(out) for out in all_predictions]
     return top1.avg, top5.avg, prediction_output
+
+
+def visualise_input(val_loader, out_folder, normalize_inverse, print_freq=100):
+    with torch.no_grad():
+        for i, (input_imgs, _) in enumerate(val_loader):
+            # TODO: make it according to colour space
+            for b in range(input_imgs.shape[0]):
+                current_im = input_imgs[b].squeeze()
+                for c in range(current_im.shape[0]):
+                    current_channel = normalize_inverse(
+                        current_im[c].squeeze()
+                    ).numpy()
+                    current_channel = (current_channel * 255).astype('uint8')
+                    file_name = '%s/image_%d_%d.jpg' % (out_folder, b, c)
+                    cv2.imwrite(file_name, current_channel)
+
+            # TODO: make it nicer
+            if i % print_freq == 0:
+                print('Test: [{0}/{1}]\t'.format(i, len(val_loader)))
+                break
 
 
 if __name__ == '__main__':

@@ -60,7 +60,7 @@ class ChannelTransformation(object):
         if self.colour_space == 'rgb':
             return img
         else:
-            img = img[self.colour_inds,]
+            img = img[self.colour_inds]
             return img
 
 
