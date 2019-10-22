@@ -292,8 +292,8 @@ def visualise_input(val_loader, out_folder, normalize_inverse,
                 for c in range(current_im.shape[0]):
                     current_channel = current_im[c].squeeze().numpy()
                     current_channel = (current_channel * 255).astype('uint8')
-                    file_name = '%s/image_%d_%d_%s.jpg' % (
-                        out_folder, b, c, str(manipulation_value)
+                    file_name = '%s/image_%s_%d_%d.jpg' % (
+                        out_folder, str(manipulation_value), b, c
                     )
                     cv2.imwrite(file_name, current_channel)
 
