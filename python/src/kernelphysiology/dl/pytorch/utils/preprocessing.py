@@ -108,7 +108,7 @@ class PredictionTransformation(object):
 
         manipulation_function = self.parameters['function']
         kwargs = self.parameters['kwargs']
-        if self.tmp_c:
+        if self.tmpc:
             kwargs['colour_space'] = None
 
         x = manipulation_function(x, **kwargs)
