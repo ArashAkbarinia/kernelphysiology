@@ -31,6 +31,16 @@ from kernelphysiology.dl.utils import argument_handler
 from kernelphysiology.dl.utils import prepapre_testing
 
 
+# FIXME: just a hack, if it's already in the desired colour space,
+#  don't change it
+def tmp_c_space(manipulation_name):
+    if manipulation_name in ['chromaticity', 'red_green', 'yellow_blue',
+                             'lightness', 'invert_chromaticity',
+                             'invert_opponency', 'invert_lightness']:
+        return True
+    return False
+
+
 def main(argv):
     args = argument_handler.pytorch_test_arg_parser(argv)
     (network_files,
@@ -63,7 +73,7 @@ def main(argv):
             args.parameters['kwargs'][args.manipulation] = manipulation_value
             prediction_transformation = preprocessing.PredictionTransformation(
                 args.parameters, is_dataset_pil_image(args.dataset),
-                args.colour_space
+                args.colour_space, tmp_c_space(manipulation_name)
             )
             # TODO: perhaps for inverting chromaticity and luminance as well
             # FIXME: for less than 3 channels in lab it wont work

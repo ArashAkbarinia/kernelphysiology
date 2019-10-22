@@ -95,10 +95,12 @@ def normalise_tensor(tensor, mean, std):
 
 class PredictionTransformation(object):
 
-    def __init__(self, parameters, is_pill_img=True, colour_space='rgb'):
+    def __init__(self, parameters, is_pill_img=True, colour_space='rgb',
+                 tmp_c=False):
         self.parameters = parameters
         self.is_pill_img = is_pill_img
         self.colour_space = colour_space.upper()
+        self.tmpc = tmp_c
 
     def __call__(self, x):
         if self.is_pill_img:
@@ -106,6 +108,8 @@ class PredictionTransformation(object):
 
         manipulation_function = self.parameters['function']
         kwargs = self.parameters['kwargs']
+        if self.tmp_c:
+            kwargs['colour_space'] = None
 
         x = manipulation_function(x, **kwargs)
 
