@@ -60,7 +60,7 @@ def opponency2rgb(image_opponent, colour_space='lab'):
 def get_max_lightness(colour_space='lab'):
     if colour_space is None:
         # it's already in rgb
-        max_lightness = 128
+        max_lightness = 255
     elif colour_space == 'lab':
         max_lightness = 100
     elif colour_space == 'dkl':
