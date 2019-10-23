@@ -45,15 +45,18 @@ class HeatMapFixationPoint(object):
         )
 
 
-def get_train_dataset(pickle_file, target_size, mean_std):
+def get_train_dataset(pickle_file, target_size, mean_std, scale=(0.8, 1.0)):
+    # converting them to tuple, in case they're a list
     target_size = tuple(target_size)
+    scale = tuple(scale)
+
     mean, std = mean_std
     normalise = transforms.Normalize(mean=mean, std=std)
     img_transform = transforms.Compose([transforms.ToTensor(), normalise])
     target_transform = transforms.Compose([transforms.ToTensor()])
     common_transforms = [
         RandomHorizontalFlip(),
-        RandomResizedCrop(target_size, scale=(0.8, 1.0))
+        RandomResizedCrop(target_size, scale=scale)
     ]
     train_dataset = GeetupDataset(
         pickle_file, img_transform, target_transform, common_transforms

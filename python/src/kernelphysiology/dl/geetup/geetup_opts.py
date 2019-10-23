@@ -73,6 +73,13 @@ def argument_parser():
         default=[360, 640],
         help='Target size (default: [360, 640])'
     )
+    data_group.add_argument(
+        '--crop_scale',
+        nargs='+',
+        type=float,
+        default=[0.8, 1.0],
+        help='Scale of cropping (default: [0.8, 1.0])'
+    )
 
     parser.add_argument(
         '--experiment_name',

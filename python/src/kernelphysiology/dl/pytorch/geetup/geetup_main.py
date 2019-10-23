@@ -386,7 +386,7 @@ def main(args):
 
     training_pickle = os.path.join(args.data_dir, args.train_file)
     train_dataset = geetup_db.get_train_dataset(
-        training_pickle, args.target_size, mean_std
+        training_pickle, args.target_size, mean_std, args.crop_scale
     )
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True,
