@@ -60,7 +60,8 @@ def get_train_dataset(pickle_file, target_size, mean_std, scale=(0.8, 1.0),
         RandomResizedCrop(target_size, scale=scale)
     ]
     train_dataset = GeetupDataset(
-        pickle_file, img_transform, target_transform, common_transforms, g_sigma
+        pickle_file, img_transform, target_transform, common_transforms,
+        g_sigma=g_sigma
     )
     return train_dataset
 
