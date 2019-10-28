@@ -80,6 +80,12 @@ def argument_parser():
         default=[0.8, 1.0],
         help='Scale of cropping (default: [0.8, 1.0])'
     )
+    data_group.add_argument(
+        '--gaussian_sigma',
+        type=float,
+        default=None,
+        help='Gaussian sigma (default: 10% of image size)'
+    )
 
     parser.add_argument(
         '--experiment_name',

@@ -45,7 +45,8 @@ class HeatMapFixationPoint(object):
         )
 
 
-def get_train_dataset(pickle_file, target_size, mean_std, scale=(0.8, 1.0)):
+def get_train_dataset(pickle_file, target_size, mean_std, scale=(0.8, 1.0),
+                      g_sigma=None):
     # converting them to tuple, in case they're a list
     target_size = tuple(target_size)
     scale = tuple(scale)
@@ -59,7 +60,7 @@ def get_train_dataset(pickle_file, target_size, mean_std, scale=(0.8, 1.0)):
         RandomResizedCrop(target_size, scale=scale)
     ]
     train_dataset = GeetupDataset(
-        pickle_file, img_transform, target_transform, common_transforms
+        pickle_file, img_transform, target_transform, common_transforms, g_sigma
     )
     return train_dataset
 
@@ -103,7 +104,7 @@ def _npy_loader(input_path):
 class GeetupDataset(Dataset):
     def __init__(self, pickle_file, transform=None, target_transform=None,
                  common_transforms=None, all_gts=False, target_size=(360, 640),
-                 frames_gap=None, sequence_length=None):
+                 frames_gap=None, sequence_length=None, g_sigma=None):
         super(GeetupDataset, self).__init__()
 
         self.pickle_file = pickle_file
@@ -115,7 +116,7 @@ class GeetupDataset(Dataset):
         self.all_gts = all_gts
         self.extension = None
         self.data_loader = pil_loader
-        self.heatmap_gt = HeatMapFixationPoint(target_size, (360, 640))
+        self.heatmap_gt = HeatMapFixationPoint(target_size, (360, 640), g_sigma)
 
         (self.all_videos,
          self.num_sequences,
