@@ -236,6 +236,12 @@ class RandomResizedCrop(object):
                 imgs, i, j, h, w, self.size, self.interpolation
             )
 
+    def _find_first_image_recursive(self, imgs):
+        if type(imgs) is list:
+            return self._find_first_image_recursive(imgs[0])
+        else:
+            return imgs
+
     def __call__(self, imgs):
         """
         Args:
@@ -244,7 +250,9 @@ class RandomResizedCrop(object):
         Returns:
             PIL Image: Randomly cropped and resized images.
         """
-        i, j, h, w = self.get_params(imgs[0][0], self.scale, self.ratio)
+        i, j, h, w = self.get_params(
+            self._find_first_image_recursive(imgs), self.scale, self.ratio
+        )
         out_imgs = self._call_recursive(imgs, i, j, h, w)
         return out_imgs
 
