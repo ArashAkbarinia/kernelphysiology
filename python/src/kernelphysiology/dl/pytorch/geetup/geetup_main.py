@@ -327,6 +327,14 @@ def process_random_image(model, validation_loader, normalize_inverse, args):
                 break
 
 
+def _get_multi_sensory_paths(data_dirs, data_file):
+    # TODO: think of a more robust solution
+    all_paths = []
+    for current_dir in data_dirs:
+        all_paths.append(os.path.join(current_dir, data_file))
+    return all_paths
+
+
 def main(args):
     args.gpus = set_visible_gpus(args.gpus)
     args.device = prepare_device(args.gpus)
@@ -356,7 +364,9 @@ def main(args):
         format='%(levelname)s: %(message)s', level=logging.INFO
     )
 
-    validation_pickle = os.path.join(args.data_dir, args.validation_file)
+    validation_pickle = _get_multi_sensory_paths(
+        args.data_dir, args.validation_file
+    )
     validation_dataset = geetup_db.get_validation_dataset(
         validation_pickle, args.target_size, mean_std
     )
@@ -384,7 +394,9 @@ def main(args):
             write_pickle(result_file, item)
         return
 
-    training_pickle = os.path.join(args.data_dir, args.train_file)
+    training_pickle = _get_multi_sensory_paths(
+        args.data_dir, args.train_file
+    )
     train_dataset = geetup_db.get_train_dataset(
         training_pickle, args.target_size, mean_std, args.crop_scale,
         args.gaussian_sigma

@@ -41,6 +41,7 @@ def argument_parser():
     data_group = parser.add_argument_group('data')
     data_group.add_argument(
         '--data_dir',
+        nargs='+',
         type=str,
         help='Path to the data folder'
     )
