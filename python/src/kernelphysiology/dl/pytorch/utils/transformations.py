@@ -225,6 +225,17 @@ class RandomResizedCrop(object):
         j = (img.size[0] - w) // 2
         return i, j, w, w
 
+    def _call_recursive(self, imgs, i, j, h, w):
+        if type(imgs) is list:
+            inner_list = []
+            for img in imgs:
+                inner_list.append(self._call_recursive(img, i, j, h, w))
+            return inner_list
+        else:
+            return F.resized_crop(
+                imgs, i, j, h, w, self.size, self.interpolation
+            )
+
     def __call__(self, imgs):
         """
         Args:
@@ -234,16 +245,7 @@ class RandomResizedCrop(object):
             PIL Image: Randomly cropped and resized images.
         """
         i, j, h, w = self.get_params(imgs[0][0], self.scale, self.ratio)
-        out_imgs = []
-        for img_list in imgs:
-            inner_list = []
-            for img in img_list:
-                inner_list.append(
-                    F.resized_crop(
-                        img, i, j, h, w, self.size, self.interpolation
-                    )
-                )
-            out_imgs.append(inner_list)
+        out_imgs = self._call_recursive(imgs, i, j, h, w)
         return out_imgs
 
     def __repr__(self):
@@ -269,6 +271,15 @@ class RandomHorizontalFlip(object):
     def __init__(self, p=0.5):
         self.p = p
 
+    def _call_recursive(self, imgs):
+        if type(imgs) is list:
+            inner_list = []
+            for img in imgs:
+                inner_list.append(self._call_recursive(img))
+            return inner_list
+        else:
+            return F.hflip(imgs)
+
     def __call__(self, imgs):
         """
         Args:
@@ -278,12 +289,7 @@ class RandomHorizontalFlip(object):
             PIL Image: Randomly flipped images.
         """
         if random.random() < self.p:
-            out_imgs = []
-            for img_list in imgs:
-                inner_list = []
-                for img in img_list:
-                    inner_list.append(F.hflip(img))
-                out_imgs.append(inner_list)
+            out_imgs = self._call_recursive(imgs)
             return out_imgs
         return imgs
 
