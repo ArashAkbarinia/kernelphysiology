@@ -315,6 +315,13 @@ def get_preprocessing_function(colour_space, colour_vision=None):
         elif colour_vision == 'monochromat':
             mean = [0.5]
             std = [0.25]
+    else:
+        # just create mean and std based on number of channels
+        mean = []
+        std = []
+        for i in range(colour_space):
+            mean.append(0.5)
+            std.append(0.25)
     return mean, std
 
 

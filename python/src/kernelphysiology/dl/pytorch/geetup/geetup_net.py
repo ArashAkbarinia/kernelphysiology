@@ -25,6 +25,9 @@ def which_network(network_name, **kwargs):
     elif kwargs['in_chns'] == 1:
         mean, std = get_preprocessing_function('greyscale')
         mean_std = [mean, std]
+    else:
+        mean, std = get_preprocessing_function(kwargs['in_chns'])
+        mean_std = [mean, std]
     # checking whether it's an architecture or a network
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
