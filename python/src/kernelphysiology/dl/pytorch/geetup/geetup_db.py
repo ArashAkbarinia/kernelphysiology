@@ -127,12 +127,14 @@ def _combine_multi_sensors(all_sensors):
             if current_img.mode == 'RGB':
                 current_img = current_img.convert('L')
                 current_img = np.asarray(current_img).copy()
-                current_img /= 255
+                current_img = current_img.astype('uint8')
             else:
-                current_img = np.asarray(current_img).copy()
+                current_img = np.asarray(current_img).copy().astype('float')
                 # FIXME: this is not a proper solution
                 max_depth = 10
                 current_img /= max_depth
+                current_img *= 255
+                current_img = current_img.astype('uint8')
             frame_item.append(current_img)
         x_item.append(np.stack(frame_item, axis=2))
     return x_item
@@ -244,7 +246,7 @@ class GeetupDataset(Dataset):
         # first common transforms
         if self.common_transforms is not None:
             for c_transform in self.common_transforms:
-                x_item, y_item = c_transform([all_x_items, y_item])
+                all_x_items, y_item = c_transform([all_x_items, y_item])
 
         # next collapse multisensors
         if len(all_x_items) == 1:
