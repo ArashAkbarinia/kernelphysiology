@@ -16,6 +16,7 @@ def gather_all_parts_dir(exp_type='validation', **kwargs):
     )
     all_networks = sorted(glob.glob(in_dir + '/*/'))
     for net_name in all_networks:
+        net_name = path_utils.get_folder_name(net_name)
         kwargs['net_name'] = net_name
         gather_all_parts(exp_type, **kwargs)
 
