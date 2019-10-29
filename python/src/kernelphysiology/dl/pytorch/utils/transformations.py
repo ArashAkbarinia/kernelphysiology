@@ -6,6 +6,8 @@ import numpy as np
 import warnings
 import random
 import math
+import sys
+import collections
 from scipy import linalg
 
 from PIL import Image
@@ -14,6 +16,11 @@ import torch
 import torchvision
 from torchvision.transforms.transforms import _pil_interpolation_to_str
 from torchvision.transforms import functional as F
+
+if sys.version_info < (3, 3):
+    Iterable = collections.Iterable
+else:
+    Iterable = collections.abc.Iterable
 
 np_xyz_from_rgb = [[0.412453, 0.357580, 0.180423],
                    [0.212671, 0.715160, 0.072169],
@@ -303,3 +310,49 @@ class RandomHorizontalFlip(object):
 
     def __repr__(self):
         return self.__class__.__name__ + '(p={})'.format(self.p)
+
+
+class Resize(object):
+    """Resize the input PIL Image to the given size.
+
+    Args:
+        size (sequence or int): Desired output size. If size is a sequence like
+            (h, w), output size will be matched to this. If size is an int,
+            smaller edge of the image will be matched to this number.
+            i.e, if height > width, then image will be rescaled to
+            (size * height / width, size)
+        interpolation (int, optional): Desired interpolation. Default is
+            ``PIL.Image.BILINEAR``
+    """
+
+    def __init__(self, size, interpolation=Image.BILINEAR):
+        assert (isinstance(size, int) or
+                (isinstance(size, Iterable) and len(size) == 2))
+        self.size = size
+        self.interpolation = interpolation
+
+    def _call_recursive(self, imgs):
+        if type(imgs) is list:
+            inner_list = []
+            for img in imgs:
+                inner_list.append(self._call_recursive(img))
+            return inner_list
+        else:
+            return F.resize(imgs, self.size, self.interpolation)
+
+    def __call__(self, imgs):
+        """
+        Args:
+            img (PIL Image): Image to be scaled.
+
+        Returns:
+            PIL Image: Rescaled image.
+        """
+        out_imgs = self._call_recursive(imgs)
+        return out_imgs
+
+    def __repr__(self):
+        interpolate_str = _pil_interpolation_to_str[self.interpolation]
+        return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(
+            self.size, interpolate_str
+        )

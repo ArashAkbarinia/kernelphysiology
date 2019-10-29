@@ -15,8 +15,7 @@ from torchvision import transforms
 
 from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
 from kernelphysiology.dl.geetup.geetup_utils import parse_gt_line
-from ..utils.transformations import RandomResizedCrop
-from ..utils.transformations import RandomHorizontalFlip
+from ..utils import transformations as custom_transforms
 from kernelphysiology.utils.imutils import heat_map_from_point
 from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 
@@ -56,8 +55,8 @@ def get_train_dataset(pickle_file, target_size, mean_std, scale=(0.8, 1.0),
     img_transform = transforms.Compose([transforms.ToTensor(), normalise])
     target_transform = transforms.Compose([transforms.ToTensor()])
     common_transforms = [
-        RandomHorizontalFlip(),
-        RandomResizedCrop(target_size, scale=scale)
+        custom_transforms.RandomHorizontalFlip(),
+        custom_transforms.RandomResizedCrop(target_size, scale=scale)
     ]
     train_dataset = GeetupDataset(
         pickle_file, img_transform, target_transform, common_transforms,
@@ -74,7 +73,7 @@ def get_validation_dataset(pickle_file, target_size, mean_std):
         transforms.ToTensor(), normalise,
     ])
     target_transform = transforms.Compose([transforms.ToTensor()])
-    common_transforms = [transforms.Resize(target_size)]
+    common_transforms = [custom_transforms.Resize(target_size)]
     validation_dataset = GeetupDataset(
         pickle_file, img_transform, target_transform, common_transforms,
         target_size=target_size
