@@ -71,10 +71,10 @@ def get_validation_dataset(pickle_file, target_size, mean_std):
     mean, std = mean_std
     normalise = transforms.Normalize(mean=mean, std=std)
     img_transform = transforms.Compose([
-        transforms.Resize(target_size), transforms.ToTensor(), normalise,
+        transforms.ToTensor(), normalise,
     ])
     target_transform = transforms.Compose([transforms.ToTensor()])
-    common_transforms = None
+    common_transforms = [transforms.Resize(target_size)]
     validation_dataset = GeetupDataset(
         pickle_file, img_transform, target_transform, common_transforms,
         target_size=target_size
