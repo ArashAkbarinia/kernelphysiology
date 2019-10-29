@@ -10,7 +10,10 @@ from kernelphysiology.dl.pytorch.geetup import geetup_db
 from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
 
 
-def gather_all_parts_dir(in_dir, exp_type='validation', **kwargs):
+def gather_all_parts_dir(exp_type='validation', **kwargs):
+    in_dir = _get_network_type_dir(
+        kwargs['db_type'], kwargs['results_dir'], kwargs['network_type']
+    )
     all_networks = sorted(glob.glob(in_dir + '/*/'))
     for net_name in all_networks:
         kwargs['net_name'] = net_name
@@ -31,6 +34,13 @@ def gather_all_parts(exp_type='validation', **kwargs):
             )
 
         path_utils.write_pickle(out_file, all_results)
+
+
+def _get_network_type_dir(db_type, results_dir, network_type):
+    network_type_dir = '%s/%s/%s/sgd/scratch/' % (
+        results_dir, db_type, network_type
+    )
+    return network_type_dir
 
 
 def _get_out_file_name(exp_type, db_type, results_dir, network_type, net_name):
