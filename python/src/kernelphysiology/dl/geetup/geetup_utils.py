@@ -233,8 +233,12 @@ def create_train_test_sets(video_list, test_subjs=None, val_subjs=None,
         'training_both_routes': [],
         'training_route_1': [],
         'training_route_2': [],
-        'validation': [],
-        'testing': [],
+        'validation_both_routes': [],
+        'validation_route_1': [],
+        'validation_route_2': [],
+        'testing_both_routes': [],
+        'testing_route_1': [],
+        'testing_route_2': [],
     }
 
     num_persons = 45
@@ -246,10 +250,18 @@ def create_train_test_sets(video_list, test_subjs=None, val_subjs=None,
     for v_ind, vid in enumerate(video_list):
         is_for_training = True
         if _is_in_video_paths(vid[0], test_subjs):
-            all_sets['testing'].append(vid)
+            all_sets['testing_both_routes'].append(vid)
+            if 'Route2' in vid[0]:
+                all_sets['testing_route_2'].append(vid)
+            else:
+                all_sets['testing_route_1'].append(vid)
             is_for_training = False
         elif _is_in_video_paths(vid[0], val_subjs):
-            all_sets['validation'].append(vid)
+            all_sets['validation_both_routes'].append(vid)
+            if 'Route2' in vid[0]:
+                all_sets['validation_route_2'].append(vid)
+            else:
+                all_sets['validation_route_1'].append(vid)
             is_for_training = False
 
         exp_name = get_inidividual_name(vid[0], num_persons)
