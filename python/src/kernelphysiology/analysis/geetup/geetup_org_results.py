@@ -71,12 +71,16 @@ def match_results_to_input(part_num, exp_type, dataset_dir, db_type,
     )
     model_preds = path_utils.read_pickle(result_file)
 
-    current_part_res = {'1': dict(), '2': dict()}
+    current_part_res = dict()
     for j in range(geetup_info.__len__()):
         f_path, f_gt = geetup_info.__getitem__(j)
         f_path = f_path[-1]
         f_gt = f_gt[-1]
         splitted_parts = f_path.replace('//', '/').split('/')
+        part_folder = splitted_parts[-5]
+        if part_folder not in current_part_res:
+            current_part_res[part_folder] = {'1': dict(), '2': dict()}
+
         folder_name = splitted_parts[-2]
         image_name = splitted_parts[-1]
         if '/segments/1/' in f_path:
@@ -87,11 +91,11 @@ def match_results_to_input(part_num, exp_type, dataset_dir, db_type,
             exit('Ups unrecognised segment')
         pred = model_preds[j]
         pred = map_point_to_image_size(pred, (360, 640), model_in_size)
-        if folder_name not in current_part_res[seg]:
-            current_part_res[seg][folder_name] = []
+        if folder_name not in current_part_res[part_folder][seg]:
+            current_part_res[part_folder][seg][folder_name] = []
         sum_error = (f_gt[0] - pred[0]) ** 2 + (f_gt[1] - pred[1]) ** 2
         euc_error = float(sum_error) ** 0.5
-        current_part_res[seg][folder_name].append(
+        current_part_res[part_folder][seg][folder_name].append(
             [image_name, f_gt, pred, euc_error]
         )
     return current_part_res
