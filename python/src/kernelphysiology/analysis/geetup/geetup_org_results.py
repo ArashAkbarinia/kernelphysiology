@@ -32,7 +32,7 @@ def gather_all_parts(exp_type='validation', override=False, cores=8, **kwargs):
     )
     if override or not os.path.isfile(out_file):
         parallel_out = Parallel(n_jobs=cores)(
-            delayed(match_results_to_input)
+            delayed(process_results_to_input)
             (part_num, exp_type, **kwargs) for part_num in range(1, 45)
         )
         all_results = {}
@@ -65,16 +65,24 @@ def _get_result_file(part_num, exp_type, db_type, results_dir, network_type,
     return result_file
 
 
-def match_results_to_input(part_num, exp_type, dataset_dir, db_type,
-                           results_dir, network_type, net_name,
-                           model_in_size=(180, 320)):
+def process_results_to_input(part_num, exp_type, dataset_dir, db_type,
+                             results_dir, network_type, net_name,
+                             model_in_size=(180, 320)):
     part_name = 'Part%.3d' % part_num
-    db_dile = '%s/%s/%s/validation.pickle' % (dataset_dir, db_type, part_name)
-    geetup_info = geetup_db.GeetupDatasetInformative(db_dile)
+    db_file = '%s/%s/%s/validation.pickle' % (dataset_dir, db_type, part_name)
+    geetup_info = geetup_db.GeetupDatasetInformative(db_file)
 
     result_file = _get_result_file(
         part_num, exp_type, db_type, results_dir, network_type, net_name
     )
+
+    current_part_res = match_results_to_input(
+        result_file, geetup_info, model_in_size
+    )
+    return current_part_res
+
+
+def match_results_to_input(result_file, geetup_info, model_in_size=(180, 320)):
     model_preds = path_utils.read_pickle(result_file)
 
     current_part_res = dict()
