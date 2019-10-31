@@ -274,7 +274,11 @@ class GeetupDataset(Dataset):
 
 class GeetupDatasetInformative(GeetupDataset):
     def __getitem__(self, idx):
-        all_frames, video_path, selected_imgs = self._prepare_item(idx)
+        all_frames, video_paths, selected_images = self._prepare_item(idx)
+
+        # TODO: support all indexces
+        video_path = video_paths[0]
+        selected_imgs = selected_images[0]
 
         x_item = []
         y_item = []
