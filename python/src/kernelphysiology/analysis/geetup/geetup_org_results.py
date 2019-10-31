@@ -4,6 +4,9 @@ Organising the results of GEETUP project.
 
 import glob
 import os
+import sys
+from joblib import Parallel
+from joblib import delayed
 
 from kernelphysiology.utils import path_utils
 from kernelphysiology.dl.pytorch.geetup import geetup_db
@@ -16,23 +19,26 @@ def gather_all_parts_dir(exp_type='validation', **kwargs):
     )
     all_networks = sorted(glob.glob(in_dir + '/*/'))
     for net_name in all_networks:
+        print('Processing', net_name)
         net_name = path_utils.get_folder_name(net_name)
         kwargs['net_name'] = net_name
         gather_all_parts(exp_type, **kwargs)
 
 
-def gather_all_parts(exp_type='validation', **kwargs):
+def gather_all_parts(exp_type='validation', override=False, cores=8, **kwargs):
     out_file = _get_out_file_name(
         exp_type, kwargs['db_type'], kwargs['results_dir'],
         kwargs['network_type'], kwargs['net_name']
     )
-    if not os.path.isfile(out_file):
+    if override or not os.path.isfile(out_file):
+        parallel_out = Parallel(n_jobs=cores)(
+            delayed(match_results_to_input)
+            (part_num, exp_type, **kwargs) for part_num in range(1, 45)
+        )
         all_results = {}
-        for part_num in range(1, 45):
-            part_name = 'Part%.3d' % part_num
-            all_results[part_name] = match_results_to_input(
-                part_num, exp_type, **kwargs,
-            )
+        for i, part_data in enumerate(parallel_out):
+            part_name = 'Part%.3d' % (i + 1)
+            all_results[part_name] = part_data
 
         path_utils.write_pickle(out_file, all_results)
 
@@ -88,7 +94,7 @@ def match_results_to_input(part_num, exp_type, dataset_dir, db_type,
         elif '/segments/2/' in f_path:
             seg = '2'
         else:
-            exit('Ups unrecognised segment')
+            sys.exit('Ups unrecognised segment')
         pred = model_preds[j]
         pred = map_point_to_image_size(pred, (360, 640), model_in_size)
         if folder_name not in current_part_res[part_folder][seg]:
