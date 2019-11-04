@@ -1,10 +1,15 @@
-'''
+"""
 Collection of different metrics.
-'''
-
+"""
 
 import numpy as np
 import math
+
+
+def euclidean_distance(a, b):
+    sum_error = (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2
+    euc_error = float(sum_error) ** 0.5
+    return euc_error
 
 
 def reproduction_angular_error_radian(l1, l2):

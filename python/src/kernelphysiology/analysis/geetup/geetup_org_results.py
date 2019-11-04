@@ -9,6 +9,7 @@ from joblib import Parallel
 from joblib import delayed
 
 from kernelphysiology.utils import path_utils
+from kernelphysiology.utils.metrics import euclidean_distance
 from kernelphysiology.dl.pytorch.geetup import geetup_db
 from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
 
@@ -107,9 +108,30 @@ def match_results_to_input(result_file, geetup_info, model_in_size=(180, 320)):
         pred = map_point_to_image_size(pred, (360, 640), model_in_size)
         if folder_name not in current_part_res[part_folder][seg]:
             current_part_res[part_folder][seg][folder_name] = []
-        sum_error = (f_gt[0] - pred[0]) ** 2 + (f_gt[1] - pred[1]) ** 2
-        euc_error = float(sum_error) ** 0.5
+        euc_error = euclidean_distance(f_gt, pred)
         current_part_res[part_folder][seg][folder_name].append(
             [image_name, f_gt, pred, euc_error]
         )
     return current_part_res
+
+
+def replace_with_centre_model(folder_list, im_size=(360, 640)):
+    out_folder = []
+    for image in folder_list:
+        cx = int(im_size[0] / 2)
+        cy = int(im_size[1] / 2)
+        pred = [cx, cy]
+        euc_error = euclidean_distance(image[1], pred)
+        centre_result = [image[0], image[1], pred, euc_error]
+        out_folder.append(centre_result)
+    return out_folder
+
+
+def create_result_centre_model(another_model_results, im_size=(360, 640)):
+    out_dict = {}
+    for key, item in another_model_results.items():
+        if type(item) is list:
+            out_dict[key] = replace_with_centre_model(item, im_size=im_size)
+        else:
+            out_dict[key] = create_result_centre_model(item, im_size=im_size)
+    return out_dict
