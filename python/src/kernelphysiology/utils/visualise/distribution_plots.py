@@ -2,6 +2,8 @@
 Wrapper to plot distribution in beautiful formats!
 """
 
+import numpy as np
+
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FixedFormatter
 
@@ -59,6 +61,43 @@ def plot_violinplot(list_data, figsize=(6, 4), baseline=None,
     ax.yaxis.grid(True)
     if ylabel is not None:
         ax.set_ylabel(ylabel, fontsize=fontsize, fontweight=fontweight)
+
+    # if to be saved
+    if save_name is not None:
+        fig.tight_layout()
+        plt.savefig(save_name)
+    plt.show()
+
+
+def plot_dist1_vs_dist2(dist1, dist2, figsize=(4, 4),
+                        color='b', marker='o',
+                        fontsize=14, fontweight='bold',
+                        xlabel=None, xlim=None,
+                        ylabel=None, ylim=None,
+                        save_name=None):
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.scatter(dist1, dist2, color=color, marker=marker)
+    min_val = np.minimum(dist1.min(), dist2.min())
+    max_val = np.maximum(dist1.max(), dist2.max())
+    ds = (min_val, max_val)
+    de = (min_val, max_val)
+    ax.plot(ds, de, '--k')
+
+    # x-axis
+    if xlim is not None:
+        ax.set_xlim(xlim)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel, fontsize=fontsize, fontweight=fontweight)
+
+    # y-axis
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel, fontsize=fontsize, fontweight=fontweight)
+
+    ax.axis('equal')
 
     # if to be saved
     if save_name is not None:
