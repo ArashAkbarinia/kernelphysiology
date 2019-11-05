@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import FixedFormatter
 
 
-def plot_violinplot(list_data, figsize=(6, 4),
+def plot_violinplot(list_data, figsize=(6, 4), baseline=None,
                     face_colours=None, edge_colours=None,
                     fontsize=14, fontweight='bold', rotation=0,
                     xlabel=None, xticklabels=None,
@@ -31,6 +31,16 @@ def plot_violinplot(list_data, figsize=(6, 4),
         for i, pc in enumerate(violin_parts['bodies']):
             color = edge_colours[i]
             pc.set_edgecolor(color)
+
+    # the first element of baseline is its value, the second its name
+    if baseline is not None:
+        baseline_part = ax.axhline(
+            y=baseline[0], linestyle=':', linewidth=2, color='r'
+        )
+        ax.legend(
+            [baseline_part], [baseline[1]],
+            prop={'weight': fontweight, 'size': fontsize}
+        )
 
     # x-axis
     if xlabel is not None:
