@@ -135,3 +135,14 @@ def create_result_centre_model(another_model_results, im_size=(360, 640)):
         else:
             out_dict[key] = create_result_centre_model(item, im_size=im_size)
     return out_dict
+
+
+def list_all_results(model_results, which_ind):
+    all_results = []
+    for key, item in model_results.items():
+        if type(item) is list:
+            for image in item:
+                all_results.append(image[which_ind])
+        else:
+            all_results.extend(list_all_results(item, which_ind))
+    return all_results
