@@ -65,8 +65,9 @@ def report_monodepth(img_folder, txt_folder, out_dir=None, prefix_dir='npys',
                 # replacing the txt folder with img folder
                 imgs_dir = imgs_dir.replace(txt_folder, img_folder)
                 current_result = _monodepth_folder(im_list, imgs_dir)
+                video_dir_save = video_dir.replace(txt_folder, img_folder)
                 out_file = os.path.join(
-                    video_dir, '%s_%s.txt' % (out_name, vid_ind)
+                    video_dir_save, '%s_%s.txt' % (out_name, vid_ind)
                 )
                 header = 'im_name,gaze_depth,pixels_per_depth'
                 np.savetxt(
