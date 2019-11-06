@@ -6,6 +6,9 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FixedFormatter
+from mpl_toolkits.mplot3d import axes3d
+
+from kernelphysiology.utils.matutils import find_nearest_ind
 
 
 def plot_violinplot(list_data, figsize=(6, 4), baseline=None,
@@ -14,7 +17,7 @@ def plot_violinplot(list_data, figsize=(6, 4), baseline=None,
                     xlabel=None, xticklabels=None,
                     xminortick=None, xminorticklabels=None,
                     ylabel=None, ylim=None,
-                    plot_median=False, plot_mean=False,
+                    plot_median=False, plot_mean=False, plot_extrema=True,
                     save_name=None):
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(1, 1, 1)
@@ -22,7 +25,8 @@ def plot_violinplot(list_data, figsize=(6, 4), baseline=None,
     num_groups = len(list_data)
 
     violin_parts = ax.violinplot(
-        list_data, showmeans=plot_mean, showmedians=plot_median
+        list_data, showmeans=plot_mean, showmedians=plot_median,
+        showextrema=plot_extrema
     )
     # setting colours
     if face_colours is not None:
@@ -70,7 +74,7 @@ def plot_violinplot(list_data, figsize=(6, 4), baseline=None,
 
 
 def plot_dist1_vs_dist2(dist1, dist2, figsize=(4, 4),
-                        color='b', marker='o',
+                        colour='b', marker='o',
                         fontsize=14, fontweight='bold',
                         xlabel=None, xlim=None,
                         ylabel=None, ylim=None,
@@ -78,7 +82,7 @@ def plot_dist1_vs_dist2(dist1, dist2, figsize=(4, 4),
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(1, 1, 1)
 
-    ax.scatter(dist1, dist2, color=color, marker=marker)
+    ax.scatter(dist1, dist2, color=colour, marker=marker)
     min_val = np.minimum(dist1.min(), dist2.min())
     max_val = np.maximum(dist1.max(), dist2.max())
     ds = (min_val, max_val)
@@ -98,6 +102,72 @@ def plot_dist1_vs_dist2(dist1, dist2, figsize=(4, 4),
         ax.set_ylabel(ylabel, fontsize=fontsize, fontweight=fontweight)
 
     ax.axis('equal')
+
+    # if to be saved
+    if save_name is not None:
+        fig.tight_layout()
+        plt.savefig(save_name)
+    plt.show()
+
+
+def plot_wireframe3d(list_data, figsize=(8, 8), num_samples=10,
+                     colour='b', view_init=(30, 60),
+                     fontsize=14, fontweight='bold',
+                     xlabel=None,
+                     ylabel=None, ylim=None,
+                     zlabel=None,
+                     legend=None, loc='best',
+                     save_name=None):
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+
+    # compute the z baseline, x and y range
+    xrange = []
+    yrange = []
+    zrange = []
+    for item in list_data:
+        xrange.append(item[0])
+        yrange.append(item[1])
+        zrange.append(item[2])
+    zbase = np.mean(zrange)
+
+    xarray = np.linspace(np.min(xrange), np.max(xrange), num_samples)
+    yarray = np.linspace(np.min(yrange), np.max(yrange), num_samples)
+    xs, ys = np.meshgrid(xarray, yarray)
+
+    zs = np.zeros(xs.shape)
+    tmp_nums = np.zeros(zs.shape)
+    for item in list_data:
+        xind = (num_samples - 1) - find_nearest_ind(xarray, item[0])
+        yind = (num_samples - 1) - find_nearest_ind(yarray, item[1])
+        zs[xind, yind] += item[2]
+        tmp_nums[xind, yind] += 1
+    tmp_nums[tmp_nums == 0] = 1
+    zs /= tmp_nums
+    zs[zs == 0] = zbase
+
+    ax.plot_wireframe(xs, ys, zs, color=colour)
+    ax.view_init(view_init[0], view_init[1])
+
+    if xlabel is not None:
+        ax.set_xlabel(xlabel, fontsize=fontsize, fontweight=fontweight)
+
+    # y-axis
+    ax.set_yticks(np.arange(np.min(yrange), np.max(yrange) + 0.1, 5.0))
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel, fontsize=fontsize, fontweight=fontweight)
+
+    # z-axis
+    if zlabel is not None:
+        ax.set_zlabel(zlabel, fontsize=fontsize, fontweight=fontweight)
+
+    # legends
+    if legend is not None:
+        ax.legend(
+            legend, prop={'weight': fontweight, 'size': fontsize}, loc=loc
+        )
 
     # if to be saved
     if save_name is not None:
