@@ -34,7 +34,8 @@ def _monodepth_folder(im_list, dir_path, bins=10):
         pix_per_depth = []
         for key in range(bins):
             pix_per_depth.append(
-                np.count_nonzero((img_depth >= key) & (img_depth < key + 1)))
+                np.count_nonzero((img_depth >= key) & (img_depth < key + 1))
+            )
 
         all_results.append(
             [im_list[frame_num][0], img_depth[gaze[0], gaze[1]], pix_per_depth]
@@ -42,11 +43,11 @@ def _monodepth_folder(im_list, dir_path, bins=10):
         return all_results
 
 
-def report_monodepth(input_folder, out_dir=None, prefix_dir='npys',
+def report_monodepth(img_folder, txt_folder, out_dir=None, prefix_dir='npys',
                      out_name='depth_stats', in_exp='SELECTED_IMGS_*.txt'):
     if out_dir is None:
-        out_dir = input_folder
-    for part_dir in sorted(glob.glob(input_folder + '/*/')):
+        out_dir = img_folder
+    for part_dir in sorted(glob.glob(txt_folder + '/*/')):
         save_part = part_dir.split('/')[-2]
         create_dir(os.path.join(out_dir, save_part))
         save_part_segment = save_part + '/segments/'
@@ -61,6 +62,8 @@ def report_monodepth(input_folder, out_dir=None, prefix_dir='npys',
                     video_dir, 'CutVid_%s/%s' % (vid_ind, prefix_dir)
                 )
                 im_list = np.loadtxt(selected_txt, dtype=str, delimiter=',')
+                # replacing the txt folder with img folder
+                imgs_dir.replace(txt_folder, img_folder)
                 current_result = _monodepth_folder(im_list, imgs_dir)
                 out_file = os.path.join(
                     video_dir, '%s_%s.txt' % (out_name, vid_ind)
