@@ -21,7 +21,7 @@ def _monodepth_folder(im_list, dir_path, bins=10):
         img_depth = np.load(os.path.join(dir_path, name[:-3] + 'npy'))
 
         # Squeeze the dimensions (1, 1, ...)
-        img_depth = np.squeeze(img_depth, axis=0).copy()
+        img_depth = np.squeeze(img_depth).copy()
 
         # Image needs to be resized (192, 640)
         img_depth = cv2.resize(
@@ -40,7 +40,7 @@ def _monodepth_folder(im_list, dir_path, bins=10):
         all_results.append(
             [im_list[frame_num][0], img_depth[gaze[0], gaze[1]], pix_per_depth]
         )
-        return all_results
+    return all_results
 
 
 def report_monodepth(img_folder, txt_folder, out_dir=None, prefix_dir='npys',
