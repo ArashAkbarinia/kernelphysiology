@@ -9,7 +9,7 @@ import numpy as np
 import cv2
 
 from kernelphysiology.dl.geetup.geetup_utils import parse_gt_line
-from kernelphysiology.utils.path_utils import create_dir, write_pickle
+from kernelphysiology.utils.path_utils import create_dir
 
 
 def _monodepth_folder(im_list, dir_path, bins=10):
@@ -24,14 +24,17 @@ def _monodepth_folder(im_list, dir_path, bins=10):
         img_depth = np.squeeze(img_depth, axis=0).copy()
 
         # Image needs to be resized (192, 640)
-        img_depth = cv2.resize(img_depth, (int(640), int(360)), interpolation=cv2.INTER_NEAREST)
+        img_depth = cv2.resize(
+            img_depth, (640, 360), interpolation=cv2.INTER_NEAREST
+        )
 
         # The gaze coordinates
         gaze = parse_gt_line(im_list[frame_num][1])
 
         pix_per_depth = []
         for key in range(bins):
-            pix_per_depth.append(np.count_nonzero((img_depth >= key) & (img_depth < key + 1)))
+            pix_per_depth.append(
+                np.count_nonzero((img_depth >= key) & (img_depth < key + 1)))
 
         all_results.append(
             [im_list[frame_num][0], img_depth[gaze[0], gaze[1]], pix_per_depth]
@@ -40,7 +43,7 @@ def _monodepth_folder(im_list, dir_path, bins=10):
 
 
 def report_monodepth(input_folder, out_dir=None, prefix_dir='npys',
-                     out_name='cityscape_stats', in_exp='SELECTED_IMGS_*.txt'):
+                     out_name='depth_stats', in_exp='SELECTED_IMGS_*.txt'):
     if out_dir is None:
         out_dir = input_folder
     for part_dir in sorted(glob.glob(input_folder + '/*/')):
