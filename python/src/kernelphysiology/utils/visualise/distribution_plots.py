@@ -5,7 +5,7 @@ Wrapper to plot distribution in beautiful formats!
 import numpy as np
 
 from matplotlib import pyplot as plt
-from matplotlib.ticker import FixedFormatter
+from matplotlib import ticker
 from mpl_toolkits.mplot3d import axes3d
 
 from kernelphysiology.utils.matutils import find_nearest_ind
@@ -56,7 +56,7 @@ def plot_violinplot(list_data, figsize=(6, 4), baseline=None,
         ax.set_xticklabels(xticklabels, rotation=rotation)
     if xminortick is not None:
         ax.set_xticks(xminortick, minor=True)
-        ax.xaxis.set_minor_formatter(FixedFormatter(xminorticklabels))
+        ax.xaxis.set_minor_formatter(ticker.FixedFormatter(xminorticklabels))
         ax.xaxis.set_tick_params(bottom=False, which='minor')
 
     # y-axis
@@ -110,6 +110,83 @@ def plot_dist1_vs_dist2(dist1, dist2, figsize=(4, 4),
     plt.show()
 
 
+def _list_to_xyz(list_data):
+    xrange = []
+    yrange = []
+    zrange = []
+    for item in list_data:
+        xrange.append(item[0])
+        yrange.append(item[1])
+        zrange.append(item[2])
+    return xrange, yrange, zrange
+
+
+def _extract_z(list_data, num_samples):
+    xrange, yrange, zrange = _list_to_xyz(list_data)
+    _, _, zs = _extract_xyz(xrange, yrange, zrange, num_samples)
+    return zs
+
+
+def _extract_xyz(xrange, yrange, zrange, num_samples):
+    zbase = np.mean(zrange)
+    xarray = np.linspace(np.min(xrange), np.max(xrange), num_samples)
+    yarray = np.linspace(np.min(yrange), np.max(yrange), num_samples)
+    xs, ys = np.meshgrid(xarray, yarray)
+
+    zs = np.zeros(xs.shape)
+    tmp_nums = np.zeros(zs.shape)
+    for i in range(len(xrange)):
+        xind = (num_samples - 1) - find_nearest_ind(xarray, xrange[i])
+        yind = (num_samples - 1) - find_nearest_ind(yarray, yrange[i])
+        zs[xind, yind] += zrange[i]
+        tmp_nums[xind, yind] += 1
+    tmp_nums[tmp_nums == 0] = 1
+    zs /= tmp_nums
+    zs[zs == 0] = zbase
+    return xs, ys, zs
+
+
+def plot_z3d(list_data, figsize=(5, 4), num_samples=10,
+             cmap='PiYG_r',
+             fontsize=14, fontweight='bold',
+             xlabel=None,
+             ylabel=None,
+             legend=None, loc='best',
+             save_name=None):
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(1, 1, 1)
+
+    xrange, yrange, zrange = _list_to_xyz(list_data)
+    _, _, zs = _extract_xyz(xrange, yrange, zrange, num_samples)
+
+    cax = ax.matshow(
+        zs, cmap=cmap, interpolation='nearest', aspect='auto',
+        extent=[np.min(xrange), np.max(xrange), np.max(yrange), np.min(yrange)]
+    )
+    fig.colorbar(cax)
+
+    # x-axis
+    ax.xaxis.set_ticks_position('bottom')
+    if xlabel is not None:
+        ax.set_xlabel(xlabel, fontsize=fontsize, fontweight=fontweight)
+
+    # y-axis
+    if ylabel is not None:
+        ax.set_ylabel(ylabel, fontsize=fontsize, fontweight=fontweight)
+
+    # legends
+    if legend is not None:
+        ax.legend(
+            legend, prop={'weight': fontweight, 'size': fontsize}, loc=loc
+        )
+
+    # if to be saved
+    if save_name is not None:
+        fig.tight_layout()
+        plt.savefig(save_name)
+    plt.show()
+
+
 def plot_wireframe3d(list_data, figsize=(8, 8), num_samples=10,
                      colour='b', view_init=(30, 60),
                      fontsize=14, fontweight='bold',
@@ -122,33 +199,13 @@ def plot_wireframe3d(list_data, figsize=(8, 8), num_samples=10,
     ax = fig.add_subplot(1, 1, 1, projection='3d')
 
     # compute the z baseline, x and y range
-    xrange = []
-    yrange = []
-    zrange = []
-    for item in list_data:
-        xrange.append(item[0])
-        yrange.append(item[1])
-        zrange.append(item[2])
-    zbase = np.mean(zrange)
-
-    xarray = np.linspace(np.min(xrange), np.max(xrange), num_samples)
-    yarray = np.linspace(np.min(yrange), np.max(yrange), num_samples)
-    xs, ys = np.meshgrid(xarray, yarray)
-
-    zs = np.zeros(xs.shape)
-    tmp_nums = np.zeros(zs.shape)
-    for item in list_data:
-        xind = (num_samples - 1) - find_nearest_ind(xarray, item[0])
-        yind = (num_samples - 1) - find_nearest_ind(yarray, item[1])
-        zs[xind, yind] += item[2]
-        tmp_nums[xind, yind] += 1
-    tmp_nums[tmp_nums == 0] = 1
-    zs /= tmp_nums
-    zs[zs == 0] = zbase
+    xrange, yrange, zrange = _list_to_xyz(list_data)
+    xs, ys, zs = _extract_xyz(xrange, yrange, zrange, num_samples)
 
     ax.plot_wireframe(xs, ys, zs, color=colour)
     ax.view_init(view_init[0], view_init[1])
 
+    # x-axis
     if xlabel is not None:
         ax.set_xlabel(xlabel, fontsize=fontsize, fontweight=fontweight)
 
