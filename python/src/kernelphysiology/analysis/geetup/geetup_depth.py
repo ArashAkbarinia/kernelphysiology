@@ -63,7 +63,7 @@ def report_monodepth(img_folder, txt_folder, out_dir=None, prefix_dir='npys',
                 )
                 im_list = np.loadtxt(selected_txt, dtype=str, delimiter=',')
                 # replacing the txt folder with img folder
-                imgs_dir.replace(txt_folder, img_folder)
+                imgs_dir = imgs_dir.replace(txt_folder, img_folder)
                 current_result = _monodepth_folder(im_list, imgs_dir)
                 out_file = os.path.join(
                     video_dir, '%s_%s.txt' % (out_name, vid_ind)
