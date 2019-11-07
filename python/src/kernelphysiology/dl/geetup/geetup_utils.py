@@ -386,11 +386,10 @@ def change_base_path(in_file, old, new, out_file, prefix=''):
 
 # TODO: make all other recursive folders like this
 def change_pickles_recursive(in_folder, out_folder, **kwargs):
-    create_dir(out_folder)
+    change_pickles_dir(in_folder, out_folder, **kwargs)
     for current_in in sorted(glob.glob(in_folder + '/*/')):
         print(current_in)
         current_out = current_in.replace(in_folder, out_folder)
-        change_pickles_dir(current_in, current_out, **kwargs)
         change_pickles_recursive(current_in, current_out, **kwargs)
 
 
