@@ -78,6 +78,7 @@ def plot_dist1_vs_dist2(dist1, dist2, figsize=(4, 4),
                         fontsize=14, fontweight='bold',
                         xlabel=None, xlim=None,
                         ylabel=None, ylim=None,
+                        point_texts=None,
                         save_name=None):
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(1, 1, 1)
@@ -88,6 +89,10 @@ def plot_dist1_vs_dist2(dist1, dist2, figsize=(4, 4),
     ds = (min_val, max_val)
     de = (min_val, max_val)
     ax.plot(ds, de, '--k')
+
+    if point_texts is not None:
+        for zdir, x, y in zip(point_texts, dist1, dist2):
+            ax.text(x, y, zdir, fontsize=10, fontweight=fontweight)
 
     # x-axis
     if xlim is not None:
@@ -136,18 +141,18 @@ def _extract_xyz(xrange, yrange, zrange, num_samples):
     zs = np.zeros(xs.shape)
     tmp_nums = np.zeros(zs.shape)
     for i in range(len(xrange)):
-        xind = (num_samples - 1) - find_nearest_ind(xarray, xrange[i])
-        yind = (num_samples - 1) - find_nearest_ind(yarray, yrange[i])
-        zs[xind, yind] += zrange[i]
-        tmp_nums[xind, yind] += 1
+        col_ind = find_nearest_ind(xarray, xrange[i])
+        row_ind = find_nearest_ind(yarray, yrange[i])
+        zs[row_ind, col_ind] += zrange[i]
+        tmp_nums[row_ind, col_ind] += 1
     tmp_nums[tmp_nums == 0] = 1
     zs /= tmp_nums
-    zs[zs == 0] = zbase
+    zs[zs == 0] = None
     return xs, ys, zs
 
 
 def plot_z3d(list_data, figsize=(5, 4), num_samples=10,
-             cmap='PiYG_r',
+             cmap='PiYG_r', interpolation='none',
              fontsize=14, fontweight='bold',
              xlabel=None,
              ylabel=None,
@@ -160,7 +165,7 @@ def plot_z3d(list_data, figsize=(5, 4), num_samples=10,
     _, _, zs = _extract_xyz(xrange, yrange, zrange, num_samples)
 
     cax = ax.matshow(
-        zs, cmap=cmap, interpolation='nearest', aspect='auto',
+        zs, cmap=cmap, interpolation=interpolation, aspect='auto',
         extent=[np.min(xrange), np.max(xrange), np.max(yrange), np.min(yrange)]
     )
     fig.colorbar(cax)
