@@ -13,7 +13,9 @@ def get_num_classes(dataset_name, num_classes=None):
     if num_classes is not None:
         return num_classes
 
-    if dataset_name == 'cifar10':
+    if 'voc' in dataset_name:
+        num_classes = 21
+    elif dataset_name == 'cifar10':
         num_classes = 10
     elif dataset_name == 'cifar100':
         num_classes = 100
@@ -32,7 +34,9 @@ def get_num_classes(dataset_name, num_classes=None):
 
 
 def get_default_target_size(dataset_name):
-    if dataset_name in ['imagenet', 'leaf', 'fruits']:
+    if dataset_name == 'voc':
+        target_size = 480
+    elif dataset_name in ['imagenet', 'leaf', 'fruits']:
         target_size = 224
     elif 'wcs_lms' in dataset_name:
         target_size = 128

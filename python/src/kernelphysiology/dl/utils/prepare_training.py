@@ -22,6 +22,9 @@ def prepare_output_directories(dataset_name, network_name, optimiser,
     # organise the dataset according to their parents
     if 'wcs' in dataset_name:
         dataset_parent = 'wcs'
+    elif 'voc' in dataset_name:
+        dataset_parent = 'voc'
+        dataset_name = dataset_name.replace('voc_', '')
     elif 'geetup' in dataset_name:
         dataset_parent = 'geetup'
         dataset_name = dataset_name.replace('geetup_', '')

@@ -18,31 +18,30 @@ from kernelphysiology.dl.pytorch.utils import segmentation_utils as utils
 from kernelphysiology.dl.pytorch.utils import argument_handler
 
 
-def get_dataset(name, data_dir, image_set, transform):
+def get_dataset(name, data_dir, image_set, target_size):
     def sbd(*args, **kwargs):
         return torchvision.datasets.SBDataset(
             *args, mode='segmentation', **kwargs
         )
 
     paths = {
-        'voc': (torchvision.datasets.VOCSegmentation, 21),
-        'voc_aug': (sbd, 21),
-        'coco': (get_coco, 21)
+        'voc_org': (torchvision.datasets.VOCSegmentation, 21),
+        'voc_sbd': (sbd, 21),
+        'voc_coco': (get_coco, 21)
     }
     ds_fn, num_classes = paths[name]
 
+    transform = get_transform(image_set == 'train', target_size)
     ds = ds_fn(data_dir, image_set=image_set, transforms=transform)
     return ds, num_classes
 
 
-def get_transform(train):
+def get_transform(train, crop_size=480):
     base_size = 520
-    crop_size = 480
 
     min_size = int((0.5 if train else 1.0) * base_size)
     max_size = int((2.0 if train else 1.0) * base_size)
-    transforms = []
-    transforms.append(T.RandomResize(min_size, max_size))
+    transforms = [T.RandomResize(min_size, max_size)]
     if train:
         transforms.append(T.RandomHorizontalFlip(0.5))
         transforms.append(T.RandomCrop(crop_size))
@@ -114,10 +113,10 @@ def main(args):
     device = torch.device(args.gpus)
 
     dataset, num_classes = get_dataset(
-        args.dataset, args.data_dir, 'train', get_transform(train=True)
+        args.dataset, args.data_dir, 'train', args.target_size
     )
     dataset_test, _ = get_dataset(
-        args.dataset, args.data_dir, 'val', get_transform(train=False)
+        args.dataset, args.data_dir, 'val', args.target_size
     )
 
     if args.distributed:
