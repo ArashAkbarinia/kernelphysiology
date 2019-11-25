@@ -34,7 +34,7 @@ def get_num_classes(dataset_name, num_classes=None):
 
 
 def get_default_target_size(dataset_name):
-    if dataset_name == 'voc':
+    if 'voc' in dataset_name:
         target_size = 480
     elif dataset_name in ['imagenet', 'leaf', 'fruits']:
         target_size = 224
