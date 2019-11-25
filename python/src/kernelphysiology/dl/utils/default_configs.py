@@ -60,9 +60,7 @@ def get_default_dataset_paths(dataset_name, train_dir=None, validation_dir=None,
         if train_dir is None:
             train_dir = '%simagenet/raw-data/train/' % pre_path
         if validation_dir is None:
-            if (socket.gethostname() == 'awesome' or
-                    socket.gethostname() == 'nickel' or
-                    socket.gethostname() == 'nyanza'):
+            if _is_server_known():
                 validation_dir = '%simagenet/raw-data/validation/' % pre_path
             else:
                 validation_dir = '%srepositories/kernelphysiology/data/' \
@@ -84,32 +82,40 @@ def get_default_dataset_paths(dataset_name, train_dir=None, validation_dir=None,
                 commons.python_root, 'data/datasets/stl/stl10/'
             )
     elif dataset_name == 'leaf' or dataset_name == 'fruits':
+        db_path = '%sdatasets/misc/%s' % (pre_path, dataset_name)
         if train_dir is None:
-            train_dir = '%sdatasets/misc/%s/train' % (pre_path,
-                                                      dataset_name)
+            train_dir = '%s/train' % db_path
         if validation_dir is None:
-            validation_dir = '%sdatasets/misc/%s/validation/' % (pre_path,
-                                                                 dataset_name)
+            validation_dir = '%s/validation' % db_path
     elif dataset_name == 'coco':
         # NOTE: just for the ease of working in my machiens
         if data_dir is None:
-            if (socket.gethostname() == 'awesome' or
-                    socket.gethostname() == 'nickel' or
-                    socket.gethostname() == 'nyanza'):
+            if _is_server_known():
                 data_dir = '/home/arash/Software/coco/'
             else:
                 validation_dir = '%srepositories/kernelphysiology/' \
                                  'data/computervision/coco/' % pre_path
     elif 'wcs' in dataset_name:
-        # NOTE: just for the ease of working in my machiens
+        db_path = '%sdatasets/wcs/%s' % (pre_path, dataset_name)
         if train_dir is None:
-            train_dir = '%sdatasets/wcs/%s/train/' % (pre_path, dataset_name)
+            train_dir = '%s/train/' % db_path
         if validation_dir is None:
-            if (socket.gethostname() == 'awesome' or
-                    socket.gethostname() == 'nickel' or
-                    socket.gethostname() == 'nyanza'):
-                validation_dir = '%sdatasets/wcs/%s/validation/' % \
-                                 (pre_path, dataset_name)
+            validation_dir = '%s/validation/' % db_path
+    elif dataset_name == 'voc_org':
+        if data_dir is None:
+            if _is_server_known():
+                data_dir = '%s/datasets/' % pre_path
+    elif dataset_name == 'voc_coco':
+        if data_dir is None:
+            if _is_server_known():
+                data_dir = '%s/datasets/coco/' % pre_path
     else:
         sys.exit('Unsupported dataset %s' % dataset_name)
     return train_dir, validation_dir, data_dir
+
+
+def _is_server_known():
+    hostname = socket.gethostname()
+    if hostname in ['awesome', 'nickel', 'nyanza']:
+        return True
+    return False
