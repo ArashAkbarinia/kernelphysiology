@@ -887,7 +887,7 @@ def check_common_args(parser, argvs, script_type):
 def pytorch_check_training_args(parser, argvs):
     args = check_common_args(parser, argvs, 'training')
 
-    if args.augment_labels:
+    if 'augment_labels' in args and args.augment_labels:
         args.num_classes *= 2
         args.custom_arch = True
 

@@ -16,8 +16,6 @@ def parse_segmentation_arguments(argv):
 
     args = ah.pytorch_check_training_args(parser, argv)
 
-    # TODO: not supported should be removed
-    args.augment_labels = False
     if args.lr is None:
         args.lr = 0.01
     if args.weight_decay is None:
