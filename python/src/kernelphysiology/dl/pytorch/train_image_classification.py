@@ -1,5 +1,5 @@
 """
-Pytorch training script for various datasets and image manipulations.
+PyTorch training script for various datasets and image manipulations.
 """
 
 import os

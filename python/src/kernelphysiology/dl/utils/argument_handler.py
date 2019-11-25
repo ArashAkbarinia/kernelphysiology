@@ -404,6 +404,11 @@ def get_optimisation_group(parser):
         type=str,
         help='Path to latest checkpoint (default: None)'
     )
+    optimisation_group.add_argument(
+        '--aux-loss',
+        action='store_true',
+        help='auxiliar loss'
+    )
 
 
 def get_logging_group(parser):
@@ -545,6 +550,7 @@ def common_arg_parser(description):
         type=str,
         choices=[
             'classification',
+            'segmentation',
             'detection'
         ],
         default=None,
@@ -769,8 +775,8 @@ def pytorch_train_arg_parser(argvs):
     return pytorch_check_training_args(parser, argvs)
 
 
-def common_train_arg_parser():
-    parser = common_arg_parser('Training prominent nets.')
+def common_train_arg_parser(description='Training a network!'):
+    parser = common_arg_parser(description)
 
     get_architecture_group(parser)
     get_optimisation_group(parser)
