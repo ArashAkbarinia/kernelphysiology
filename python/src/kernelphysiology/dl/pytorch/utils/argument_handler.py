@@ -13,6 +13,7 @@ def parse_segmentation_arguments(argv):
     ah.get_architecture_group(parser)
     ah.get_optimisation_group(parser)
     ah.get_parallelisation_group(parser)
+    ah.get_augmentation_group(parser)
 
     args = ah.pytorch_check_training_args(parser, argv)
 

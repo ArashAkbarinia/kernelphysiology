@@ -227,6 +227,23 @@ def get_inisialisation_group(parser):
     )
 
 
+def get_augmentation_group(parser):
+    augmentation_group = parser.add_argument_group('augmentation')
+    augmentation_group.add_argument(
+        '-na', '--num_augmentations',
+        type=int,
+        default=None,
+        help='Number of augmentations applied to each image (default: None)'
+    )
+    augmentation_group.add_argument(
+        '-as', '--augmentation_settings',
+        nargs='+',
+        type=str,
+        default=None,
+        help='List of augmentations to be conducted (default: None)'
+    )
+
+
 def get_plateau_group(parser):
     plateau_group = parser.add_argument_group('plateau')
     plateau_group.add_argument(
@@ -725,20 +742,8 @@ def pytorch_train_arg_parser(argvs):
     parser = common_train_arg_parser()
 
     get_parallelisation_group(parser)
+    get_augmentation_group(parser)
 
-    parser.add_argument(
-        '-na', '--num_augmentations',
-        type=int,
-        default=None,
-        help='Number of augmentations applied to each image (default: None)'
-    )
-    parser.add_argument(
-        '-as', '--augmentation_settings',
-        nargs='+',
-        type=str,
-        default=None,
-        help='List of augmentations to be conducted (default: None)'
-    )
     # TODO: other than doubleing labels?
     # FIXME: implement for CIFAr and others
     parser.add_argument(
