@@ -41,6 +41,7 @@ def parse_predict_segmentation_arguments(argv):
     parser = ah.common_test_arg_parser(description=description)
 
     ah.get_network_manipulation_group(parser)
+    ah.get_parallelisation_group(parser)
 
     args = ah.pytorch_check_test_args(parser, argv)
 
