@@ -90,6 +90,8 @@ def prepare_transformations_test(dataset_name, colour_transformations,
             *chns_transformation,
             normalize,
         ])
+    elif 'voc' in dataset_name:
+        transformations = []
     else:
         sys.exit(
             'Transformations for dataset %s is not supported.' % dataset_name

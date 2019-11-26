@@ -279,7 +279,6 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
             # loading validation set
             target_size = get_default_target_size(args.dataset)
 
-            # FIXME: add segmentation datasests
             validation_dataset = get_validation_dataset(
                 args.dataset, args.validation_dir, colour_transformations,
                 other_transformations, chns_transformation, normalize,
