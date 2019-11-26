@@ -217,5 +217,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parsed_args = argument_handler.parse_segmentation_arguments(sys.argv[1:])
+    parsed_args = argument_handler.parse_train_segmentation_arguments(
+        sys.argv[1:]
+    )
     main(parsed_args)

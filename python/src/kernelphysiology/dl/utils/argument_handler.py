@@ -244,6 +244,31 @@ def get_augmentation_group(parser):
     )
 
 
+def get_network_manipulation_group(parser):
+    network_manipulation_group = parser.add_argument_group()
+    network_manipulation_group.add_argument(
+        '--kill_kernels',
+        nargs='+',
+        type=str,
+        default=None,
+        help='First layer name followed by kernel indices (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--kill_planes',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Axis number followed by plane indices ax_<P1> (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--kill_lines',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
+    )
+
+
 def get_plateau_group(parser):
     plateau_group = parser.add_argument_group('plateau')
     plateau_group.add_argument(
@@ -614,28 +639,7 @@ def keras_test_arg_parser(argvs):
 def pytorch_test_arg_parser(argvs):
     parser = common_test_arg_parser()
 
-    network_manipulation_group = parser.add_argument_group()
-    network_manipulation_group.add_argument(
-        '--kill_kernels',
-        nargs='+',
-        type=str,
-        default=None,
-        help='First layer name followed by kernel indices (default: None)'
-    )
-    network_manipulation_group.add_argument(
-        '--kill_planes',
-        nargs='+',
-        type=str,
-        default=None,
-        help='Axis number followed by plane indices ax_<P1> (default: None)'
-    )
-    network_manipulation_group.add_argument(
-        '--kill_lines',
-        nargs='+',
-        type=str,
-        default=None,
-        help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
-    )
+    get_network_manipulation_group(parser)
 
     return pytorch_check_test_args(parser, argvs)
 
@@ -652,10 +656,8 @@ def pytorch_check_test_args(parser, argvs):
     return args
 
 
-def common_test_arg_parser():
-    parser = common_arg_parser(
-        'Testing different image classification networks.'
-    )
+def common_test_arg_parser(description='Testing a network!'):
+    parser = common_arg_parser(description)
 
     parser.add_argument(
         '--activation_map',
