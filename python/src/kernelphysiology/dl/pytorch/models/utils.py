@@ -266,7 +266,7 @@ def which_network_segmentation(network_name, num_classes, **kwargs):
                 customs['num_classes'] = num_classes
         # TODO: for now only predefined models
         # model = which_architecture(checkpoint['arch'], customs=customs)
-        model = seg_models.__dict__[network_name](
+        model = seg_models.__dict__[checkpoint['arch']](
             num_classes=num_classes, pretrained=False, aux_loss=None
         )
 
