@@ -134,7 +134,7 @@ def main(args):
     )
 
     start_time = time.time()
-    for epoch in range(args.epochs):
+    for epoch in range(args.initial_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
         train_one_epoch(
@@ -144,16 +144,25 @@ def main(args):
         confmat = utils.evaluate(
             model, data_loader_test, device=device, num_classes=num_classes
         )
-        print(confmat)
         utils.save_on_master(
             {
-                'model': model_without_ddp.state_dict(),
+                'epoch': epoch + 1,
+                'arch': args.network_name,
+                'customs': {
+                    'pooling_type': args.pooling_type,
+                    'in_chns': 3,  # len(mean), #TODO
+                    'num_classes': 21,  # args.num_classes,
+                    # 'blocks': args.blocks,
+                    # 'num_kernels': args.num_kernels
+                },
+                'state_dict': model_without_ddp.state_dict(),
                 'optimizer': optimizer.state_dict(),
-                'epoch': epoch,
+                'target_size': args.target_size,
                 'args': args
             },
             os.path.join(args.out_dir, 'model_{}.pth'.format(epoch))
         )
+        print(confmat)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))

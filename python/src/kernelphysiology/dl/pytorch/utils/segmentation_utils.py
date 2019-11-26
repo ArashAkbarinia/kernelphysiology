@@ -335,6 +335,25 @@ def evaluate(model, data_loader, device, num_classes):
     return confmat
 
 
+def predict_segmentation(val_loader, model, device, num_classes):
+    model.eval()
+    confmat = ConfusionMatrix(num_classes)
+    metric_logger = MetricLogger(delimiter='  ')
+    header = 'Test:'
+    with torch.no_grad():
+        for image, target in metric_logger.log_every(val_loader, 100, header):
+            image, target = image.to(device), target.to(device)
+            output = model(image)
+            output = output['out']
+
+            confmat.update(target.flatten(), output.argmax(1).flatten())
+
+        confmat.reduce_from_all_processes()
+
+    # FIXME: returning 3 elements just because of function singnature in generic
+    return None, None, confmat
+
+
 def get_dataset(name, data_dir, image_set, target_size):
     def sbd(*args, **kwargs):
         return torchvision.datasets.SBDataset(

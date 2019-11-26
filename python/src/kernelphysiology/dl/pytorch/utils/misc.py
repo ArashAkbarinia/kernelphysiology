@@ -231,7 +231,7 @@ def _requires_colour_transform(exp, chromaticity):
     return True
 
 
-def generic_evaluation(args, fn, **kwargs):
+def generic_evaluation(args, fn, save_fn=None, **kwargs):
     manipulation_values = args.parameters['kwargs'][args.manipulation]
     manipulation_name = args.parameters['f_name']
     for j, current_network in enumerate(args.network_files):
@@ -316,7 +316,7 @@ def generic_evaluation(args, fn, **kwargs):
                 current_results = fn(
                     val_loader, model, **kwargs
                 )
-                prepapre_testing.save_activation(
+                save_fn(
                     current_results, args.experiment_name,
                     args.network_names[j],
                     args.dataset, manipulation_name, manipulation_value
@@ -325,8 +325,8 @@ def generic_evaluation(args, fn, **kwargs):
                 (_, _, current_results) = fn(
                     val_loader, model, **kwargs
                 )
-                prepapre_testing.save_predictions(
+                save_fn(
                     current_results, args.experiment_name,
-                    args.network_names[j], args.dataset, manipulation_name,
-                    manipulation_value
+                    args.network_names[j],
+                    args.dataset, manipulation_name, manipulation_value
                 )

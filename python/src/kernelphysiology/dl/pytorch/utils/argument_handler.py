@@ -45,6 +45,7 @@ def parse_predict_segmentation_arguments(argv):
 
     args = ah.pytorch_check_test_args(parser, argv)
 
+    args.validation_dir = args.data_dir
     args.target_size = args.target_size[0]
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]

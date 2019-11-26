@@ -41,14 +41,17 @@ def main(argv):
     kwargs = {'print_freq': args.print_freq}
     if args.random_images is not None:
         fn = visualise_input
+        save_fn = None
     else:
         kwargs['device'] = args.device
         if args.activation_map is not None:
             fn = compute_activation
+            save_fn = prepapre_testing.save_activation
         else:
             fn = predict
+            save_fn = prepapre_testing.save_predictions
             kwargs['criterion'] = criterion
-    generic_evaluation(args, fn, **kwargs)
+    generic_evaluation(args, fn, save_fn, **kwargs)
 
 
 def compute_activation(val_loader, model, device, print_freq=100):

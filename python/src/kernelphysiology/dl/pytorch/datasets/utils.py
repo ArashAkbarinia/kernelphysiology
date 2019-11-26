@@ -106,7 +106,8 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
         normalize, target_size
     )
     if 'voc' in dataset_name:
-        validation_dataset = segmentation_utils.get_dataset(
+        # TODO: dataset shouldn't return num classes
+        validation_dataset, _ = segmentation_utils.get_dataset(
             dataset_name, valdir, 'val', target_size
         )
     elif dataset_name == 'imagenet':
