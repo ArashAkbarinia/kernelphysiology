@@ -7,6 +7,17 @@ import time
 import shutil
 
 import torch
+import torchvision.transforms as transforms
+
+from kernelphysiology.dl.pytorch.datasets.utils import is_dataset_pil_image
+from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
+from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.models.utils import LayerActivation
+from kernelphysiology.dl.pytorch.models.utils import which_network
+from kernelphysiology.dl.pytorch.utils import preprocessing
+from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
+from kernelphysiology.dl.utils import prepapre_testing
+from kernelphysiology.dl.utils.default_configs import get_default_target_size
 
 
 class AverageMeter(object):
@@ -189,8 +200,124 @@ def validate_on_data(val_loader, model, criterion, args):
 
 
 def prepare_device(gpus):
-    if gpus == None or len(gpus) == 0 or gpus[0] == -1:
+    if gpus is None or len(gpus) == 0 or gpus[0] == -1:
         device = torch.device('cpu')
     else:
         device = torch.device('cuda')
     return device
+
+
+# FIXME: just a hack, if it's already in the desired colour space,
+#  don't change it
+def tmp_c_space(manipulation_name):
+    if manipulation_name in ['chromaticity', 'red_green', 'yellow_blue',
+                             'lightness', 'invert_chromaticity',
+                             'invert_opponency', 'invert_lightness']:
+        return True
+    return False
+
+
+# TODO: perhaps for inverting chromaticity and luminance as well
+# FIXME: for less than 3 channels in lab it wont work
+def _requires_colour_transform(exp, chromaticity):
+    if (
+            exp == 'original_rgb' or
+            (exp == 'red_green' and chromaticity == 'dichromat_rg') or
+            (exp == 'yellow_blue' and chromaticity == 'dichromat_yb') or
+            (exp == 'chromaticity' and chromaticity == 'monochromat') or
+            (exp == 'lightness' and chromaticity == 'lightness')
+    ):
+        return False
+    return True
+
+
+def generic_evaluation(args, gpu, criterion, fn):
+    manipulation_values = args.parameters['kwargs'][args.manipulation]
+    manipulation_name = args.parameters['f_name']
+    for j, current_network in enumerate(args.network_files):
+        # which architecture
+        (model, target_size) = which_network(
+            current_network, args.task_type, num_classes=args.num_classes,
+            kill_kernels=args.kill_kernels, kill_planes=args.kill_planes,
+            kill_lines=args.kill_lines
+        )
+        model = model.cuda(gpu)
+        mean, std = get_preprocessing_function(
+            args.colour_space, args.network_chromaticities[j]
+        )
+        normalize = transforms.Normalize(mean=mean, std=std)
+
+        for i, manipulation_value in enumerate(manipulation_values):
+            args.parameters['kwargs'][args.manipulation] = manipulation_value
+            prediction_transformation = preprocessing.PredictionTransformation(
+                args.parameters, is_dataset_pil_image(args.dataset),
+                args.colour_space, tmp_c_space(manipulation_name)
+            )
+            colour_transformations = []
+            if _requires_colour_transform(
+                    manipulation_name, args.network_chromaticities[j]
+            ):
+                colour_transformations = preprocessing.colour_transformation(
+                    args.network_chromaticities[j], args.colour_space
+                )
+
+            # whether should be 1, 2, or 3 channels
+            chns_transformation = preprocessing.channel_transformation(
+                args.network_chromaticities[j], args.colour_space
+            )
+
+            other_transformations = [prediction_transformation]
+
+            print(
+                'Processing network %s and %s %f' %
+                (current_network, manipulation_name, manipulation_value)
+            )
+
+            # which dataset
+            # reading it after the model, because each might have their own
+            # specific size
+            # loading validation set
+            target_size = get_default_target_size(args.dataset)
+
+            # FIXME: add segmentation datasests
+            validation_dataset = get_validation_dataset(
+                args.dataset, args.validation_dir, colour_transformations,
+                other_transformations, chns_transformation, normalize,
+                target_size
+            )
+
+            # FIXME: add segmentation datasests
+            val_loader = torch.utils.data.DataLoader(
+                validation_dataset, batch_size=args.batch_size, shuffle=False,
+                num_workers=args.workers, pin_memory=True
+            )
+
+            if args.random_images is not None:
+                out_folder = prepapre_testing.prepare_saving_dir(
+                    args.experiment_name, args.network_names[j],
+                    args.dataset, manipulation_name
+                )
+                normalize_inverse = NormalizeInverse(mean, std)
+                fn(
+                    val_loader, out_folder, normalize_inverse,
+                    manipulation_value, args.print_freq
+                )
+            elif args.activation_map is not None:
+                model = LayerActivation(model, args.activation_map)
+                current_results = fn(
+                    val_loader, model, gpu, args.print_freq
+                )
+                prepapre_testing.save_activation(
+                    current_results, args.experiment_name,
+                    args.network_names[j],
+                    args.dataset, manipulation_name, manipulation_value
+                )
+            else:
+                (_, _, current_results) = fn(
+                    val_loader, model, criterion, gpu, args.print_freq
+                )
+                prepapre_testing.save_predictions(
+                    current_results, args.experiment_name,
+                    args.network_names[j], args.dataset, manipulation_name,
+                    manipulation_value
+                )

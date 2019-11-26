@@ -120,7 +120,7 @@ def main_worker(ngpus_per_node, args):
     if args.transfer_weights is not None:
         print('Transferred model!')
         (model, _) = which_network(
-            args.transfer_weights, args.task_type, args.old_classes
+            args.transfer_weights, args.task_type, num_classes=args.old_classes
         )
         model = NewClassificationModel(model, args.num_classes)
     elif args.custom_arch:

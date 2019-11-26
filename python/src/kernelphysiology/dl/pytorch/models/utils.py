@@ -8,6 +8,7 @@ import sys
 import torch
 import torch.nn as nn
 import torchvision.models as pmodels
+import torchvision.models.segmentation as seg_models
 
 try:
     from torch.hub import load_state_dict_from_url
@@ -180,7 +181,7 @@ def lesion_planes(model, layer, kernel, kill_planes):
     return model
 
 
-def lesion_kernels(model, kill_kernels, kill_planes=None, kill_lines=None):
+def lesion_kernels(model, kill_kernels=None, kill_planes=None, kill_lines=None):
     if kill_kernels is not None:
         layer_name = ''
         for k_item in kill_kernels:
@@ -214,8 +215,7 @@ def lesion_kernels(model, kill_kernels, kill_planes=None, kill_lines=None):
     return model
 
 
-def which_network_classification(network_name, num_classes, kill_kernels=None,
-                                 kill_planes=None, kill_lines=None):
+def which_network_classification(network_name, num_classes, **kwargs):
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
         customs = None
@@ -251,16 +251,46 @@ def which_network_classification(network_name, num_classes, kill_kernels=None,
         model = pmodels.__dict__[network_name](pretrained=True)
         target_size = 224
 
-    model = lesion_kernels(model, kill_kernels, kill_planes, kill_lines)
+    model = lesion_kernels(model, **kwargs)
     return model, target_size
 
 
-def which_network(network_name, task_type, num_classes, kill_kernels=None,
-                  kill_planes=None, kill_lines=None):
+def which_network_segmentation(network_name, num_classes, **kwargs):
+    if os.path.isfile(network_name):
+        checkpoint = torch.load(network_name, map_location='cpu')
+        customs = None
+        if 'customs' in checkpoint:
+            customs = checkpoint['customs']
+            # TODO: num_classes is just for backward compatibility
+            if 'num_classes' not in customs:
+                customs['num_classes'] = num_classes
+        # TODO: for now only predefined models
+        # model = which_architecture(checkpoint['arch'], customs=customs)
+        model = seg_models.__dict__[network_name](
+            num_classes=num_classes, pretrained=False, aux_loss=None
+        )
+
+        model.load_state_dict(checkpoint['state_dict'])
+        target_size = checkpoint['target_size']
+    else:
+        model = seg_models.__dict__[network_name](
+            num_classes=num_classes, pretrained=True, aux_loss=None
+        )
+        target_size = 480
+
+    model = lesion_kernels(model, **kwargs)
+    return model, target_size
+
+
+def which_network(network_name, task_type, **kwargs):
     # FIXME: network should be acosiated to dataset
     if task_type == 'classification':
         (model, target_size) = which_network_classification(
-            network_name, num_classes, kill_kernels, kill_planes, kill_lines
+            network_name, **kwargs
+        )
+    elif task_type == 'segmentation':
+        (model, target_size) = which_network_segmentation(
+            network_name, **kwargs
         )
     else:
         sys.exit('Currently only classification is supported.')
