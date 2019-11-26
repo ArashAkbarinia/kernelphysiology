@@ -1,12 +1,22 @@
+"""
+Utility function for the segmentation task.
+"""
+
 from __future__ import print_function
+
 from collections import defaultdict, deque
 import datetime
 import time
-import torch
-import torch.distributed as dist
-
 import errno
 import os
+
+import torch
+import torch.distributed as dist
+import torchvision
+
+from kernelphysiology.dl.pytorch.datasets.segmentations_db import get_voc_coco
+from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.utils import transforms as T
 
 
 class SmoothedValue(object):
@@ -33,8 +43,9 @@ class SmoothedValue(object):
         """
         if not is_dist_avail_and_initialized():
             return
-        t = torch.tensor([self.count, self.total], dtype=torch.float64,
-                         device='cuda')
+        t = torch.tensor(
+            [self.count, self.total], dtype=torch.float64, device='cuda'
+        )
         dist.barrier()
         dist.all_reduce(t)
         t = t.tolist()
@@ -65,11 +76,9 @@ class SmoothedValue(object):
 
     def __str__(self):
         return self.fmt.format(
-            median=self.median,
-            avg=self.avg,
-            global_avg=self.global_avg,
-            max=self.max,
-            value=self.value)
+            median=self.median, avg=self.avg, global_avg=self.global_avg,
+            max=self.max, value=self.value
+        )
 
 
 class ConfusionMatrix(object):
@@ -114,7 +123,8 @@ class ConfusionMatrix(object):
             acc_global.item() * 100,
             ['{:.1f}'.format(i) for i in (acc * 100).tolist()],
             ['{:.1f}'.format(i) for i in (iu * 100).tolist()],
-            iu.mean().item() * 100)
+            iu.mean().item() * 100
+        )
 
 
 class MetricLogger(object):
@@ -135,7 +145,8 @@ class MetricLogger(object):
         if attr in self.__dict__:
             return self.__dict__[attr]
         raise AttributeError("'{}' object has no attribute '{}'".format(
-            type(self).__name__, attr))
+            type(self).__name__, attr)
+        )
 
     def __str__(self):
         loss_str = []
@@ -190,16 +201,15 @@ class MetricLogger(object):
                 eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
                 if torch.cuda.is_available():
                     print(log_msg.format(
-                        i, len(iterable), eta=eta_string,
-                        meters=str(self),
+                        i, len(iterable), eta=eta_string, meters=str(self),
                         time=str(iter_time), data=str(data_time),
                         memory=torch.cuda.max_memory_allocated() / MB)
                     )
                 else:
                     print(log_msg.format(
-                        i, len(iterable), eta=eta_string,
-                        meters=str(self),
-                        time=str(iter_time), data=str(data_time)))
+                        i, len(iterable), eta=eta_string, meters=str(self),
+                        time=str(iter_time), data=str(data_time)
+                    ))
             i += 1
             end = time.time()
         total_time = time.time() - start_time
@@ -280,7 +290,7 @@ def init_distributed_mode(args):
         args.distributed = False
         return
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        args.rank = int(os.environ["RANK"])
+        args.rank = int(os.environ['RANK'])
         args.world_size = int(os.environ['WORLD_SIZE'])
         args.gpu = int(os.environ['LOCAL_RANK'])
     elif 'SLURM_PROCID' in os.environ:
@@ -298,9 +308,63 @@ def init_distributed_mode(args):
     torch.cuda.set_device(args.gpu)
     args.dist_backend = 'nccl'
     print('| distributed init (rank {}): {}'.format(
-        args.rank, args.dist_url), flush=True)
+        args.rank, args.dist_url), flush=True
+    )
     torch.distributed.init_process_group(
         backend=args.dist_backend, init_method=args.dist_url,
         world_size=args.world_size, rank=args.rank
     )
     setup_for_distributed(args.rank == 0)
+
+
+def evaluate(model, data_loader, device, num_classes):
+    model.eval()
+    confmat = ConfusionMatrix(num_classes)
+    metric_logger = MetricLogger(delimiter='  ')
+    header = 'Test:'
+    with torch.no_grad():
+        for image, target in metric_logger.log_every(data_loader, 100, header):
+            image, target = image.to(device), target.to(device)
+            output = model(image)
+            output = output['out']
+
+            confmat.update(target.flatten(), output.argmax(1).flatten())
+
+        confmat.reduce_from_all_processes()
+
+    return confmat
+
+
+def get_dataset(name, data_dir, image_set, target_size):
+    def sbd(*args, **kwargs):
+        return torchvision.datasets.SBDataset(
+            *args, mode='segmentation', **kwargs
+        )
+
+    paths = {
+        'voc_org': (torchvision.datasets.VOCSegmentation, 21),
+        'voc_sbd': (sbd, 21),
+        'voc_coco': (get_voc_coco, 21)
+    }
+    ds_fn, num_classes = paths[name]
+
+    transform = get_transform(image_set == 'train', target_size)
+    ds = ds_fn(data_dir, image_set=image_set, transforms=transform)
+    return ds, num_classes
+
+
+def get_transform(train, crop_size=480):
+    base_size = 520
+
+    min_size = int((0.5 if train else 1.0) * base_size)
+    max_size = int((2.0 if train else 1.0) * base_size)
+    transforms = [T.RandomResize(min_size, max_size)]
+    if train:
+        transforms.append(T.RandomHorizontalFlip(0.5))
+        transforms.append(T.RandomCrop(crop_size))
+    transforms.append(T.ToTensor())
+
+    mean, std = get_preprocessing_function('rgb', None)
+    transforms.append(T.Normalize(mean=mean, std=std))
+
+    return T.Compose(transforms)
