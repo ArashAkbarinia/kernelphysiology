@@ -293,7 +293,7 @@ def which_network(network_name, task_type, **kwargs):
             network_name, **kwargs
         )
     else:
-        sys.exit('Currently only classification is supported.')
+        sys.exit('Task type %s is not supported.' % task_type)
     return model, target_size
 
 

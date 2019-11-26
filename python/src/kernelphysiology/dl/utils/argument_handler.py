@@ -1016,7 +1016,6 @@ def check_task_type(dataset, task_type=None):
                 (task_type, dataset)
             )
         task_type = 'classification'
-    elif 'coco' in dataset:
-        # TODO: add other tasks as well
-        task_type = 'detection'
+    elif 'voc' in dataset:
+        task_type = 'segmentation'
     return task_type
