@@ -1,10 +1,15 @@
+"""
+Collection of image segmentation datasets.
+"""
+
+import os
 import copy
+
 import torch
 import torch.utils.data
 import torchvision
-from PIL import Image
 
-import os
+from PIL import Image
 
 from pycocotools import mask as coco_mask
 
@@ -17,12 +22,12 @@ class FilterAndRemapCocoCategories(object):
         self.remap = remap
 
     def __call__(self, image, anno):
-        anno = [obj for obj in anno if obj["category_id"] in self.categories]
+        anno = [obj for obj in anno if obj['category_id'] in self.categories]
         if not self.remap:
             return image, anno
         anno = copy.deepcopy(anno)
         for obj in anno:
-            obj["category_id"] = self.categories.index(obj["category_id"])
+            obj['category_id'] = self.categories.index(obj['category_id'])
         return image, anno
 
 
@@ -46,8 +51,8 @@ def convert_coco_poly_to_mask(segmentations, height, width):
 class ConvertCocoPolysToMask(object):
     def __call__(self, image, anno):
         w, h = image.size
-        segmentations = [obj["segmentation"] for obj in anno]
-        cats = [obj["category_id"] for obj in anno]
+        segmentations = [obj['segmentation'] for obj in anno]
+        cats = [obj['category_id'] for obj in anno]
         if segmentations:
             masks = convert_coco_poly_to_mask(segmentations, h, w)
             cats = torch.as_tensor(cats, dtype=masks.dtype)
@@ -68,7 +73,7 @@ def _coco_remove_images_without_annotations(dataset, cat_list=None):
         if len(anno) == 0:
             return False
         # if more than 1k pixels occupied in the image
-        return sum(obj["area"] for obj in anno) > 1000
+        return sum(obj['area'] for obj in anno) > 1000
 
     assert isinstance(dataset, torchvision.datasets.CocoDetection)
     ids = []
@@ -76,7 +81,7 @@ def _coco_remove_images_without_annotations(dataset, cat_list=None):
         ann_ids = dataset.coco.getAnnIds(imgIds=img_id, iscrowd=None)
         anno = dataset.coco.loadAnns(ann_ids)
         if cat_list:
-            anno = [obj for obj in anno if obj["category_id"] in cat_list]
+            anno = [obj for obj in anno if obj['category_id'] in cat_list]
         if _has_valid_annotation(anno):
             ids.append(ds_idx)
 
@@ -84,17 +89,19 @@ def _coco_remove_images_without_annotations(dataset, cat_list=None):
     return dataset
 
 
-def get_coco(root, image_set, transforms):
+def get_voc_coco(root, image_set, transforms):
     PATHS = {
-        "train": (
-            "train2017",
-            os.path.join("annotations", "instances_train2017.json")),
-        "val": (
-            "val2017", os.path.join("annotations", "instances_val2017.json")),
-        # "train": ("val2017", os.path.join("annotations", "instances_val2017.json"))
+        'train': (
+            'train2017', os.path.join('annotations', 'instances_train2017.json')
+        ),
+        'val': (
+            'val2017', os.path.join('annotations', 'instances_val2017.json')
+        ),
     }
-    CAT_LIST = [0, 5, 2, 16, 9, 44, 6, 3, 17, 62, 21, 67, 18, 19, 4,
-                1, 64, 20, 63, 7, 72]
+    CAT_LIST = [
+        0, 5, 2, 16, 9, 44, 6, 3, 17, 62, 21,
+        67, 18, 19, 4, 1, 64, 20, 63, 7, 72
+    ]
 
     transforms = Compose([
         FilterAndRemapCocoCategories(CAT_LIST, remap=True),
@@ -107,10 +114,11 @@ def get_coco(root, image_set, transforms):
     img_folder = os.path.join(img_root, img_folder)
     ann_file = os.path.join(root, ann_file)
 
-    dataset = torchvision.datasets.CocoDetection(img_folder, ann_file,
-                                                 transforms=transforms)
+    dataset = torchvision.datasets.CocoDetection(
+        img_folder, ann_file, transforms=transforms
+    )
 
-    if image_set == "train":
+    if image_set == 'train':
         dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
 
     return dataset

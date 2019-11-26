@@ -12,7 +12,8 @@ import torch.utils.data
 from torch import nn
 import torchvision
 
-from kernelphysiology.dl.pytorch.datasets.segmentations_db import get_coco
+from kernelphysiology.dl.pytorch.datasets.segmentations_db import get_voc_coco
+from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.utils import transforms as T
 from kernelphysiology.dl.pytorch.utils import segmentation_utils as utils
 from kernelphysiology.dl.pytorch.utils import argument_handler
@@ -27,7 +28,7 @@ def get_dataset(name, data_dir, image_set, target_size):
     paths = {
         'voc_org': (torchvision.datasets.VOCSegmentation, 21),
         'voc_sbd': (sbd, 21),
-        'voc_coco': (get_coco, 21)
+        'voc_coco': (get_voc_coco, 21)
     }
     ds_fn, num_classes = paths[name]
 
@@ -46,8 +47,9 @@ def get_transform(train, crop_size=480):
         transforms.append(T.RandomHorizontalFlip(0.5))
         transforms.append(T.RandomCrop(crop_size))
     transforms.append(T.ToTensor())
-    transforms.append(T.Normalize(mean=[0.485, 0.456, 0.406],
-                                  std=[0.229, 0.224, 0.225]))
+
+    mean, std = get_preprocessing_function('rgb', None)
+    transforms.append(T.Normalize(mean=mean, std=std))
 
     return T.Compose(transforms)
 
@@ -215,5 +217,5 @@ def main(args):
 
 
 if __name__ == '__main__':
-    args = argument_handler.parse_segmentation_arguments(sys.argv[1:])
-    main(args)
+    parsed_args = argument_handler.parse_segmentation_arguments(sys.argv[1:])
+    main(parsed_args)
