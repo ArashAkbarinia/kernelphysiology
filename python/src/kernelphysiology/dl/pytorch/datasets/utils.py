@@ -13,6 +13,7 @@ from torch.utils.data import ConcatDataset
 
 from kernelphysiology.dl.utils.default_configs import get_num_classes
 from kernelphysiology.dl.pytorch.datasets import label_augmentation
+from kernelphysiology.dl.pytorch.utils import segmentation_utils
 
 
 def prepare_transformations_train(dataset_name, colour_transformations,
@@ -104,7 +105,11 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
         other_transformations, chns_transformation,
         normalize, target_size
     )
-    if dataset_name == 'imagenet':
+    if 'voc' in dataset_name:
+        validation_dataset = segmentation_utils.get_dataset(
+            dataset_name, valdir, 'val', target_size
+        )
+    elif dataset_name == 'imagenet':
         validation_dataset = datasets.ImageFolder(
             valdir, transformations
         )

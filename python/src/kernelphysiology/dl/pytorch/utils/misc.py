@@ -231,7 +231,7 @@ def _requires_colour_transform(exp, chromaticity):
     return True
 
 
-def generic_evaluation(args, criterion, fn):
+def generic_evaluation(args, fn, **kwargs):
     manipulation_values = args.parameters['kwargs'][args.manipulation]
     manipulation_name = args.parameters['f_name']
     for j, current_network in enumerate(args.network_files):
@@ -286,10 +286,19 @@ def generic_evaluation(args, criterion, fn):
                 target_size
             )
 
+            # TODO: nicer solution:
+            if 'sampler' not in args:
+                sampler = None
+            else:
+                sampler = args.sampler(validation_dataset)
+            if 'collate_fn' not in args:
+                args.collate_fn = None
+
             # FIXME: add segmentation datasests
             val_loader = torch.utils.data.DataLoader(
                 validation_dataset, batch_size=args.batch_size, shuffle=False,
-                num_workers=args.workers, pin_memory=True
+                num_workers=args.workers, pin_memory=True, sampler=sampler,
+                collate_fn=args.collate_fn
             )
 
             if args.random_images is not None:
@@ -300,12 +309,12 @@ def generic_evaluation(args, criterion, fn):
                 normalize_inverse = NormalizeInverse(mean, std)
                 fn(
                     val_loader, out_folder, normalize_inverse,
-                    manipulation_value, args.print_freq
+                    manipulation_value, **kwargs
                 )
             elif args.activation_map is not None:
                 model = LayerActivation(model, args.activation_map)
                 current_results = fn(
-                    val_loader, model, args.device, args.print_freq
+                    val_loader, model, **kwargs
                 )
                 prepapre_testing.save_activation(
                     current_results, args.experiment_name,
@@ -314,7 +323,7 @@ def generic_evaluation(args, criterion, fn):
                 )
             else:
                 (_, _, current_results) = fn(
-                    val_loader, model, criterion, args.device, args.print_freq
+                    val_loader, model, **kwargs
                 )
                 prepapre_testing.save_predictions(
                     current_results, args.experiment_name,

@@ -38,13 +38,17 @@ def main(argv):
     torch.cuda.set_device(args.device)
     criterion = nn.CrossEntropyLoss().to(args.device)
     cudnn.benchmark = True
+    kwargs = {'print_freq': args.print_freq}
     if args.random_images is not None:
         fn = visualise_input
-    elif args.activation_map is not None:
-        fn = compute_activation
     else:
-        fn = predict
-    generic_evaluation(args, criterion, fn)
+        kwargs['device'] = args.device
+        if args.activation_map is not None:
+            fn = compute_activation
+        else:
+            fn = predict
+            kwargs['criterion'] = criterion
+    generic_evaluation(args, fn, **kwargs)
 
 
 def compute_activation(val_loader, model, device, print_freq=100):
