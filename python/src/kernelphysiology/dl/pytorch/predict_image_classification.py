@@ -33,8 +33,10 @@ def main(argv):
 
     # FIXME: cant take more than one GPU
     gpu = args.gpus[0]
-    torch.cuda.set_device(gpu)
-    criterion = nn.CrossEntropyLoss().cuda(gpu)
+
+    args.device = torch.device(gpu)
+    torch.cuda.set_device(args.device)
+    criterion = nn.CrossEntropyLoss().to(args.device)
     cudnn.benchmark = True
     if args.random_images is not None:
         fn = visualise_input
@@ -42,10 +44,10 @@ def main(argv):
         fn = compute_activation
     else:
         fn = predict
-    generic_evaluation(args, gpu, criterion, fn)
+    generic_evaluation(args, criterion, fn)
 
 
-def compute_activation(val_loader, model, gpu_num, print_freq=100):
+def compute_activation(val_loader, model, device, print_freq=100):
     batch_time = AverageMeter()
 
     # switch to evaluate mode
@@ -55,8 +57,7 @@ def compute_activation(val_loader, model, gpu_num, print_freq=100):
     with torch.no_grad():
         end = time.time()
         for i, (input_imgs, target) in enumerate(val_loader):
-            if gpu_num is not None:
-                input_imgs = input_imgs.cuda(gpu_num, non_blocking=True)
+            input_imgs = input_imgs.to(device)
 
             # compute output
             pred_outs = model(input_imgs).cpu().numpy()
@@ -93,7 +94,7 @@ def compute_activation(val_loader, model, gpu_num, print_freq=100):
     return prediction_output
 
 
-def predict(val_loader, model, criterion, gpu_num, print_freq=100):
+def predict(val_loader, model, criterion, device, print_freq=100):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -106,9 +107,8 @@ def predict(val_loader, model, criterion, gpu_num, print_freq=100):
     with torch.no_grad():
         end = time.time()
         for i, (input_imgs, target) in enumerate(val_loader):
-            if gpu_num is not None:
-                input_imgs = input_imgs.cuda(gpu_num, non_blocking=True)
-            target = target.cuda(gpu_num, non_blocking=True)
+            input_imgs = input_imgs.to(device)
+            target = target.to(device)
 
             # compute output
             output = model(input_imgs)

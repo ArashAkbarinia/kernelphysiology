@@ -231,7 +231,7 @@ def _requires_colour_transform(exp, chromaticity):
     return True
 
 
-def generic_evaluation(args, gpu, criterion, fn):
+def generic_evaluation(args, criterion, fn):
     manipulation_values = args.parameters['kwargs'][args.manipulation]
     manipulation_name = args.parameters['f_name']
     for j, current_network in enumerate(args.network_files):
@@ -241,7 +241,7 @@ def generic_evaluation(args, gpu, criterion, fn):
             kill_kernels=args.kill_kernels, kill_planes=args.kill_planes,
             kill_lines=args.kill_lines
         )
-        model = model.cuda(gpu)
+        model.to(args.device)
         mean, std = get_preprocessing_function(
             args.colour_space, args.network_chromaticities[j]
         )
@@ -305,7 +305,7 @@ def generic_evaluation(args, gpu, criterion, fn):
             elif args.activation_map is not None:
                 model = LayerActivation(model, args.activation_map)
                 current_results = fn(
-                    val_loader, model, gpu, args.print_freq
+                    val_loader, model, args.device, args.print_freq
                 )
                 prepapre_testing.save_activation(
                     current_results, args.experiment_name,
@@ -314,7 +314,7 @@ def generic_evaluation(args, gpu, criterion, fn):
                 )
             else:
                 (_, _, current_results) = fn(
-                    val_loader, model, criterion, gpu, args.print_freq
+                    val_loader, model, criterion, args.device, args.print_freq
                 )
                 prepapre_testing.save_predictions(
                     current_results, args.experiment_name,
