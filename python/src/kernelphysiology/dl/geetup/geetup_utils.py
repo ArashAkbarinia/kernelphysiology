@@ -14,6 +14,29 @@ from kernelphysiology.utils.imutils import max_pixel_ind
 from kernelphysiology.utils.controls import isint
 
 
+def get_video_clips_inds(geetup_info):
+    last_folder = None
+    video_clips = []
+    for j in range(0, geetup_info.__len__()):
+        f_path, f_gt = geetup_info.__getitem__(j)
+        prt_num = f_path[-1].split('/')[-7]
+        seg_num = f_path[-1].split('/')[-4]
+        vid_num = f_path[-1].split('/')[-2]
+        current_folder = '%s_%s_%s' % (prt_num, seg_num, vid_num)
+        if last_folder is None:
+            print('Starting %s' % current_folder)
+            last_folder = current_folder
+            start_ind = j
+        elif current_folder != last_folder:
+            video_clips.append([start_ind, end_ind])
+            print('Starting %s' % current_folder)
+            start_ind = j
+            last_folder = current_folder
+        end_ind = j + 1
+    video_clips.append([start_ind, end_ind])
+    return video_clips
+
+
 def parse_gt_line(gt):
     gt = gt.replace('[', '').replace(']', '').split(' ')
     gt = [int(i) for i in gt if isint(i)]

@@ -6,7 +6,57 @@ import numpy as np
 
 import cv2
 
+from kernelphysiology.dl.geetup import geetup_utils
+from kernelphysiology.dl.geetup.geetup_utils import map_point_to_image_size
+from kernelphysiology.dl.pytorch.geetup import geetup_db
+from kernelphysiology.utils import path_utils
 from kernelphysiology.utils.imutils import max_pixel_ind
+
+
+def draw_circle_clips(preds, geetup_info, beg_ind, end_ind, out_dir):
+    path_utils.create_dir(out_dir)
+    for j in range(beg_ind, end_ind):
+        f_path, f_gt = geetup_info.__getitem__(j)
+        f_path = f_path[-1]
+        f_gt = f_gt[0]
+        f_pred = preds[j]
+        # read the image
+        img_in = cv2.imread(f_path)
+        # draw the gt
+        img_in = cv2.circle(
+            img_in, (f_gt[1], f_gt[0]), 5, (0, 255, 0), thickness=9
+        )
+        # draw the prediction
+        pred = f_pred.astype('int')
+        # TODO: support other image sizes
+        pred = map_point_to_image_size(pred, (360, 640), (180, 320))
+        pred[0] = int(pred[0])
+        pred[1] = int(pred[1])
+        img_in = cv2.circle(
+            img_in, (pred[1], pred[0]), 5, (0, 0, 255), thickness=9
+        )
+        img_name = f_path.split('/')[-1]
+        out_file = '%s/%s' % (out_dir, img_name)
+        cv2.imwrite(out_file, img_in)
+
+
+def clip_visualise(db_path, pred_path, euc_path, out_dir,
+                   video_clips_inds=None):
+    preds = path_utils.read_pickle(pred_path)
+    eucs = path_utils.read_pickle(euc_path)
+    geetup_info = geetup_db.GeetupDatasetInformative(db_path)
+
+    if video_clips_inds is None:
+        video_clips_inds = geetup_utils.get_video_clips_inds(geetup_info)
+
+    for clip_inds in video_clips_inds:
+        beg_ind, end_ind = clip_inds
+        print(
+            'Video [%d %d] %.2f' % (
+                beg_ind, end_ind, np.median(eucs[beg_ind:end_ind])
+            )
+        )
+        draw_circle_clips(preds, geetup_info, beg_ind, end_ind, out_dir)
 
 
 def draw_circle_results(img_org, gt, pred, out_file=None):
