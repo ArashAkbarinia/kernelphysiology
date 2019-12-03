@@ -400,7 +400,8 @@ def get_transform(train, colour_vision, colour_space, target_size=480):
     colour_transformation = preprocessing.colour_transformation(
         colour_vision, colour_space
     )
-    transforms.append(T.ColourTransformation(colour_transformation))
+    # get ind 0 because it returns a list!
+    transforms.append(T.ColourTransformation(colour_transformation[0]))
 
     transforms.append(T.ToTensor())
 
