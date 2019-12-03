@@ -397,10 +397,10 @@ def get_transform(train, colour_vision, colour_space, target_size=480):
         transforms.append(T.RandomHorizontalFlip(0.5))
         transforms.append(T.RandomCrop(target_size))
 
-    colour_transformations = preprocessing.colour_transformation(
+    colour_transformation = preprocessing.colour_transformation(
         colour_vision, colour_space
     )
-    transforms.append(colour_transformations)
+    transforms.append(T.ColourTransformation(colour_transformation))
 
     transforms.append(T.ToTensor())
 
