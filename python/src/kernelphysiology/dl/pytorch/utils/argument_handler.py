@@ -47,6 +47,8 @@ def parse_predict_segmentation_arguments(argv):
 
     args.validation_dir = args.data_dir
     args.target_size = args.target_size[0]
+    # TODO: right now only batch size 1 is supported in evaluation
+    args.batch_size = 1
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]
     # TODO: why load weights is False?

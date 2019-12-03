@@ -100,6 +100,9 @@ def main_worker(ngpus_per_node, args):
         args.colour_space, args.colour_transformation
     )
 
+    # preparing the output folder
+    create_dir(args.out_dir)
+
     if args.gpus is not None:
         print("Use GPU: {} for training".format(args.gpus))
 
@@ -186,6 +189,7 @@ def main_worker(ngpus_per_node, args):
     )
 
     model_progress = []
+    model_progress_path = os.path.join(args.out_dir, 'model_progress.csv')
     # optionally resume from a checkpoint
     # TODO: it would be best if resume load the architecture from this file
     # TODO: merge with which_architecture
@@ -205,10 +209,6 @@ def main_worker(ngpus_per_node, args):
                 "=> loaded checkpoint '{}' (epoch {})".format(
                     args.resume, checkpoint['epoch']
                 )
-            )
-            # FIXME: not the most robust solution
-            model_progress_path = args.resume.replace(
-                'checkpoint.pth.tar', 'model_progress.csv'
             )
             if os.path.exists(model_progress_path):
                 model_progress = np.loadtxt(model_progress_path, delimiter=',')
@@ -269,10 +269,6 @@ def main_worker(ngpus_per_node, args):
         num_workers=args.workers, pin_memory=True
     )
 
-    # preparing the output folder
-    create_dir(args.out_dir)
-    file_path = os.path.join(args.out_dir, 'model_progress.csv')
-
     # training on epoch
     for epoch in range(args.initial_epoch, args.epochs):
         if args.distributed:
@@ -324,7 +320,8 @@ def main_worker(ngpus_per_node, args):
         # TODO: get this header directly as a dictionary keys
         header = 'epoch,t_time,t_loss,t_top1,t_top5,v_time,v_loss,v_top1,v_top5'
         np.savetxt(
-            file_path, np.array(model_progress), delimiter=',', header=header
+            model_progress_path, np.array(model_progress),
+            delimiter=',', header=header
         )
 
 

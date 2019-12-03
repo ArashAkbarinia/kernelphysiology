@@ -113,6 +113,16 @@ class ConfusionMatrix(object):
         torch.distributed.barrier()
         torch.distributed.all_reduce(self.mat)
 
+    def get_log_dict(self):
+        acc_global, acc, iu = self.compute()
+        conf_log = {
+            'GlobCorrect': acc_global.item() * 100,
+            'AvgRowCorret': ['{:.1f}'.format(i) for i in (acc * 100).tolist()],
+            'IoU': ['{:.1f}'.format(i) for i in (iu * 100).tolist()],
+            'AvgIoU': iu.mean().item() * 100
+        }
+        return conf_log
+
     def __str__(self):
         acc_global, acc, iu = self.compute()
         return (
