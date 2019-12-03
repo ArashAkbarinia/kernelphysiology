@@ -387,7 +387,7 @@ def get_dataset(name, data_dir, image_set, **kwargs):
     return ds, num_classes
 
 
-def get_transform(train, colour_transformation, colour_space, crop_size=480):
+def get_transform(train, colour_vision, colour_space, target_size=480):
     base_size = 520
 
     min_size = int((0.5 if train else 1.0) * base_size)
@@ -395,16 +395,16 @@ def get_transform(train, colour_transformation, colour_space, crop_size=480):
     transforms = [T.RandomResize(min_size, max_size)]
     if train:
         transforms.append(T.RandomHorizontalFlip(0.5))
-        transforms.append(T.RandomCrop(crop_size))
+        transforms.append(T.RandomCrop(target_size))
 
     colour_transformations = preprocessing.colour_transformation(
-        colour_transformation, colour_space
+        colour_vision, colour_space
     )
     transforms.append(colour_transformations)
 
     transforms.append(T.ToTensor())
 
-    mean, std = get_preprocessing_function('rgb', None)
+    mean, std = get_preprocessing_function(colour_space, colour_vision)
     transforms.append(T.Normalize(mean=mean, std=std))
 
     return T.Compose(transforms)

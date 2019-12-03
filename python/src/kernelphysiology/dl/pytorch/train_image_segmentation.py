@@ -62,7 +62,7 @@ def main(args):
 
     data_reading_kwargs = {
         'target_size': args.target_size,
-        'colour_transformation': args.colour_transformation,
+        'colour_vision': args.colour_transformation,
         'colour_space': args.colour_space
     }
     dataset, num_classes = utils.get_dataset(

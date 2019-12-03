@@ -118,7 +118,7 @@ def get_validation_dataset(dataset_name, valdir, colour_vision, colour_space,
         # TODO: dataset shouldn't return num classes
         data_reading_kwargs = {
             'target_size': target_size,
-            'colour_transformation': colour_vision,
+            'colour_vision': colour_vision,
             'colour_space': colour_space
         }
         validation_dataset, _ = segmentation_utils.get_dataset(
