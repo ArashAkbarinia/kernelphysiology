@@ -220,12 +220,6 @@ def main_worker(ngpus_per_node, args):
 
     normalize = transforms.Normalize(mean=mean, std=std)
 
-    colour_transformations = preprocessing.colour_transformation(
-        args.colour_transformation, args.colour_space
-    )
-    chns_transformation = preprocessing.channel_transformation(
-        args.colour_transformation, args.colour_space
-    )
     other_transformations = []
     if args.num_augmentations != 0:
         augmentations = preprocessing.RandomAugmentationTransformation(
@@ -238,8 +232,8 @@ def main_worker(ngpus_per_node, args):
 
     # loading the training set
     train_dataset = get_train_dataset(
-        args.dataset, args.train_dir, colour_transformations,
-        other_transformations, chns_transformation, normalize, target_size,
+        args.dataset, args.train_dir, args.colour_transformation,
+        args.colour_space, other_transformations, normalize, target_size,
         args.augment_labels
     )
 
@@ -259,8 +253,8 @@ def main_worker(ngpus_per_node, args):
 
     # loading validation set
     validation_dataset = get_validation_dataset(
-        args.dataset, args.validation_dir, colour_transformations, [],
-        chns_transformation, normalize, target_size,
+        args.dataset, args.validation_dir, args.colour_transformation,
+        args.colour_space, [], normalize, target_size,
     )
 
     val_loader = torch.utils.data.DataLoader(

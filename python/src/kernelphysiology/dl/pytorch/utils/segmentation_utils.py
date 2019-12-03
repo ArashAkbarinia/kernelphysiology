@@ -16,6 +16,7 @@ import torchvision
 
 from kernelphysiology.dl.pytorch.datasets.segmentations_db import get_voc_coco
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import transforms as T
 
 
@@ -368,7 +369,7 @@ def predict_segmentation(val_loader, model, device, num_classes):
     return None, None, confmat
 
 
-def get_dataset(name, data_dir, image_set, target_size):
+def get_dataset(name, data_dir, image_set, **kwargs):
     def sbd(*args, **kwargs):
         return torchvision.datasets.SBDataset(
             *args, mode='segmentation', **kwargs
@@ -381,12 +382,12 @@ def get_dataset(name, data_dir, image_set, target_size):
     }
     ds_fn, num_classes = paths[name]
 
-    transform = get_transform(image_set == 'train', target_size)
+    transform = get_transform(image_set == 'train', **kwargs)
     ds = ds_fn(data_dir, image_set=image_set, transforms=transform)
     return ds, num_classes
 
 
-def get_transform(train, crop_size=480):
+def get_transform(train, colour_transformation, colour_space, crop_size=480):
     base_size = 520
 
     min_size = int((0.5 if train else 1.0) * base_size)
@@ -395,6 +396,12 @@ def get_transform(train, crop_size=480):
     if train:
         transforms.append(T.RandomHorizontalFlip(0.5))
         transforms.append(T.RandomCrop(crop_size))
+
+    colour_transformations = preprocessing.colour_transformation(
+        colour_transformation, colour_space
+    )
+    transforms.append(colour_transformations)
+
     transforms.append(T.ToTensor())
 
     mean, std = get_preprocessing_function('rgb', None)

@@ -13,6 +13,7 @@ from torch.utils.data import ConcatDataset
 
 from kernelphysiology.dl.utils.default_configs import get_num_classes
 from kernelphysiology.dl.pytorch.datasets import label_augmentation
+from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import segmentation_utils
 
 
@@ -99,9 +100,15 @@ def prepare_transformations_test(dataset_name, colour_transformations,
     return transformations
 
 
-def get_validation_dataset(dataset_name, valdir, colour_transformations,
-                           other_transformations, chns_transformation,
-                           normalize, target_size):
+def get_validation_dataset(dataset_name, valdir, colour_vision, colour_space,
+                           other_transformations, normalize, target_size):
+    colour_transformations = preprocessing.colour_transformation(
+        colour_vision, colour_space
+    )
+    chns_transformation = preprocessing.channel_transformation(
+        colour_vision, colour_space
+    )
+
     transformations = prepare_transformations_test(
         dataset_name, colour_transformations,
         other_transformations, chns_transformation,
@@ -109,8 +116,13 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
     )
     if 'voc' in dataset_name:
         # TODO: dataset shouldn't return num classes
+        data_reading_kwargs = {
+            'target_size': target_size,
+            'colour_transformation': colour_vision,
+            'colour_space': colour_space
+        }
         validation_dataset, _ = segmentation_utils.get_dataset(
-            dataset_name, valdir, 'val', target_size
+            dataset_name, valdir, 'val', **data_reading_kwargs
         )
     elif dataset_name == 'imagenet':
         validation_dataset = datasets.ImageFolder(
@@ -141,9 +153,16 @@ def get_validation_dataset(dataset_name, valdir, colour_transformations,
 
 
 # TODO: train and validation merge together
-def get_train_dataset(dataset_name, traindir, colour_transformations,
-                      other_transformations, chns_transformation,
-                      normalize, target_size, augment_labels=False):
+def get_train_dataset(dataset_name, traindir, colour_vision, colour_space,
+                      other_transformations, normalize, target_size,
+                      augment_labels=False):
+    colour_transformations = preprocessing.colour_transformation(
+        colour_vision, colour_space
+    )
+    chns_transformation = preprocessing.channel_transformation(
+        colour_vision, colour_space
+    )
+
     transformations = prepare_transformations_train(
         dataset_name, colour_transformations,
         other_transformations, chns_transformation,

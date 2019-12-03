@@ -253,18 +253,11 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
                 args.parameters, is_dataset_pil_image(args.dataset),
                 args.colour_space, tmp_c_space(manipulation_name)
             )
-            colour_transformations = []
+            colour_vision = 'trichromat'
             if _requires_colour_transform(
                     manipulation_name, args.network_chromaticities[j]
             ):
-                colour_transformations = preprocessing.colour_transformation(
-                    args.network_chromaticities[j], args.colour_space
-                )
-
-            # whether should be 1, 2, or 3 channels
-            chns_transformation = preprocessing.channel_transformation(
-                args.network_chromaticities[j], args.colour_space
-            )
+                colour_vision = args.network_chromaticities[j]
 
             other_transformations = [prediction_transformation]
 
@@ -280,9 +273,8 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
             target_size = get_default_target_size(args.dataset)
 
             validation_dataset = get_validation_dataset(
-                args.dataset, args.validation_dir, colour_transformations,
-                other_transformations, chns_transformation, normalize,
-                target_size
+                args.dataset, args.validation_dir, colour_vision,
+                args.colour_space, other_transformations, normalize, target_size
             )
 
             # TODO: nicer solution:

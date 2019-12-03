@@ -60,11 +60,16 @@ def main(args):
 
     device = torch.device(args.gpus)
 
+    data_reading_kwargs = {
+        'target_size': args.target_size,
+        'colour_transformation': args.colour_transformation,
+        'colour_space': args.colour_space
+    }
     dataset, num_classes = utils.get_dataset(
-        args.dataset, args.data_dir, 'train', args.target_size
+        args.dataset, args.data_dir, 'train', **data_reading_kwargs
     )
     dataset_test, _ = utils.get_dataset(
-        args.dataset, args.data_dir, 'val', args.target_size
+        args.dataset, args.data_dir, 'val', **data_reading_kwargs
     )
 
     if args.distributed:
