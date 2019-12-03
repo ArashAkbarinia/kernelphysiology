@@ -116,11 +116,15 @@ class ConfusionMatrix(object):
     def get_log_dict(self):
         acc_global, acc, iu = self.compute()
         conf_log = {
-            'GlobCorrect': acc_global.item() * 100,
-            'AvgRowCorret': ['{:.1f}'.format(i) for i in (acc * 100).tolist()],
-            'IoU': ['{:.1f}'.format(i) for i in (iu * 100).tolist()],
-            'AvgIoU': iu.mean().item() * 100
+            'acc': acc_global.item() * 100,
+            'iou': iu.mean().item() * 100,
         }
+        for i, val in enumerate((acc * 100).tolist()):
+            cname = 'acc%.3d' % i
+            conf_log[cname] = '{:.1f}'.format(val)
+        for i, val in enumerate((iu * 100).tolist()):
+            cname = 'iou%.3d' % i
+            conf_log[cname] = '{:.1f}'.format(val)
         return conf_log
 
     def __str__(self):

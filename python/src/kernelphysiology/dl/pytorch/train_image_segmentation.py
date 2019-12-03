@@ -97,12 +97,14 @@ def main(args):
     if args.distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
+    best_acc = 0
     model_progress = []
     model_progress_path = os.path.join(args.out_dir, 'model_progress.csv')
     # loading the model if to eb resumed
     if args.resume is not None:
         checkpoint = torch.load(args.resume, map_location='cpu')
         model.load_state_dict(checkpoint['model'])
+        best_acc = checkpoint['best_acc']
         # if model progress exists, load it
         if os.path.exists(model_progress_path):
             model_progress = np.loadtxt(model_progress_path, delimiter=',')
@@ -141,36 +143,44 @@ def main(args):
             model, criterion, optimizer, data_loader, lr_scheduler,
             device, epoch, args.print_freq
         )
-        validation_log = utils.evaluate(
+        val_confmat = utils.evaluate(
             model, data_loader_test, device=device, num_classes=num_classes
         )
-        utils.save_on_master(
-            {
-                'epoch': epoch + 1,
-                'arch': args.network_name,
-                'customs': {
-                    'pooling_type': args.pooling_type,
-                    'in_chns': 3,  # len(mean), #TODO
-                    'num_classes': 21,  # args.num_classes,
-                    # 'blocks': args.blocks,
-                    # 'num_kernels': args.num_kernels
-                },
-                'state_dict': model_without_ddp.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'target_size': args.target_size,
-                'args': args
+        val_log = val_confmat.get_log_dict()
+        is_best = val_log['acc'] > best_acc
+        best_acc = max(best_acc, val_log['acc'])
+        model_data = {
+            'epoch': epoch + 1,
+            'arch': args.network_name,
+            'customs': {
+                'pooling_type': args.pooling_type,
+                'in_chns': 3,  # len(mean), #TODO
+                'num_classes': 21,  # args.num_classes,
+                # 'blocks': args.blocks,
+                # 'num_kernels': args.num_kernels
             },
-            os.path.join(args.out_dir, 'model_{}.pth'.format(epoch))
+            'state_dict': model_without_ddp.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'target_size': args.target_size,
+            'args': args,
+            'best_acc': best_acc
+        }
+        utils.save_on_master(
+            model_data, os.path.join(args.out_dir, 'checkpoint.pth')
         )
+        if is_best:
+            utils.save_on_master(
+                model_data, os.path.join(args.out_dir, 'model_best.pth')
+            )
 
         epoch_prog, header = add_to_progress(train_log, [], '')
         epoch_prog, header = add_to_progress(
-            validation_log.get_log_dict(), epoch_prog, header, prefix='v_'
+            val_log, epoch_prog, header, prefix='v_'
         )
         model_progress.append(epoch_prog)
         np.savetxt(
             model_progress_path, np.array(model_progress),
-            delimiter=',', header=header
+            delimiter=';', header=header, fmt='%s'
         )
 
     total_time = time.time() - start_time
@@ -180,7 +190,7 @@ def main(args):
 
 def add_to_progress(log, progress, header, prefix=None):
     for key, val in log.items():
-        progress.append(val)
+        progress.append(str(val))
         if header != '':
             header += ','
         if prefix is not None:
