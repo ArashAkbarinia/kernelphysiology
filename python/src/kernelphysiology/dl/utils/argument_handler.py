@@ -447,7 +447,7 @@ def get_optimisation_group(parser):
         help='Path to latest checkpoint (default: None)'
     )
     optimisation_group.add_argument(
-        '--aux-loss',
+        '--aux_loss',
         action='store_true',
         help='auxiliar loss'
     )

@@ -158,6 +158,7 @@ def main(args):
             'epoch': epoch + 1,
             'arch': args.network_name,
             'customs': {
+                'aux_loss': args.aux_loss,
                 'pooling_type': args.pooling_type,
                 'in_chns': 3,  # len(mean), #TODO
                 'num_classes': 21,  # args.num_classes,

@@ -259,22 +259,25 @@ def which_network_segmentation(network_name, num_classes, **kwargs):
     if os.path.isfile(network_name):
         checkpoint = torch.load(network_name, map_location='cpu')
         customs = None
+        aux_loss = None
         if 'customs' in checkpoint:
             customs = checkpoint['customs']
             # TODO: num_classes is just for backward compatibility
             if 'num_classes' not in customs:
                 customs['num_classes'] = num_classes
+            if 'aux_loss' in customs:
+                aux_loss = customs['aux_loss']
         # TODO: for now only predefined models
         # model = which_architecture(checkpoint['arch'], customs=customs)
         model = seg_models.__dict__[checkpoint['arch']](
-            num_classes=num_classes, pretrained=False, aux_loss=None
+            num_classes=num_classes, pretrained=False, aux_loss=aux_loss
         )
 
         model.load_state_dict(checkpoint['state_dict'])
         target_size = checkpoint['target_size']
     else:
         model = seg_models.__dict__[network_name](
-            num_classes=num_classes, pretrained=True, aux_loss=None
+            num_classes=num_classes, pretrained=True, aux_loss=True
         )
         target_size = 480
 
