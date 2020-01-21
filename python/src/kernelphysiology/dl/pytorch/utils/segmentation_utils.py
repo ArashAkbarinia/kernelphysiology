@@ -14,7 +14,7 @@ import torch
 import torch.distributed as dist
 import torchvision
 
-from kernelphysiology.dl.pytorch.datasets.segmentations_db import get_voc_coco
+from kernelphysiology.dl.pytorch.datasets import segmentations_db
 from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import transforms as T
@@ -378,7 +378,8 @@ def get_dataset(name, data_dir, image_set, **kwargs):
     paths = {
         'voc_org': (torchvision.datasets.VOCSegmentation, 21),
         'voc_sbd': (sbd, 21),
-        'voc_coco': (get_voc_coco, 21)
+        'voc_coco': (segmentations_db.get_voc_coco, 21),
+        'shadow_istd': (segmentations_db.get_shadow_istd, 2)
     }
     ds_fn, num_classes = paths[name]
 

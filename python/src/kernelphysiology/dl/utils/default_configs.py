@@ -55,6 +55,9 @@ def get_default_target_size(dataset_name):
 def get_default_dataset_paths(dataset_name, train_dir=None, validation_dir=None,
                               data_dir=None):
     pre_path = '/home/arash/Software/'
+    if (train_dir is not None and validation_dir is not None
+            and data_dir is not None):
+        return train_dir, validation_dir, data_dir
     if dataset_name == 'imagenet':
         # NOTE: just for the ease of working in my machines
         if train_dir is None:

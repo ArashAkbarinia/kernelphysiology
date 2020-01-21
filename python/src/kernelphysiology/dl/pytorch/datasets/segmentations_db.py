@@ -14,6 +14,7 @@ from PIL import Image
 from pycocotools import mask as coco_mask
 
 from kernelphysiology.dl.pytorch.utils.transforms import Compose
+from kernelphysiology.dl.pytorch.datasets import shadows_db
 
 
 class FilterAndRemapCocoCategories(object):
@@ -121,4 +122,11 @@ def get_voc_coco(root, image_set, transforms):
     if image_set == 'train':
         dataset = _coco_remove_images_without_annotations(dataset, CAT_LIST)
 
+    return dataset
+
+
+def get_shadow_istd(root, image_set, transforms):
+    PATHS = {'train': 'train', 'val': 'test'}
+    img_folder = os.path.join(root, PATHS[image_set])
+    dataset = shadows_db.ShadowDetection(img_folder, transforms=transforms)
     return dataset
