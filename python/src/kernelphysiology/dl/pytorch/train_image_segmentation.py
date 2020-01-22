@@ -13,6 +13,7 @@ import torch.utils.data
 from torch import nn
 import torchvision
 
+from kernelphysiology.dl.pytorch.models import segmentation as seg_models
 from kernelphysiology.dl.pytorch.utils import segmentation_utils as utils
 from kernelphysiology.dl.pytorch.utils import argument_handler
 
@@ -106,11 +107,17 @@ def main(args):
         collate_fn=utils.collate_fn
     )
 
-    model = torchvision.models.segmentation.__dict__[args.network_name](
-        num_classes=num_classes,
-        aux_loss=args.aux_loss,
-        pretrained=args.pretrained
-    )
+    if args.custom_arch:
+        print('Custom model!')
+        model = seg_models.__dict__[args.network_name](
+            args.backbone, num_classes=num_classes, aux_loss=args.aux_loss
+        )
+    else:
+        model = torchvision.models.segmentation.__dict__[args.network_name](
+            num_classes=num_classes,
+            aux_loss=args.aux_loss,
+            pretrained=args.pretrained
+        )
     model.to(device)
     if args.distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)

@@ -115,6 +115,13 @@ def get_architecture_group(parser):
         default=None,
         help='Number of layers in every block (default: None)'
     )
+    # TODO: this only makes sense for segmentation
+    architecture_group.add_argument(
+        '--backbone',
+        type=str,
+        default=None,
+        help='The backbone of segmentation (default: None)'
+    )
 
     trainable_group = architecture_group.add_argument_group('layers')
     trainable_group = trainable_group.add_mutually_exclusive_group()
