@@ -72,10 +72,12 @@ class ShadowDetection(VisionDataset):
         target_path = self.target_paths[index]
 
         img = Image.open(img_path).convert('RGB')
-        target = Image.open(target_path).convert('F')
+        target = Image.open(target_path).convert('L')
         if self.transforms is not None:
             img, target = self.transforms(img, target)
 
+        target = target.astype('float')
+        print(target.max())
         return img, target
 
     def __len__(self):

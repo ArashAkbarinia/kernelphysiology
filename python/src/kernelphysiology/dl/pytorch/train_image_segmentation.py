@@ -31,7 +31,7 @@ def cross_entropy_criterion(inputs, target):
 def bce_criterion(inputs, target):
     losses = {}
     for name, x in inputs.items():
-        losses[name] = nn.functional.binary_cross_entropy_with_logits(x.squeeze().type_as(target), target)
+        losses[name] = nn.functional.binary_cross_entropy_with_logits(x.squeeze(), target)
 
     if len(losses) == 1:
         return losses['out']
