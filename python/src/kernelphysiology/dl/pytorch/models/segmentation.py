@@ -15,9 +15,10 @@ __all__ = [
 
 def _segm_resnet(name, backbone_name, num_classes, aux,
                  pretrained_backbone=True, **kwargs):
+    # FIXME: 1000 and _
     if pretrained_backbone:
-        backbone = model_utils.which_network_classification(
-            backbone_name, **kwargs
+        backbone, _ = model_utils.which_network_classification(
+            backbone_name, 1000, **kwargs
         )
     else:
         backbone = model_utils.which_architecture(backbone_name, **kwargs)
