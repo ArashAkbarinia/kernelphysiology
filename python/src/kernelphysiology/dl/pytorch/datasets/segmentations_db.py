@@ -130,3 +130,10 @@ def get_shadow_istd(root, image_set, transforms):
     img_folder = os.path.join(root, PATHS[image_set])
     dataset = shadows_db.ShadowDetection(img_folder, transforms=transforms)
     return dataset
+
+
+def get_shadow_sbu(root, image_set, transforms):
+    PATHS = {'train': 'train', 'val': 'test'}
+    img_folder = os.path.join(root, PATHS[image_set])
+    dataset = shadows_db.ShadowDetection(img_folder, transforms=transforms)
+    return dataset

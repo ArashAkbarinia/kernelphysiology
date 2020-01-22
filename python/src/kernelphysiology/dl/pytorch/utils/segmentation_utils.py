@@ -379,7 +379,8 @@ def get_dataset(name, data_dir, image_set, **kwargs):
         'voc_org': (torchvision.datasets.VOCSegmentation, 21),
         'voc_sbd': (sbd, 21),
         'voc_coco': (segmentations_db.get_voc_coco, 21),
-        'shadow_istd': (segmentations_db.get_shadow_istd, 2)
+        'shadow_istd': (segmentations_db.get_shadow_istd, 2),
+        'shadow_sbu': (segmentations_db.get_shadow_sbu, 2)
     }
     ds_fn, num_classes = paths[name]
 
