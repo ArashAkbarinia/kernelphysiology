@@ -76,8 +76,7 @@ class ShadowDetection(VisionDataset):
         if self.transforms is not None:
             img, target = self.transforms(img, target)
 
-        target = target.astype('float')
-        print(target.max())
+        target = target.float() / 255
         return img, target
 
     def __len__(self):
