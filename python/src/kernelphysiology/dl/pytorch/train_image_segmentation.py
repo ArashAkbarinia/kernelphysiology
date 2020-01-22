@@ -17,10 +17,21 @@ from kernelphysiology.dl.pytorch.utils import segmentation_utils as utils
 from kernelphysiology.dl.pytorch.utils import argument_handler
 
 
-def criterion(inputs, target):
+def cross_entropy_criterion(inputs, target):
     losses = {}
     for name, x in inputs.items():
         losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
+
+    if len(losses) == 1:
+        return losses['out']
+
+    return losses['out'] + 0.5 * losses['aux']
+
+
+def bce_criterion(inputs, target):
+    losses = {}
+    for name, x in inputs.items():
+        losses[name] = nn.functional.BCELoss(x, target)
 
     if len(losses) == 1:
         return losses['out']
@@ -139,6 +150,11 @@ def main(args):
 
     lr_lambda = lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9
     lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+
+    if 'shadow' in args.dataset:
+        criterion = bce_criterion
+    else:
+        criterion = cross_entropy_criterion
 
     start_time = time.time()
     for epoch in range(args.initial_epoch, args.epochs):
