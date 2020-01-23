@@ -41,6 +41,14 @@ def bce_criterion(inputs, target):
     return losses['out'] + 0.5 * losses['aux']
 
 
+def select_criterion(dataset_name):
+    if 'shadow' in dataset_name:
+        criterion = bce_criterion
+    else:
+        criterion = cross_entropy_criterion
+    return criterion
+
+
 def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler,
                     device, epoch, print_freq):
     model.train()
@@ -118,14 +126,14 @@ def main(args):
     if args.distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-    best_acc = 0
+    best_iou = 0
     model_progress = []
     model_progress_path = os.path.join(args.out_dir, 'model_progress.csv')
     # loading the model if to eb resumed
     if args.resume is not None:
         checkpoint = torch.load(args.resume, map_location='cpu')
         model.load_state_dict(checkpoint['model'])
-        best_acc = checkpoint['best_acc']
+        best_iou = checkpoint['best_iou']
         # if model progress exists, load it
         if os.path.exists(model_progress_path):
             model_progress = np.loadtxt(model_progress_path, delimiter=',')
@@ -156,10 +164,7 @@ def main(args):
     lr_lambda = lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9
     lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
-    if 'shadow' in args.dataset:
-        criterion = bce_criterion
-    else:
-        criterion = cross_entropy_criterion
+    criterion = select_criterion(args.dataset)
 
     start_time = time.time()
     for epoch in range(args.initial_epoch, args.epochs):
@@ -173,8 +178,8 @@ def main(args):
             model, data_loader_test, device=device, num_classes=num_classes
         )
         val_log = val_confmat.get_log_dict()
-        is_best = val_log['acc'] > best_acc
-        best_acc = max(best_acc, val_log['acc'])
+        is_best = val_log['iou'] > best_iou
+        best_iou = max(best_iou, val_log['iou'])
         model_data = {
             'epoch': epoch + 1,
             'arch': args.network_name,
@@ -190,7 +195,7 @@ def main(args):
             'optimizer': optimizer.state_dict(),
             'target_size': args.target_size,
             'args': args,
-            'best_acc': best_acc
+            'best_iou': best_iou
         }
         utils.save_on_master(
             model_data, os.path.join(args.out_dir, 'checkpoint.pth')
