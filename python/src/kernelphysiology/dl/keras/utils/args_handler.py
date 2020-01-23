@@ -8,6 +8,40 @@ from kernelphysiology.dl.utils import arguments as ah
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
+def get_plateau_group(parser):
+    plateau_group = parser.add_argument_group('plateau')
+    plateau_group.add_argument(
+        '--plateau_monitor',
+        type=str,
+        default='val_loss',
+        help='The monitor metric (default: val_loss)'
+    )
+    plateau_group.add_argument(
+        '--plateau_factor',
+        type=float,
+        default=0.1,
+        help='The reduction factor (default: 0.1)'
+    )
+    plateau_group.add_argument(
+        '--plateau_patience',
+        type=float,
+        default=5,
+        help='The patience (default: 5)'
+    )
+    plateau_group.add_argument(
+        '--plateau_min_delta',
+        type=float,
+        default=0.001,
+        help='The min_delta (default: 0.001)'
+    )
+    plateau_group.add_argument(
+        '--plateau_min_lr',
+        type=float,
+        default=0.5e-6,
+        help='The min_lr (default: 0.5e-6)'
+    )
+
+
 def get_logging_group(parser):
     logging_group = parser.add_argument_group('logging')
 
@@ -211,7 +245,7 @@ def keras_train_arg_parser(argvs):
     )
 
     get_inisialisation_group(parser)
-    ah.get_plateau_group(parser)
+    get_plateau_group(parser)
     get_keras_augmentation_group(parser)
     get_logging_group(parser)
 
