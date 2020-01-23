@@ -17,8 +17,6 @@ def print_results(current_results, *_argv):
 
 
 def main(args):
-    print(args)
-
     args.device = torch.device(args.gpus)
 
     torch.cuda.set_device(args.device)
