@@ -22,6 +22,7 @@ import torchvision.models as models
 
 from kernelphysiology.dl.pytorch import models as custom_models
 from kernelphysiology.dl.pytorch.utils import preprocessing
+from kernelphysiology.dl.pytorch.utils import argument_handler
 from kernelphysiology.dl.pytorch.utils.misc import train_on_data
 from kernelphysiology.dl.pytorch.utils.misc import validate_on_data
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
@@ -30,14 +31,13 @@ from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.datasets import utils_db
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import prepare_training
-from kernelphysiology.dl.utils import arguments
 from kernelphysiology.utils.path_utils import create_dir
 
 best_acc1 = 0
 
 
 def main(argv):
-    args = arguments.pytorch_train_arg_parser(argv)
+    args = argument_handler.train_arg_parser(argv)
     if args.lr is None:
         args.lr = 0.1
     if args.weight_decay is None:

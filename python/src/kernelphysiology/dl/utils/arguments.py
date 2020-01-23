@@ -10,7 +10,6 @@ import math
 
 from kernelphysiology.utils.controls import isfloat
 from kernelphysiology.dl.utils import default_configs
-from kernelphysiology.dl.utils import augmentation
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
@@ -654,26 +653,6 @@ def keras_test_arg_parser(argvs):
     return check_common_args(parser, argvs, 'testing')
 
 
-def pytorch_test_arg_parser(argvs):
-    parser = common_test_arg_parser()
-
-    get_network_manipulation_group(parser)
-
-    return pytorch_check_test_args(parser, argvs)
-
-
-def pytorch_check_test_args(parser, argvs):
-    args = check_common_args(parser, argvs, 'testing')
-
-    # checking augmentation parameters
-    args.manipulation, args.parameters = create_manipulation_list(
-        args.manipulation, args.parameters,
-        augmentation.get_testing_augmentations()
-    )
-
-    return args
-
-
 def common_test_arg_parser(description='Testing a network!'):
     parser = common_arg_parser(description)
 
@@ -756,48 +735,6 @@ def keras_train_arg_parser(argvs):
     get_logging_group(parser)
 
     return keras_check_training_args(parser, argvs)
-
-
-def pytorch_train_arg_parser(argvs):
-    parser = common_train_arg_parser()
-
-    get_parallelisation_group(parser)
-    get_augmentation_group(parser)
-
-    # TODO: other than doubleing labels?
-    # FIXME: implement for CIFAr and others
-    parser.add_argument(
-        '--augment_labels',
-        dest='augment_labels',
-        action='store_true',
-        help='Augmenting labels of ground-truth (False)'
-    )
-
-    # TODO: this is not supported by all
-    parser.add_argument(
-        '--neg_params',
-        nargs='+',
-        type=str,
-        default=None,
-        help='Negative sample parameters (default: None)'
-    )
-
-    # TODO: num_classes is just for backward compatibility
-    parser.add_argument(
-        '--old_classes',
-        default=None,
-        type=int,
-        help='Number of new classes (default: None)'
-    )
-
-    parser.add_argument(
-        '--transfer_weights',
-        type=str,
-        default=None,
-        help='Whether transferring weights from a model (default: None)'
-    )
-
-    return pytorch_check_training_args(parser, argvs)
 
 
 def common_train_arg_parser(description='Training a network!'):
@@ -908,34 +845,6 @@ def check_common_args(parser, argvs, script_type):
         args.script_type
     )
 
-    return args
-
-
-def pytorch_check_training_args(parser, argvs):
-    args = check_common_args(parser, argvs, 'training')
-
-    if 'augment_labels' in args and args.augment_labels:
-        args.num_classes *= 2
-        args.custom_arch = True
-
-    # checking augmentation parameters
-    args.augmentation_settings = prepare_augmentations(
-        args.augmentation_settings, augmentation.get_training_augmentations()
-    )
-    if len(args.augmentation_settings) == 0:
-        args.num_augmentations = 0
-    elif args.num_augmentations is not None:
-        if args.num_augmentations == 0:
-            sys.exit(
-                'When augmentation_settings flag is used, '
-                'num_augmentations should be bigger than 0.'
-            )
-        elif args.num_augmentations > len(args.augmentation_settings):
-            warnings.warn(
-                'num_augmentations larger than augmentation_settings, '
-                'it will be set to the maximum of augmentation_settings.'
-            )
-        args.num_augmentations = len(args.augmentation_settings)
     return args
 
 

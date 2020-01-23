@@ -19,12 +19,12 @@ import torch.utils.data.distributed
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy_preds
 from kernelphysiology.dl.pytorch.utils.misc import generic_evaluation
-from kernelphysiology.dl.utils import arguments
+from kernelphysiology.dl.pytorch.utils import argument_handler
 from kernelphysiology.dl.utils import prepapre_testing
 
 
 def main(argv):
-    args = arguments.pytorch_test_arg_parser(argv)
+    args = argument_handler.test_arg_parser(argv)
     (args.network_files,
      args.network_names,
      args.network_chromaticities) = prepapre_testing.prepare_networks_testting(
