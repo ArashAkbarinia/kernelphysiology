@@ -27,9 +27,9 @@ from kernelphysiology.dl.pytorch.utils.misc import validate_on_data
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.models import model_utils
-from kernelphysiology.dl.pytorch.datasets.utils import get_train_dataset
-from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
-from kernelphysiology.dl.pytorch.datasets.utils import is_dataset_pil_image
+from kernelphysiology.dl.pytorch.datasets.utils_db import get_train_dataset
+from kernelphysiology.dl.pytorch.datasets.utils_db import get_validation_dataset
+from kernelphysiology.dl.pytorch.datasets.utils_db import is_dataset_pil_image
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.utils import argument_handler

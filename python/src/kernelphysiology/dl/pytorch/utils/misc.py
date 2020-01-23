@@ -9,8 +9,8 @@ import shutil
 import torch
 import torchvision.transforms as transforms
 
-from kernelphysiology.dl.pytorch.datasets.utils import is_dataset_pil_image
-from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
+from kernelphysiology.dl.pytorch.datasets.utils_db import is_dataset_pil_image
+from kernelphysiology.dl.pytorch.datasets.utils_db import get_validation_dataset
 from kernelphysiology.dl.pytorch.models.model_utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.models.model_utils import LayerActivation
 from kernelphysiology.dl.pytorch.models.model_utils import which_network
