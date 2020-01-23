@@ -2,6 +2,8 @@
 Collection of segmentation networks.
 """
 
+import os
+
 from torchvision.models._utils import IntermediateLayerGetter
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead, DeepLabV3
 from torchvision.models.segmentation.fcn import FCN, FCNHead
@@ -13,10 +15,9 @@ __all__ = [
 ]
 
 
-def _segm_resnet(name, backbone_name, num_classes, aux,
-                 pretrained_backbone=True, **kwargs):
+def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
     # FIXME: 1000 and _
-    if pretrained_backbone:
+    if os.path.isfile(backbone_name)
         backbone, _ = model_utils.which_network_classification(
             backbone_name, 1000, **kwargs
         )
