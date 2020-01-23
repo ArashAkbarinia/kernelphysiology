@@ -27,9 +27,7 @@ from kernelphysiology.dl.pytorch.utils.misc import validate_on_data
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.models import model_utils
-from kernelphysiology.dl.pytorch.datasets.utils_db import get_train_dataset
-from kernelphysiology.dl.pytorch.datasets.utils_db import get_validation_dataset
-from kernelphysiology.dl.pytorch.datasets.utils_db import is_dataset_pil_image
+from kernelphysiology.dl.pytorch.datasets import utils_db
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.utils import argument_handler
@@ -222,14 +220,14 @@ def main_worker(ngpus_per_node, args):
     if args.num_augmentations != 0:
         augmentations = preprocessing.RandomAugmentationTransformation(
             args.augmentation_settings, args.num_augmentations,
-            is_dataset_pil_image(args.dataset)
+            utils_db.is_dataset_pil_image(args.dataset)
         )
         other_transformations.append(augmentations)
 
     target_size = get_default_target_size(args.dataset)
 
     # loading the training set
-    train_dataset = get_train_dataset(
+    train_dataset = utils_db.get_train_dataset(
         args.dataset, args.train_dir, args.colour_transformation,
         args.colour_space, other_transformations, normalize, target_size,
         args.augment_labels
@@ -250,7 +248,7 @@ def main_worker(ngpus_per_node, args):
     )
 
     # loading validation set
-    validation_dataset = get_validation_dataset(
+    validation_dataset = utils_db.get_validation_dataset(
         args.dataset, args.validation_dir, args.colour_transformation,
         args.colour_space, [], normalize, target_size,
     )
