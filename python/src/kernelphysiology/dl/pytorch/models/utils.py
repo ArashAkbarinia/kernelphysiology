@@ -267,10 +267,12 @@ def which_network_segmentation(network_name, num_classes, **kwargs):
                 customs['num_classes'] = num_classes
             if 'aux_loss' in customs:
                 aux_loss = customs['aux_loss']
+            backbone = customs['backbone']
         # TODO: for now only predefined models
         # model = which_architecture(checkpoint['arch'], customs=customs)
-        model = seg_models.__dict__[checkpoint['arch']](
-            num_classes=num_classes, pretrained=False, aux_loss=aux_loss
+        model = custom_models.__dict__[checkpoint['arch']](
+            backbone, num_classes=num_classes, pretrained=False,
+            aux_loss=aux_loss
         )
 
         model.load_state_dict(checkpoint['state_dict'])

@@ -27,7 +27,12 @@ def main(args):
     args.sampler = torch.utils.data.SequentialSampler
     args.collate_fn = utils.collate_fn
 
-    kwargs = {'num_classes': 21, 'device': args.device}
+    kwargs = {
+        'num_classes': args.num_classes,
+        'device': args.device,
+        'save_pred': args.save_pred,
+        'print_freq': args.print_freq
+    }
     save_fn = print_results
     generic_evaluation(args, fn, save_fn, **kwargs)
 

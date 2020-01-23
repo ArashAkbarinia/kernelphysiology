@@ -17,7 +17,11 @@ __all__ = [
 
 def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
     # FIXME: 1000 and _
-    if os.path.isfile(backbone_name):
+    if isinstance(backbone_name, dict):
+        backbone = model_utils.which_architecture(
+            backbone_name['arch'], backbone_name['customs']
+        )
+    elif os.path.isfile(backbone_name):
         backbone, _ = model_utils.which_network_classification(
             backbone_name, 1000, **kwargs
         )

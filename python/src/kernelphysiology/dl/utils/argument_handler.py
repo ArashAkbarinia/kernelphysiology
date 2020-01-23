@@ -14,6 +14,17 @@ from kernelphysiology.dl.utils import augmentation
 from kernelphysiology.dl.keras.utils import get_input_shape
 
 
+def get_segmentation_group(parser):
+    segmentation_group = parser.add_argument_group('segmentation')
+
+    segmentation_group.add_argument(
+        '--save_pred',
+        action='store_true',
+        default=False,
+        help='Saving the prediction to an image (default: False)'
+    )
+
+
 def get_colour_space_group(parser):
     colour_space_group = parser.add_argument_group('colour space')
 
@@ -842,8 +853,9 @@ def check_common_args(parser, argvs, script_type):
     args.task_type = check_task_type(args.dataset, args.task_type)
 
     # setting the target size
-    if args.target_size is None:
-        args.target_size = default_configs.get_default_target_size(args.dataset)
+    args.target_size = default_configs.get_default_target_size(
+        args.dataset, args.target_size
+    )
     args.target_size = (args.target_size, args.target_size)
 
     # check the input shape
@@ -892,7 +904,8 @@ def check_common_args(parser, argvs, script_type):
         args.dataset,
         args.train_dir,
         args.validation_dir,
-        args.data_dir
+        args.data_dir,
+        args.script_type
     )
 
     return args

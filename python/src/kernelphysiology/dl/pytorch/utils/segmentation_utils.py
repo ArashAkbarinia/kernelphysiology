@@ -10,6 +10,8 @@ import time
 import errno
 import os
 
+from skimage import io
+
 import torch
 import torch.distributed as dist
 import torchvision
@@ -350,18 +352,34 @@ def evaluate(model, data_loader, device, num_classes):
     return confmat
 
 
-def predict_segmentation(val_loader, model, device, num_classes):
+def predict_segmentation(val_loader, model, device, num_classes,
+                         save_pred=False, print_freq=100):
+    if save_pred:
+        import torch.nn as nn
+        sigmoid = nn.Sigmoid()
+
     model.eval()
     confmat = ConfusionMatrix(num_classes)
     metric_logger = MetricLogger(delimiter='  ')
     header = 'Test:'
     with torch.no_grad():
-        for image, target in metric_logger.log_every(val_loader, 100, header):
+        i = 1
+        for image, target in metric_logger.log_every(val_loader, print_freq,
+                                                     header):
             image, target = image.to(device), target.to(device)
             output = model(image)
             output = output['out']
 
             confmat.update(target.flatten(), output.argmax(1).flatten())
+
+            # FIXME: it assumes batch size 1, which is true now, but must be
+            #  fixed
+            if save_pred:
+                output = sigmoid(output)
+                output = output.clone().detach().cpu().squeeze().numpy()
+                output = (output * 255).astype('uint8')
+                io.imsave('/home/arash/Desktop/tmp_imgs/%.4d.jpg' % i, output)
+                i += 1
 
         confmat.reduce_from_all_processes()
 

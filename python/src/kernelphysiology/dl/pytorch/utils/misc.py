@@ -270,11 +270,14 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
             # reading it after the model, because each might have their own
             # specific size
             # loading validation set
-            target_size = get_default_target_size(args.dataset)
+            target_size = get_default_target_size(
+                args.dataset, args.target_size
+            )
 
             validation_dataset = get_validation_dataset(
                 args.dataset, args.validation_dir, colour_vision,
-                args.colour_space, other_transformations, normalize, target_size
+                args.colour_space, other_transformations, normalize,
+                target_size, task=args.task_type
             )
 
             # TODO: nicer solution:

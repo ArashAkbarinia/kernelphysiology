@@ -33,7 +33,11 @@ def get_num_classes(dataset_name, num_classes=None):
     return num_classes
 
 
-def get_default_target_size(dataset_name):
+def get_default_target_size(dataset_name, target_size=None):
+    if target_size is not None:
+        return target_size
+
+    # default target size for a set of commonly used datasets
     if 'voc' in dataset_name:
         target_size = 480
     elif dataset_name in ['imagenet', 'leaf', 'fruits']:
@@ -53,10 +57,12 @@ def get_default_target_size(dataset_name):
 
 
 def get_default_dataset_paths(dataset_name, train_dir=None, validation_dir=None,
-                              data_dir=None):
+                              data_dir=None, script_type=None):
     pre_path = '/home/arash/Software/'
-    if (train_dir is not None and validation_dir is not None
-            and data_dir is not None):
+    if script_type == 'testing' and validation_dir is not None:
+        return train_dir, validation_dir, data_dir
+    elif (script_type == 'training' and train_dir is not None and
+          validation_dir is not None):
         return train_dir, validation_dir, data_dir
     if dataset_name == 'imagenet':
         # NOTE: just for the ease of working in my machines

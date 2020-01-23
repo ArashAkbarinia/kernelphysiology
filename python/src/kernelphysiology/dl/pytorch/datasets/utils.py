@@ -64,7 +64,7 @@ def prepare_transformations_train(dataset_name, colour_transformations,
 
 def prepare_transformations_test(dataset_name, colour_transformations,
                                  other_transformations, chns_transformation,
-                                 normalize, target_size):
+                                 normalize, target_size, task=None):
     if 'cifar' in dataset_name or dataset_name == 'imagenet':
         transformations = transforms.Compose([
             transforms.Resize(target_size),
@@ -91,7 +91,7 @@ def prepare_transformations_test(dataset_name, colour_transformations,
             *chns_transformation,
             normalize,
         ])
-    elif 'voc' in dataset_name:
+    elif 'voc' in dataset_name or task == 'segmentation':
         transformations = []
     else:
         sys.exit(
@@ -101,7 +101,8 @@ def prepare_transformations_test(dataset_name, colour_transformations,
 
 
 def get_validation_dataset(dataset_name, valdir, colour_vision, colour_space,
-                           other_transformations, normalize, target_size):
+                           other_transformations, normalize, target_size,
+                           task=None):
     colour_transformations = preprocessing.colour_transformation(
         colour_vision, colour_space
     )
@@ -112,9 +113,9 @@ def get_validation_dataset(dataset_name, valdir, colour_vision, colour_space,
     transformations = prepare_transformations_test(
         dataset_name, colour_transformations,
         other_transformations, chns_transformation,
-        normalize, target_size
+        normalize, target_size, task=task
     )
-    if 'voc' in dataset_name:
+    if task == 'segmentation' or 'voc' in dataset_name:
         # TODO: dataset shouldn't return num classes
         data_reading_kwargs = {
             'target_size': target_size,
