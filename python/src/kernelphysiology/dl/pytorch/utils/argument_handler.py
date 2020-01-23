@@ -2,7 +2,7 @@
 Argument handler functions for PyTorch.
 """
 
-from kernelphysiology.dl.utils import argument_handler as ah
+from kernelphysiology.dl.utils import arguments as ah
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.utils import prepapre_testing
 

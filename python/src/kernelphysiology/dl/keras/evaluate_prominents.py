@@ -19,7 +19,7 @@ from kernelphysiology.dl.keras.datasets.coco.evaluation import evaluate_coco
 from kernelphysiology.utils.preprocessing import which_preprocessing
 
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares
-from kernelphysiology.dl.utils import argument_handler
+from kernelphysiology.dl.utils import arguments
 
 
 def evaluate_classification(args):
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
     print('Starting at: ' + start_time)
 
-    args = argument_handler.common_test_arg_parser(sys.argv[1:])
+    args = arguments.common_test_arg_parser(sys.argv[1:])
     args = test_prominent_prepares(args)
 
     dataset_name = args.dataset.lower()

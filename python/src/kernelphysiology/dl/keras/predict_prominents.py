@@ -15,7 +15,7 @@ from kernelphysiology.dl.keras.datasets.utils import which_dataset
 from kernelphysiology.utils.preprocessing import which_preprocessing
 
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares
-from kernelphysiology.dl.utils import argument_handler
+from kernelphysiology.dl.utils import arguments
 from kernelphysiology.dl.utils import prepapre_testing
 
 
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         '%Y-%m-%d_%H_%M_%S')
     print('Starting at: ' + start_time)
 
-    args = argument_handler.keras_test_arg_parser(sys.argv[1:])
+    args = arguments.keras_test_arg_parser(sys.argv[1:])
     args = test_prominent_prepares(args)
 
     dataset_name = args.dataset.lower()

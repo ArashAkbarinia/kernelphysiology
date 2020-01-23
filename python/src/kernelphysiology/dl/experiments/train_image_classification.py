@@ -32,14 +32,14 @@ from kernelphysiology.dl.pytorch.models.model_utils import which_network
 from kernelphysiology.dl.pytorch.models.model_utils import NewClassificationModel
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import prepare_training
-from kernelphysiology.dl.utils import argument_handler
+from kernelphysiology.dl.utils import arguments
 from kernelphysiology.utils.path_utils import create_dir
 
 best_acc1 = 0
 
 
 def main(argv):
-    args = argument_handler.pytorch_train_arg_parser(argv)
+    args = arguments.pytorch_train_arg_parser(argv)
     if args.lr is None:
         args.lr = 0.1
     if args.weight_decay is None:

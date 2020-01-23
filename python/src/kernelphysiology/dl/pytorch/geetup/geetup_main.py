@@ -20,7 +20,7 @@ from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.utils.misc import prepare_device
 from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
 from kernelphysiology.dl.utils import prepare_training
-from kernelphysiology.dl.utils.argument_handler import set_visible_gpus
+from kernelphysiology.dl.utils.arguments import set_visible_gpus
 from kernelphysiology.utils.path_utils import write_pickle
 
 

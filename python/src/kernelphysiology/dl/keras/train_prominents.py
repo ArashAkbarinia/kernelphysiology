@@ -25,7 +25,7 @@ from kernelphysiology.dl.keras.optimisations.optimise import exp_decay, lr_sched
 from kernelphysiology.dl.keras.optimisations.metrics import reproduction_angular_error, mean_absolute_error
 
 from kernelphysiology.dl.utils import prepare_training
-from kernelphysiology.dl.utils import argument_handler
+from kernelphysiology.dl.utils import arguments
 
 
 class TimeHistory(keras.callbacks.Callback):
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     start_time = datetime.datetime.fromtimestamp(start_stamp).strftime('%Y-%m-%d_%H_%M_%S')
     print('Starting at: ' + start_time)
 
-    args = argument_handler.common_train_arg_parser(sys.argv[1:])
+    args = arguments.common_train_arg_parser(sys.argv[1:])
     args = train_prominent_prepares(args)
 
     dataset_name = args.dataset.lower()
