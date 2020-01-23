@@ -13,7 +13,7 @@ from .tased import Tased
 from . import resnet3d
 from . import wavenet3d
 
-from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.models.model_utils import get_preprocessing_function
 
 
 def which_network(network_name, **kwargs):

@@ -26,9 +26,9 @@ from kernelphysiology.dl.pytorch.utils.misc import train_on_data
 from kernelphysiology.dl.pytorch.utils.misc import validate_on_data
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
-from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
-from kernelphysiology.dl.pytorch.models.utils import which_network
-from kernelphysiology.dl.pytorch.models.utils import NewClassificationModel
+from kernelphysiology.dl.pytorch.models.model_utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.models.model_utils import which_network
+from kernelphysiology.dl.pytorch.models.model_utils import NewClassificationModel
 from kernelphysiology.dl.pytorch.datasets.utils import get_train_dataset
 from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
 from kernelphysiology.dl.pytorch.datasets.utils import is_dataset_pil_image

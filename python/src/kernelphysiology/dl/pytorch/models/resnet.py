@@ -4,7 +4,7 @@ Custom version of ResNet
 
 import torch
 import torch.nn as nn
-from .utils import load_state_dict_from_url
+from .model_utils import load_state_dict_from_url
 
 __all__ = [
     'ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',

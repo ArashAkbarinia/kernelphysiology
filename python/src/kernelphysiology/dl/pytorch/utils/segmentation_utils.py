@@ -17,7 +17,7 @@ import torch.distributed as dist
 import torchvision
 
 from kernelphysiology.dl.pytorch.datasets import segmentations_db
-from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.models.model_utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import transforms as T
 

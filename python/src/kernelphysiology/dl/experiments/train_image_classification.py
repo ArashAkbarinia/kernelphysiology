@@ -27,9 +27,9 @@ from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter, accuracy
-from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
-from kernelphysiology.dl.pytorch.models.utils import which_network
-from kernelphysiology.dl.pytorch.models.utils import NewClassificationModel
+from kernelphysiology.dl.pytorch.models.model_utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.models.model_utils import which_network
+from kernelphysiology.dl.pytorch.models.model_utils import NewClassificationModel
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.dl.utils import argument_handler

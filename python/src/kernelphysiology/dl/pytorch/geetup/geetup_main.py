@@ -14,7 +14,7 @@ import torch.nn as nn
 from kernelphysiology.dl.geetup import geetup_opts
 from kernelphysiology.dl.geetup import geetup_visualise
 from kernelphysiology.dl.pytorch.geetup import geetup_net, geetup_db
-from kernelphysiology.dl.pytorch.models.utils import get_preprocessing_function
+from kernelphysiology.dl.pytorch.models.model_utils import get_preprocessing_function
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.utils.misc import prepare_device

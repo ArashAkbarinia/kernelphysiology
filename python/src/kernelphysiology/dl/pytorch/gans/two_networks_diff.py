@@ -27,7 +27,7 @@ from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.utils.preprocessing import normalise_tensor
 from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
-from kernelphysiology.dl.pytorch.models.utils import which_network
+from kernelphysiology.dl.pytorch.models.model_utils import which_network
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")

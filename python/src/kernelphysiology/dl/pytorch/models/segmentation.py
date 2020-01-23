@@ -8,7 +8,7 @@ from torchvision.models._utils import IntermediateLayerGetter
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead, DeepLabV3
 from torchvision.models.segmentation.fcn import FCN, FCNHead
 
-from kernelphysiology.dl.pytorch.models import utils as model_utils
+from kernelphysiology.dl.pytorch.models import model_utils as model_utils
 
 __all__ = [
     'fcn_resnet', 'deeplabv3_resnet'
