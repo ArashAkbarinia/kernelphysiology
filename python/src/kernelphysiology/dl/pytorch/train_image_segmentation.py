@@ -9,11 +9,12 @@ import time
 import numpy as np
 
 import torch
-import torch.utils.data
-from torch import nn
-import torchvision
+from torch.utils import data as torch_data
+from torch.utils.data import distributed as torch_dist
+from torch.nn import functional as nnf
+from torchvision.models import segmentation as seg_models
 
-from kernelphysiology.dl.pytorch.models import segmentation as seg_models
+from kernelphysiology.dl.pytorch.models import segmentation as custom_models
 from kernelphysiology.dl.pytorch.utils import segmentation_utils as utils
 from kernelphysiology.dl.pytorch.utils import argument_handler
 
@@ -21,7 +22,7 @@ from kernelphysiology.dl.pytorch.utils import argument_handler
 def cross_entropy_criterion(inputs, target):
     losses = {}
     for name, x in inputs.items():
-        losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
+        losses[name] = nnf.cross_entropy(x, target, ignore_index=255)
 
     if len(losses) == 1:
         return losses['out']
@@ -32,9 +33,7 @@ def cross_entropy_criterion(inputs, target):
 def bce_criterion(inputs, target):
     losses = {}
     for name, x in inputs.items():
-        losses[name] = nn.functional.binary_cross_entropy_with_logits(
-            x.squeeze(), target
-        )
+        losses[name] = nnf.binary_cross_entropy_with_logits(x.squeeze(), target)
 
     if len(losses) == 1:
         return losses['out']
@@ -70,7 +69,6 @@ def train_one_epoch(model, criterion, optimizer, data_loader, lr_scheduler,
 
 def main(args):
     utils.init_distributed_mode(args)
-    print(args)
 
     device = torch.device(args.gpus)
 
@@ -87,21 +85,19 @@ def main(args):
     )
 
     if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-        test_sampler = torch.utils.data.distributed.DistributedSampler(
-            dataset_test
-        )
+        train_sampler = torch_dist.DistributedSampler(dataset)
+        test_sampler = torch_dist.DistributedSampler(dataset_test)
     else:
-        train_sampler = torch.utils.data.RandomSampler(dataset)
-        test_sampler = torch.utils.data.SequentialSampler(dataset_test)
+        train_sampler = torch_data.RandomSampler(dataset)
+        test_sampler = torch_data.SequentialSampler(dataset_test)
 
-    data_loader = torch.utils.data.DataLoader(
+    data_loader = torch_data.DataLoader(
         dataset, batch_size=args.batch_size,
         sampler=train_sampler, num_workers=args.workers,
         collate_fn=utils.collate_fn, drop_last=True
     )
 
-    data_loader_test = torch.utils.data.DataLoader(
+    data_loader_test = torch_data.DataLoader(
         dataset_test, batch_size=1,
         sampler=test_sampler, num_workers=args.workers,
         collate_fn=utils.collate_fn
@@ -109,11 +105,11 @@ def main(args):
 
     if args.custom_arch:
         print('Custom model!')
-        model = seg_models.__dict__[args.network_name](
+        model = custom_models.__dict__[args.network_name](
             args.backbone, num_classes=num_classes, aux_loss=args.aux_loss
         )
     else:
-        model = torchvision.models.segmentation.__dict__[args.network_name](
+        model = seg_models.__dict__[args.network_name](
             num_classes=num_classes,
             aux_loss=args.aux_loss,
             pretrained=args.pretrained
@@ -135,21 +131,21 @@ def main(args):
             model_progress = np.loadtxt(model_progress_path, delimiter=',')
             model_progress = model_progress.tolist()
 
-    model_without_ddp = model
+    master_model = model
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(
             model, device_ids=[args.gpus]
         )
-        model_without_ddp = model.module
+        master_model = model.module
 
     params_to_optimize = [
-        {'params': [p for p in model_without_ddp.backbone.parameters() if
+        {'params': [p for p in master_model.backbone.parameters() if
                     p.requires_grad]},
-        {'params': [p for p in model_without_ddp.classifier.parameters() if
+        {'params': [p for p in master_model.classifier.parameters() if
                     p.requires_grad]},
     ]
     if args.aux_loss:
-        params = [p for p in model_without_ddp.aux_classifier.parameters() if
+        params = [p for p in master_model.aux_classifier.parameters() if
                   p.requires_grad]
         params_to_optimize.append({'params': params, 'lr': args.lr * 10})
     optimizer = torch.optim.SGD(
@@ -190,7 +186,7 @@ def main(args):
                 # 'blocks': args.blocks,
                 # 'num_kernels': args.num_kernels
             },
-            'state_dict': model_without_ddp.state_dict(),
+            'state_dict': master_model.state_dict(),
             'optimizer': optimizer.state_dict(),
             'target_size': args.target_size,
             'args': args,
