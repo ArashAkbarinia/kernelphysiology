@@ -26,9 +26,7 @@ from kernelphysiology.dl.pytorch.utils.misc import train_on_data
 from kernelphysiology.dl.pytorch.utils.misc import validate_on_data
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
-from kernelphysiology.dl.pytorch.models.model_utils import get_preprocessing_function
-from kernelphysiology.dl.pytorch.models.model_utils import which_network
-from kernelphysiology.dl.pytorch.models.model_utils import NewClassificationModel
+from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.datasets.utils import get_train_dataset
 from kernelphysiology.dl.pytorch.datasets.utils import get_validation_dataset
 from kernelphysiology.dl.pytorch.datasets.utils import is_dataset_pil_image
@@ -96,7 +94,7 @@ def main(argv):
 def main_worker(ngpus_per_node, args):
     global best_acc1
 
-    mean, std = get_preprocessing_function(
+    mean, std = model_utils.get_preprocessing_function(
         args.colour_space, args.colour_transformation
     )
 
@@ -122,10 +120,10 @@ def main_worker(ngpus_per_node, args):
     # create model
     if args.transfer_weights is not None:
         print('Transferred model!')
-        (model, _) = which_network(
+        (model, _) = model_utils.which_network(
             args.transfer_weights, args.task_type, num_classes=args.old_classes
         )
-        model = NewClassificationModel(model, args.num_classes)
+        model = model_utils.NewClassificationModel(model, args.num_classes)
     elif args.custom_arch:
         print('Custom model!')
         if (args.network_name == 'resnet_basic_custom' or
