@@ -10,7 +10,6 @@ import math
 
 from kernelphysiology.utils.controls import isfloat
 from kernelphysiology.dl.utils import default_configs
-from kernelphysiology.dl.keras.utils import get_input_shape
 
 
 def get_segmentation_group(parser):
@@ -320,48 +319,6 @@ def get_plateau_group(parser):
     )
 
 
-def get_keras_augmentation_group(parser):
-    keras_augmentation_group = parser.add_argument_group('keras augmentation')
-
-    keras_augmentation_group.add_argument(
-        '--noshuffle',
-        dest='shuffle',
-        action='store_false',
-        default=True,
-        help='Stop shuffling data (default: False)'
-    )
-    keras_augmentation_group.add_argument(
-        '--horizontal_flip',
-        action='store_true',
-        default=False,
-        help='Perform horizontal flip data (default: False)'
-    )
-    keras_augmentation_group.add_argument(
-        '--vertical_flip',
-        action='store_true',
-        default=False,
-        help='Perform vertical flip (default: False)'
-    )
-    keras_augmentation_group.add_argument(
-        '--zoom_range',
-        type=float,
-        default=0,
-        help='Range of zoom agumentation (default: 0)'
-    )
-    keras_augmentation_group.add_argument(
-        '--width_shift_range',
-        type=float,
-        default=0,
-        help='Range of width shift (default: 0)'
-    )
-    keras_augmentation_group.add_argument(
-        '--height_shift_range',
-        type=float,
-        default=0,
-        help='Range of height shift (default: 0)'
-    )
-
-
 def get_parallelisation_group(parser):
     parallelisation_group = parser.add_argument_group('parallelisation')
 
@@ -635,24 +592,6 @@ def activation_arg_parser(argvs):
     return check_common_args(parser, argvs, 'activation')
 
 
-def keras_test_arg_parser(argvs):
-    parser = common_test_arg_parser()
-
-    parser.add_argument(
-        '--validation_crop_type',
-        type=str,
-        default='centre',
-        choices=[
-            'random',
-            'centre',
-            'none'
-        ],
-        help='What type of crop (default: centre)'
-    )
-
-    return check_common_args(parser, argvs, 'testing')
-
-
 def common_test_arg_parser(description='Testing a network!'):
     parser = common_arg_parser(description)
 
@@ -694,47 +633,6 @@ def common_test_arg_parser(description='Testing a network!'):
     )
 
     return parser
-
-
-def keras_train_arg_parser(argvs):
-    parser = common_train_arg_parser()
-
-    parser.add_argument(
-        '--crop_type',
-        type=str,
-        default='random',
-        choices=[
-            'random',
-            'centre',
-            'none'
-        ],
-        help='What type of crop (default: random)'
-    )
-    parser.add_argument(
-        '--validation_crop_type',
-        type=str,
-        default='centre',
-        choices=[
-            'random',
-            'centre',
-            'none'
-        ],
-        help='What type of crop (default: centre)'
-    )
-    parser.add_argument(
-        '--output_types',
-        type=str,
-        nargs='+',
-        default=[],
-        help='What type of outputs to consider in model (default: None)'
-    )
-
-    get_inisialisation_group(parser)
-    get_plateau_group(parser)
-    get_keras_augmentation_group(parser)
-    get_logging_group(parser)
-
-    return keras_check_training_args(parser, argvs)
 
 
 def common_train_arg_parser(description='Training a network!'):
@@ -795,9 +693,6 @@ def check_common_args(parser, argvs, script_type):
     )
     args.target_size = (args.target_size, args.target_size)
 
-    # check the input shape
-    args.input_shape = get_input_shape(args.target_size)
-
     # setting the batch size
     if args.batch_size is None:
         if args.dataset == 'imagenet':
@@ -845,11 +740,6 @@ def check_common_args(parser, argvs, script_type):
         args.script_type
     )
 
-    return args
-
-
-def keras_check_training_args(parser, argvs):
-    args = check_common_args(parser, argvs, 'training')
     return args
 
 
