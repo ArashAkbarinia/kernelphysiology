@@ -375,9 +375,14 @@ def predict_segmentation(val_loader, model, device, num_classes,
             # FIXME: it assumes batch size 1, which is true now, but must be
             #  fixed
             if save_pred:
-                output = sigmoid(output)
+                # FIXME  according to the dataset
+                if output.shape[1] == 1:
+                    output = sigmoid(output)
+                else:
+                    output = output.argmax(1)
                 output = output.clone().detach().cpu().squeeze().numpy()
-                output = (output * 255).astype('uint8')
+                if output.max() <= 1:
+                    output = (output * 255).astype('uint8')
                 io.imsave('/home/arash/Desktop/tmp_imgs/%.4d.jpg' % i, output)
                 i += 1
 
