@@ -14,6 +14,7 @@ from torch.utils.data import distributed as torch_dist
 from torch.nn import functional as nnf
 from torchvision.models import segmentation as seg_models
 
+from kernelphysiology.dl.pytorch.models import model_utils as model_utils
 from kernelphysiology.dl.pytorch.models import segmentation as custom_models
 from kernelphysiology.dl.pytorch.utils import segmentation_utils as utils
 from kernelphysiology.dl.pytorch.utils import argument_handler
@@ -80,6 +81,11 @@ def main(args):
 
     device = torch.device(args.gpus)
 
+    in_chns = 3
+    if args.colour_transformation == 'monochromat':
+        in_chns = 1
+    elif 'dichromat' in args.colour_transformation:
+        in_chns = 2
     data_reading_kwargs = {
         'target_size': args.target_size,
         'colour_vision': args.colour_transformation,
@@ -113,6 +119,12 @@ def main(args):
 
     if args.custom_arch:
         print('Custom model!')
+        backbone_name, customs = model_utils.create_custom_resnet(
+            args.backbone, None
+        )
+        if customs is not None:
+            args.backbone = {'arch': backbone_name, 'customs': customs}
+
         model = custom_models.__dict__[args.network_name](
             args.backbone, num_classes=num_classes, aux_loss=args.aux_loss
         )
@@ -186,16 +198,15 @@ def main(args):
             'customs': {
                 'aux_loss': args.aux_loss,
                 'pooling_type': args.pooling_type,
-                'in_chns': 3,  # len(mean), #TODO
-                'num_classes': 21,  # args.num_classes,
-                # 'blocks': args.blocks,
-                # 'num_kernels': args.num_kernels
+                'in_chns': in_chns,
+                'num_classes': num_classes,
+                'backbone': args.backbone
             },
             'state_dict': master_model.state_dict(),
             'optimizer': optimizer.state_dict(),
             'target_size': args.target_size,
             'args': args,
-            'best_iou': best_iou
+            'best_iou': best_iou,
         }
         utils.save_on_master(
             model_data, os.path.join(args.out_dir, 'checkpoint.pth')

@@ -215,6 +215,25 @@ def which_network(network_name, task_type, **kwargs):
     return model, target_size
 
 
+def create_custom_resnet(network_name, customs=None):
+    # TODO: make this nicer!!!!
+    cus_res = ['resnet_basic_custom_', 'resnet_bottleneck_custom_']
+    if cus_res[0] not in network_name and cus_res[1] not in network_name:
+        return network_name, customs
+    if customs is None:
+        customs = dict()
+    net_parts = network_name.split('_')
+
+    network_name = '%s_%s_%s' % (net_parts[0], net_parts[1], net_parts[2])
+    if 'pooling_type' not in customs:
+        customs['pooling_type'] = 'max_pooling'
+    if 'num_classes' not in customs:
+        customs['num_classes'] = 1000
+    customs['blocks'] = [int(net_parts[i]) for i in range(3, 7)]
+    customs['num_kernels'] = int(net_parts[7])
+    return network_name, customs
+
+
 def which_architecture(network_name, customs=None):
     if customs is None:
         if network_name == 'inception_v3':
