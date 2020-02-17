@@ -200,7 +200,7 @@ class PredictionBlock(nn.Module):
     def __init__(self, outputs, out_type, last_fcm, inplanes, block):
         super(PredictionBlock, self).__init__()
         self.fc = None
-        if out_type in outputs:
+        if outputs[out_type] is not None:
             output = outputs[out_type]
             area = output['area']
             if area == 'b1':
@@ -304,8 +304,11 @@ class ResNet(nn.Module):
         )
 
         for key, val in self.outputs.items():
-            ind = int(val['area'][-1]) - 1
-            self.outputs[key]['ind'] = ind
+            if val is None:
+                self.outputs[key] = {'ind': 0}
+            else:
+                ind = int(val['area'][-1]) - 1
+                self.outputs[key]['ind'] = ind
         print(self.outputs)
 
         for m in self.modules():

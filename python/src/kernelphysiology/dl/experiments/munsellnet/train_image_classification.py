@@ -71,28 +71,36 @@ def validate_on_data(val_loader, model, criterion, args):
 
             # compute output
             out_obj, out_mun, out_ill = model(input_image)
-            loss_obj = criterion(out_obj, targets[:, 0])
-            loss_mun = criterion(out_mun, targets[:, 1])
-            loss_ill = criterion(out_ill, targets[:, 2])
+            if out_obj is None:
+                loss_obj = 0
+            else:
+                loss_obj = criterion(out_obj, targets[:, 0])
+                acc1_obj, acc5_obj = accuracy(out_obj, targets[:, 0],
+                                              topk=topks)
+                losses_obj.update(loss_obj.item(), input_image.size(0))
+                top1_obj.update(acc1_obj[0], input_image.size(0))
+                top5_obj.update(acc5_obj[0], input_image.size(0))
+            if out_mun is None:
+                loss_mun = 0
+            else:
+                loss_mun = criterion(out_mun, targets[:, 1])
+                acc1_mun, acc5_mun = accuracy(out_mun, targets[:, 1],
+                                              topk=topks)
+                losses_mun.update(loss_mun.item(), input_image.size(0))
+                top1_mun.update(acc1_mun[0], input_image.size(0))
+                top5_mun.update(acc5_mun[0], input_image.size(0))
+            if out_ill is None:
+                loss_ill = 0
+            else:
+                loss_ill = criterion(out_ill, targets[:, 2])
+                acc1_ill, acc5_ill = accuracy(out_ill, targets[:, 2],
+                                              topk=topks)
+                losses_ill.update(loss_ill.item(), input_image.size(0))
+                top1_ill.update(acc1_ill[0], input_image.size(0))
+                top5_ill.update(acc5_ill[0], input_image.size(0))
 
             loss = loss_obj + loss_mun + loss_ill
             losses.update(loss.item(), input_image.size(0))
-
-            # measure accuracy and record loss
-            acc1_obj, acc5_obj = accuracy(out_obj, targets[:, 0], topk=topks)
-            losses_obj.update(loss_obj.item(), input_image.size(0))
-            top1_obj.update(acc1_obj[0], input_image.size(0))
-            top5_obj.update(acc5_obj[0], input_image.size(0))
-
-            acc1_mun, acc5_mun = accuracy(out_mun, targets[:, 1], topk=topks)
-            losses_mun.update(loss_mun.item(), input_image.size(0))
-            top1_mun.update(acc1_mun[0], input_image.size(0))
-            top5_mun.update(acc5_mun[0], input_image.size(0))
-
-            acc1_ill, acc5_ill = accuracy(out_ill, targets[:, 2], topk=topks)
-            losses_ill.update(loss_ill.item(), input_image.size(0))
-            top1_ill.update(acc1_ill[0], input_image.size(0))
-            top5_ill.update(acc5_ill[0], input_image.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -162,30 +170,34 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
 
         # compute output
         out_obj, out_mun, out_ill = model(input_image)
-        import pdb
-        # pdb.set_trace()
-        loss_obj = criterion(out_obj, targets[:, 0])
-        loss_mun = criterion(out_mun, targets[:, 1])
-        loss_ill = criterion(out_ill, targets[:, 2])
+
+        if out_obj is None:
+            loss_obj = 0
+        else:
+            loss_obj = criterion(out_obj, targets[:, 0])
+            acc1_obj, acc5_obj = accuracy(out_obj, targets[:, 0], topk=topks)
+            losses_obj.update(loss_obj.item(), input_image.size(0))
+            top1_obj.update(acc1_obj[0], input_image.size(0))
+            top5_obj.update(acc5_obj[0], input_image.size(0))
+        if out_mun is None:
+            loss_mun = 0
+        else:
+            loss_mun = criterion(out_mun, targets[:, 1])
+            acc1_mun, acc5_mun = accuracy(out_mun, targets[:, 1], topk=topks)
+            losses_mun.update(loss_mun.item(), input_image.size(0))
+            top1_mun.update(acc1_mun[0], input_image.size(0))
+            top5_mun.update(acc5_mun[0], input_image.size(0))
+        if out_ill is None:
+            loss_ill = 0
+        else:
+            loss_ill = criterion(out_ill, targets[:, 2])
+            acc1_ill, acc5_ill = accuracy(out_ill, targets[:, 2], topk=topks)
+            losses_ill.update(loss_ill.item(), input_image.size(0))
+            top1_ill.update(acc1_ill[0], input_image.size(0))
+            top5_ill.update(acc5_ill[0], input_image.size(0))
 
         loss = loss_obj + loss_mun + loss_ill
         losses.update(loss.item(), input_image.size(0))
-
-        # measure accuracy and record loss
-        acc1_obj, acc5_obj = accuracy(out_obj, targets[:, 0], topk=topks)
-        losses_obj.update(loss_obj.item(), input_image.size(0))
-        top1_obj.update(acc1_obj[0], input_image.size(0))
-        top5_obj.update(acc5_obj[0], input_image.size(0))
-
-        acc1_mun, acc5_mun = accuracy(out_mun, targets[:, 1], topk=topks)
-        losses_mun.update(loss_mun.item(), input_image.size(0))
-        top1_mun.update(acc1_mun[0], input_image.size(0))
-        top5_mun.update(acc5_mun[0], input_image.size(0))
-
-        acc1_ill, acc5_ill = accuracy(out_ill, targets[:, 2], topk=topks)
-        losses_ill.update(loss_ill.item(), input_image.size(0))
-        top1_ill.update(acc1_ill[0], input_image.size(0))
-        top5_ill.update(acc5_ill[0], input_image.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -219,8 +231,31 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
             losses_ill.avg, top1_obj.avg, top1_mun.avg, top1_ill.avg]
 
 
+def extra_args_fun(parser):
+    specific_group = parser.add_argument_group('Munsell specific')
+
+    specific_group.add_argument(
+        '-oa', '--object_area',
+        default=None,
+        type=str,
+        help='Area for object classification (default: None)'
+    )
+    specific_group.add_argument(
+        '-ma', '--munsell_area',
+        default=None,
+        type=str,
+        help='Area for Munsell classification (default: None)'
+    )
+    specific_group.add_argument(
+        '-ia', '--illuminant_area',
+        default=None,
+        type=str,
+        help='Area for illuminant classification (default: None)'
+    )
+
+
 def main(argv):
-    args = argument_handler.train_arg_parser(argv)
+    args = argument_handler.train_arg_parser(argv, extra_args_fun)
     if args.lr is None:
         args.lr = 0.1
     if args.weight_decay is None:
@@ -309,11 +344,20 @@ def main_worker(ngpus_per_node, args):
         print('Custom model!')
         if (args.network_name == 'resnet_basic_custom' or
                 args.network_name == 'resnet_bottleneck_custom'):
-            outputs = {
-                'objects': {'num_classes': 2100, 'area': 'b4'},
-                'munsells': {'num_classes': 1600, 'area': 'b3'},
-                'illuminants': {'num_classes': 280, 'area': 'b2'}
-            }
+            outputs = {'objects': None, 'munsells': None, 'illuminants': None}
+            if args.object_area is not None:
+                outputs['objects'] = {
+                    'num_classes': 2100, 'area': args.object_area
+                }
+            if args.munsell_area is not None:
+                outputs['munsells'] = {
+                    'num_classes': 1600, 'area': args.munsell_area
+                }
+            if args.illuminant_area is not None:
+                outputs['illuminants'] = {
+                    'num_classes': 280, 'area': args.illuminant_area
+                }
+
             model = resnet.__dict__[args.network_name](
                 args.blocks, pooling_type=args.pooling_type,
                 in_chns=len(mean), inplanes=args.num_kernels,

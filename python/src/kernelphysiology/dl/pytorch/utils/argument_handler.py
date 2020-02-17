@@ -86,7 +86,7 @@ def _check_test_args(parser, argvs):
     return args
 
 
-def train_arg_parser(argvs):
+def train_arg_parser(argvs, extra_args_fun=None):
     parser = ah.common_train_arg_parser()
 
     ah.get_parallelisation_group(parser)
@@ -124,6 +124,9 @@ def train_arg_parser(argvs):
         default=None,
         help='Whether transferring weights from a model (default: None)'
     )
+
+    if extra_args_fun is not None:
+        extra_args_fun(parser)
 
     return _check_training_args(parser, argvs)
 
