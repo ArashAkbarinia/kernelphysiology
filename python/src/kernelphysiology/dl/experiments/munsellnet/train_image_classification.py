@@ -479,8 +479,8 @@ def main_worker(ngpus_per_node, args):
                 is_best, out_folder=args.out_dir
             )
         # TODO: get this header directly as a dictionary keys
-        header = 'epoch,t_time,t_loss,t_lo,t_lm,t_li,t_ao,t_am,t_ai' \
-                 'v_loss,t_lo,t_lm,t_li,t_ao,t_am,t_ai'
+        header = 'epoch,t_time,t_loss,t_lo,t_lm,t_li,t_ao,t_am,t_ai,' \
+                 'v_time,v_loss,v_lo,v_lm,v_li,v_ao,v_am,v_ai'
         np.savetxt(
             model_progress_path, np.array(model_progress),
             delimiter=',', header=header
