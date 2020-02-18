@@ -41,9 +41,9 @@ class LayerActivation(nn.Module):
         self.sub_layer = None
         self.sub_conv = None
         if layer_name == 'fc':
-            self.features = nn.Sequential(*list(model.children())[:-1])
+            self.features = model
         elif layer_name == 'avgpool':
-            self.features = nn.Sequential(*list(model.children())[:-2])
+            self.features = nn.Sequential(*list(model.children()))
         else:
             name_split = layer_name.split('.')
             last_layer = 4
