@@ -41,6 +41,13 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None)
     """
     with PathManager.open(file_name, "rb") as f:
         image = Image.open(f)
+
+        if contrast is not None:
+            image = np.asarray(image).copy()
+            amount = np.random.uniform(contrast, 1)
+            image = imutils.adjust_contrast(image, amount)
+            image = Image.fromarray(image.astype('uint8'), 'RGB')
+
         if vision_type != 'trichromat':
             image = ImageCms.applyTransform(image, rgb2lab)
             image = np.asarray(image).copy()
@@ -50,12 +57,6 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None)
                 image[:, :, 2] = 0
             image = Image.fromarray(image, 'LAB')
             image = ImageCms.applyTransform(image, lab2rgb)
-
-        if contrast is not None:
-            image = np.asarray(image).copy()
-            amount = np.random.uniform(contrast, 1)
-            image = imutils.adjust_contrast(image, amount)
-            image = Image.fromarray(image.astype('uint8'), 'RGB')
 
         # capture and ignore this bug: https://github.com/python-pillow/Pillow/issues/3973
         try:
