@@ -46,7 +46,7 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None)
             image = np.asarray(image).copy()
             amount = np.random.uniform(contrast, 1)
             image = imutils.adjust_contrast(image, amount)
-            image = Image.fromarray(image.astype('uint8'), 'RGB')
+            image = Image.fromarray(image.astype('uint8'))
 
         if vision_type != 'trichromat':
             image = ImageCms.applyTransform(image, rgb2lab)
