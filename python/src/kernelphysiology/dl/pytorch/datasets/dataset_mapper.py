@@ -24,8 +24,10 @@ lab_p = ImageCms.createProfile('LAB')
 rgb2lab = ImageCms.buildTransformFromOpenProfiles(rgb_p, lab_p, 'RGB', 'LAB')
 lab2rgb = ImageCms.buildTransformFromOpenProfiles(lab_p, rgb_p, 'LAB', 'RGB')
 
+from kernelphysiology.utils import imutils
 
-def _read_image(file_name, format=None, vision_type='trichromat'):
+
+def _read_image(file_name, format=None, vision_type='trichromat', contrast=None):
     """
     Read an image into the given format.
     Will apply rotation and flipping if the image has such exif information.
@@ -48,6 +50,12 @@ def _read_image(file_name, format=None, vision_type='trichromat'):
                 image[:, :, 2] = 0
             image = Image.fromarray(image, 'LAB')
             image = ImageCms.applyTransform(image, lab2rgb)
+
+        if contrast is not None:
+            image = np.asarray(image).copy()
+            amount = np.random.uniform(contrast, 1)
+            image = imutils.adjust_contrast(image, amount)
+            image = Image.fromarray(image.astype('uint8'), 'RGB')
 
         # capture and ignore this bug: https://github.com/python-pillow/Pillow/issues/3973
         try:
@@ -120,6 +128,9 @@ class DatasetMapper:
             )
         self.is_train = is_train
         self.vision_type = cfg.INPUT.VISION_TYPE
+        self.contrast = cfg.INPUT.CONTRAST
+        if self.contrast == 1.0:
+            self.contrast = None
 
     def __call__(self, dataset_dict):
         """
@@ -134,7 +145,7 @@ class DatasetMapper:
         # USER: Write your own image loading if it's not from a file
         image = _read_image(
             dataset_dict["file_name"], format=self.img_format,
-            vision_type=self.vision_type
+            vision_type=self.vision_type, contrast=self.contrast
         )
         utils.check_image_size(dataset_dict, image)
 

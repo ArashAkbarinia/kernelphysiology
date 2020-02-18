@@ -159,6 +159,7 @@ def setup(args):
 
 
 def main(args):
+    # TODO: remove this hardcoded stuff
     root = '/home/arash/Software/datasets/VOCdevkit/'
     register_all_pascal_voc_org(root)
     cfg = setup(args)
