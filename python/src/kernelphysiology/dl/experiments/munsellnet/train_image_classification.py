@@ -23,6 +23,7 @@ import torchvision.transforms as transforms
 import torchvision.models as models
 
 from kernelphysiology.dl.experiments.munsellnet import resnet
+from kernelphysiology.dl.pytorch.utils.misc import accuracy_preds
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import argument_handler
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter, accuracy
@@ -38,6 +39,146 @@ from kernelphysiology.dl.experiments.munsellnet.dataset import \
     get_train_val_dataset
 
 best_acc1 = 0
+
+
+def predict(val_loader, model, criterion, device, print_freq=100):
+    losses = AverageMeter()
+    batch_time = AverageMeter()
+
+    losses_obj = AverageMeter()
+    top1_obj = AverageMeter()
+    top5_obj = AverageMeter()
+    losses_mun = AverageMeter()
+    top1_mun = AverageMeter()
+    top5_mun = AverageMeter()
+    losses_ill = AverageMeter()
+    top1_ill = AverageMeter()
+    top5_ill = AverageMeter()
+
+    topks = 5
+
+    # switch to evaluate mode
+    model.eval()
+
+    all_predictions = []
+    with torch.no_grad():
+        end = time.time()
+        for i, (input_image, targets) in enumerate(val_loader):
+            input_image = input_image.to(device)
+            targets = targets.to(device)
+
+            # compute output
+            out_obj, out_mun, out_ill = model(input_image)
+
+            if out_obj is None:
+                loss_obj = 0
+                corr1_obj = 0
+                corr5_obj = 0
+                out_obj = 0
+            else:
+                loss_obj = criterion(out_obj, targets[:, 0])
+                ((acc1_obj, acc5_obj), (corr1_obj, corr5_obj)) = accuracy_preds(
+                    out_obj, targets[:, 0], topk=(1, 5)
+                )
+                corr1_obj = corr1_obj.cpu().numpy().sum(axis=0)
+                corr5_obj = corr5_obj.cpu().numpy().sum(axis=0)
+                losses_obj.update(loss_obj.item(), input_image.size(0))
+                top1_obj.update(acc1_obj[0], input_image.size(0))
+                top5_obj.update(acc5_obj[0], input_image.size(0))
+                out_obj = out_obj.cpu().numpy().argmax(axis=1)
+            if out_mun is None:
+                loss_mun = 0
+                corr1_mun = 0
+                corr5_mun = 0
+                out_mun = 0
+            else:
+                loss_mun = criterion(out_mun, targets[:, 1])
+                ((acc1_mun, acc5_mun), (corr1_mun, corr5_mun)) = accuracy_preds(
+                    out_mun, targets[:, 1], topk=(1, 5)
+                )
+                corr1_mun = corr1_mun.cpu().numpy().sum(axis=0)
+                corr5_mun = corr5_mun.cpu().numpy().sum(axis=0)
+                losses_mun.update(loss_mun.item(), input_image.size(0))
+                top1_mun.update(acc1_mun[0], input_image.size(0))
+                top5_mun.update(acc5_mun[0], input_image.size(0))
+                out_mun = out_mun.cpu().numpy().argmax(axis=1)
+            if out_ill is None:
+                loss_ill = 0
+                corr1_ill = 0
+                corr5_ill = 0
+                out_ill = 0
+            else:
+                loss_ill = criterion(out_ill, targets[:, 2])
+                ((acc1_ill, acc5_ill), (corr1_ill, corr5_ill)) = accuracy_preds(
+                    out_ill, targets[:, 2], topk=(1, 5)
+                )
+                corr1_ill = corr1_ill.cpu().numpy().sum(axis=0)
+                corr5_ill = corr5_ill.cpu().numpy().sum(axis=0)
+                losses_ill.update(loss_ill.item(), input_image.size(0))
+                top1_ill.update(acc1_ill[0], input_image.size(0))
+                top5_ill.update(acc5_ill[0], input_image.size(0))
+                out_ill = out_ill.cpu().numpy().argmax(axis=1)
+
+            loss = loss_obj + loss_mun + loss_ill
+
+            pred_outs = np.zeros((input_image.shape[0], 9))
+            pred_outs[:, 0] = corr1_obj
+            pred_outs[:, 1] = corr5_obj
+            pred_outs[:, 2] = out_obj
+            pred_outs[:, 3] = corr1_mun
+            pred_outs[:, 4] = corr5_mun
+            pred_outs[:, 5] = out_mun
+            pred_outs[:, 6] = corr1_ill
+            pred_outs[:, 7] = corr5_ill
+            pred_outs[:, 8] = out_ill
+
+            # I'm not sure if this is all necessary, copied from keras
+            if not isinstance(pred_outs, list):
+                pred_outs = [pred_outs]
+
+            if not all_predictions:
+                for _ in pred_outs:
+                    all_predictions.append([])
+
+            for j, out in enumerate(pred_outs):
+                all_predictions[j].append(out)
+
+            losses.update(loss.item(), input_image.size(0))
+
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
+
+            if i % print_freq == 0:
+                print(
+                    'Test: [{0}/{1}]\t'
+                    'Time {batch_time.val:.2f} ({batch_time.avg:.2f})\t'
+                    'Loss {loss.val:.2f} ({loss.avg:.2f})\t'
+                    'LO {obj_loss.val:.2f} ({obj_loss.avg:.2f})\t'
+                    'LM {mun_loss.val:.2f} ({mun_loss.avg:.2f})\t'
+                    'LI {ill_loss.val:.2f} ({ill_loss.avg:.2f})\t'
+                    'Ao {obj_acc.val:.2f} ({obj_acc.avg:.2f})\t'
+                    'AM {mun_acc.val:.2f} ({mun_acc.avg:.2f})\t'
+                    'AI {ill_acc.val:.2f} ({ill_acc.avg:.2f})'.format(
+                        i, len(val_loader), batch_time=batch_time,
+                        loss=losses, obj_loss=losses_obj,
+                        mun_loss=losses_mun, ill_loss=losses_ill,
+                        obj_acc=top1_obj, mun_acc=top1_mun, ill_acc=top1_ill
+                    )
+                )
+
+        print(
+            ' * AccObj {obj_acc.avg:.2f} AccMun {mun_acc.avg:.2f}'
+            ' AccIll {ill_acc.avg:.2f}'.format(
+                obj_acc=top1_obj, mun_acc=top1_mun, ill_acc=top1_ill
+            )
+        )
+
+    if len(all_predictions) == 1:
+        prediction_output = np.concatenate(all_predictions[0])
+    else:
+        prediction_output = [np.concatenate(out) for out in all_predictions]
+    return prediction_output
 
 
 def validate_on_data(val_loader, model, criterion, args):
@@ -235,6 +376,22 @@ def extra_args_fun(parser):
     specific_group = parser.add_argument_group('Munsell specific')
 
     specific_group.add_argument(
+        '--prediction',
+        action='store_true'
+    )
+    specific_group.add_argument(
+        '-nw', '--network_weights',
+        default=None,
+        type=str,
+        help='Path to network weights (default: None)'
+    )
+    specific_group.add_argument(
+        '-pn', '--pred_name',
+        default=None,
+        type=str,
+        help='Network name (default: None)'
+    )
+    specific_group.add_argument(
         '-oa', '--object_area',
         default=None,
         type=str,
@@ -334,7 +491,22 @@ def main_worker(ngpus_per_node, args):
             rank=args.rank
         )
     # create model
-    if args.transfer_weights is not None:
+    if args.prediction:
+        checkpoint = torch.load(args.network_weights, map_location='cpu')
+        blocks = checkpoint['customs']['blocks']
+        pooling_type = checkpoint['customs']['pooling_type']
+        num_kernels = checkpoint['customs']['num_kernels']
+        outputs = checkpoint['customs']['outputs']
+        for key, val in outputs.items():
+            if 'area' not in val:
+                outputs[key] = None
+        model = resnet.__dict__[args.network_name](
+            blocks, pooling_type=pooling_type,
+            in_chns=len(mean), inplanes=num_kernels,
+            outputs=outputs
+        )
+        model.load_state_dict(checkpoint['state_dict'])
+    elif args.transfer_weights is not None:
         print('Transferred model!')
         (model, _) = model_utils.which_network(
             args.transfer_weights, args.task_type, num_classes=args.old_classes
@@ -464,17 +636,28 @@ def main_worker(ngpus_per_node, args):
     else:
         train_sampler = None
 
+    val_loader = torch.utils.data.DataLoader(
+        validation_dataset,
+        batch_size=args.batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True
+    )
+
+    if args.prediction:
+        pred_log = predict(
+            val_loader, model, criterion, torch.device(args.gpus)
+        )
+        from kernelphysiology.dl.utils import prepapre_testing
+        prepapre_testing.save_predictions(
+            pred_log, args.experiment_name, args.pred_name, args.dataset,
+            'original', 0
+        )
+        return
+
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True,
         sampler=train_sampler
-    )
-
-    val_loader = torch.utils.data.DataLoader(
-        validation_dataset,
-        batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True
     )
 
     # training on epoch
