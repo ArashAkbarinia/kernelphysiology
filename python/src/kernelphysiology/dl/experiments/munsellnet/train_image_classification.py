@@ -55,8 +55,6 @@ def predict(val_loader, model, criterion, device, print_freq=100):
     top1_ill = AverageMeter()
     top5_ill = AverageMeter()
 
-    topks = 5
-
     # switch to evaluate mode
     model.eval()
 
@@ -409,10 +407,32 @@ def extra_args_fun(parser):
         type=str,
         help='Area for illuminant classification (default: None)'
     )
+    specific_group.add_argument(
+        '--manipulation',
+        type=str,
+        default=None,
+        help='Image manipulation type to be evaluated (default: None)'
+    )
+
+    specific_group.add_argument(
+        '--parameters',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Parameters passed to the evaluation function (default: None)'
+    )
 
 
 def main(argv):
     args = argument_handler.train_arg_parser(argv, extra_args_fun)
+    if args.prediction:
+        from kernelphysiology.dl.utils import augmentation
+        from kernelphysiology.dl.utils import arguments as ah
+        args.manipulation, args.parameters = ah.create_manipulation_list(
+            args.manipulation, args.parameters,
+            augmentation.get_testing_augmentations()
+        )
+
     if args.lr is None:
         args.lr = 0.1
     if args.weight_decay is None:
@@ -462,6 +482,16 @@ def main(argv):
     else:
         # Simply call main_worker function
         main_worker(ngpus_per_node, args)
+
+
+# FIXME: just a hack, if it's already in the desired colour space,
+#  don't change it
+def tmp_c_space(manipulation_name):
+    if manipulation_name in ['chromaticity', 'red_green', 'yellow_blue',
+                             'lightness', 'invert_chromaticity',
+                             'invert_opponency', 'invert_lightness']:
+        return True
+    return False
 
 
 def main_worker(ngpus_per_node, args):
@@ -636,22 +666,42 @@ def main_worker(ngpus_per_node, args):
     else:
         train_sampler = None
 
+    if args.prediction:
+        manipulation_values = args.parameters['kwargs'][args.manipulation]
+        manipulation_name = args.parameters['f_name']
+
+        for j, manipulation_value in enumerate(manipulation_values):
+            args.parameters['kwargs'][args.manipulation] = manipulation_value
+            prediction_transformation = preprocessing.PredictionTransformation(
+                args.parameters, False,
+                args.colour_space, tmp_c_space(manipulation_name)
+            )
+            other_transformations = [prediction_transformation]
+            _, validation_dataset = get_train_val_dataset(
+                args.data_dir, other_transformations, normalize
+            )
+
+            val_loader = torch.utils.data.DataLoader(
+                validation_dataset,
+                batch_size=args.batch_size, shuffle=False,
+                num_workers=args.workers, pin_memory=True
+            )
+
+            pred_log = predict(
+                val_loader, model, criterion, torch.device(args.gpus)
+            )
+            from kernelphysiology.dl.utils import prepapre_testing
+            prepapre_testing.save_predictions(
+                pred_log, args.experiment_name, args.pred_name, args.dataset,
+                manipulation_name, manipulation_value
+            )
+        return
+
     val_loader = torch.utils.data.DataLoader(
         validation_dataset,
         batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True
     )
-
-    if args.prediction:
-        pred_log = predict(
-            val_loader, model, criterion, torch.device(args.gpus)
-        )
-        from kernelphysiology.dl.utils import prepapre_testing
-        prepapre_testing.save_predictions(
-            pred_log, args.experiment_name, args.pred_name, args.dataset,
-            'original', 0
-        )
-        return
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
