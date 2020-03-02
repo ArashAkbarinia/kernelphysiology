@@ -48,7 +48,6 @@ def get_train_val_dataset(data_dir, other_transformations, normalize):
     ])
     train_dataset = MunsellNetDataset(data_dir, 'train', train_transforms)
     val_transforms = transforms.Compose([
-        *other_transformations,
         utils_db.Numpy2Tensor(),
         normalize,
     ])
