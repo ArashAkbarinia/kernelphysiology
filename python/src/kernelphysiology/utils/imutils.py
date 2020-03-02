@@ -25,11 +25,12 @@ def im2double_max(image):
     else:
         image = image.astype('float32')
         max_pixel = np.max(image)
-        if 1 < max_pixel <= 255:
-            return image / 255, 255
-        else:
-            image /= max_pixel
-            return image, max_pixel
+        # FIXME: check if this has consequences some where
+        # if 1 < max_pixel <= 255:
+        #     return image / 255, 255
+        # else:
+        image /= max_pixel
+        return image, max_pixel
 
 
 def im2double(image):
