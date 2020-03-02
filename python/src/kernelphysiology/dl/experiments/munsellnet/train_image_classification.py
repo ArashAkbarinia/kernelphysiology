@@ -648,8 +648,7 @@ def main_worker(ngpus_per_node, args):
     other_transformations = []
     if args.num_augmentations != 0:
         augmentations = preprocessing.RandomAugmentationTransformation(
-            args.augmentation_settings, args.num_augmentations,
-            utils_db.is_dataset_pil_image(args.dataset)
+            args.augmentation_settings, args.num_augmentations, False
         )
         other_transformations.append(augmentations)
 
