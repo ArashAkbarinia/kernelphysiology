@@ -540,3 +540,29 @@ def heat_map_from_point(point, target_size, g_kernel=None, sigma=1.5):
         g_max = g_kernel[gsr:ger, gsc:gec].max()
         heat_map[sr:er, sc:ec, 0] = g_kernel[gsr:ger, gsc:gec] / g_max
     return heat_map
+
+
+def shift_image(img, rows, cols):
+    output = np.zeros(img.shape, img.dtype)
+    if rows > 0:
+        sro = 0
+        ero = -rows
+        sri = rows
+        eri = img.shape[0]
+    else:
+        sro = -rows
+        ero = img.shape[0]
+        sri = 0
+        eri = rows
+    if cols > 0:
+        sco = 0
+        eco = -cols
+        sci = cols
+        eci = img.shape[1]
+    else:
+        sco = -cols
+        eco = img.shape[1]
+        sci = 0
+        eci = cols
+    output[sri:eri, sci:eci, :] = img[sro:ero, sco:eco, :]
+    return output
