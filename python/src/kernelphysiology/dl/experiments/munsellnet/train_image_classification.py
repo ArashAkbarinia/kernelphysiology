@@ -30,7 +30,6 @@ from kernelphysiology.dl.pytorch.utils.misc import AverageMeter, accuracy
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.models import model_utils
-from kernelphysiology.dl.pytorch.datasets import utils_db
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.utils.path_utils import create_dir
@@ -497,6 +496,8 @@ def tmp_c_space(manipulation_name):
 def main_worker(ngpus_per_node, args):
     global best_acc1
 
+    is_pill_img = 'wcs_xyz_png_1600' in args.data_dir
+
     mean, std = model_utils.get_preprocessing_function(
         args.colour_space, args.colour_transformation
     )
@@ -648,7 +649,7 @@ def main_worker(ngpus_per_node, args):
     other_transformations = []
     if args.num_augmentations != 0:
         augmentations = preprocessing.RandomAugmentationTransformation(
-            args.augmentation_settings, args.num_augmentations, False
+            args.augmentation_settings, args.num_augmentations, is_pill_img
         )
         other_transformations.append(augmentations)
 
@@ -672,7 +673,7 @@ def main_worker(ngpus_per_node, args):
         for j, manipulation_value in enumerate(manipulation_values):
             args.parameters['kwargs'][args.manipulation] = manipulation_value
             prediction_transformation = preprocessing.PredictionTransformation(
-                args.parameters, False,
+                args.parameters, is_pill_img,
                 args.colour_space, tmp_c_space(manipulation_name)
             )
             other_transformations = [prediction_transformation]
