@@ -313,7 +313,7 @@ def adjust_contrast(image, amount, pixel_variatoin=0, mask_type=None,
     min_contrast = amount - pixel_variatoin
     max_contrast = amount + pixel_variatoin
 
-    contrast_mat = random.uniform(
+    contrast_mat = np.random.uniform(
         low=min_contrast, high=max_contrast, size=image.shape
     )
 
@@ -374,7 +374,7 @@ def adjust_illuminant(image, illuminant, pixel_variatoin=0, mask_type=None,
     for i in range(image.shape[2]):
         min_illuminant = illuminant[i] - pixel_variatoin
         max_illuminant = illuminant[i] + pixel_variatoin
-        illuminant_i = random.uniform(
+        illuminant_i = np.random.uniform(
             low=min_illuminant, high=max_illuminant, size=image[:, :, i].shape
         )
         image[:, :, i] = image[:, :, i] * illuminant_i
@@ -543,27 +543,7 @@ def heat_map_from_point(point, target_size, g_kernel=None, sigma=1.5):
     return heat_map
 
 
-def shift_image(img, rows, cols):
-    output = np.zeros(img.shape, img.dtype)
-    if rows > 0:
-        sro = 0
-        ero = -rows
-        sri = rows
-        eri = img.shape[0]
-    else:
-        sro = -rows
-        ero = img.shape[0]
-        sri = 0
-        eri = rows
-    if cols > 0:
-        sco = 0
-        eco = -cols
-        sci = cols
-        eci = img.shape[1]
-    else:
-        sco = -cols
-        eco = img.shape[1]
-        sci = 0
-        eci = cols
-    output[sri:eri, sci:eci, ] = img[sro:ero, sco:eco, ]
-    return output
+def roll_image(img, rows, cols):
+    img = np.roll(img, rows, axis=0)
+    img = np.roll(img, cols, axis=1)
+    return img
