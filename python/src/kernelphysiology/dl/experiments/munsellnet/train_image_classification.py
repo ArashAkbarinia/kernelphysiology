@@ -656,7 +656,7 @@ def main_worker(ngpus_per_node, args):
     target_size = get_default_target_size(args.dataset, args.target_size)
 
     train_dataset, validation_dataset = get_train_val_dataset(
-        args.data_dir, other_transformations, normalize
+        args.data_dir, other_transformations, [], normalize
     )
 
     if args.distributed:
@@ -678,7 +678,8 @@ def main_worker(ngpus_per_node, args):
             )
             other_transformations = [prediction_transformation]
             _, validation_dataset = get_train_val_dataset(
-                args.data_dir, other_transformations, normalize
+                args.data_dir, other_transformations, other_transformations,
+                normalize
             )
 
             val_loader = torch.utils.data.DataLoader(

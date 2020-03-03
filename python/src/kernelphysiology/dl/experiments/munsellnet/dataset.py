@@ -46,27 +46,30 @@ class MunsellNetDataset(Dataset):
         return len(self.inputs)
 
 
-def get_train_val_dataset(data_dir, other_transformations, normalize):
+def get_train_val_dataset(data_dir, train_transformations, val_transformations,
+                          normalize):
     is_pill_img = 'wcs_xyz_png_1600' in data_dir
     if is_pill_img:
         train_transforms = transforms.Compose([
-            *other_transformations,
+            *train_transformations,
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize,
         ])
         val_transforms = transforms.Compose([
+            *val_transformations,
             transforms.ToTensor(),
             normalize,
         ])
     else:
         train_transforms = transforms.Compose([
-            *other_transformations,
+            *train_transformations,
             utils_db.RandomHorizontalFlip(),
             utils_db.Numpy2Tensor(),
             normalize,
         ])
         val_transforms = transforms.Compose([
+            *val_transformations,
             utils_db.Numpy2Tensor(),
             normalize,
         ])
