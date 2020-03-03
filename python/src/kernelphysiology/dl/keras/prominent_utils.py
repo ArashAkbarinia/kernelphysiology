@@ -8,6 +8,7 @@ import glob
 import datetime
 import time
 import numpy as np
+import random
 
 from kernelphysiology.utils.imutils import adjust_contrast, gaussian_blur, adjust_illuminant, adjust_gamma
 from kernelphysiology.utils.imutils import s_p_noise, gaussian_noise, speckle_noise, poisson_noise
@@ -40,43 +41,43 @@ def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,
     elif num_augmentation == 0:
         colour_augmentatoin = np.array(['blur', 'illuminant', 'contrast', 'gamma'])
         noise_augmentatoin = np.array(['s_p', 'poisson', 'speckle', 'gaussian'])
-        order_augmentatoin = [*colour_augmentatoin[np.random.randint(0, colour_augmentatoin.shape[0], size=1)],
-                              *noise_augmentatoin[np.random.randint(0, noise_augmentatoin.shape[0], size=1)]]
+        order_augmentatoin = [*colour_augmentatoin[random.randint(0, colour_augmentatoin.shape[0], size=1)],
+                              *noise_augmentatoin[random.randint(0, noise_augmentatoin.shape[0], size=1)]]
     else:
-        rand_inds = np.random.randint(0, augmentation_types.shape[0], size=num_augmentation)
+        rand_inds = random.randint(0, augmentation_types.shape[0], size=num_augmentation)
         order_augmentatoin = augmentation_types[rand_inds]
 
     transformation_params = {}
     for aug_type in order_augmentatoin:
         if mask_radius is not None:
-            mask_radius = np.sign(mask_radius) * np.random.uniform(0, abs(mask_radius))
+            mask_radius = np.sign(mask_radius) * random.uniform(0, abs(mask_radius))
 
         if aug_type == 'blur' and gaussian_sigma_range is not None:
-            img = convert_to_uni8(gaussian_blur(img, np.random.uniform(*gaussian_sigma_range), mask_radius=mask_radius))
+            img = convert_to_uni8(gaussian_blur(img, random.uniform(*gaussian_sigma_range), mask_radius=mask_radius))
         elif aug_type == 'illuminant' and illuminant_range is not None:
-            illuminant = np.random.uniform(*illuminant_range, 3)
+            illuminant = random.uniform(*illuminant_range, 3)
             transformation_params['illuminant'] = illuminant
             img = convert_to_uni8(adjust_illuminant(img, illuminant, illuminant_variation, mask_radius=mask_radius))
         elif aug_type == 'contrast' and contrast_range is not None:
-            img = convert_to_uni8(adjust_contrast(img, np.random.uniform(*contrast_range), contrast_variation, mask_radius=mask_radius))
+            img = convert_to_uni8(adjust_contrast(img, random.uniform(*contrast_range), contrast_variation, mask_radius=mask_radius))
         elif aug_type == 'gamma' and gamma_range is not None:
-            img = convert_to_uni8(adjust_gamma(img, np.random.uniform(*gamma_range), mask_radius=mask_radius))
+            img = convert_to_uni8(adjust_gamma(img, random.uniform(*gamma_range), mask_radius=mask_radius))
         elif aug_type == 's_p' and salt_pepper_range is not None:
-            img = convert_to_uni8(s_p_noise(img, np.random.uniform(*salt_pepper_range), mask_radius=mask_radius))
+            img = convert_to_uni8(s_p_noise(img, random.uniform(*salt_pepper_range), mask_radius=mask_radius))
         elif aug_type == 'poisson' and poisson_range:
             img = convert_to_uni8(poisson_noise(img), mask_radius=mask_radius)
         elif aug_type == 'speckle' and speckle_range is not None:
-            img = convert_to_uni8(speckle_noise(img, np.random.uniform(*speckle_range), mask_radius=mask_radius))
+            img = convert_to_uni8(speckle_noise(img, random.uniform(*speckle_range), mask_radius=mask_radius))
         elif aug_type == 'gaussian' and gaussian_noise_range is not None:
-            img = convert_to_uni8(gaussian_noise(img, np.random.uniform(*gaussian_noise_range), mask_radius=mask_radius))
+            img = convert_to_uni8(gaussian_noise(img, random.uniform(*gaussian_noise_range), mask_radius=mask_radius))
         elif aug_type == 'chromatic_contrast' and chromatic_contrast is not None:
-            img = convert_to_uni8(reduce_chromaticity(img, np.random.uniform(*chromatic_contrast), mask_radius=mask_radius))
+            img = convert_to_uni8(reduce_chromaticity(img, random.uniform(*chromatic_contrast), mask_radius=mask_radius))
         elif aug_type == 'luminance_contrast' and luminance_contrast is not None:
-            img = convert_to_uni8(reduce_lightness(img, np.random.uniform(*luminance_contrast), mask_radius=mask_radius))
+            img = convert_to_uni8(reduce_lightness(img, random.uniform(*luminance_contrast), mask_radius=mask_radius))
         elif aug_type == 'yellow_blue' and yellow_blue is not None:
-            img = convert_to_uni8(reduce_yellow_blue(img, np.random.uniform(*yellow_blue), mask_radius=mask_radius))
+            img = convert_to_uni8(reduce_yellow_blue(img, random.uniform(*yellow_blue), mask_radius=mask_radius))
         elif aug_type == 'red_green' and red_green is not None:
-            img = convert_to_uni8(reduce_red_green(img, np.random.uniform(*red_green), mask_radius=mask_radius))
+            img = convert_to_uni8(reduce_red_green(img, random.uniform(*red_green), mask_radius=mask_radius))
 
     if preprocessing_function is not None:
         img = preprocessing_function(img)

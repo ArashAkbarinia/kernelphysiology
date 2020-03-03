@@ -3,6 +3,7 @@ Functions to manage the GEETUP dataset.
 """
 
 import numpy as np
+import random
 import logging
 import os
 import glob
@@ -196,7 +197,7 @@ def _random_video_indices(video_list, percent, exclude_list=None):
         for ri in exclude_list:
             if ri in current_experiment_inds:
                 current_experiment_inds.remove(ri)
-        np.random.shuffle(current_experiment_inds)
+        random.shuffle(current_experiment_inds)
         random_videos.extend(current_experiment_inds[:num_elemnts])
 
     return random_videos

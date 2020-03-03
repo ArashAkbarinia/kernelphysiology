@@ -2,9 +2,9 @@
 import copy
 import logging
 import numpy as np
+import random
 import torch
 from fvcore.common.file_io import PathManager
-from PIL import Image
 
 from detectron2.data import transforms as T
 from detectron2.data import detection_utils as utils
@@ -46,7 +46,7 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
 
         if contrast is not None:
             image = np.asarray(image).copy()
-            amount = np.random.uniform(contrast, 1)
+            amount = random.uniform(contrast, 1)
             image = imutils.adjust_contrast(image, amount)
             image = Image.fromarray(image.astype('uint8'))
 
@@ -177,7 +177,7 @@ class DatasetMapper:
                 crop_tfm = utils.gen_crop_transform_with_instance(
                     self.crop_gen.get_crop_size(image.shape[:2]),
                     image.shape[:2],
-                    np.random.choice(dataset_dict["annotations"]),
+                    random.choice(dataset_dict["annotations"]),
                 )
                 image = crop_tfm.apply_image(image)
             image, transforms = T.apply_transform_gens(self.tfm_gens, image)

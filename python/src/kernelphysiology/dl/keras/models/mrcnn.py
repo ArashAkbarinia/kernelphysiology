@@ -1357,13 +1357,13 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, gt_masks, config):
     # FG
     fg_roi_count = int(config.TRAIN_ROIS_PER_IMAGE * config.ROI_POSITIVE_RATIO)
     if fg_ids.shape[0] > fg_roi_count:
-        keep_fg_ids = np.random.choice(fg_ids, fg_roi_count, replace=False)
+        keep_fg_ids = random.choice(fg_ids, fg_roi_count, replace=False)
     else:
         keep_fg_ids = fg_ids
     # BG
     remaining = config.TRAIN_ROIS_PER_IMAGE - keep_fg_ids.shape[0]
     if bg_ids.shape[0] > remaining:
-        keep_bg_ids = np.random.choice(bg_ids, remaining, replace=False)
+        keep_bg_ids = random.choice(bg_ids, remaining, replace=False)
     else:
         keep_bg_ids = bg_ids
     # Combine indices of ROIs to keep
@@ -1380,12 +1380,12 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, gt_masks, config):
             # Pick bg regions with easier IoU threshold
             bg_ids = np.where(rpn_roi_iou_max < 0.5)[0]
             assert bg_ids.shape[0] >= remaining
-            keep_bg_ids = np.random.choice(bg_ids, remaining, replace=False)
+            keep_bg_ids = random.choice(bg_ids, remaining, replace=False)
             assert keep_bg_ids.shape[0] == remaining
             keep = np.concatenate([keep, keep_bg_ids])
         else:
             # Fill the rest with repeated bg rois.
-            keep_extra_ids = np.random.choice(
+            keep_extra_ids = random.choice(
                 keep_bg_ids, remaining, replace=True)
             keep = np.concatenate([keep, keep_extra_ids])
     assert keep.shape[0] == config.TRAIN_ROIS_PER_IMAGE, \
@@ -1507,7 +1507,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
     extra = len(ids) - (config.RPN_TRAIN_ANCHORS_PER_IMAGE // 2)
     if extra > 0:
         # Reset the extra ones to neutral
-        ids = np.random.choice(ids, extra, replace=False)
+        ids = random.choice(ids, extra, replace=False)
         rpn_match[ids] = 0
     # Same for negative proposals
     ids = np.where(rpn_match == -1)[0]
@@ -1515,7 +1515,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
                         np.sum(rpn_match == 1))
     if extra > 0:
         # Rest the extra ones to neutral
-        ids = np.random.choice(ids, extra, replace=False)
+        ids = random.choice(ids, extra, replace=False)
         rpn_match[ids] = 0
 
     # For positive anchors, compute shift and scale needed to transform them
@@ -1583,8 +1583,8 @@ def generate_random_rois(image_shape, count, gt_class_ids, gt_boxes):
         # we need and filter out the extra. If we get fewer valid boxes
         # than we need, we loop and try again.
         while True:
-            y1y2 = np.random.randint(r_y1, r_y2, (rois_per_box * 2, 2))
-            x1x2 = np.random.randint(r_x1, r_x2, (rois_per_box * 2, 2))
+            y1y2 = random.randint(r_y1, r_y2, (rois_per_box * 2, 2))
+            x1x2 = random.randint(r_x1, r_x2, (rois_per_box * 2, 2))
             # Filter out zero area boxes
             threshold = 1
             y1y2 = y1y2[np.abs(y1y2[:, 0] - y1y2[:, 1]) >=
@@ -1607,8 +1607,8 @@ def generate_random_rois(image_shape, count, gt_class_ids, gt_boxes):
     # we need and filter out the extra. If we get fewer valid boxes
     # than we need, we loop and try again.
     while True:
-        y1y2 = np.random.randint(0, image_shape[0], (remaining_count * 2, 2))
-        x1x2 = np.random.randint(0, image_shape[1], (remaining_count * 2, 2))
+        y1y2 = random.randint(0, image_shape[0], (remaining_count * 2, 2))
+        x1x2 = random.randint(0, image_shape[1], (remaining_count * 2, 2))
         # Filter out zero area boxes
         threshold = 1
         y1y2 = y1y2[np.abs(y1y2[:, 0] - y1y2[:, 1]) >=
@@ -1691,7 +1691,7 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
             # Increment index to pick next image. Shuffle if at the start of an epoch.
             image_index = (image_index + 1) % len(image_ids)
             if shuffle and image_index == 0:
-                np.random.shuffle(image_ids)
+                random.shuffle(image_ids)
 
             # Get GT bounding boxes and masks for image.
             image_id = image_ids[image_index]
@@ -1759,7 +1759,7 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
 
             # If more instances than fits in the array, sub-sample from them.
             if gt_boxes.shape[0] > config.MAX_GT_INSTANCES:
-                ids = np.random.choice(
+                ids = random.choice(
                     np.arange(gt_boxes.shape[0]), config.MAX_GT_INSTANCES, replace=False)
                 gt_class_ids = gt_class_ids[ids]
                 gt_boxes = gt_boxes[ids]

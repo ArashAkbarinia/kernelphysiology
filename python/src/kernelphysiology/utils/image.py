@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import random
 import re
 from six.moves import range
 import os
@@ -71,7 +72,7 @@ def random_rotation(x, rg, row_axis=1, col_axis=2, channel_axis=0,
     # Returns
         Rotated Numpy image tensor.
     """
-    theta = np.random.uniform(-rg, rg)
+    theta = random.uniform(-rg, rg)
     x = apply_affine_transform(x, theta=theta, channel_axis=channel_axis,
                                fill_mode=fill_mode, cval=cval)
     return x
@@ -98,8 +99,8 @@ def random_shift(x, wrg, hrg, row_axis=1, col_axis=2, channel_axis=0,
         Shifted Numpy image tensor.
     """
     h, w = x.shape[row_axis], x.shape[col_axis]
-    tx = np.random.uniform(-hrg, hrg) * h
-    ty = np.random.uniform(-wrg, wrg) * w
+    tx = random.uniform(-hrg, hrg) * h
+    ty = random.uniform(-wrg, wrg) * w
     x = apply_affine_transform(x, tx=tx, ty=ty, channel_axis=channel_axis,
                                fill_mode=fill_mode, cval=cval)
     return x
@@ -124,7 +125,7 @@ def random_shear(x, intensity, row_axis=1, col_axis=2, channel_axis=0,
     # Returns
         Sheared Numpy image tensor.
     """
-    shear = np.random.uniform(-intensity, intensity)
+    shear = random.uniform(-intensity, intensity)
     x = apply_affine_transform(x, shear=shear, channel_axis=channel_axis,
                                fill_mode=fill_mode, cval=cval)
     return x
@@ -159,7 +160,7 @@ def random_zoom(x, zoom_range, row_axis=1, col_axis=2, channel_axis=0,
     if zoom_range[0] == 1 and zoom_range[1] == 1:
         zx, zy = 1, 1
     else:
-        zx, zy = np.random.uniform(zoom_range[0], zoom_range[1], 2)
+        zx, zy = random.uniform(zoom_range[0], zoom_range[1], 2)
     x = apply_affine_transform(x, zx=zx, zy=zy, channel_axis=channel_axis,
                                fill_mode=fill_mode, cval=cval)
     return x
@@ -200,7 +201,7 @@ def random_channel_shift(x, intensity_range, channel_axis=0):
     # Returns
         Numpy image tensor.
     """
-    intensity = np.random.uniform(-intensity_range, intensity_range)
+    intensity = random.uniform(-intensity_range, intensity_range)
     return apply_channel_shift(x, intensity, channel_axis=channel_axis)
 
 
@@ -247,7 +248,7 @@ def random_brightness(x, brightness_range):
             '`brightness_range should be tuple or list of two floats. '
             'Received: %s' % (brightness_range,))
 
-    u = np.random.uniform(brightness_range[0], brightness_range[1])
+    u = random.uniform(brightness_range[0], brightness_range[1])
     return apply_brightness_shift(x, u)
 
 
@@ -1173,10 +1174,10 @@ class ImageDataGenerator(object):
         img_col_axis = self.col_axis - 1
 
         if seed is not None:
-            np.random.seed(seed)
+            random.seed(seed)
 
         if self.rotation_range:
-            theta = np.random.uniform(
+            theta = random.uniform(
                 -self.rotation_range,
                 self.rotation_range)
         else:
@@ -1184,10 +1185,10 @@ class ImageDataGenerator(object):
 
         if self.height_shift_range:
             try:  # 1-D array-like or int
-                tx = np.random.choice(self.height_shift_range)
-                tx *= np.random.choice([-1, 1])
+                tx = random.choice(self.height_shift_range)
+                tx *= random.choice([-1, 1])
             except ValueError:  # floating point
-                tx = np.random.uniform(-self.height_shift_range,
+                tx = random.uniform(-self.height_shift_range,
                                        self.height_shift_range)
             if np.max(self.height_shift_range) < 1:
                 tx *= img_shape[img_row_axis]
@@ -1196,10 +1197,10 @@ class ImageDataGenerator(object):
 
         if self.width_shift_range:
             try:  # 1-D array-like or int
-                ty = np.random.choice(self.width_shift_range)
-                ty *= np.random.choice([-1, 1])
+                ty = random.choice(self.width_shift_range)
+                ty *= random.choice([-1, 1])
             except ValueError:  # floating point
-                ty = np.random.uniform(-self.width_shift_range,
+                ty = random.uniform(-self.width_shift_range,
                                        self.width_shift_range)
             if np.max(self.width_shift_range) < 1:
                 ty *= img_shape[img_col_axis]
@@ -1207,7 +1208,7 @@ class ImageDataGenerator(object):
             ty = 0
 
         if self.shear_range:
-            shear = np.random.uniform(
+            shear = random.uniform(
                 -self.shear_range,
                 self.shear_range)
         else:
@@ -1216,17 +1217,17 @@ class ImageDataGenerator(object):
         if self.zoom_range[0] == 1 and self.zoom_range[1] == 1:
             zx, zy = 1, 1
         else:
-            zx, zy = np.random.uniform(
+            zx, zy = random.uniform(
                 self.zoom_range[0],
                 self.zoom_range[1],
                 2)
 
-        flip_horizontal = (np.random.random() < 0.5) * self.horizontal_flip
-        flip_vertical = (np.random.random() < 0.5) * self.vertical_flip
+        flip_horizontal = (random.random() < 0.5) * self.horizontal_flip
+        flip_vertical = (random.random() < 0.5) * self.vertical_flip
 
         channel_shift_intensity = None
         if self.channel_shift_range != 0:
-            channel_shift_intensity = np.random.uniform(-self.channel_shift_range,
+            channel_shift_intensity = random.uniform(-self.channel_shift_range,
                                                         self.channel_shift_range)
 
         brightness = None
@@ -1235,7 +1236,7 @@ class ImageDataGenerator(object):
                 raise ValueError(
                     '`brightness_range should be tuple or list of two floats. '
                     'Received: %s' % (self.brightness_range,))
-            brightness = np.random.uniform(self.brightness_range[0],
+            brightness = random.uniform(self.brightness_range[0],
                                            self.brightness_range[1])
 
         transform_parameters = {'theta': theta,
@@ -1362,7 +1363,7 @@ class ImageDataGenerator(object):
                 ' channels).')
 
         if seed is not None:
-            np.random.seed(seed)
+            random.seed(seed)
 
         x = np.copy(x)
         if augment:
@@ -1427,7 +1428,7 @@ class Iterator(IteratorType):
     def _set_index_array(self):
         self.index_array = np.arange(self.n)
         if self.shuffle:
-            self.index_array = np.random.permutation(self.n)
+            self.index_array = random.permutation(self.n)
 
     def __getitem__(self, idx):
         if idx >= len(self):
@@ -1436,7 +1437,7 @@ class Iterator(IteratorType):
                              'has length {length}'.format(idx=idx,
                                                           length=len(self)))
         if self.seed is not None:
-            np.random.seed(self.seed + self.total_batches_seen)
+            random.seed(self.seed + self.total_batches_seen)
         self.total_batches_seen += 1
         if self.index_array is None:
             self._set_index_array()
@@ -1508,7 +1509,7 @@ class Iterator(IteratorType):
         self.reset()
         while 1:
             if self.seed is not None:
-                np.random.seed(self.seed + self.total_batches_seen)
+                random.seed(self.seed + self.total_batches_seen)
             if self.batch_index == 0:
                 self._set_index_array()
 
@@ -1706,7 +1707,7 @@ class NumpyArrayIterator(Iterator):
                 fname = '{prefix}_{index}_{hash}.{format}'.format(
                     prefix=self.save_prefix,
                     index=j,
-                    hash=np.random.randint(1e4),
+                    hash=random.randint(1e4),
                     format=self.save_format)
                 img.save(os.path.join(self.save_to_dir, fname))
         batch_x_miscs = [xx[index_array] for xx in self.x_misc]
@@ -1983,7 +1984,7 @@ class DirectoryIterator(Iterator):
                 fname = '{prefix}_{index}_{hash}.{format}'.format(
                     prefix=self.save_prefix,
                     index=j,
-                    hash=np.random.randint(1e7),
+                    hash=random.randint(1e7),
                     format=self.save_format)
                 img.save(os.path.join(self.save_to_dir, fname))
         # build batch of labels
@@ -2214,7 +2215,7 @@ class DataFrameIterator(Iterator):
                 fname = '{prefix}_{index}_{hash}.{format}'.format(
                     prefix=self.save_prefix,
                     index=j,
-                    hash=np.random.randint(1e7),
+                    hash=random.randint(1e7),
                     format=self.save_format)
                 img.save(os.path.join(self.save_to_dir, fname))
         # build batch of labels

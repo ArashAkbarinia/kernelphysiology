@@ -3,6 +3,7 @@ Common utility functions for Keras.
 """
 
 import numpy as np
+import random
 
 import math
 import keras
@@ -98,7 +99,7 @@ class ResizeGenerator(keras.utils.Sequence):
         'Updates indices after each epoch'
         self.indices = np.arange(self.x_data.shape[0])
         if self.shuffle == True:
-            np.random.shuffle(self.indices)
+            random.shuffle(self.indices)
 
     def __data_generation(self, current_batch):
         'Generates data containing batch_size samples'
@@ -203,6 +204,6 @@ def contrast_generator(batches, contrast_range):
         data_x = np.zeros(batch_x.shape)
         for i in range(batch_x.shape[0]):
             data_x[i,] = adjust_contrast(
-                batch_x[i,], np.random.uniform(*contrast_range)
+                batch_x[i,], random.uniform(*contrast_range)
             )
         yield data_x, data_y

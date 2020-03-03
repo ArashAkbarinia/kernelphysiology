@@ -3,6 +3,7 @@ Reading the GEETUP dataset and creating train and validation sets.
 """
 
 import numpy as np
+import random
 
 import keras
 import keras.backend as K
@@ -90,7 +91,7 @@ class GeetupGenerator(keras.utils.Sequence):
     def on_epoch_end(self):
         """Updates indices after each epoch"""
         if self.shuffle is True:
-            np.random.shuffle(self.check_list)
+            random.shuffle(self.check_list)
 
     def __data_generation(self, current_batch):
         """Generates data containing batch_size samples"""

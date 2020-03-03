@@ -12,6 +12,7 @@ from keras.utils import multi_gpu_model
 import tensorflow as tf
 
 import numpy as np
+import random
 import sys
 import os
 import pickle
@@ -171,7 +172,7 @@ def random_image(model, args):
         which_images = args.random
     for i in which_images:
         if len(args.random) == 1:
-            ran_ind = np.random.randint(0, testing_generator.__len__())
+            ran_ind = random.randint(0, testing_generator.__len__())
         else:
             ran_ind = i
         x, y = testing_generator.__getitem__(ran_ind)

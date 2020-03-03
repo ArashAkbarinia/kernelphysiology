@@ -7,6 +7,7 @@ from skimage.color import rgb2gray
 from skimage.draw import rectangle
 
 import numpy as np
+import random
 import math
 
 import cv2
@@ -61,16 +62,16 @@ def get_random_crop_params(img, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.)):
     area = img.shape[0] * img.shape[1]
 
     for attempt in range(10):
-        target_area = np.random.uniform(*scale) * area
+        target_area = random.uniform(*scale) * area
         log_ratio = (math.log(ratio[0]), math.log(ratio[1]))
-        aspect_ratio = math.exp(np.random.uniform(*log_ratio))
+        aspect_ratio = math.exp(random.uniform(*log_ratio))
 
         w = int(round(math.sqrt(target_area * aspect_ratio)))
         h = int(round(math.sqrt(target_area / aspect_ratio)))
 
         if w < img.shape[0] and h < img.shape[1]:
-            i = np.random.randint(0, img.shape[1] - h)
-            j = np.random.randint(0, img.shape[0] - w)
+            i = random.randint(0, img.shape[1] - h)
+            j = random.randint(0, img.shape[0] - w)
             return i, j, h, w
 
     # Fallback to central crop
@@ -312,7 +313,7 @@ def adjust_contrast(image, amount, pixel_variatoin=0, mask_type=None,
     min_contrast = amount - pixel_variatoin
     max_contrast = amount + pixel_variatoin
 
-    contrast_mat = np.random.uniform(
+    contrast_mat = random.uniform(
         low=min_contrast, high=max_contrast, size=image.shape
     )
 
@@ -373,7 +374,7 @@ def adjust_illuminant(image, illuminant, pixel_variatoin=0, mask_type=None,
     for i in range(image.shape[2]):
         min_illuminant = illuminant[i] - pixel_variatoin
         max_illuminant = illuminant[i] + pixel_variatoin
-        illuminant_i = np.random.uniform(
+        illuminant_i = random.uniform(
             low=min_illuminant, high=max_illuminant, size=image[:, :, i].shape
         )
         image[:, :, i] = image[:, :, i] * illuminant_i
@@ -443,8 +444,8 @@ def random_occlusion(image, object_instances=1, object_ratio=0.05):
     (rows, cols, chns) = output.shape
     extent = (round(rows * object_ratio), round(cols * object_ratio))
     for i in range(object_instances):
-        rand_row = np.random.randint(0 + extent[0], rows - extent[0])
-        rand_col = np.random.randint(0 + extent[1], cols - extent[1])
+        rand_row = random.randint(0 + extent[0], rows - extent[0])
+        rand_col = random.randint(0 + extent[1], cols - extent[1])
         start = (rand_row, rand_col)
         # FIXME: if backend shape is different
         (rr, cc) = rectangle(start, extent=extent, shape=output.shape[0:2])

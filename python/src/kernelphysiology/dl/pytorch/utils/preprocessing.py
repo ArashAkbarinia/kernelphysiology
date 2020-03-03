@@ -151,7 +151,7 @@ class RandomAugmentationTransformation(object):
             # in between those numbers
             for key, val in kwargs.items():
                 if isinstance(val, list):
-                    kwargs[key] = np.random.uniform(*val)
+                    kwargs[key] = random.uniform(*val)
 
             x = manipulation_function(x, **kwargs)
 

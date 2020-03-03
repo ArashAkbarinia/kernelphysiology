@@ -10,6 +10,7 @@ from __future__ import print_function
 import os
 
 import numpy as np
+import random
 import keras
 from keras.preprocessing.image import ImageDataGenerator
 from keras.engine.training import Model
@@ -88,9 +89,9 @@ def create_dog_layer(confs, nkernels, kernel_size, nchannels=3):
     dogs = np.zeros((kernel_size, kernel_size, nchannels, nkernels))
     for i in range(0, nkernels):
         for j in range(0, nchannels):
-            sigma1 = np.random.uniform(0, 1)
+            sigma1 = random.uniform(0, 1)
             g1 = gauss.gkern(kernel_size, sigma1)
-            sigma2 = np.random.uniform(0, 1)
+            sigma2 = random.uniform(0, 1)
             g2 = gauss.gkern(kernel_size, sigma2)
             dg = -g1 + g2
             dogs[:, :, j, i] = dg
