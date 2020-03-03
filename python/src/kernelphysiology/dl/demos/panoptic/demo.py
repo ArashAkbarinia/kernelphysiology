@@ -81,8 +81,12 @@ if __name__ == "__main__":
         for path in tqdm.tqdm(args.input, disable=not args.output):
             # use PIL, to be consistent with evaluation
             vision_type = cfg.INPUT.VISION_TYPE
+            opponent_space = cfg.INPUT.OPONNENT_SPACE
             print(vision_type)
-            img = _read_image(path, format="BGR", vision_type=vision_type)
+            img = _read_image(
+                path, format="BGR", vision_type=vision_type,
+                opponent_space=opponent_space
+            )
             start_time = time.time()
             predictions, visualized_output = demo.run_on_image(img)
             logger.info(

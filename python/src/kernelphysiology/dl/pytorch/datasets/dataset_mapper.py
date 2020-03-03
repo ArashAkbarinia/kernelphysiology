@@ -25,9 +25,11 @@ rgb2lab = ImageCms.buildTransformFromOpenProfiles(rgb_p, lab_p, 'RGB', 'LAB')
 lab2rgb = ImageCms.buildTransformFromOpenProfiles(lab_p, rgb_p, 'LAB', 'RGB')
 
 from kernelphysiology.utils import imutils
+from kernelphysiology.transformations import colour_spaces
 
 
-def _read_image(file_name, format=None, vision_type='trichromat', contrast=None):
+def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
+                opponent_space='lab'):
     """
     Read an image into the given format.
     Will apply rotation and flipping if the image has such exif information.
@@ -49,14 +51,25 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None)
             image = Image.fromarray(image.astype('uint8'))
 
         if vision_type != 'trichromat':
-            image = ImageCms.applyTransform(image, rgb2lab)
-            image = np.asarray(image).copy()
-            if vision_type == 'monochromat' or vision_type == 'dichromat_rg':
-                image[:, :, 1] = 0
-            if vision_type == 'monochromat' or vision_type == 'dichromat_yb':
-                image[:, :, 2] = 0
-            image = Image.fromarray(image, 'LAB')
-            image = ImageCms.applyTransform(image, lab2rgb)
+            if opponent_space == 'lab':
+                image = ImageCms.applyTransform(image, rgb2lab)
+                image = np.asarray(image).copy()
+                if vision_type == 'monochromat' or vision_type == 'dichromat_rg':
+                    image[:, :, 1] = 0
+                if vision_type == 'monochromat' or vision_type == 'dichromat_yb':
+                    image[:, :, 2] = 0
+                image = Image.fromarray(image, 'LAB')
+                image = ImageCms.applyTransform(image, lab2rgb)
+            elif opponent_space == 'dkl':
+                image = np.asarray(image).copy()
+                image = image.astype('float') / 255
+                image = colour_spaces.rgb2dkl(image)
+                if vision_type == 'monochromat' or vision_type == 'dichromat_rg':
+                    image[:, :, 1] = 0
+                if vision_type == 'monochromat' or vision_type == 'dichromat_yb':
+                    image[:, :, 2] = 0
+                image = colour_spaces.dkl2rgb(image) * 255
+                image = Image.fromarray(image.astype('uint8'))
 
         # capture and ignore this bug: https://github.com/python-pillow/Pillow/issues/3973
         try:
@@ -129,6 +142,7 @@ class DatasetMapper:
             )
         self.is_train = is_train
         self.vision_type = cfg.INPUT.VISION_TYPE
+        self.opponent_space = cfg.INPUT.OPPONENT_SPACE
         self.contrast = cfg.INPUT.CONTRAST
         if self.contrast == 1.0:
             self.contrast = None
@@ -146,7 +160,8 @@ class DatasetMapper:
         # USER: Write your own image loading if it's not from a file
         image = _read_image(
             dataset_dict["file_name"], format=self.img_format,
-            vision_type=self.vision_type, contrast=self.contrast
+            vision_type=self.vision_type, contrast=self.contrast,
+            opponent_space=self.opponent_space
         )
         utils.check_image_size(dataset_dict, image)
 
