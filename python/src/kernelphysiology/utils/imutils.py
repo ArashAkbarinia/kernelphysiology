@@ -564,5 +564,5 @@ def shift_image(img, rows, cols):
         eco = img.shape[1]
         sci = 0
         eci = cols
-    output[sri:eri, sci:eci, :] = img[sro:ero, sco:eco, :]
+    output[sri:eri, sci:eci, ] = img[sro:ero, sco:eco, ]
     return output
