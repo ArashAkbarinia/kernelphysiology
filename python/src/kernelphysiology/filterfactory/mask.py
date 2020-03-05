@@ -39,8 +39,8 @@ def create_mask_image_canny(image, sigma=1.0, low_threshold=0.9,
             if type(dialation) is float:
                 dialation = int(dialation)
             if type(dialation) is int:
-                dialation_mat = morphology.square(dialation)
-            image_mask = morphology.dilation(image_mask, dialation_mat)
+                dialation = morphology.square(dialation)
+            image_mask = morphology.dilation(image_mask, dialation)
 
         # repeating this for number of channels in input image
         if chns != 1:
