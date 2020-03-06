@@ -723,7 +723,8 @@ def main_worker(ngpus_per_node, args):
     for epoch in range(args.initial_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        adjust_learning_rate(optimizer, epoch, args)
+        if args.imagenet_weights is not None:
+            adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
         train_log = train_on_data(

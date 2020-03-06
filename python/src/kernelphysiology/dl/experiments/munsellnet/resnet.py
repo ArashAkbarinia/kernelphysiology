@@ -417,6 +417,7 @@ def _resnet(block_type, planes, imagenet_weights=None, **kwargs):
             k in model.state_dict()
         }
         model.load_state_dict(pretrained_dict, strict=False)
+        print('Loaded ', imagenet_weights)
     return model
 
 
