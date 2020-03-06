@@ -12,10 +12,11 @@ from kernelphysiology.dl.pytorch.datasets import utils_db
 
 
 class MunsellNetDataset(Dataset):
-    def __init__(self, data_dir, sub_type, transforms=None):
+    def __init__(self, data_dir, sub_type, transforms=None, imgnet=None):
         self.is_pill_img = 'wcs_xyz_png_1600' in data_dir
 
         self.data_dir = '%s/%s/' % (data_dir, sub_type)
+        self.normalise = False
         if self.is_pill_img:
             self.inputs = glob.glob('%s/*.png' % self.data_dir)
             from torchvision.datasets.folder import pil_loader
@@ -23,6 +24,8 @@ class MunsellNetDataset(Dataset):
         else:
             self.inputs = glob.glob('%s/*.npy' % self.data_dir)
             self.data_loader = utils_db.npy_data_loader
+            if imgnet is not None:
+                self.normalise = True
         self.targets = []
         for img in self.inputs:
             img_parsed = img.split('/')[-1].split('.')
@@ -36,6 +39,8 @@ class MunsellNetDataset(Dataset):
         targets = self.targets[index]
 
         img = self.data_loader(img_path)
+        if self.normalise:
+            img /= img.max()
 
         if self.transforms is not None:
             img = self.transforms(img)
@@ -47,7 +52,7 @@ class MunsellNetDataset(Dataset):
 
 
 def get_train_val_dataset(data_dir, train_transformations, val_transformations,
-                          normalize):
+                          normalize, imgnet):
     is_pill_img = 'wcs_xyz_png_1600' in data_dir
     if is_pill_img:
         train_transforms = transforms.Compose([
@@ -74,8 +79,12 @@ def get_train_val_dataset(data_dir, train_transformations, val_transformations,
             normalize,
         ])
 
-    train_dataset = MunsellNetDataset(data_dir, 'train', train_transforms)
-    val_dataset = MunsellNetDataset(data_dir, 'val', val_transforms)
+    train_dataset = MunsellNetDataset(
+        data_dir, 'train', train_transforms, imgnet
+    )
+    val_dataset = MunsellNetDataset(
+        data_dir, 'val', val_transforms, imgnet
+    )
 
     # db_data = np.loadtxt(data_dir + '/ds.csv', delimiter=',', dtype='str')
 
