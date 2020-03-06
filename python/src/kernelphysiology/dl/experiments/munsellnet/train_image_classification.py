@@ -421,6 +421,13 @@ def extra_args_fun(parser):
         help='Parameters passed to the evaluation function (default: None)'
     )
 
+    specific_group.add_argument(
+        '--imagenet_weights',
+        type=str,
+        default=None,
+        help='ImageNet wieghts (default: None)'
+    )
+
 
 def main(argv):
     args = argument_handler.train_arg_parser(argv, extra_args_fun)
@@ -548,6 +555,7 @@ def main_worker(ngpus_per_node, args):
         if (args.network_name == 'resnet_basic_custom' or
                 args.network_name == 'resnet_bottleneck_custom'):
             outputs = {'objects': None, 'munsells': None, 'illuminants': None}
+            imagenet_weights = args.imagenet_weights
             if args.object_area is not None:
                 outputs['objects'] = {
                     'num_classes': 2100, 'area': args.object_area
@@ -564,7 +572,7 @@ def main_worker(ngpus_per_node, args):
             model = resnet.__dict__[args.network_name](
                 args.blocks, pooling_type=args.pooling_type,
                 in_chns=len(mean), inplanes=args.num_kernels,
-                outputs=outputs
+                outputs=outputs, imagenet_weights=imagenet_weights
             )
     elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.network_name))

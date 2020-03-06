@@ -405,8 +405,18 @@ class ResNet(nn.Module):
         return objects, munsells, illuminants
 
 
-def _resnet(block_type, planes, **kwargs):
+def _resnet(block_type, planes, imagenet_weights=None, **kwargs):
     model = ResNet(block_type, planes, **kwargs)
+    if imagenet_weights is not None:
+        from kernelphysiology.dl.pytorch.models import model_utils
+        imagenet_resnet, _ = model_utils.which_network_classification(
+            imagenet_weights, 1000
+        )
+        pretrained_dict = {
+            k: v for k, v in imagenet_resnet.state_dict().items() if
+            k in model.state_dict()
+        }
+        model.load_state_dict(pretrained_dict, strict=False)
     return model
 
 
