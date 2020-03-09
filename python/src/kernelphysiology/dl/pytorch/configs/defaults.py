@@ -83,7 +83,7 @@ _C.INPUT.MASK_FORMAT = "polygon"  # alternative: "bitmask"
 ###
 _C.INPUT.VISION_TYPE = "trichromat"
 _C.INPUT.CONTRAST = 1.0
-_C.INPUT.OPPONNENT_SPACE = "lab"
+_C.INPUT.OPPONENT_SPACE = "lab"
 
 
 # -----------------------------------------------------------------------------
