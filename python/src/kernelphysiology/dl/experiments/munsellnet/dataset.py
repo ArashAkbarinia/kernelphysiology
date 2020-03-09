@@ -8,6 +8,8 @@ import torch
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 
+from skimage import color
+
 from kernelphysiology.dl.pytorch.datasets import utils_db
 
 
@@ -40,7 +42,8 @@ class MunsellNetDataset(Dataset):
 
         img = self.data_loader(img_path)
         if self.normalise:
-            img /= img.max()
+            img /= 31.97249
+            img = color.xyz2rgb(img)
 
         if self.transforms is not None:
             img = self.transforms(img)
