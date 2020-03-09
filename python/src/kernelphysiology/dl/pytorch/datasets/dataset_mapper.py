@@ -46,7 +46,11 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
 
         if contrast is not None:
             image = np.asarray(image).copy()
-            amount = random.uniform(contrast, 1)
+            # FIXME: nicer solution
+            if type(contrast) is list:
+                amount = random.uniform(contrast, 1)
+            else:
+                amount = contrast
             image = imutils.adjust_contrast(image, amount)
             image = Image.fromarray(image.astype('uint8'))
 
