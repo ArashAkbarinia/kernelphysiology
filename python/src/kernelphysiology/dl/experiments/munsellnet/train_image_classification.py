@@ -362,19 +362,6 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
             top1_ill.update(acc1_ill[0], input_image.size(0))
             top5_ill.update(acc5_ill[0], input_image.size(0))
 
-            if args.ill_colour is not None:
-                input_image2 = correct_image(
-                    normalise_inverse, normalise_back, input_image, out_ill,
-                    args.ill_colour
-                )
-                out_obj2, out_mun2, _ = model(input_image2)
-                if out_mun2 is not None:
-                    loss_mun2 = criterion(out_mun2, targets[:, 1])
-                    loss_mun += loss_mun2
-                if out_obj2 is not None:
-                    loss_obj2 = criterion(out_obj2, targets[:, 0])
-                    loss_obj += loss_obj2
-
         loss = loss_obj + loss_mun + loss_ill
         losses.update(loss.item(), input_image.size(0))
 
@@ -382,6 +369,23 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        if out_mun is None and args.ill_colour is not None:
+            input_image2 = correct_image(
+                normalise_inverse, normalise_back, input_image, out_ill,
+                args.ill_colour
+            )
+            out_obj2, out_mun2, _ = model(input_image2)
+            loss_mun2 = 0
+            loss_obj2 = 0
+            if out_mun2 is not None:
+                loss_mun2 = criterion(out_mun2, targets[:, 1])
+            if out_obj2 is not None:
+                loss_obj2 = criterion(out_obj2, targets[:, 0])
+            loss2 = loss_obj2 + loss_mun2
+            optimizer.zero_grad()
+            loss2.backward()
+            optimizer.step()
 
         # measure elapsed time
         batch_time.update(time.time() - end)
