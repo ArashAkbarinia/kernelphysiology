@@ -8,6 +8,7 @@ import sys
 
 from skimage import feature
 from skimage import morphology
+from skimage.transform import resize
 import cv2
 
 from kernelphysiology.utils import imutils
@@ -83,6 +84,23 @@ def create_mask_image_shape(image, is_circle=True, mask_length=None):
     return image_mask
 
 
+def create_mask_image_texture(image, texture_type, inverse=False):
+    image_mask = np.load(texture_type)
+    if (image_mask.shape[0] != image.shape[0]) or (
+            image_mask.shape[1] != image.shape[1]):
+        image_mask = resize(image_mask, (image.shape[0], image.shape[1]))
+        image_mask = image_mask > 0
+    image_mask = image_mask.astype('uint8')
+    if inverse:
+        image_mask = 1 - image_mask
+    if len(image.shape) > 2:
+        chns = image.shape[2]
+        if chns != 1:
+            image_mask = np.expand_dims(image_mask, axis=2)
+            image_mask = np.repeat(image_mask, chns, axis=2)
+    return image_mask
+
+
 def create_mask_image(image, mask_type, **kwargs):
     if mask_type is None:
         image_mask = np.zeros(image.shape, np.uint8)
@@ -92,6 +110,8 @@ def create_mask_image(image, mask_type, **kwargs):
         image_mask = create_mask_image_shape(image, False, **kwargs)
     elif mask_type == 'canny':
         image_mask = create_mask_image_canny(image, **kwargs)
+    elif mask_type == 'texture':
+        image_mask = create_mask_image_texture(image, **kwargs)
     else:
         sys.exit('Unsupported mask type %s' % mask_type)
     return image_mask
