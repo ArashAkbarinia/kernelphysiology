@@ -769,13 +769,14 @@ def main_worker(ngpus_per_node, args):
     )
 
     if args.ill_colour is not None:
+        print('Performing with illuminant correction')
         args.ill_colour = np.loadtxt(args.ill_colour, delimiter=',')
 
     # training on epoch
     for epoch in range(args.initial_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        if args.imagenet_weights is not None:
+        if args.imagenet_weights is None:
             adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
