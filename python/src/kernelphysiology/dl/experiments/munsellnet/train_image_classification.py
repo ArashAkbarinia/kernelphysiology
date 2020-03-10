@@ -36,6 +36,7 @@ from kernelphysiology.utils.path_utils import create_dir
 
 from kernelphysiology.dl.experiments.munsellnet.dataset import \
     get_train_val_dataset
+from kernelphysiology.dl.pytorch.utils import transformations
 
 best_acc1 = 0
 
@@ -274,6 +275,27 @@ def validate_on_data(val_loader, model, criterion, args):
             losses_ill.avg, top1_obj.avg, top1_mun.avg, top1_ill.avg]
 
 
+def correct_image(normalise_inverse, normalise_back, input_image, out_ill,
+                  ill_colours):
+    corrected_images = input_image.clone()
+    for i in range(out_ill.shape[0]):
+        current_image = corrected_images[i].squeeze()
+        current_image = normalise_inverse.__call__(current_image)
+        ill_ind = out_ill[i, :].argmax()
+        illuminant = ill_colours[ill_ind]
+        # from skimage import io
+        # im_save = current_image.cpu().numpy().transpose([1, 2, 0])
+        # io.imsave('/home/arash/Desktop/before.png', im_save / im_save.max())
+        for j in range(3):
+            current_image[j,] /= illuminant[j]
+        # im_save = current_image.cpu().numpy().transpose([1, 2, 0])
+        # io.imsave('/home/arash/Desktop/after.png', im_save / im_save.max())
+        # import pdb
+        # pdb.set_trace()
+        corrected_images[i] = normalise_back.__call__(current_image)
+    return corrected_images
+
+
 def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
     losses = AverageMeter()
     batch_time = AverageMeter()
@@ -296,6 +318,12 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
 
     # switch to train mode
     model.train()
+
+    mean, std = model_utils.get_preprocessing_function(
+        args.colour_space, args.colour_transformation
+    )
+    normalise_inverse = transformations.NormalizeInverse(mean, std)
+    normalise_back = transforms.Normalize(mean=mean, std=std)
 
     end = time.time()
     for i, (input_image, targets) in enumerate(train_loader):
@@ -333,6 +361,19 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
             losses_ill.update(loss_ill.item(), input_image.size(0))
             top1_ill.update(acc1_ill[0], input_image.size(0))
             top5_ill.update(acc5_ill[0], input_image.size(0))
+
+            if args.ill_colour is not None:
+                input_image2 = correct_image(
+                    normalise_inverse, normalise_back, input_image, out_ill,
+                    args.ill_colour
+                )
+                out_obj2, out_mun2, _ = model(input_image2)
+                if out_mun2 is not None:
+                    loss_mun2 = criterion(out_mun2, targets[:, 1])
+                    loss_mun += loss_mun2
+                if out_obj2 is not None:
+                    loss_obj2 = criterion(out_obj2, targets[:, 0])
+                    loss_obj += loss_obj2
 
         loss = loss_obj + loss_mun + loss_ill
         losses.update(loss.item(), input_image.size(0))
@@ -426,6 +467,13 @@ def extra_args_fun(parser):
         type=str,
         default=None,
         help='ImageNet wieghts (default: None)'
+    )
+
+    specific_group.add_argument(
+        '--ill_colour',
+        type=str,
+        default=None,
+        help='Colour of illuminants (default: None)'
     )
 
 
@@ -719,6 +767,9 @@ def main_worker(ngpus_per_node, args):
         num_workers=args.workers, pin_memory=True,
         sampler=train_sampler
     )
+
+    if args.ill_colour is not None:
+        args.ill_colour = np.loadtxt(args.ill_colour, delimiter=',')
 
     # training on epoch
     for epoch in range(args.initial_epoch, args.epochs):
