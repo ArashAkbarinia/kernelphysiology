@@ -24,7 +24,7 @@ lab_p = ImageCms.createProfile('LAB')
 rgb2lab = ImageCms.buildTransformFromOpenProfiles(rgb_p, lab_p, 'RGB', 'LAB')
 lab2rgb = ImageCms.buildTransformFromOpenProfiles(lab_p, rgb_p, 'LAB', 'RGB')
 
-from kernelphysiology.utils import imutils
+from kernelphysiology.utils.imutils import adjust_contrast
 from kernelphysiology.transformations import colour_spaces
 
 
@@ -51,7 +51,7 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
                 amount = random.uniform(contrast, 1)
             else:
                 amount = contrast
-            image = imutils.adjust_contrast(image, amount)
+            image = adjust_contrast(image, amount)
             image = Image.fromarray(image.astype('uint8'))
 
         if vision_type != 'trichromat':
@@ -66,14 +66,13 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
                 image = ImageCms.applyTransform(image, lab2rgb)
             elif opponent_space == 'dkl':
                 image = np.asarray(image).copy()
-                image = image.astype('float') / 255
                 image = colour_spaces.rgb2dkl(image)
                 if vision_type == 'monochromat' or vision_type == 'dichromat_rg':
                     image[:, :, 1] = 0
                 if vision_type == 'monochromat' or vision_type == 'dichromat_yb':
                     image[:, :, 2] = 0
-                image = colour_spaces.dkl2rgb(image) * 255
-                image = Image.fromarray(image.astype('uint8'))
+                image = colour_spaces.dkl2rgb(image)
+                image = Image.fromarray(image)
 
         # capture and ignore this bug: https://github.com/python-pillow/Pillow/issues/3973
         try:

@@ -8,7 +8,7 @@ import sys
 from skimage.color import rgb2lab, lab2rgb
 
 from kernelphysiology.transformations.normalisations import min_max_normalise
-from kernelphysiology.utils.imutils import im2double
+#from kernelphysiology.utils.imutils import im2double
 
 dkl_from_rgb = np.array(
     [[0.49995, 0.50001495, 0.49999914],
@@ -24,7 +24,9 @@ rgb_from_dkl = np.array(
 
 
 def rgb2dkl(x):
-    x = im2double(x)
+    # FIXME
+    # x = im2double(x)
+    x = x.astype('float32') / 255
     return np.dot(x, rgb_from_dkl)
 
 
