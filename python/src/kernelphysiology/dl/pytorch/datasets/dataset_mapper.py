@@ -42,7 +42,7 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
         image (np.ndarray): an HWC image in the given format.
     """
     with PathManager.open(file_name, "rb") as f:
-        image = Image.open(f)
+        image = Image.open(f).convert('RGB')
 
         if contrast is not None:
             image = np.asarray(image).copy()
