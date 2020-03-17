@@ -35,17 +35,8 @@ def im2double_max(image):
 
 
 def im2double(image):
-    if image.dtype == 'uint8':
-        image = image.astype('float32')
-        return image / 255
-    else:
-        image = image.astype('float32')
-        max_pixel = np.max(image)
-        if 1 < max_pixel <= 255:
-            return image / 255
-        else:
-            image /= max_pixel
-            return image
+    image, _ = im2double_max(image)
+    return image
 
 
 # TODO: merge it with Keras image manipulation class
