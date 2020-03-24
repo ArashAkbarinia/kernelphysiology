@@ -1,6 +1,7 @@
 """
 Collection of different normalisation of a signal.
 """
+
 import numpy as np
 
 

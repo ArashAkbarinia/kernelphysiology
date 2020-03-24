@@ -7,9 +7,7 @@ import sys
 
 from skimage.color import rgb2lab, lab2rgb
 
-from kernelphysiology.transformations.normalisations import min_max_normalise
-from kernelphysiology.transformations.normalisations import im2double
-from kernelphysiology.transformations.normalisations import uint8im
+from kernelphysiology.transformations import normalisations
 
 dkl_from_rgb = np.array(
     [[+0.49995000, +0.50001495, +0.49999914],
@@ -25,13 +23,13 @@ rgb_from_dkl = np.array(
 
 
 def rgb2dkl(x):
-    x = im2double(x)
+    x = normalisations.im2double(x)
     return np.dot(x, rgb_from_dkl)
 
 
 def dkl2rgb(x):
     rgb_im = np.dot(x, dkl_from_rgb)
-    return uint8im(rgb_im)
+    return normalisations.uint8im(rgb_im)
 
 
 def rgb2opponency(image_rgb, colour_space='lab'):
@@ -57,7 +55,7 @@ def opponency2rgb(image_opponent, colour_space='lab'):
         image_rgb = lab2rgb(image_opponent)
     elif colour_space == 'dkl':
         image_rgb = dkl2rgb(image_opponent)
-        image_rgb = min_max_normalise(image_rgb)
+        image_rgb = normalisations.min_max_normalise(image_rgb)
     else:
         sys.exit('Not supported colour space %s' % colour_space)
     return image_rgb

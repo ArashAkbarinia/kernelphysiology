@@ -14,6 +14,7 @@ import cv2
 
 from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 from kernelphysiology.filterfactory.mask import create_mask_image
+from kernelphysiology.filterfactory.mask import colour_filter_array
 from kernelphysiology.transformations.colour_spaces import rgb2opponency
 from kernelphysiology.transformations.colour_spaces import opponency2rgb
 from kernelphysiology.transformations.colour_spaces import get_max_lightness
@@ -409,6 +410,25 @@ def poisson_noise(image, seed=None, clip=True, mask_type=None, **kwargs):
     output = image_org * image_mask + image_noise * (1 - image_mask)
     output *= max_pixel
     return output
+
+
+def bayer_filter(image):
+    if len(image.shape) == 2:
+        return image
+    image = image.copy()
+    mask_r = colour_filter_array(image, colour_channel='red')
+    mask_g = colour_filter_array(image, colour_channel='green')
+    mask_b = colour_filter_array(image, colour_channel='blue')
+    img_r = image[:, :, 0]
+    img_g = image[:, :, 1]
+    img_b = image[:, :, 2]
+    img_r[mask_r == 0] = 0
+    img_g[mask_g == 0] = 0
+    img_b[mask_b == 0] = 0
+    image[:, :, 0] = img_r
+    image[:, :, 1] = img_g
+    image[:, :, 2] = img_b
+    return image
 
 
 # TODO: add other shapes as well
