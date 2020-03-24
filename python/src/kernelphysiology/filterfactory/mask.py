@@ -101,15 +101,40 @@ def create_mask_image_texture(image, texture_type, inverse=False):
     return image_mask
 
 
-def colour_filter_array(image, colour_channel):
+def bayer_filter_array(image, colour_channel):
     image_mask = np.zeros((image.shape[0], image.shape[1]), np.uint8)
     if colour_channel == 'red':
-        image_mask[::2, 1::2] = 1
+        image_mask[0::2, 1::2] = 1
     elif colour_channel == 'green':
-        image_mask[::2, ::2] = 1
+        image_mask[0::2, 0::2] = 1
         image_mask[1::2, 1::2] = 1
     elif colour_channel == 'blue':
-        image_mask[1::2, ::2] = 1
+        image_mask[1::2, 0::2] = 1
+    return image_mask
+
+
+def retina_filter_array(image, colour_channel):
+    image_mask = np.zeros((image.shape[0], image.shape[1]), np.uint8)
+    if colour_channel == 'red':
+        image_mask[0::2, 0::3] = 1
+        image_mask[0::2, 2::3] = 1
+        image_mask[1::3, 1::3] = 1
+    elif colour_channel == 'green':
+        image_mask[1::3, 0::3] = 1
+        image_mask[1::3, 2::3] = 1
+        image_mask[2::3, 1::3] = 1
+    elif colour_channel == 'blue':
+        image_mask[0::3, 1::3] = 1
+    return image_mask
+
+
+def colour_filter_array(image, mosaic_type, **kwargs):
+    if mosaic_type == 'bayer':
+        image_mask = bayer_filter_array(image, **kwargs)
+    elif mosaic_type == 'retina':
+        image_mask = retina_filter_array(image, **kwargs)
+    else:
+        sys.exit('Unsupported mosaic type %s' % mosaic_type)
     return image_mask
 
 

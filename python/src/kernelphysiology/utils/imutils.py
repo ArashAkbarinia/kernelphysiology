@@ -412,13 +412,13 @@ def poisson_noise(image, seed=None, clip=True, mask_type=None, **kwargs):
     return output
 
 
-def bayer_filter(image):
+def im2mosaic(image, mosaic_type):
     if len(image.shape) == 2:
         return image
     image = image.copy()
-    mask_r = colour_filter_array(image, colour_channel='red')
-    mask_g = colour_filter_array(image, colour_channel='green')
-    mask_b = colour_filter_array(image, colour_channel='blue')
+    mask_r = colour_filter_array(image, mosaic_type, colour_channel='red')
+    mask_g = colour_filter_array(image, mosaic_type, colour_channel='green')
+    mask_b = colour_filter_array(image, mosaic_type, colour_channel='blue')
     img_r = image[:, :, 0]
     img_g = image[:, :, 1]
     img_b = image[:, :, 2]
