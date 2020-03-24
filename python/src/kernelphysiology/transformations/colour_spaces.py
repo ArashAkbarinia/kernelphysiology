@@ -9,6 +9,7 @@ from skimage.color import rgb2lab, lab2rgb
 
 from kernelphysiology.transformations.normalisations import min_max_normalise
 from kernelphysiology.transformations.normalisations import im2double
+from kernelphysiology.transformations.normalisations import uint8im
 
 dkl_from_rgb = np.array(
     [[+0.49995000, +0.50001495, +0.49999914],
@@ -30,10 +31,7 @@ def rgb2dkl(x):
 
 def dkl2rgb(x):
     rgb_im = np.dot(x, dkl_from_rgb)
-    rgb_im = np.maximum(rgb_im, 0)
-    rgb_im = np.minimum(rgb_im, 1)
-    rgb_im *= 255
-    return rgb_im.astype('uint8')
+    return uint8im(rgb_im)
 
 
 def rgb2opponency(image_rgb, colour_space='lab'):

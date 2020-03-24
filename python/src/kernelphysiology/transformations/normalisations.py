@@ -20,10 +20,6 @@ def im2double_max(image):
     else:
         image = image.astype('float32')
         max_pixel = np.max(image)
-        # FIXME: check if this has consequences some where
-        # if 1 < max_pixel <= 255:
-        #     return image / 255, 255
-        # else:
         image /= max_pixel
         return image, max_pixel
 
@@ -31,3 +27,10 @@ def im2double_max(image):
 def im2double(image):
     image, _ = im2double_max(image)
     return image
+
+
+def uint8im(image):
+    image = np.maximum(image, 0)
+    image = np.minimum(image, 1)
+    image *= 255
+    return image.astype('uint8')
