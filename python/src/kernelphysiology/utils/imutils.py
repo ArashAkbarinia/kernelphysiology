@@ -17,26 +17,8 @@ from kernelphysiology.filterfactory.mask import create_mask_image
 from kernelphysiology.transformations.colour_spaces import rgb2opponency
 from kernelphysiology.transformations.colour_spaces import opponency2rgb
 from kernelphysiology.transformations.colour_spaces import get_max_lightness
-
-
-def im2double_max(image):
-    if image.dtype == 'uint8':
-        image = image.astype('float32')
-        return image / 255, 255
-    else:
-        image = image.astype('float32')
-        max_pixel = np.max(image)
-        # FIXME: check if this has consequences some where
-        # if 1 < max_pixel <= 255:
-        #     return image / 255, 255
-        # else:
-        image /= max_pixel
-        return image, max_pixel
-
-
-def im2double(image):
-    image, _ = im2double_max(image)
-    return image
+from kernelphysiology.transformations.normalisations import im2double_max
+from kernelphysiology.transformations.normalisations import im2double
 
 
 # TODO: merge it with Keras image manipulation class

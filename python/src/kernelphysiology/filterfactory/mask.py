@@ -11,7 +11,7 @@ from skimage import morphology
 from skimage.transform import resize
 import cv2
 
-from kernelphysiology.utils import imutils
+from kernelphysiology.transformations.normalisations import im2double
 
 
 def create_mask_image_canny(image, sigma=1.0, low_threshold=0.9,
@@ -19,7 +19,7 @@ def create_mask_image_canny(image, sigma=1.0, low_threshold=0.9,
                             dialation=None):
     image_mask = np.zeros(image.shape, np.uint8)
     if sigma is not None:
-        image = imutils.im2double(image)
+        image = im2double(image)
 
         if len(image.shape) > 2:
             chns = image.shape[2]
@@ -101,6 +101,18 @@ def create_mask_image_texture(image, texture_type, inverse=False):
     return image_mask
 
 
+def colour_filter_array(image, colour_channel):
+    image_mask = np.zeros((image.shape[0], image.shape[1]), np.uint8)
+    if colour_channel == 'red':
+        image_mask[::2, 1::2] = 1
+    elif colour_channel == 'green':
+        image_mask[::2, ::2] = 1
+        image_mask[1::2, 1::2] = 1
+    elif colour_channel == 'blue':
+        image_mask[1::2, ::2] = 1
+    return image_mask
+
+
 def create_mask_image(image, mask_type, **kwargs):
     if mask_type is None:
         image_mask = np.zeros(image.shape, np.uint8)
@@ -112,6 +124,8 @@ def create_mask_image(image, mask_type, **kwargs):
         image_mask = create_mask_image_canny(image, **kwargs)
     elif mask_type == 'texture':
         image_mask = create_mask_image_texture(image, **kwargs)
+    elif mask_type == 'mosaic':
+        image_mask = colour_filter_array(image, **kwargs)
     else:
         sys.exit('Unsupported mask type %s' % mask_type)
     return image_mask
