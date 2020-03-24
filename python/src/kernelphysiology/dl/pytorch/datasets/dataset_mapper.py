@@ -24,12 +24,12 @@ lab_p = ImageCms.createProfile('LAB')
 rgb2lab = ImageCms.buildTransformFromOpenProfiles(rgb_p, lab_p, 'RGB', 'LAB')
 lab2rgb = ImageCms.buildTransformFromOpenProfiles(lab_p, rgb_p, 'LAB', 'RGB')
 
-from kernelphysiology.utils.imutils import adjust_contrast
+from kernelphysiology.utils import imutils
 from kernelphysiology.transformations import colour_spaces
 
 
 def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
-                opponent_space='lab'):
+                opponent_space='lab', mosaic_pattern=None):
     """
     Read an image into the given format.
     Will apply rotation and flipping if the image has such exif information.
@@ -51,7 +51,7 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
                 amount = random.uniform(contrast, 1)
             else:
                 amount = contrast
-            image = adjust_contrast(image, amount)
+            image = imutils.adjust_contrast(image, amount)
             image = Image.fromarray(image.astype('uint8'))
 
         if vision_type != 'trichromat':
@@ -73,6 +73,11 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
                     image[:, :, 2] = 0
                 image = colour_spaces.dkl2rgb(image)
                 image = Image.fromarray(image)
+
+        if mosaic_pattern != "" and mosaic_pattern is not None:
+            image = np.asarray(image).copy()
+            image = imutils.im2mosaic(image, mosaic_pattern)
+            image = Image.fromarray(image.astype('uint8'))
 
         # capture and ignore this bug: https://github.com/python-pillow/Pillow/issues/3973
         try:
@@ -147,6 +152,7 @@ class DatasetMapper:
         self.vision_type = cfg.INPUT.VISION_TYPE
         self.opponent_space = cfg.INPUT.OPPONENT_SPACE
         self.contrast = cfg.INPUT.CONTRAST
+        self.mosaic_pattern = cfg.INPUT.MOSAIC_PATTERN
         if self.contrast == 1.0:
             self.contrast = None
 
@@ -164,7 +170,8 @@ class DatasetMapper:
         image = _read_image(
             dataset_dict["file_name"], format=self.img_format,
             vision_type=self.vision_type, contrast=self.contrast,
-            opponent_space=self.opponent_space
+            opponent_space=self.opponent_space,
+            mosaic_pattern=self.mosaic_pattern
         )
         utils.check_image_size(dataset_dict, image)
 
