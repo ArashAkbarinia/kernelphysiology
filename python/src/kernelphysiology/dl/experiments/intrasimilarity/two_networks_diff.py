@@ -51,7 +51,7 @@ dataset_transforms = {
          transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
     'imagenet': transforms.Compose(
-        [transforms.Resize(256), transforms.CenterCrop(128),
+        [transforms.Resize(256), transforms.CenterCrop(224),
          transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
     'cifar10': transforms.Compose([transforms.ToTensor(),
