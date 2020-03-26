@@ -70,7 +70,9 @@ class MosaicTransformation(object):
         self.mosaic_pattern = mosaic_pattern
 
     def __call__(self, img):
+        img = np.asarray(img).copy()
         img = imutils.im2mosaic(img, self.mosaic_pattern)
+        img = PilImage.fromarray(img)
         return img
 
 
