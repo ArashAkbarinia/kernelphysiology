@@ -299,3 +299,22 @@ def get_keras_augmentation_group(parser):
         default=0,
         help='Range of height shift (default: 0)'
     )
+
+
+# # TODO: this is not implemented in Pytorch
+# parser.add_argument(
+#     '--preprocessing',
+#     type=str,
+#     default=None,
+#     help='The preprocessing function (default: according to network)'
+# )
+# # TODO: this is not implemented in Pytorch
+# # FIXME: could cause errors if names mismatch and it should be merged with
+# # output parameters
+# parser.add_argument(
+#     '--dynamic_gt',
+#     nargs='+',
+#     type=str,
+#     default=None,
+#     help='Generating dynamically ground-truth (default: None)'
+# )

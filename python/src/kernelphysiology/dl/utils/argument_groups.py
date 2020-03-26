@@ -3,6 +3,35 @@ A collection of argument groups ready to be added to any other argparser.
 """
 
 
+def get_logging_group(parser):
+    logging_group = parser.add_argument_group('logging')
+    logging_group.add_argument(
+        '--experiment_name',
+        type=str,
+        default='Ex',
+        help='The name of the experiment (default: Ex)'
+    )
+    logging_group.add_argument(
+        '--print_freq',
+        type=int,
+        default=100,
+        help='Frequency of reporting (default: 100)'
+    )
+    logging_group.add_argument(
+        '--top_k',
+        type=int,
+        default=5,
+        help='Accuracy of top K elements (default: 5)'
+    )
+    logging_group.add_argument(
+        '--random_images',
+        nargs='+',
+        type=int,
+        default=None,
+        help='Number of random images to try (default: None)'
+    )
+
+
 def get_segmentation_group(parser):
     segmentation_group = parser.add_argument_group('segmentation')
 
@@ -14,10 +43,10 @@ def get_segmentation_group(parser):
     )
 
 
-def get_colour_space_group(parser):
-    colour_space_group = parser.add_argument_group('colour space')
+def get_input_group(parser):
+    input_group = parser.add_argument_group('input')
 
-    colour_space_group.add_argument(
+    input_group.add_argument(
         '--colour_space',
         type=str,
         default='rgb',
@@ -30,7 +59,7 @@ def get_colour_space_group(parser):
     )
 
     # TODO: at the moment this is not used, and lab is used
-    colour_space_group.add_argument(
+    input_group.add_argument(
         '--opponent_space',
         type=str,
         default='lab',
@@ -41,8 +70,7 @@ def get_colour_space_group(parser):
         help='The default colour opponent space (default: lab)'
     )
 
-    # TODO: Keras part is not implemented
-    colour_space_group.add_argument(
+    input_group.add_argument(
         '--colour_transformation',
         type=str,
         default='trichromat',
@@ -59,7 +87,7 @@ def get_colour_space_group(parser):
         help='The preprocessing colour transformation (default: trichromat)'
     )
 
-    colour_space_group.add_argument(
+    input_group.add_argument(
         '--mosaic_pattern',
         type=str,
         default=None,
@@ -70,24 +98,62 @@ def get_colour_space_group(parser):
         help='Applying a mosaic pattern to input image (default: None)'
     )
 
+    input_group.add_argument(
+        '--target_size',
+        type=int,
+        default=None,
+        help='Target size (default: according to dataset)'
+    )
 
-def get_architecture_group(parser):
+
+def get_output_group(parser):
+    output_group = parser.add_argument_group('output')
+
+    output_group.add_argument(
+        '--num_classes',
+        type=int,
+        default=None,
+        help='Number of classes for unknown datasets (default: None)'
+    )
+    output_group.add_argument(
+        '--task_type',
+        type=str,
+        choices=[
+            'classification',
+            'segmentation',
+            'detection'
+        ],
+        default=None,
+        help='The task to perform by network (default: None)'
+    )
+
+
+def get_network_group(parser):
     # TODO: better handling the parameters, e.g. pretrained ones are only for
     #  imagenet
-    architecture_group = parser.add_argument_group('architecture')
-    architecture_group.add_argument(
+    network_group = parser.add_argument_group('network')
+
+    # TODO: add choices
+    # FIXME: change to architecture_name
+    network_group.add_argument(
+        '-aname', '--network_name',
+        type=str,
+        help='Name of the architecture or network'
+    )
+
+    network_group.add_argument(
         '--num_kernels',
         type=int,
         default=64,
         help='The number of convolutional kernels (default: 64)'
     )
-    architecture_group.add_argument(
+    network_group.add_argument(
         '-ca', '--custom_arch',
         dest='custom_arch',
         action='store_true',
         help='Custom architectures instead of those defined in libraries'
     )
-    architecture_group.add_argument(
+    network_group.add_argument(
         '--pooling_type',
         type=str,
         default='max',
@@ -101,13 +167,13 @@ def get_architecture_group(parser):
         ],
         help='The pooling type (default: max)'
     )
-    architecture_group.add_argument(
+    network_group.add_argument(
         '--pretrained',
         dest='pretrained',
         action='store_true',
         help='Use pre-trained model'
     )
-    architecture_group.add_argument(
+    network_group.add_argument(
         '--blocks',
         nargs='+',
         type=int,
@@ -115,7 +181,7 @@ def get_architecture_group(parser):
         help='Number of layers in every block (default: None)'
     )
     # TODO: this only makes sense for segmentation
-    architecture_group.add_argument(
+    network_group.add_argument(
         '--backbone',
         type=str,
         default=None,
@@ -270,4 +336,60 @@ def get_optimisation_group(parser):
         '--aux_loss',
         action='store_true',
         help='auxiliar loss'
+    )
+
+
+def get_routine_group(parser):
+    routine_group = parser.add_argument_group('routine')
+
+    routine_group.add_argument(
+        '--gpus',
+        nargs='+',
+        type=int,
+        default=[0],
+        help='List of GPUs to be used (default: [0])'
+    )
+
+    # TODO: change the default according to training or testing
+    routine_group.add_argument(
+        '-j', '--workers',
+        type=int,
+        default=1,
+        help='Number of workers for image generator (default: 1)'
+    )
+
+    routine_group.add_argument(
+        '-b', '--batch_size',
+        type=int,
+        default=None,
+        help='Batch size (default: according to dataset)'
+    )
+
+
+def get_dataset_group(parser):
+    dataset_group = parser.add_argument_group('dataset')
+
+    # FIXME: change to dataset_name
+    dataset_group.add_argument(
+        '-dname', '--dataset',
+        type=str,
+        help='Name of the dataset'
+    )
+    dataset_group.add_argument(
+        '--data_dir',
+        type=str,
+        default=None,
+        help='The path to the data directory (default: None)'
+    )
+    dataset_group.add_argument(
+        '--train_dir',
+        type=str,
+        default=None,
+        help='The path to the train directory (default: None)'
+    )
+    dataset_group.add_argument(
+        '--validation_dir',
+        type=str,
+        default=None,
+        help='The path to the validation directory (default: None)'
     )

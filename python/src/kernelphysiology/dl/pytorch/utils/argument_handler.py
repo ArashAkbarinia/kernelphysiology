@@ -16,7 +16,6 @@ def parse_train_segmentation_arguments(argv):
     description = 'Training a network for the task of image segmentation.'
     parser = ah.common_arg_parser(description=description)
 
-    argument_groups.get_architecture_group(parser)
     argument_groups.get_optimisation_group(parser)
     argument_groups.get_parallelisation_group(parser)
     argument_groups.get_augmentation_group(parser)

@@ -12,130 +12,31 @@ from kernelphysiology.utils.controls import isfloat
 from kernelphysiology.dl.utils import default_configs
 
 
+class ArgumentParser(argparse.ArgumentParser):
+    def add_argument_group(self, *args, **kwargs):
+        ignore = ['positional arguments', 'optional arguments']
+        if (args[0] in ignore or
+                ('title' in kwargs.keys() and kwargs['title'] in ignore)
+        ):
+            return super().add_argument_group(*args, **kwargs)
+        for group in self._action_groups:
+            if (group.title == args[0] or
+                    ('title' in kwargs and group.title == kwargs['title'])
+            ):
+                return group
+        return super().add_argument_group(*args, **kwargs)
+
+
 def common_arg_parser(description):
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument(
-        dest='dataset',
-        type=str,
-        help='Name of the dataset'
-    )
-    # TODO: add choices
-    # TODO: distinguish between architecture and network
-    parser.add_argument(
-        dest='network_name',
-        type=str,
-        help='Name of the architecture or network'
-    )
-    parser.add_argument(
-        '--num_classes',
-        type=int,
-        default=None,
-        help='Number of classes for unknown datasets (default: None)'
-    )
+    parser = ArgumentParser(description=description)
 
-    parser.add_argument(
-        '--experiment_name',
-        type=str,
-        default='Ex',
-        help='The name of the experiment (default: Ex)'
-    )
-    parser.add_argument(
-        '--print_freq',
-        type=int,
-        default=100,
-        help='Frequency of reporting (default: 100)'
-    )
-    parser.add_argument(
-        '--top_k',
-        type=int,
-        default=5,
-        help='Accuracy of top K elements (default: 5)'
-    )
-    parser.add_argument(
-        '--random_images',
-        nargs='+',
-        type=int,
-        default=None,
-        help='Number of random images to try (default: None)'
-    )
+    argument_groups.get_dataset_group(parser)
+    argument_groups.get_network_group(parser)
+    argument_groups.get_output_group(parser)
+    argument_groups.get_input_group(parser)
+    argument_groups.get_logging_group(parser)
+    argument_groups.get_routine_group(parser)
 
-    data_dir_group = parser.add_argument_group('data path')
-    data_dir_group.add_argument(
-        '--data_dir',
-        type=str,
-        default=None,
-        help='The path to the data directory (default: None)'
-    )
-    data_dir_group.add_argument(
-        '--train_dir',
-        type=str,
-        default=None,
-        help='The path to the train directory (default: None)'
-    )
-    data_dir_group.add_argument(
-        '--validation_dir',
-        type=str,
-        default=None,
-        help='The path to the validation directory (default: None)'
-    )
-
-    parser.add_argument(
-        '--gpus',
-        nargs='+',
-        type=int,
-        default=[0],
-        help='List of GPUs to be used (default: [0])'
-    )
-    # TODO: change the default according to training or testing
-    parser.add_argument(
-        '-j', '--workers',
-        type=int,
-        default=1,
-        help='Number of workers for image generator (default: 1)'
-    )
-
-    parser.add_argument(
-        '-b', '--batch_size',
-        type=int,
-        default=None,
-        help='Batch size (default: according to dataset)'
-    )
-    parser.add_argument(
-        '--target_size',
-        type=int,
-        default=None,
-        help='Target size (default: according to dataset)'
-    )
-    # TODO: this is not implemented in Pytorch
-    parser.add_argument(
-        '--preprocessing',
-        type=str,
-        default=None,
-        help='The preprocessing function (default: according to network)'
-    )
-    # TODO: this is not implemented in Pytorch
-    # FIXME: could cause errors if names mismatch and it should be merged with
-    # output parameters
-    parser.add_argument(
-        '--dynamic_gt',
-        nargs='+',
-        type=str,
-        default=None,
-        help='Generating dynamically ground-truth (default: None)'
-    )
-    parser.add_argument(
-        '--task_type',
-        type=str,
-        choices=[
-            'classification',
-            'segmentation',
-            'detection'
-        ],
-        default=None,
-        help='The task to perform by network (default: None)'
-    )
-
-    argument_groups.get_colour_space_group(parser)
     return parser
 
 
@@ -185,7 +86,6 @@ def common_test_arg_parser(description='Testing a network!'):
 def common_train_arg_parser(description='Training a network!'):
     parser = common_arg_parser(description)
 
-    argument_groups.get_architecture_group(parser)
     argument_groups.get_optimisation_group(parser)
 
     return parser
