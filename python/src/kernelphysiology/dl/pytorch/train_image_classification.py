@@ -253,9 +253,10 @@ def main_worker(ngpus_per_node, args):
     )
 
     # loading validation set
+    valid_trans = [mosaic_trans]
     validation_dataset = utils_db.get_validation_dataset(
         args.dataset, args.validation_dir, args.colour_transformation,
-        args.colour_space, mosaic_trans, normalize, target_size,
+        args.colour_space, valid_trans, normalize, target_size,
     )
 
     val_loader = torch.utils.data.DataLoader(
