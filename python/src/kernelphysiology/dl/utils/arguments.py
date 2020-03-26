@@ -10,6 +10,7 @@ import warnings
 from kernelphysiology.dl.utils import argument_groups
 from kernelphysiology.utils.controls import isfloat
 from kernelphysiology.dl.utils import default_configs
+from kernelphysiology.utils import system_utils
 
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -89,13 +90,6 @@ def common_train_arg_parser(description='Training a network!'):
     argument_groups.get_optimisation_group(parser)
 
     return parser
-
-
-def set_visible_gpus(gpus):
-    if gpus[0] == -1 or gpus is None:
-        gpus = []
-    os.environ['CUDA_VISIBLE_DEVICES'] = ', '.join(str(e) for e in gpus)
-    return gpus
 
 
 def parse_args_nested(parser, argvs):
@@ -181,8 +175,7 @@ def check_common_args(parser, argvs, script_type):
                 'default batch_size are used for dataset %s' % args.dataset
             )
 
-    args.gpus = set_visible_gpus(args.gpus)
-    args.gpus = [*range(len(args.gpus))]
+    args.gpus = system_utils.set_visible_gpus(args.gpus)
 
     # workers
     if args.workers > 1:
