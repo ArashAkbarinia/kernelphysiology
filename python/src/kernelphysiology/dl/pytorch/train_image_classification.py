@@ -1,5 +1,5 @@
 """
-PyTorch training script for various datasets and image manipulations.
+PyTorch classification training script for various datasets.
 """
 
 import os
@@ -23,17 +23,12 @@ import torchvision.models as models
 from kernelphysiology.dl.pytorch import models as custom_models
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import argument_handler
-from kernelphysiology.dl.pytorch.utils.misc import train_on_data
-from kernelphysiology.dl.pytorch.utils.misc import validate_on_data
-from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
-from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
+from kernelphysiology.dl.pytorch.utils import misc as misc_utils
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.datasets import utils_db
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.utils.path_utils import create_dir
-
-best_acc1 = 0
 
 
 def main(argv):
@@ -90,8 +85,6 @@ def main(argv):
 
 
 def main_worker(ngpus_per_node, args):
-    global best_acc1
-
     mean, std = model_utils.get_preprocessing_function(
         args.colour_space, args.colour_transformation
     )
@@ -115,6 +108,7 @@ def main_worker(ngpus_per_node, args):
             world_size=args.world_size,
             rank=args.rank
         )
+
     # create model
     if args.transfer_weights is not None:
         print('Transferred model!')
@@ -189,6 +183,7 @@ def main_worker(ngpus_per_node, args):
     # optionally resume from a checkpoint
     # TODO: it would be best if resume load the architecture from this file
     # TODO: merge with which_architecture
+    best_acc1 = 0
     if args.resume is not None:
         if os.path.isfile(args.resume):
             print("=> loading checkpoint '{}'".format(args.resume))
@@ -216,26 +211,27 @@ def main_worker(ngpus_per_node, args):
 
     normalize = transforms.Normalize(mean=mean, std=std)
 
-    # TODO: clean up all transformations, pleaseeeee
-    other_transformations = []
-    mosaic_trans = []
+    train_trans = []
+    valid_trans = []
+    both_trans = []
     if args.mosaic_pattern is not None:
         mosaic_trans = preprocessing.MosaicTransformation(args.mosaic_pattern)
-        other_transformations.append(mosaic_trans)
+        both_trans.append(mosaic_trans)
+
     if args.num_augmentations != 0:
         augmentations = preprocessing.RandomAugmentationTransformation(
             args.augmentation_settings, args.num_augmentations,
             utils_db.is_dataset_pil_image(args.dataset)
         )
-        other_transformations.append(augmentations)
+        train_trans.append(augmentations)
 
     target_size = get_default_target_size(args.dataset)
 
     # loading the training set
+    train_trans = [*both_trans, *train_trans]
     train_dataset = utils_db.get_train_dataset(
         args.dataset, args.train_dir, args.colour_transformation,
-        args.colour_space, other_transformations, normalize, target_size,
-        args.augment_labels
+        args.colour_space, train_trans, normalize, target_size
     )
 
     if args.distributed:
@@ -253,7 +249,7 @@ def main_worker(ngpus_per_node, args):
     )
 
     # loading validation set
-    valid_trans = [mosaic_trans]
+    valid_trans = [*both_trans, *valid_trans]
     validation_dataset = utils_db.get_validation_dataset(
         args.dataset, args.validation_dir, args.colour_transformation,
         args.colour_space, valid_trans, normalize, target_size,
@@ -269,19 +265,15 @@ def main_worker(ngpus_per_node, args):
     for epoch in range(args.initial_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        adjust_learning_rate(optimizer, epoch, args)
-
-        # if doing label augmentation, shuffle the labels
-        if args.augment_labels:
-            train_loader.dataset.datasets[1].shuffle_augmented_labels()
+        misc_utils.adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train_log = train_on_data(
+        train_log = misc_utils.train_on_data(
             train_loader, model, criterion, optimizer, epoch, args
         )
 
         # evaluate on validation set
-        validation_log = validate_on_data(
+        validation_log = misc_utils.validate_on_data(
             val_loader, model, criterion, args
         )
 
@@ -292,10 +284,10 @@ def main_worker(ngpus_per_node, args):
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
 
-        if not args.multiprocessing_distributed or (
-                args.multiprocessing_distributed
-                and args.rank % ngpus_per_node == 0):
-            save_checkpoint(
+        if misc_utils.is_saving_node(
+                args.multiprocessing_distributed, args.rank
+        ):
+            misc_utils.save_checkpoint(
                 {
                     'epoch': epoch + 1,
                     'arch': args.network_name,

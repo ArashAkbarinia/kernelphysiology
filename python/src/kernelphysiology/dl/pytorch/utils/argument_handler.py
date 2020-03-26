@@ -92,15 +92,6 @@ def train_arg_parser(argvs, extra_args_fun=None):
     ah.get_parallelisation_group(parser)
     ah.get_augmentation_group(parser)
 
-    # TODO: other than doubleing labels?
-    # FIXME: implement for CIFAr and others
-    parser.add_argument(
-        '--augment_labels',
-        dest='augment_labels',
-        action='store_true',
-        help='Augmenting labels of ground-truth (False)'
-    )
-
     # TODO: this is not supported by all
     parser.add_argument(
         '--neg_params',
@@ -133,10 +124,6 @@ def train_arg_parser(argvs, extra_args_fun=None):
 
 def _check_training_args(parser, argvs):
     args = ah.check_common_args(parser, argvs, 'training')
-
-    if 'augment_labels' in args and args.augment_labels:
-        args.num_classes *= 2
-        args.custom_arch = True
 
     # checking augmentation parameters
     args.augmentation_settings = ah.prepare_augmentations(

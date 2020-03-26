@@ -327,3 +327,9 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
                     args.network_names[j],
                     args.dataset, manipulation_name, manipulation_value
                 )
+
+
+def is_saving_node(distributed, rank, ngpus_per_node):
+    if not distributed or (distributed and rank % ngpus_per_node == 0):
+        return True
+    return False

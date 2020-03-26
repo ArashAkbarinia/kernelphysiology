@@ -1,5 +1,5 @@
 """
-Pytorch prediction script for various datasets and image manipulations.
+PyTorch prediction training script for various datasets.
 """
 
 import time
