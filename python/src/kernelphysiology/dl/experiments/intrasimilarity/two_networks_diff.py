@@ -15,6 +15,8 @@ from kernelphysiology.dl.experiments.intrasimilarity.util import \
     setup_logging_from_args
 from kernelphysiology.dl.experiments.intrasimilarity.model import *
 from kernelphysiology.dl.pytorch.models import model_utils
+from kernelphysiology.dl.pytorch.utils import misc
+from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 
 models = {
     'custom': {'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
@@ -74,10 +76,10 @@ default_hyperparams = {
 def main(args):
     parser = argparse.ArgumentParser(description='Variational AutoEncoders')
 
-    # parser.add_argument('-pnet', '--pos_net_path', type=str, required=True,
-    #                     help='The path to network to be maximised.')
-    # parser.add_argument('-nnet', '--neg_net_path', type=str, required=True,
-    #                     help='The path to network to be minimised.')
+    parser.add_argument('-pnet', '--pos_net_path', type=str, required=True,
+                        help='The path to network to be maximised.')
+    parser.add_argument('-nnet', '--neg_net_path', type=str, required=True,
+                        help='The path to network to be minimised.')
 
     model_parser = parser.add_argument_group('Model Parameters')
     model_parser.add_argument('--model', default='vae',
@@ -136,24 +138,27 @@ def main(args):
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     dataset_dir_name = args.dataset if args.dataset != 'custom' else args.dataset_dir_name
 
-    # # other two networks
-    # (negative_network, _) = model_utils.which_network_classification(
-    #     args.pos_net_path, num_classes=1000
-    # )
-    # (positive_network, _) = model_utils.which_network_classification(
-    #     args.neg_net_path, num_classes=1000
-    # )
-    # if args.gpu is not None:
-    #     negative_network = negative_network.cuda(args.gpu)
-    #     positive_network = positive_network.cuda(args.gpu)
-    #
-    # for param in positive_network.parameters():
-    #     param.requires_grad = False
-    # for param in negative_network.parameters():
-    #     param.requires_grad = False
+    # other two networks
+    (neg_net, _) = model_utils.which_network_classification(
+        args.pos_net_path, num_classes=1000
+    )
+    (pos_net, _) = model_utils.which_network_classification(
+        args.neg_net_path, num_classes=1000
+    )
+    if args.gpu is not None:
+        neg_net = neg_net.cuda(args.gpu)
+        pos_net = pos_net.cuda(args.gpu)
+
+    for param in pos_net.parameters():
+        param.requires_grad = False
+    for param in neg_net.parameters():
+        param.requires_grad = False
 
     args.mean = [0.485, 0.456, 0.406]
     args.std = [0.229, 0.224, 0.225]
+
+    args.criterion_pos = nn.CrossEntropyLoss().cuda(args.gpu)
+    args.criterion_neg = nn.CrossEntropyLoss().cuda(args.gpu)
 
     lr = args.lr or default_hyperparams[args.dataset]['lr']
     k = args.k or default_hyperparams[args.dataset]['k']
@@ -201,10 +206,12 @@ def main(args):
         batch_size=args.batch_size, shuffle=False, **kwargs)
 
     for epoch in range(1, args.epochs + 1):
-        train_losses = train(epoch, model, train_loader, optimizer, args.cuda,
-                             args.log_interval, save_path, args, writer)
+        train_losses = train(
+            epoch, model, train_loader, optimizer, args.cuda, args.log_interval,
+            save_path, args, writer, pos_net, neg_net
+        )
         test_losses = test_net(epoch, model, test_loader, args.cuda, save_path,
-                               args, writer)
+                               args, writer, pos_net, neg_net)
         save_checkpoint(model, epoch, save_path)
 
         for k in train_losses.keys():
@@ -219,19 +226,37 @@ def main(args):
 
 
 def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
-          args, writer):
+          args, writer, pos_net, neg_net):
+    losses_neg = misc.AverageMeter()
+    losses_pos = misc.AverageMeter()
+    top1_neg = misc.AverageMeter()
+    top1_pos = misc.AverageMeter()
+
     model.train()
     loss_dict = model.latest_losses()
     losses = {k + '_train': 0 for k, v in loss_dict.items()}
     epoch_losses = {k + '_train': 0 for k, v in loss_dict.items()}
     start_time = time.time()
     batch_idx, data = None, None
-    for batch_idx, (data, _) in enumerate(train_loader):
+    for batch_idx, (data, target) in enumerate(train_loader):
         if cuda:
             data = data.cuda()
         optimizer.zero_grad()
         outputs = model(data)
-        loss = model.loss_function(data, *outputs)
+
+        output_neg = neg_net(outputs)
+        loss_neg = args.criterion_neg(output_neg, target)
+        acc1_neg, acc5_pos = misc.accuracy(output_neg, target, topk=(1, 5))
+        losses_neg.update(loss_neg.item(), data.size(0))
+        top1_neg.update(acc1_neg[0], data.size(0))
+
+        output_pos = pos_net(outputs)
+        loss_pos = args.criterion_pos(output_pos, target)
+        acc1_pos, acc5_pos = misc.accuracy(output_pos, target, topk=(1, 5))
+        losses_pos.update(loss_pos.item(), data.size(0))
+        top1_pos.update(acc1_pos[0], data.size(0))
+
+        loss = model.loss_function(data, *outputs) + (loss_pos / loss_neg)
         loss.backward()
         optimizer.step()
         latest_losses = model.latest_losses()
@@ -245,13 +270,16 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
             loss_string = ' '.join(
                 ['{}: {:.6f}'.format(k, v) for k, v in losses.items()])
             logging.info(
-                'Train Epoch: {epoch} [{batch:5d}/{total_batch} ({percent:2d}%)]   time:'
-                ' {time:3.2f}   {loss}'
+                'Train Epoch: {epoch} [{batch:5d}/{total_batch} '
+                '({percent:2d}%)]   time: {time:3.2f}   {loss}'
+                ' Lp: {loss_pos:.3f} Ap: {acc_pos:.3f}'
+                ' Ln: {loss_neg:.3f} An: {acc_neg:.3f}'
                     .format(epoch=epoch, batch=batch_idx * len(data),
                             total_batch=len(train_loader) * len(data),
                             percent=int(100. * batch_idx / len(train_loader)),
-                            time=time.time() - start_time,
-                            loss=loss_string))
+                            time=time.time() - start_time, loss=loss_string,
+                            loss_pos=losses_pos.avg, acc_pos=top1_pos.avg,
+                            loss_neg=losses_neg.avg, acc_neg=top1_neg.avg))
             start_time = time.time()
             for key in latest_losses:
                 losses[key + '_train'] = 0
@@ -279,7 +307,8 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
     return epoch_losses
 
 
-def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
+def test_net(epoch, model, test_loader, cuda, save_path, args, writer, pos_net,
+             neg_net):
     model.eval()
     loss_dict = model.latest_losses()
     losses = {k + '_test': 0 for k, v in loss_dict.items()}
@@ -310,9 +339,6 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
         ['{}: {:.6f}'.format(k, v) for k, v in losses.items()])
     logging.info('====> Test set losses: {}'.format(loss_string))
     return losses
-
-
-from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 
 
 def write_images(data, outputs, writer, suffix, mean, std):
