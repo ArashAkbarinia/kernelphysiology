@@ -145,8 +145,8 @@ def main(args):
     (pos_net, _) = model_utils.which_network_classification(
         args.neg_net_path, num_classes=1000
     )
-    neg_net = neg_net.cuda(args.gpus)
-    pos_net = pos_net.cuda(args.gpus)
+    neg_net = neg_net.cuda()
+    pos_net = pos_net.cuda()
 
     for param in pos_net.parameters():
         param.requires_grad = False
@@ -156,8 +156,8 @@ def main(args):
     args.mean = [0.485, 0.456, 0.406]
     args.std = [0.229, 0.224, 0.225]
 
-    args.criterion_pos = nn.CrossEntropyLoss().cuda(args.gpus)
-    args.criterion_neg = nn.CrossEntropyLoss().cuda(args.gpus)
+    args.criterion_pos = nn.CrossEntropyLoss().cuda()
+    args.criterion_neg = nn.CrossEntropyLoss().cuda()
 
     lr = args.lr or default_hyperparams[args.dataset]['lr']
     k = args.k or default_hyperparams[args.dataset]['k']
