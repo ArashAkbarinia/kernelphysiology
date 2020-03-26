@@ -5,6 +5,7 @@ Argument handler functions for PyTorch.
 import sys
 import warnings
 
+from kernelphysiology.dl.utils import argument_groups
 from kernelphysiology.dl.utils import augmentation
 from kernelphysiology.dl.utils import arguments as ah
 from kernelphysiology.dl.utils import prepare_training
@@ -15,10 +16,10 @@ def parse_train_segmentation_arguments(argv):
     description = 'Training a network for the task of image segmentation.'
     parser = ah.common_arg_parser(description=description)
 
-    ah.get_architecture_group(parser)
-    ah.get_optimisation_group(parser)
-    ah.get_parallelisation_group(parser)
-    ah.get_augmentation_group(parser)
+    argument_groups.get_architecture_group(parser)
+    argument_groups.get_optimisation_group(parser)
+    argument_groups.get_parallelisation_group(parser)
+    argument_groups.get_augmentation_group(parser)
 
     args = _check_training_args(parser, argv)
 
@@ -44,9 +45,9 @@ def parse_predict_segmentation_arguments(argv):
     description = 'Prediction of a network for the task of image segmentation.'
     parser = ah.common_test_arg_parser(description=description)
 
-    ah.get_network_manipulation_group(parser)
-    ah.get_parallelisation_group(parser)
-    ah.get_segmentation_group(parser)
+    argument_groups.get_network_manipulation_group(parser)
+    argument_groups.get_parallelisation_group(parser)
+    argument_groups.get_segmentation_group(parser)
 
     args = _check_test_args(parser, argv)
 
@@ -69,7 +70,7 @@ def parse_predict_segmentation_arguments(argv):
 def test_arg_parser(argvs):
     parser = ah.common_test_arg_parser()
 
-    ah.get_network_manipulation_group(parser)
+    argument_groups.get_network_manipulation_group(parser)
 
     return _check_test_args(parser, argvs)
 
@@ -89,8 +90,8 @@ def _check_test_args(parser, argvs):
 def train_arg_parser(argvs, extra_args_fun=None):
     parser = ah.common_train_arg_parser()
 
-    ah.get_parallelisation_group(parser)
-    ah.get_augmentation_group(parser)
+    argument_groups.get_parallelisation_group(parser)
+    argument_groups.get_augmentation_group(parser)
 
     # TODO: this is not supported by all
     parser.add_argument(
