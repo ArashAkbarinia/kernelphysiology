@@ -11,8 +11,10 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 from torchvision.utils import save_image, make_grid
 
-from kernelphysiology.dl.experiments.intrasimilarity.util import setup_logging_from_args
+from kernelphysiology.dl.experiments.intrasimilarity.util import \
+    setup_logging_from_args
 from kernelphysiology.dl.experiments.intrasimilarity.model import *
+from kernelphysiology.dl.pytorch.models import model_utils
 
 models = {
     'custom': {'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
@@ -53,7 +55,9 @@ dataset_transforms = {
     'imagenet': transforms.Compose(
         [transforms.Resize(256), transforms.CenterCrop(224),
          transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
+         # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+         ]),
     'cifar10': transforms.Compose([transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5),
                                                         (0.5, 0.5, 0.5))]),
@@ -69,6 +73,11 @@ default_hyperparams = {
 
 def main(args):
     parser = argparse.ArgumentParser(description='Variational AutoEncoders')
+
+    # parser.add_argument('-pnet', '--pos_net_path', type=str, required=True,
+    #                     help='The path to network to be maximised.')
+    # parser.add_argument('-nnet', '--neg_net_path', type=str, required=True,
+    #                     help='The path to network to be minimised.')
 
     model_parser = parser.add_argument_group('Model Parameters')
     model_parser.add_argument('--model', default='vae',
@@ -126,6 +135,25 @@ def main(args):
     args = parser.parse_args(args)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     dataset_dir_name = args.dataset if args.dataset != 'custom' else args.dataset_dir_name
+
+    # # other two networks
+    # (negative_network, _) = model_utils.which_network_classification(
+    #     args.pos_net_path, num_classes=1000
+    # )
+    # (positive_network, _) = model_utils.which_network_classification(
+    #     args.neg_net_path, num_classes=1000
+    # )
+    # if args.gpu is not None:
+    #     negative_network = negative_network.cuda(args.gpu)
+    #     positive_network = positive_network.cuda(args.gpu)
+    #
+    # for param in positive_network.parameters():
+    #     param.requires_grad = False
+    # for param in negative_network.parameters():
+    #     param.requires_grad = False
+
+    args.mean = [0.485, 0.456, 0.406]
+    args.std = [0.229, 0.224, 0.225]
 
     lr = args.lr or default_hyperparams[args.dataset]['lr']
     k = args.k or default_hyperparams[args.dataset]['k']
@@ -227,11 +255,10 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
             start_time = time.time()
             for key in latest_losses:
                 losses[key + '_train'] = 0
-        if batch_idx == (len(train_loader) - 1):
+        if batch_idx in [18, 1650, (len(train_loader) - 1)]:
             save_reconstructed_images(data, epoch, outputs[0], save_path,
                                       'reconstruction_train')
-
-            write_images(data, outputs, writer, 'train')
+            write_images(data, outputs, writer, 'train', args.mean, args.std)
 
         if args.dataset in ['imagenet', 'custom'] and batch_idx * len(
                 data) > args.max_epoch_samples:
@@ -267,7 +294,7 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
             if i == 0:
-                write_images(data, outputs, writer, 'test')
+                write_images(data, outputs, writer, 'test', args.mean, args.std)
 
                 save_reconstructed_images(data, epoch, outputs[0], save_path,
                                           'reconstruction_test')
@@ -285,11 +312,16 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
     return losses
 
 
-def write_images(data, outputs, writer, suffix):
-    original = data.mul(0.5).add(0.5)
+from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
+
+
+def write_images(data, outputs, writer, suffix, mean, std):
+    # original = data.mul(0.5).add(0.5)
+    original = inv_normalise_tensor(data, mean, std)
     original_grid = make_grid(original[:6])
     writer.add_image(f'original/{suffix}', original_grid)
-    reconstructed = outputs[0].mul(0.5).add(0.5)
+    # reconstructed = outputs[0].mul(0.5).add(0.5)
+    reconstructed = inv_normalise_tensor(outputs[0], mean, std)
     reconstructed_grid = make_grid(reconstructed[:6])
     writer.add_image(f'reconstructed/{suffix}', reconstructed_grid)
 
