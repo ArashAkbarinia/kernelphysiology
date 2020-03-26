@@ -12,7 +12,7 @@ from kernelphysiology.dl.keras.analysis.analysis_generator import \
 from kernelphysiology.dl.keras.models.utils import which_network, \
     get_preprocessing_function
 from kernelphysiology.dl.keras.datasets.utils import which_dataset
-from kernelphysiology.utils.preprocessing import which_preprocessing
+from kernelphysiology.dl.keras.utils.preprocessing import which_preprocessing
 
 from kernelphysiology.dl.keras.prominent_utils import test_prominent_prepares
 from kernelphysiology.dl.utils import arguments

@@ -12,7 +12,7 @@ from keras import backend as K
 from functools import partial
 from PIL import Image as pil_image
 
-from kernelphysiology.utils.image import ImageDataGenerator
+from kernelphysiology.dl.keras.utils.image import ImageDataGenerator
 
 from kernelphysiology.utils.imutils import adjust_contrast
 

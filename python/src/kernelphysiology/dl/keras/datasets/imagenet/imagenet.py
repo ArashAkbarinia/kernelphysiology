@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from kernelphysiology.utils.image import ImageDataGenerator
+from kernelphysiology.dl.keras.utils.image import ImageDataGenerator
 
 
 def train_generator(dirname, batch_size=32, target_size=(224, 224), preprocessing_function=None,
