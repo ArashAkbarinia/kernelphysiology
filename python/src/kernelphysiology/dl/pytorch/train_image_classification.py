@@ -216,7 +216,12 @@ def main_worker(ngpus_per_node, args):
 
     normalize = transforms.Normalize(mean=mean, std=std)
 
+    # TODO: clean up all transformations, pleaseeeee
     other_transformations = []
+    mosaic_trans = []
+    if args.mosaic_pattern is not None:
+        mosaic_trans = preprocessing.MosaicTransformation(args.mosaic_pattern)
+        other_transformations.append(mosaic_trans)
     if args.num_augmentations != 0:
         augmentations = preprocessing.RandomAugmentationTransformation(
             args.augmentation_settings, args.num_augmentations,
@@ -250,7 +255,7 @@ def main_worker(ngpus_per_node, args):
     # loading validation set
     validation_dataset = utils_db.get_validation_dataset(
         args.dataset, args.validation_dir, args.colour_transformation,
-        args.colour_space, [], normalize, target_size,
+        args.colour_space, mosaic_trans, normalize, target_size,
     )
 
     val_loader = torch.utils.data.DataLoader(

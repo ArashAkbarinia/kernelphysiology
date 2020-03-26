@@ -413,7 +413,7 @@ def poisson_noise(image, seed=None, clip=True, mask_type=None, **kwargs):
 
 
 def im2mosaic(image, mosaic_type):
-    if len(image.shape) == 2:
+    if mosaic_type is None or len(image.shape) == 2:
         return image
     image = image.copy()
     mask_r = colour_filter_array(image, mosaic_type, colour_channel='red')

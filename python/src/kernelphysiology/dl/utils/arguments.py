@@ -67,6 +67,17 @@ def get_colour_space_group(parser):
         help='The preprocessing colour transformation (default: trichromat)'
     )
 
+    colour_space_group.add_argument(
+        '--mosaic_pattern',
+        type=str,
+        default=None,
+        choices=[
+            'bayer',
+            'retina'
+        ],
+        help='Applying a mosaic pattern to input image (default: None)'
+    )
+
 
 def get_architecture_group(parser):
     # TODO: better handling the parameters, e.g. pretrained ones are only for

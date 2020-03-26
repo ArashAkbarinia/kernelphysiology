@@ -11,9 +11,7 @@ import torchvision.transforms as transforms
 
 from kernelphysiology.dl.pytorch.datasets.utils_db import is_dataset_pil_image
 from kernelphysiology.dl.pytorch.datasets.utils_db import get_validation_dataset
-from kernelphysiology.dl.pytorch.models.model_utils import get_preprocessing_function
-from kernelphysiology.dl.pytorch.models.model_utils import LayerActivation
-from kernelphysiology.dl.pytorch.models.model_utils import which_network
+from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
 from kernelphysiology.dl.utils import prepapre_testing
@@ -236,13 +234,13 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
     manipulation_name = args.parameters['f_name']
     for j, current_network in enumerate(args.network_files):
         # which architecture
-        (model, target_size) = which_network(
+        (model, target_size) = model_utils.which_network(
             current_network, args.task_type, num_classes=args.num_classes,
             kill_kernels=args.kill_kernels, kill_planes=args.kill_planes,
             kill_lines=args.kill_lines
         )
         model.to(args.device)
-        mean, std = get_preprocessing_function(
+        mean, std = model_utils.get_preprocessing_function(
             args.colour_space, args.network_chromaticities[j]
         )
         normalize = transforms.Normalize(mean=mean, std=std)
@@ -259,7 +257,12 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
             ):
                 colour_vision = args.network_chromaticities[j]
 
-            other_transformations = [prediction_transformation]
+            other_transformations = []
+            if args.mosaic_pattern is not None:
+                other_transformations.append(
+                    preprocessing.MosaicTransformation(args.mosaic_pattern)
+                )
+            other_transformations.append(prediction_transformation)
 
             print(
                 'Processing network %s and %s %f' %
@@ -306,7 +309,7 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
                     manipulation_value, **kwargs
                 )
             elif args.activation_map is not None:
-                model = LayerActivation(model, args.activation_map)
+                model = model_utils.LayerActivation(model, args.activation_map)
                 current_results = fn(
                     val_loader, model, **kwargs
                 )

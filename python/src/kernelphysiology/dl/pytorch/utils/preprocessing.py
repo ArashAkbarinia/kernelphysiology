@@ -9,7 +9,7 @@ import warnings
 from PIL import Image as PilImage
 from PIL import ImageCms
 
-from kernelphysiology.utils.imutils import get_colour_inds
+from kernelphysiology.utils import imutils
 
 rgb_p = ImageCms.createProfile('sRGB')
 lab_p = ImageCms.createProfile('LAB')
@@ -44,7 +44,7 @@ class ColourTransformation(object):
 def colour_transformation(transformation_type, colour_space='rgb'):
     ct = []
     if colour_space != 'lms':
-        colour_inds = get_colour_inds(transformation_type)
+        colour_inds = imutils.get_colour_inds(transformation_type)
         ct.append(ColourTransformation(colour_inds, colour_space))
     return ct
 
@@ -64,10 +64,20 @@ class ChannelTransformation(object):
             return img
 
 
+class MosaicTransformation(object):
+
+    def __init__(self, mosaic_pattern):
+        self.mosaic_pattern = mosaic_pattern
+
+    def __call__(self, img):
+        img = imutils.im2mosaic(img, self.mosaic_pattern)
+        return img
+
+
 def channel_transformation(transformation_type, colour_space='rgb'):
     ct = []
     if transformation_type != 'trichromat':
-        colour_inds = get_colour_inds(transformation_type)
+        colour_inds = imutils.get_colour_inds(transformation_type)
         # check if it's a valid colour index
         if colour_inds is not None:
             ct.append(ChannelTransformation(colour_inds, colour_space))
