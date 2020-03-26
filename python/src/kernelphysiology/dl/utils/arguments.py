@@ -177,12 +177,6 @@ def check_common_args(parser, argvs, script_type):
 
     args.gpus = system_utils.set_visible_gpus(args.gpus)
 
-    # workers
-    if args.workers > 1:
-        args.use_multiprocessing = True
-    else:
-        args.use_multiprocessing = False
-
     # handling the paths
     (args.train_dir,
      args.validation_dir,

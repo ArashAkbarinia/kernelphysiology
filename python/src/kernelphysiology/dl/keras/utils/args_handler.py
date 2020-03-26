@@ -318,3 +318,9 @@ def get_keras_augmentation_group(parser):
 #     default=None,
 #     help='Generating dynamically ground-truth (default: None)'
 # )
+
+# # workers
+# if args.workers > 1:
+#     args.use_multiprocessing = True
+# else:
+#     args.use_multiprocessing = False
