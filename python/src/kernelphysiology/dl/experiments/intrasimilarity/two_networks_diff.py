@@ -156,9 +156,6 @@ def main(args):
     args.mean = [0.485, 0.456, 0.406]
     args.std = [0.229, 0.224, 0.225]
 
-    args.criterion_pos = nn.CrossEntropyLoss().cuda()
-    args.criterion_neg = nn.CrossEntropyLoss().cuda()
-
     lr = args.lr or default_hyperparams[args.dataset]['lr']
     k = args.k or default_hyperparams[args.dataset]['k']
     hidden = args.hidden or default_hyperparams[args.dataset]['hidden']
@@ -166,6 +163,9 @@ def main(args):
 
     save_path = setup_logging_from_args(args)
     writer = SummaryWriter(save_path)
+
+    args.criterion_pos = nn.CrossEntropyLoss().cuda()
+    args.criterion_neg = nn.CrossEntropyLoss().cuda()
 
     torch.manual_seed(args.seed)
     if args.cuda:
@@ -240,16 +240,17 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
     for batch_idx, (data, target) in enumerate(train_loader):
         if cuda:
             data = data.cuda()
+            target = target.cuda()
         optimizer.zero_grad()
         outputs = model(data)
 
-        output_neg = neg_net(outputs)
+        output_neg = neg_net(outputs[0])
         loss_neg = args.criterion_neg(output_neg, target)
         acc1_neg, acc5_pos = misc.accuracy(output_neg, target, topk=(1, 5))
         losses_neg.update(loss_neg.item(), data.size(0))
         top1_neg.update(acc1_neg[0], data.size(0))
 
-        output_pos = pos_net(outputs)
+        output_pos = pos_net(outputs[0])
         loss_pos = args.criterion_pos(output_pos, target)
         acc1_pos, acc5_pos = misc.accuracy(output_pos, target, topk=(1, 5))
         losses_pos.update(loss_pos.item(), data.size(0))
