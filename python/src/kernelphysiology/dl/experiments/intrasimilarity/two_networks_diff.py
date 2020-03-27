@@ -11,8 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 from torchvision.utils import save_image, make_grid
 
-from kernelphysiology.dl.experiments.intrasimilarity.util import \
-    setup_logging_from_args
+from kernelphysiology.dl.experiments.intrasimilarity import util as ex_util
 from kernelphysiology.dl.experiments.intrasimilarity.model import *
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.utils import misc
@@ -140,13 +139,15 @@ def main(args):
 
     # other two networks
     (neg_net, _) = model_utils.which_network_classification(
-        args.pos_net_path, num_classes=1000
+        args.neg_net_path, num_classes=1000
     )
     (pos_net, _) = model_utils.which_network_classification(
-        args.neg_net_path, num_classes=1000
+        args.pos_net_path, num_classes=1000
     )
     neg_net = neg_net.cuda()
     pos_net = pos_net.cuda()
+    neg_net.eval()
+    pos_net.eval()
 
     for param in pos_net.parameters():
         param.requires_grad = False
@@ -161,7 +162,7 @@ def main(args):
     hidden = args.hidden or default_hyperparams[args.dataset]['hidden']
     num_channels = dataset_n_channels[args.dataset]
 
-    save_path = setup_logging_from_args(args)
+    save_path = ex_util.setup_logging_from_args(args)
     writer = SummaryWriter(save_path)
 
     args.criterion_pos = nn.CrossEntropyLoss().cuda()

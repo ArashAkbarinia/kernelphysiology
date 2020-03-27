@@ -45,6 +45,7 @@ def main(argv):
         weights = torch.load(args.gen_net, map_location='cpu')
         gen_net.load_state_dict(weights)
         gen_net.to(args.device)
+        gen_net.eval()
     kwargs = {
         'print_freq': args.print_freq,
         'gen_net': gen_net
