@@ -96,7 +96,9 @@ class ContrastPoolingBlock(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        if self.pooling_type == 'max':
+        if self.pooling_type == 'none':
+            out = x
+        elif self.pooling_type == 'max':
             out = self.max_pool(x)
         elif self.pooling_type == 'avg':
             out = self.avg_pool(x)
@@ -240,10 +242,18 @@ class ResNet(nn.Module):
             )
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(
-            self.in_chns, self.inplanes, kernel_size=7, stride=2, padding=3,
-            bias=False
-        )
+        # FIXME: bad hack for CIFAR and MNIST, please fix me
+        if num_classes == 10:
+            self.conv1 = nn.Conv2d(
+                self.in_chns, self.inplanes, kernel_size=3, stride=1, padding=1,
+                bias=False
+            )
+            pooling_type = 'none'
+        else:
+            self.conv1 = nn.Conv2d(
+                self.in_chns, self.inplanes, kernel_size=7, stride=2, padding=3,
+                bias=False
+            )
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.contrast_pool = self._contrast_pooling(

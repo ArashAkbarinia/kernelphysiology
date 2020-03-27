@@ -118,8 +118,8 @@ def main_worker(ngpus_per_node, args):
         model = model_utils.NewClassificationModel(model, args.num_classes)
     elif args.custom_arch:
         print('Custom model!')
-        if (args.network_name == 'resnet_basic_custom' or
-                args.network_name == 'resnet_bottleneck_custom'):
+        supported_customs = ['resnet_basic_custom', 'resnet_bottleneck_custom']
+        if args.network_name in supported_customs:
             model = custom_models.__dict__[args.network_name](
                 args.blocks, pooling_type=args.pooling_type,
                 in_chns=len(mean), num_classes=args.num_classes,
@@ -285,7 +285,7 @@ def main_worker(ngpus_per_node, args):
         best_acc1 = max(acc1, best_acc1)
 
         if misc_utils.is_saving_node(
-                args.multiprocessing_distributed, args.rank
+                args.multiprocessing_distributed, args.rank, ngpus_per_node
         ):
             misc_utils.save_checkpoint(
                 {
