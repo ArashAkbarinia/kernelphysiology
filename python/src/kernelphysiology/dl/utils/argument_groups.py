@@ -222,7 +222,8 @@ def get_augmentation_group(parser):
 
 
 def get_network_manipulation_group(parser):
-    network_manipulation_group = parser.add_argument_group()
+    network_manipulation_group = parser.add_argument_group('manipulations')
+
     network_manipulation_group.add_argument(
         '--kill_kernels',
         nargs='+',
