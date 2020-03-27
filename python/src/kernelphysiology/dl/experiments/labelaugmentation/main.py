@@ -21,3 +21,12 @@
 # if 'augment_labels' in args and args.augment_labels:
 #     args.num_classes *= 2
 #     args.custom_arch = True
+
+
+# parser.add_argument(
+#     '--neg_params',
+#     nargs='+',
+#     type=str,
+#     default=None,
+#     help='Negative sample parameters (default: None)'
+# )

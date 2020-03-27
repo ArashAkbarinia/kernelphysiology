@@ -188,6 +188,21 @@ def get_network_group(parser):
         help='The backbone of segmentation (default: None)'
     )
 
+    # TODO: num_classes is just for backward compatibility
+    network_group.add_argument(
+        '--old_classes',
+        default=None,
+        type=int,
+        help='Number of new classes (default: None)'
+    )
+
+    network_group.add_argument(
+        '--transfer_weights',
+        type=str,
+        default=None,
+        help='Whether transferring weights from a model (default: None)'
+    )
+
 
 def get_augmentation_group(parser):
     augmentation_group = parser.add_argument_group('augmentation')

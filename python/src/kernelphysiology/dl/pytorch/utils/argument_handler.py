@@ -66,10 +66,13 @@ def parse_predict_segmentation_arguments(argv):
     return args
 
 
-def test_arg_parser(argvs):
+def test_arg_parser(argvs, extra_args_fun=None):
     parser = ah.common_test_arg_parser()
 
     argument_groups.get_network_manipulation_group(parser)
+
+    if extra_args_fun is not None:
+        extra_args_fun(parser)
 
     return _check_test_args(parser, argvs)
 
@@ -91,30 +94,6 @@ def train_arg_parser(argvs, extra_args_fun=None):
 
     argument_groups.get_parallelisation_group(parser)
     argument_groups.get_augmentation_group(parser)
-
-    # TODO: this is not supported by all
-    parser.add_argument(
-        '--neg_params',
-        nargs='+',
-        type=str,
-        default=None,
-        help='Negative sample parameters (default: None)'
-    )
-
-    # TODO: num_classes is just for backward compatibility
-    parser.add_argument(
-        '--old_classes',
-        default=None,
-        type=int,
-        help='Number of new classes (default: None)'
-    )
-
-    parser.add_argument(
-        '--transfer_weights',
-        type=str,
-        default=None,
-        help='Whether transferring weights from a model (default: None)'
-    )
 
     if extra_args_fun is not None:
         extra_args_fun(parser)
