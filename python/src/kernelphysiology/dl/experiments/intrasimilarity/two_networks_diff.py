@@ -2,10 +2,10 @@ import os
 import sys
 import time
 import argparse
-import logging
 
 import torch.utils.data
 from torch import optim
+from torchvision.transforms import functional
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
@@ -13,37 +13,45 @@ from torchvision.utils import save_image, make_grid
 
 from kernelphysiology.dl.experiments.intrasimilarity import util as ex_util
 from kernelphysiology.dl.experiments.intrasimilarity.model import *
+from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.utils import misc
 from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 
+from detectron2.utils.events import EventStorage
+
 models = {
     'custom': {'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
     'imagenet': {'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
+    'coco': {'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
     'cifar10': {'vae': CVAE, 'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
     'mnist': {'vae': VAE, 'vqvae': VQ_CVAE},
 }
 datasets_classes = {
     'custom': datasets.ImageFolder,
     'imagenet': datasets.ImageFolder,
+    'coco': torch.utils.data.DataLoader,
     'cifar10': datasets.CIFAR10,
     'mnist': datasets.MNIST
 }
 dataset_train_args = {
     'custom': {},
     'imagenet': {},
+    'coco': {},
     'cifar10': {'train': True, 'download': True},
     'mnist': {'train': True, 'download': True},
 }
 dataset_test_args = {
     'custom': {},
     'imagenet': {},
+    'coco': {},
     'cifar10': {'train': False, 'download': True},
     'mnist': {'train': False, 'download': True},
 }
 dataset_n_channels = {
     'custom': 3,
     'imagenet': 3,
+    'coco': 3,
     'cifar10': 3,
     'mnist': 1,
 }
@@ -53,6 +61,10 @@ dataset_transforms = {
         [transforms.Resize(256), transforms.CenterCrop(224),
          transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
+    'coco': transforms.Compose(
+        [
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+        ]),
     'imagenet': transforms.Compose(
         [transforms.Resize(256), transforms.CenterCrop(224),
          transforms.ToTensor(),
@@ -67,6 +79,7 @@ dataset_transforms = {
 default_hyperparams = {
     'custom': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'imagenet': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+    'coco': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'cifar10': {'lr': 2e-4, 'k': 10, 'hidden': 256},
     'mnist': {'lr': 1e-4, 'k': 10, 'hidden': 64}
 }
@@ -79,9 +92,17 @@ def main(args):
                         help='The path to network to be maximised.')
     parser.add_argument('-nnet', '--neg_net_path', type=str, required=True,
                         help='The path to network to be minimised.')
+    parser.add_argument('-cfg', '--cfg_file', type=str, required=False,
+                        help='The path to the CFG file.')
+    parser.add_argument(
+        "opts",
+        help="Modify config options using the command-line",
+        default=None,
+        nargs=argparse.REMAINDER,
+    )
 
     model_parser = parser.add_argument_group('Model Parameters')
-    model_parser.add_argument('--model', default='vae',
+    model_parser.add_argument('--model', default='vqvae',
                               choices=['vae', 'vqvae'],
                               help='autoencoder variant to use: vae | vqvae')
     model_parser.add_argument('--batch-size', type=int, default=128,
@@ -102,10 +123,11 @@ def main(args):
                               help='kl-divergence coefficient in loss')
 
     training_parser = parser.add_argument_group('Training Parameters')
-    training_parser.add_argument('--dataset', default='cifar10',
-                                 choices=['mnist', 'cifar10', 'imagenet',
-                                          'custom'],
-                                 help='dataset to use: mnist | cifar10 | imagenet | custom')
+    training_parser.add_argument(
+        '--dataset', default='cifar10',
+        choices=['mnist', 'cifar10', 'imagenet', 'coco', 'custom'],
+        help='dataset to use: mnist | cifar10 | imagenet | coco | custom'
+    )
     training_parser.add_argument('--dataset_dir_name', default='',
                                  help='name of the dir containing the dataset if dataset == custom')
     training_parser.add_argument('--data-dir', default='/media/ssd/Datasets',
@@ -138,17 +160,25 @@ def main(args):
     dataset_dir_name = args.dataset if args.dataset != 'custom' else args.dataset_dir_name
 
     # other two networks
-    (neg_net, _) = model_utils.which_network_classification(
-        args.neg_net_path, num_classes=1000
-    )
-    (pos_net, _) = model_utils.which_network_classification(
-        args.pos_net_path, num_classes=1000
-    )
+    if args.dataset == 'imagenet':
+        (neg_net, _) = model_utils.which_network_classification(
+            args.neg_net_path, num_classes=1000
+        )
+        (pos_net, _) = model_utils.which_network_classification(
+            args.pos_net_path, num_classes=1000
+        )
+        neg_net.eval()
+        pos_net.eval()
+    elif args.dataset == 'coco':
+        neg_net = panoptic_utils.get_panoptic_network(
+            args.opts, args.cfg_file, args.neg_net_path
+        )
+        pos_net = panoptic_utils.get_panoptic_network(
+            args.opts, args.cfg_file, args.pos_net_path
+        )
+
     neg_net = neg_net.cuda()
     pos_net = pos_net.cuda()
-    neg_net.eval()
-    pos_net.eval()
-
     for param in pos_net.parameters():
         param.requires_grad = False
     for param in neg_net.parameters():
@@ -183,7 +213,7 @@ def main(args):
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.StepLR(
-        optimizer, 10 if args.dataset == 'imagenet' else 30, 0.5
+        optimizer, 10 if args.dataset in ['imagenet', 'coco'] else 30, 0.5
     )
 
     kwargs = {'num_workers': 8, 'pin_memory': True} if args.cuda else {}
@@ -192,19 +222,34 @@ def main(args):
     if args.dataset in ['imagenet', 'custom']:
         dataset_train_dir = os.path.join(args.data_dir, 'train')
         dataset_test_dir = os.path.join(args.data_dir, 'validation')
-    train_loader = torch.utils.data.DataLoader(
-        datasets_classes[args.dataset](dataset_train_dir,
-                                       transform=dataset_transforms[
-                                           args.dataset],
-                                       **dataset_train_args[args.dataset]),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
-    test_loader = torch.utils.data.DataLoader(
-        datasets_classes[args.dataset](dataset_test_dir,
-                                       transform=dataset_transforms[
-                                           args.dataset],
-                                       **dataset_test_args[args.dataset]),
-        batch_size=args.batch_size, shuffle=False, **kwargs)
+    if args.dataset == 'coco':
+        train_loader = panoptic_utils.get_coco_train(
+            args.batch_size, args.opts, args.cfg_file
+        )
+        test_loader = panoptic_utils.get_coco_test(
+            args.batch_size, args.opts, args.cfg_file
+        )
+    else:
+        train_loader = torch.utils.data.DataLoader(
+            datasets_classes[args.dataset](
+                dataset_train_dir,
+                transform=dataset_transforms[args.dataset],
+                **dataset_train_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=True, **kwargs
+        )
+        test_loader = torch.utils.data.DataLoader(
+            datasets_classes[args.dataset](
+                dataset_test_dir,
+                transform=dataset_transforms[args.dataset],
+                **dataset_test_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=False, **kwargs
+        )
 
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger('').addHandler(console)
     for epoch in range(1, args.epochs + 1):
         train_losses = train(
             epoch, model, train_loader, optimizer, args.cuda, args.log_interval,
@@ -238,24 +283,68 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
     epoch_losses = {k + '_train': 0 for k, v in loss_dict.items()}
     start_time = time.time()
     batch_idx, data = None, None
-    for batch_idx, (data, target) in enumerate(train_loader):
-        if cuda:
-            data = data.cuda()
+    for batch_idx, loader_data in enumerate(train_loader):
+        if args.dataset == 'coco':
+            data = []
+            for batch_data in loader_data:
+                current_image = batch_data['image'][[2, 1, 0], :, :].clone()
+                current_image = current_image.unsqueeze(0)
+                current_image = current_image.type('torch.FloatTensor')
+                current_image = nn.functional.interpolate(
+                    current_image, (224, 224)
+                )
+                current_image /= 255
+                current_image[0] = functional.normalize(
+                    current_image[0], args.mean, args.std, False
+                )
+                data.append(current_image)
+            data = torch.cat(data, dim=0)
+            max_len = len(train_loader.dataset)
+        else:
+            data = loader_data[0]
+            target = loader_data[1]
+            max_len = len(train_loader)
             target = target.cuda()
+
+        data = data.cuda()
         optimizer.zero_grad()
         outputs = model(data)
 
-        output_neg = neg_net(outputs[0])
-        loss_neg = args.criterion_neg(output_neg, target)
-        acc1_neg, acc5_pos = misc.accuracy(output_neg, target, topk=(1, 5))
-        losses_neg.update(loss_neg.item(), data.size(0))
-        top1_neg.update(acc1_neg[0], data.size(0))
+        if args.dataset == 'coco':
+            recon_imgs = outputs[0].clone()
+            recon_imgs = inv_normalise_tensor(recon_imgs, args.mean, args.std)
+            for im_ind, batch_data in enumerate(loader_data):
+                org_size = batch_data['image'].shape
+                current_image = recon_imgs[im_ind].squeeze()[[2, 1, 0], :, :]
+                current_image = current_image.unsqueeze(0)
+                current_image = nn.functional.interpolate(
+                    current_image, (org_size[1], org_size[2])
+                )
+                current_image *= 255
+                current_image = current_image.type(torch.uint8)
+                current_image = current_image.squeeze()
+                batch_data['image'] = current_image
+            with EventStorage(0) as storage:
+                output_neg = neg_net(loader_data)
+                loss_neg = sum(loss for loss in output_neg.values())
+                # import pdb
+                # pdb.set_trace()
+                losses_neg.update(loss_neg, data.size(0))
+                output_pos = pos_net(loader_data)
+                loss_pos = sum(loss for loss in output_pos.values())
+                losses_pos.update(loss_pos, data.size(0))
+        else:
+            output_neg = neg_net(outputs[0])
+            loss_neg = args.criterion_neg(output_neg, target)
+            acc1_neg, acc5_pos = misc.accuracy(output_neg, target, topk=(1, 5))
+            losses_neg.update(loss_neg.item(), data.size(0))
+            top1_neg.update(acc1_neg[0], data.size(0))
 
-        output_pos = pos_net(outputs[0])
-        loss_pos = args.criterion_pos(output_pos, target)
-        acc1_pos, acc5_pos = misc.accuracy(output_pos, target, topk=(1, 5))
-        losses_pos.update(loss_pos.item(), data.size(0))
-        top1_pos.update(acc1_pos[0], data.size(0))
+            output_pos = pos_net(outputs[0])
+            loss_pos = args.criterion_pos(output_pos, target)
+            acc1_pos, acc5_pos = misc.accuracy(output_pos, target, topk=(1, 5))
+            losses_pos.update(loss_pos.item(), data.size(0))
+            top1_pos.update(acc1_pos[0], data.size(0))
 
         loss = model.loss_function(data, *outputs) + (loss_pos / loss_neg)
         loss.backward()
@@ -276,27 +365,26 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
                 ' Lp: {loss_pos:.3f} Ap: {acc_pos:.3f}'
                 ' Ln: {loss_neg:.3f} An: {acc_neg:.3f}'
                     .format(epoch=epoch, batch=batch_idx * len(data),
-                            total_batch=len(train_loader) * len(data),
-                            percent=int(100. * batch_idx / len(train_loader)),
+                            total_batch=max_len * len(data),
+                            percent=int(100. * batch_idx / max_len),
                             time=time.time() - start_time, loss=loss_string,
                             loss_pos=losses_pos.avg, acc_pos=top1_pos.avg,
                             loss_neg=losses_neg.avg, acc_neg=top1_neg.avg))
             start_time = time.time()
             for key in latest_losses:
                 losses[key + '_train'] = 0
-        if batch_idx in [18, 1650, (len(train_loader) - 1)]:
+        if batch_idx in [18, 180, 1650, max_len - 1]:
             save_reconstructed_images(data, epoch, outputs[0], save_path,
                                       'reconstruction_train')
             write_images(data, outputs, writer, 'train', args.mean, args.std)
 
-        if args.dataset in ['imagenet', 'custom'] and batch_idx * len(
+        if args.dataset in ['imagenet', 'coco', 'custom'] and batch_idx * len(
                 data) > args.max_epoch_samples:
             break
 
     for key in epoch_losses:
         if args.dataset != 'imagenet':
-            epoch_losses[key] /= (
-                    len(train_loader.dataset) / train_loader.batch_size)
+            epoch_losses[key] /= (max_len / data.shape[0])
         else:
             epoch_losses[key] /= (
                     len(train_loader.dataset) / train_loader.batch_size)
@@ -315,9 +403,25 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer, pos_net,
     losses = {k + '_test': 0 for k, v in loss_dict.items()}
     i, data = None, None
     with torch.no_grad():
-        for i, (data, _) in enumerate(test_loader):
-            if cuda:
-                data = data.cuda()
+        for i, loader_data in enumerate(test_loader):
+            if args.dataset == 'coco':
+                data = []
+                for batch_data in loader_data:
+                    current_image = batch_data['image'][[2, 1, 0], :, :].clone()
+                    current_image = current_image.unsqueeze(0)
+                    current_image = current_image.type('torch.FloatTensor')
+                    current_image = nn.functional.interpolate(
+                        current_image, (224, 224)
+                    )
+                    current_image /= 255
+                    current_image[0] = functional.normalize(
+                        current_image[0], args.mean, args.std, False
+                    )
+                    data.append(current_image)
+                data = torch.cat(data, dim=0)
+            else:
+                data = loader_data[0]
+            data = data.cuda()
             outputs = model(data)
             model.loss_function(data, *outputs)
             latest_losses = model.latest_losses()
@@ -332,7 +436,7 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer, pos_net,
                 break
 
     for key in losses:
-        if args.dataset not in ['imagenet', 'custom']:
+        if args.dataset not in ['imagenet', 'coco', 'custom']:
             losses[key] /= (len(test_loader.dataset) / test_loader.batch_size)
         else:
             losses[key] /= (i * len(data))
@@ -343,11 +447,9 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer, pos_net,
 
 
 def write_images(data, outputs, writer, suffix, mean, std):
-    # original = data.mul(0.5).add(0.5)
     original = inv_normalise_tensor(data, mean, std)
     original_grid = make_grid(original[:6])
     writer.add_image(f'original/{suffix}', original_grid)
-    # reconstructed = outputs[0].mul(0.5).add(0.5)
     reconstructed = inv_normalise_tensor(outputs[0], mean, std)
     reconstructed_grid = make_grid(reconstructed[:6])
     writer.add_image(f'reconstructed/{suffix}', reconstructed_grid)
