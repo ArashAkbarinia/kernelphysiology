@@ -359,47 +359,41 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
         optimizer.zero_grad()
         outputs = model(data)
 
-        with torch.no_grad():
-            if args.dataset == 'coco':
-                recon_imgs = outputs[0].clone()
-                recon_imgs = inv_normalise_tensor(recon_imgs, args.mean,
-                                                  args.std)
-                for im_ind, batch_data in enumerate(loader_data):
-                    org_size = batch_data['image'].shape
-                    current_image = recon_imgs[im_ind].squeeze()[[2, 1, 0], :,
-                                    :]
-                    current_image = current_image.unsqueeze(0)
-                    current_image = nn.functional.interpolate(
-                        current_image, (org_size[1], org_size[2])
-                    )
-                    current_image *= 255
-                    current_image = current_image.type(torch.uint8)
-                    current_image = current_image.squeeze()
-                    batch_data['image'] = current_image
-                with EventStorage(0) as storage:
-                    output_neg = neg_net(loader_data)
-                    loss_neg = sum(loss for loss in output_neg.values())
-                    losses_neg.update(loss_neg, data.size(0))
-                    output_pos = pos_net(loader_data)
-                    loss_pos = sum(loss for loss in output_pos.values())
-                    losses_pos.update(loss_pos, data.size(0))
-            else:
-                output_neg = neg_net(outputs[0])
-                loss_neg = args.criterion_neg(output_neg, target)
-                acc1_neg, acc5_pos = misc.accuracy(output_neg, target,
-                                                   topk=(1, 5))
-                losses_neg.update(loss_neg.item(), data.size(0))
-                top1_neg.update(acc1_neg[0], data.size(0))
+        if args.dataset == 'coco':
+            recon_imgs = outputs[0].clone()
+            recon_imgs = inv_normalise_tensor(recon_imgs, args.mean, args.std)
+            for im_ind, batch_data in enumerate(loader_data):
+                org_size = batch_data['image'].shape
+                current_image = recon_imgs[im_ind].squeeze()[[2, 1, 0], :, :]
+                current_image = current_image.unsqueeze(0)
+                current_image = nn.functional.interpolate(
+                    current_image, (org_size[1], org_size[2])
+                )
+                current_image *= 255
+                current_image = current_image.type(torch.uint8)
+                current_image = current_image.squeeze()
+                batch_data['image'] = current_image
+            with EventStorage(0) as storage:
+                output_neg = neg_net(loader_data)
+                loss_neg = sum(loss for loss in output_neg.values())
+                losses_neg.update(loss_neg, data.size(0))
+                output_pos = pos_net(loader_data)
+                loss_pos = sum(loss for loss in output_pos.values())
+                losses_pos.update(loss_pos, data.size(0))
+        else:
+            output_neg = neg_net(outputs[0])
+            loss_neg = args.criterion_neg(output_neg, target)
+            acc1_neg, acc5_pos = misc.accuracy(output_neg, target, topk=(1, 5))
+            losses_neg.update(loss_neg.item(), data.size(0))
+            top1_neg.update(acc1_neg[0], data.size(0))
 
-                output_pos = pos_net(outputs[0])
-                loss_pos = args.criterion_pos(output_pos, target)
-                acc1_pos, acc5_pos = misc.accuracy(output_pos, target,
-                                                   topk=(1, 5))
-                losses_pos.update(loss_pos.item(), data.size(0))
-                top1_pos.update(acc1_pos[0], data.size(0))
+            output_pos = pos_net(outputs[0])
+            loss_pos = args.criterion_pos(output_pos, target)
+            acc1_pos, acc5_pos = misc.accuracy(output_pos, target, topk=(1, 5))
+            losses_pos.update(loss_pos.item(), data.size(0))
+            top1_pos.update(acc1_pos[0], data.size(0))
 
-        loss = model.loss_function(data, *outputs) + (
-                    (loss_pos + loss_neg) / loss_neg)
+        loss = model.loss_function(data, *outputs) + (loss_pos / loss_neg)
         loss.backward()
         optimizer.step()
         latest_losses = model.latest_losses()
