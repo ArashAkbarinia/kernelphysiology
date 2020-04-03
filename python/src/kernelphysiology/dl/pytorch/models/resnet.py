@@ -63,6 +63,8 @@ class LocalContrastBlock(nn.Module):
         x = x - x_avg
         x = x ** 2
         x = self.conv_average(x)
+        # TODO: this can be uncommented and this part should not have no
+        #  gradient and in eval mode
         # x = x ** 0.5
 
         return x

@@ -155,6 +155,51 @@ def main(args):
                                 help='saved folder')
     logging_parser.add_argument('--data-format', default='json',
                                 help='in which format to save the data')
+
+    network_manipulation_group = parser.add_argument_group('manipulations')
+    network_manipulation_group.add_argument(
+        '--n_kill_kernels',
+        nargs='+',
+        type=str,
+        default=None,
+        help='First layer name followed by kernel indices (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--n_kill_planes',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Axis number followed by plane indices ax_<P1> (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--n_kill_lines',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--p_kill_kernels',
+        nargs='+',
+        type=str,
+        default=None,
+        help='First layer name followed by kernel indices (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--p_kill_planes',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Axis number followed by plane indices ax_<P1> (default: None)'
+    )
+    network_manipulation_group.add_argument(
+        '--p_kill_lines',
+        nargs='+',
+        type=str,
+        default=None,
+        help='Intersection of two planes, <P1>_<L1>_<P2>_<L2> (default: None)'
+    )
+
     args = parser.parse_args(args)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     dataset_dir_name = args.dataset if args.dataset != 'custom' else args.dataset_dir_name
@@ -162,10 +207,14 @@ def main(args):
     # other two networks
     if args.dataset == 'imagenet':
         (neg_net, _) = model_utils.which_network_classification(
-            args.neg_net_path, num_classes=1000
+            args.neg_net_path, num_classes=1000,
+            kill_kernels=args.n_kill_kernels, kill_planes=args.n_kill_planes,
+            kill_lines=args.n_kill_lines
         )
         (pos_net, _) = model_utils.which_network_classification(
-            args.pos_net_path, num_classes=1000
+            args.pos_net_path, num_classes=1000,
+            kill_kernels=args.p_kill_kernels, kill_planes=args.p_kill_planes,
+            kill_lines=args.p_kill_lines
         )
         neg_net.eval()
         pos_net.eval()
