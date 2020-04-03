@@ -359,43 +359,47 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
         optimizer.zero_grad()
         outputs = model(data)
 
-        if args.dataset == 'coco':
-            recon_imgs = outputs[0].clone()
-            recon_imgs = inv_normalise_tensor(recon_imgs, args.mean, args.std)
-            for im_ind, batch_data in enumerate(loader_data):
-                org_size = batch_data['image'].shape
-                current_image = recon_imgs[im_ind].squeeze()[[2, 1, 0], :, :]
-                current_image = current_image.unsqueeze(0)
-                current_image = nn.functional.interpolate(
-                    current_image, (org_size[1], org_size[2])
-                )
-                current_image *= 255
-                current_image = current_image.type(torch.uint8)
-                current_image = current_image.squeeze()
-                batch_data['image'] = current_image
-            with EventStorage(0) as storage:
-                output_neg = neg_net(loader_data)
-                loss_neg = sum(loss for loss in output_neg.values())
-                # import pdb
-                # pdb.set_trace()
-                losses_neg.update(loss_neg, data.size(0))
-                output_pos = pos_net(loader_data)
-                loss_pos = sum(loss for loss in output_pos.values())
-                losses_pos.update(loss_pos, data.size(0))
-        else:
-            output_neg = neg_net(outputs[0])
-            loss_neg = args.criterion_neg(output_neg, target)
-            acc1_neg, acc5_pos = misc.accuracy(output_neg, target, topk=(1, 5))
-            losses_neg.update(loss_neg.item(), data.size(0))
-            top1_neg.update(acc1_neg[0], data.size(0))
+        with torch.no_grad():
+            if args.dataset == 'coco':
+                recon_imgs = outputs[0].clone()
+                recon_imgs = inv_normalise_tensor(recon_imgs, args.mean,
+                                                  args.std)
+                for im_ind, batch_data in enumerate(loader_data):
+                    org_size = batch_data['image'].shape
+                    current_image = recon_imgs[im_ind].squeeze()[[2, 1, 0], :,
+                                    :]
+                    current_image = current_image.unsqueeze(0)
+                    current_image = nn.functional.interpolate(
+                        current_image, (org_size[1], org_size[2])
+                    )
+                    current_image *= 255
+                    current_image = current_image.type(torch.uint8)
+                    current_image = current_image.squeeze()
+                    batch_data['image'] = current_image
+                with EventStorage(0) as storage:
+                    output_neg = neg_net(loader_data)
+                    loss_neg = sum(loss for loss in output_neg.values())
+                    losses_neg.update(loss_neg, data.size(0))
+                    output_pos = pos_net(loader_data)
+                    loss_pos = sum(loss for loss in output_pos.values())
+                    losses_pos.update(loss_pos, data.size(0))
+            else:
+                output_neg = neg_net(outputs[0])
+                loss_neg = args.criterion_neg(output_neg, target)
+                acc1_neg, acc5_pos = misc.accuracy(output_neg, target,
+                                                   topk=(1, 5))
+                losses_neg.update(loss_neg.item(), data.size(0))
+                top1_neg.update(acc1_neg[0], data.size(0))
 
-            output_pos = pos_net(outputs[0])
-            loss_pos = args.criterion_pos(output_pos, target)
-            acc1_pos, acc5_pos = misc.accuracy(output_pos, target, topk=(1, 5))
-            losses_pos.update(loss_pos.item(), data.size(0))
-            top1_pos.update(acc1_pos[0], data.size(0))
+                output_pos = pos_net(outputs[0])
+                loss_pos = args.criterion_pos(output_pos, target)
+                acc1_pos, acc5_pos = misc.accuracy(output_pos, target,
+                                                   topk=(1, 5))
+                losses_pos.update(loss_pos.item(), data.size(0))
+                top1_pos.update(acc1_pos[0], data.size(0))
 
-        loss = model.loss_function(data, *outputs) + (loss_pos / loss_neg)
+        loss = model.loss_function(data, *outputs) + (
+                    (loss_pos + loss_neg) / loss_neg)
         loss.backward()
         optimizer.step()
         latest_losses = model.latest_losses()
@@ -423,8 +427,10 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
             for key in latest_losses:
                 losses[key + '_train'] = 0
         if batch_idx in [18, 180, 1650, max_len - 1]:
-            save_reconstructed_images(data, epoch, outputs[0], save_path,
-                                      'reconstruction_train')
+            save_reconstructed_images(
+                data, epoch, outputs[0], save_path,
+                'reconstruction_train%.5d' % batch_idx
+            )
             write_images(data, outputs, writer, 'train', args.mean, args.std)
 
         if args.dataset in ['imagenet', 'coco', 'custom'] and batch_idx * len(
@@ -476,11 +482,13 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer, pos_net,
             latest_losses = model.latest_losses()
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
-            if i == 0:
+            if i in [0, 100, 200, 300, 400]:
                 write_images(data, outputs, writer, 'test', args.mean, args.std)
 
-                save_reconstructed_images(data, epoch, outputs[0], save_path,
-                                          'reconstruction_test')
+                save_reconstructed_images(
+                    data, epoch, outputs[0], save_path,
+                    'reconstruction_test_%.5d' % i
+                )
             if args.dataset == 'imagenet' and i * len(data) > 1000:
                 break
 
