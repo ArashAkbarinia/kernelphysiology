@@ -121,6 +121,8 @@ def main(args):
                               help='commitment coefficient in loss')
     model_parser.add_argument('--kl_coef', type=float, default=None,
                               help='kl-divergence coefficient in loss')
+    parser.add_argument('--resume', type=str, default=None,
+                        help='The path to resume.')
 
     training_parser = parser.add_argument_group('Training Parameters')
     training_parser.add_argument(
@@ -257,6 +259,9 @@ def main(args):
 
     model = models[args.dataset][args.model](hidden, k=k,
                                              num_channels=num_channels)
+    if args.resume is not None:
+        weights = torch.load(args.resume, map_location='cpu')
+        model.load_state_dict(weights)
     if args.cuda:
         model.cuda()
 
