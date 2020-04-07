@@ -91,7 +91,7 @@ def main(args):
     parser.add_argument('-pnet', '--pos_net_path', type=str, required=True,
                         help='The path to network to be maximised.')
     parser.add_argument('-nnet', '--neg_net_path', type=str, required=True,
-                        help='The path to network to be minimised.')
+                        help='The path to network to be minimised.', nargs='+')
     parser.add_argument('-cfg', '--cfg_file', type=str, required=False,
                         help='The path to the CFG file.')
     parser.add_argument(
@@ -208,17 +208,21 @@ def main(args):
 
     # other two networks
     if args.dataset == 'imagenet':
-        (neg_net, _) = model_utils.which_network_classification(
-            args.neg_net_path, num_classes=1000,
-            kill_kernels=args.n_kill_kernels, kill_planes=args.n_kill_planes,
-            kill_lines=args.n_kill_lines
-        )
+        neg_nets = []
+        for neg_path in args.neg_net_path:
+            (neg_net, _) = model_utils.which_network_classification(
+                neg_path, num_classes=1000,
+                kill_kernels=args.n_kill_kernels,
+                kill_planes=args.n_kill_planes,
+                kill_lines=args.n_kill_lines
+            )
+            neg_net.eval()
+            neg_nets.append(neg_net)
         (pos_net, _) = model_utils.which_network_classification(
             args.pos_net_path, num_classes=1000,
             kill_kernels=args.p_kill_kernels, kill_planes=args.p_kill_planes,
             kill_lines=args.p_kill_lines
         )
-        neg_net.eval()
         pos_net.eval()
     elif args.dataset == 'coco':
         neg_net = panoptic_utils.get_panoptic_network(
@@ -228,11 +232,12 @@ def main(args):
             args.opts, args.cfg_file, args.pos_net_path
         )
 
-    neg_net = neg_net.cuda()
+    for neg_net in neg_nets:
+        neg_net = neg_net.cuda()
+        for param in neg_net.parameters():
+            param.requires_grad = False
     pos_net = pos_net.cuda()
     for param in pos_net.parameters():
-        param.requires_grad = False
-    for param in neg_net.parameters():
         param.requires_grad = False
 
     args.mean = [0.485, 0.456, 0.406]
@@ -307,10 +312,10 @@ def main(args):
     for epoch in range(1, args.epochs + 1):
         train_losses = train(
             epoch, model, train_loader, optimizer, args.cuda, args.log_interval,
-            save_path, args, writer, pos_net, neg_net
+            save_path, args, writer, pos_net, neg_nets
         )
         test_losses = test_net(epoch, model, test_loader, args.cuda, save_path,
-                               args, writer, pos_net, neg_net)
+                               args, writer, pos_net, neg_nets)
         save_checkpoint(model, epoch, save_path)
 
         for k in train_losses.keys():
@@ -325,7 +330,7 @@ def main(args):
 
 
 def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
-          args, writer, pos_net, neg_net):
+          args, writer, pos_net, neg_nets):
     losses_neg = misc.AverageMeter()
     losses_pos = misc.AverageMeter()
     top1_neg = misc.AverageMeter()
@@ -386,11 +391,15 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
                 loss_pos = sum(loss for loss in output_pos.values())
                 losses_pos.update(loss_pos, data.size(0))
         else:
-            output_neg = neg_net(outputs[0])
-            loss_neg = args.criterion_neg(output_neg, target)
-            acc1_neg, acc5_pos = misc.accuracy(output_neg, target, topk=(1, 5))
-            losses_neg.update(loss_neg.item(), data.size(0))
-            top1_neg.update(acc1_neg[0], data.size(0))
+            current_loss_negs = 0
+            for neg_net in neg_nets:
+                output_neg = neg_net(outputs[0])
+                loss_neg = args.criterion_neg(output_neg, target)
+                acc1_neg, acc5_pos = misc.accuracy(output_neg, target,
+                                                   topk=(1, 5))
+                losses_neg.update(loss_neg.item(), data.size(0))
+                top1_neg.update(acc1_neg[0], data.size(0))
+                current_loss_negs += loss_neg
 
             output_pos = pos_net(outputs[0])
             loss_pos = args.criterion_pos(output_pos, target)
@@ -398,7 +407,8 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
             losses_pos.update(loss_pos.item(), data.size(0))
             top1_pos.update(acc1_pos[0], data.size(0))
 
-        loss = model.loss_function(data, *outputs) + (loss_pos / loss_neg)
+        loss = model.loss_function(data, *outputs) + (
+                (loss_pos + current_loss_negs) / current_loss_negs)
         loss.backward()
         optimizer.step()
         latest_losses = model.latest_losses()
@@ -451,7 +461,7 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
 
 
 def test_net(epoch, model, test_loader, cuda, save_path, args, writer, pos_net,
-             neg_net):
+             neg_nets):
     model.eval()
     loss_dict = model.latest_losses()
     losses = {k + '_test': 0 for k, v in loss_dict.items()}
