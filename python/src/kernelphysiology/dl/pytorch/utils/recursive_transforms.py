@@ -6,9 +6,10 @@ more flexible type of inputs.
 import math
 import random
 import warnings
+import numbers
 
 from PIL import Image
-from torchvision.transforms import functional as F
+from torchvision.transforms import functional as tfunctional
 from torchvision.transforms.transforms import _pil_interpolation_to_str
 
 from kernelphysiology.dl.pytorch.utils.transformations import Iterable
@@ -79,23 +80,6 @@ class RandomResizedCrop(object):
         j = (img.size[0] - w) // 2
         return i, j, w, w
 
-    def _call_recursive(self, imgs, i, j, h, w):
-        if type(imgs) is list:
-            inner_list = []
-            for img in imgs:
-                inner_list.append(self._call_recursive(img, i, j, h, w))
-            return inner_list
-        else:
-            return F.resized_crop(
-                imgs, i, j, h, w, self.size, self.interpolation
-            )
-
-    def _find_first_image_recursive(self, imgs):
-        if type(imgs) is list:
-            return self._find_first_image_recursive(imgs[0])
-        else:
-            return imgs
-
     def __call__(self, imgs):
         """
         Args:
@@ -104,11 +88,15 @@ class RandomResizedCrop(object):
         Returns:
             PIL Image: Randomly cropped and resized images.
         """
-        i, j, h, w = self.get_params(
-            self._find_first_image_recursive(imgs), self.scale, self.ratio
+        top, left, height, width = self.get_params(
+            _find_first_image_recursive(imgs), self.scale, self.ratio
         )
-        out_imgs = self._call_recursive(imgs, i, j, h, w)
-        return out_imgs
+        fun = tfunctional.resized_crop
+        kwargs = {
+            'top': top, 'left': left, 'height': height, 'width': width,
+            'size': self.size, 'interpolation': self.interpolation
+        }
+        return _call_recursive(imgs, fun, **kwargs)
 
     def __repr__(self):
         interpolate_str = _pil_interpolation_to_str[self.interpolation]
@@ -133,15 +121,6 @@ class RandomHorizontalFlip(object):
     def __init__(self, p=0.5):
         self.p = p
 
-    def _call_recursive(self, imgs):
-        if type(imgs) is list:
-            inner_list = []
-            for img in imgs:
-                inner_list.append(self._call_recursive(img))
-            return inner_list
-        else:
-            return F.hflip(imgs)
-
     def __call__(self, imgs):
         """
         Args:
@@ -151,8 +130,8 @@ class RandomHorizontalFlip(object):
             PIL Image: Randomly flipped images.
         """
         if random.random() < self.p:
-            out_imgs = self._call_recursive(imgs)
-            return out_imgs
+            fun = tfunctional.hflip
+            return _call_recursive(imgs, fun)
         return imgs
 
     def __repr__(self):
@@ -177,29 +156,128 @@ class Resize(object):
                 (isinstance(size, Iterable) and len(size) == 2))
         self.size = size
         self.interpolation = interpolation
-
-    def _call_recursive(self, imgs):
-        if type(imgs) is list:
-            inner_list = []
-            for img in imgs:
-                inner_list.append(self._call_recursive(img))
-            return inner_list
-        else:
-            return F.resize(imgs, self.size, self.interpolation)
+        self.kwargs = {'size': self.size, 'interpolation': self.interpolation}
 
     def __call__(self, imgs):
         """
         Args:
-            img (PIL Image): Image to be scaled.
+            imgs (PIL Image): List of images to be scaled.
 
         Returns:
             PIL Image: Rescaled image.
         """
-        out_imgs = self._call_recursive(imgs)
-        return out_imgs
+        fun = tfunctional.resize
+        kwargs = self.kwargs
+        return _call_recursive(imgs, fun, **kwargs)
 
     def __repr__(self):
         interpolate_str = _pil_interpolation_to_str[self.interpolation]
         return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(
             self.size, interpolate_str
         )
+
+
+class Normalize(object):
+    """Normalize a tensor image with mean and standard deviation.
+
+    Args:
+        mean (sequence): Sequence of means for each channel.
+        std (sequence): Sequence of standard deviations for each channel.
+        inplace(bool,optional): Bool to make this operation in-place.
+    """
+
+    def __init__(self, mean, std, inplace=False):
+        self.mean = mean
+        self.std = std
+        self.inplace = inplace
+        self.kwargs = {
+            'mean': self.mean, 'std': self.std, 'inplace': self.inplace
+        }
+
+    def __call__(self, tensors):
+        """
+        Args:
+            tensors (Tensor): List of tensor images of size (C, H, W) to be
+             normalised.
+
+        Returns:
+            Tensor: Normalized Tensor image.
+        """
+        fun = tfunctional.normalize
+        kwargs = self.kwargs
+        return _call_recursive(tensors, fun, **kwargs)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(
+            self.mean, self.std
+        )
+
+
+class ToTensor(object):
+    """Convert a ``PIL Image`` or ``numpy.ndarray`` to tensor.
+    In the other cases, tensors are returned without scaling.
+    """
+
+    def __call__(self, pics):
+        """
+        Args:
+            pics (List of PIL Image or numpy.ndarray): Image to be converted to
+             tensor.
+
+        Returns:
+            Tensor: Converted images.
+        """
+        fun = tfunctional.to_tensor
+        return _call_recursive(pics, fun)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
+
+class CenterCrop(object):
+    """Crops the given PIL Image at the center.
+
+    Args:
+        size (sequence or int): Desired output size of the crop. If size is an
+            int instead of sequence like (h, w), a square crop (size, size) is
+            made.
+    """
+
+    def __init__(self, size):
+        if isinstance(size, numbers.Number):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
+        self.kwargs = {'output_size': self.size}
+
+    def __call__(self, imgs):
+        """
+        Args:
+            imgs (PIL Image): List of images to be cropped.
+
+        Returns:
+            PIL Image: Cropped images.
+        """
+        fun = tfunctional.center_crop
+        kwargs = self.kwargs
+        return _call_recursive(imgs, fun, **kwargs)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(size={0})'.format(self.size)
+
+
+def _call_recursive(imgs, fun, **kwargs):
+    if type(imgs) is list:
+        inner_list = []
+        for img in imgs:
+            inner_list.append(_call_recursive(img, fun, **kwargs))
+        return inner_list
+    else:
+        return fun(imgs, **kwargs)
+
+
+def _find_first_image_recursive(imgs):
+    if type(imgs) is list:
+        return _find_first_image_recursive(imgs[0])
+    else:
+        return imgs
