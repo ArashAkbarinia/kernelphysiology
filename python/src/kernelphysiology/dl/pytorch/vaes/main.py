@@ -15,6 +15,7 @@ from model import *
 import data_loaders
 from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
 from kernelphysiology.dl.pytorch.utils import misc
+from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import recursive_transforms
 
 models = {
@@ -63,7 +64,7 @@ dataset_transforms = {
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]),
     'imagenet': transforms.Compose(
-        [recursive_transforms.Resize(256), recursive_transforms.CenterCrop(64),
+        [recursive_transforms.Resize(256), recursive_transforms.CenterCrop(224),
          recursive_transforms.ToTensor(),
          recursive_transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
          ]),
@@ -105,8 +106,10 @@ def main(args):
                               help='kl-divergence coefficient in loss')
     parser.add_argument('--resume', type=str, default=None,
                         help='The path to resume.')
-    parser.add_argument('--mosaic', type=str, default=None,
+    parser.add_argument('--mosaic_pattern', type=str, default=None,
                         help='The type of mosaic.')
+    parser.add_argument('--colour_space', type=str, default=None,
+                        help='The type of output colour space.')
 
     training_parser = parser.add_argument_group('Training Parameters')
     training_parser.add_argument(
@@ -181,6 +184,19 @@ def main(args):
         optimizer, 10 if args.dataset in ['imagenet', 'coco'] else 30, 0.5
     )
 
+    intransform_funs = []
+    if args.mosaic_pattern is not None:
+        intransform_funs.append(
+            preprocessing.MosaicTransformation(args.mosaic_pattern)
+        )
+    intransform = transforms.Compose(intransform_funs)
+    outtransform_funs = []
+    if args.colour_space is not None:
+        outtransform_funs.append(
+            preprocessing.ColourTransformation(None, args.colour_space)
+        )
+    outtransform = transforms.Compose(outtransform_funs)
+
     kwargs = {'num_workers': 8, 'pin_memory': True} if args.cuda else {}
     dataset_train_dir = os.path.join(args.data_dir, dataset_dir_name)
     dataset_test_dir = os.path.join(args.data_dir, dataset_dir_name)
@@ -198,6 +214,8 @@ def main(args):
         train_loader = torch.utils.data.DataLoader(
             datasets_classes[args.dataset](
                 root=dataset_train_dir,
+                intransform=intransform,
+                outtransform=outtransform,
                 transform=dataset_transforms[args.dataset],
                 **dataset_train_args[args.dataset]
             ),
@@ -206,6 +224,8 @@ def main(args):
         test_loader = torch.utils.data.DataLoader(
             datasets_classes[args.dataset](
                 root=dataset_test_dir,
+                intransform=intransform,
+                outtransform=outtransform,
                 transform=dataset_transforms[args.dataset],
                 **dataset_test_args[args.dataset]
             ),

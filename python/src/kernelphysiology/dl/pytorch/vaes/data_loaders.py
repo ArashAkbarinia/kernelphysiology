@@ -2,10 +2,11 @@ from torchvision import datasets as tdatasets
 
 
 class ImageFolder(tdatasets.ImageFolder):
-    def __init__(self, img_manipulation=None, **kwargs):
+    def __init__(self, intransform=None, outtransform=None, **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
-        self.img_manipulation = img_manipulation
+        self.intransform = intransform
+        self.outtransform = outtransform
 
     def __getitem__(self, index):
         """
@@ -13,20 +14,22 @@ class ImageFolder(tdatasets.ImageFolder):
             index (int): Index
 
         Returns:
-            tuple: (sample, img_target) where img_target is the same size as
+            tuple: (imgin, imgout) where imgout is the same size as
              original image after applied manipulations.
         """
         path, class_target = self.samples[index]
-        sample = self.loader(path)
-        img_target = sample.copy()
-        if self.img_manipulation is not None:
-            img_target = self.transform(img_target)
+        imgin = self.loader(path)
+        imgout = imgin.copy()
+        if self.intransform is not None:
+            imgin = self.intransform(imgin)
+        if self.outtransform is not None:
+            imgout = self.outtransform(imgout)
 
         if self.transform is not None:
-            sample, img_target = self.transform([sample, img_target])
+            imgin, imgout = self.transform([imgin, imgout])
 
         # right now we're not using the class target, but perhaps in the future
         if self.target_transform is not None:
             class_target = self.target_transform(class_target)
 
-        return sample, img_target
+        return imgin, imgout
