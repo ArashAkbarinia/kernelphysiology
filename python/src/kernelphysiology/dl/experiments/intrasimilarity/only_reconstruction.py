@@ -67,13 +67,12 @@ dataset_transforms = {
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
     'coco': transforms.Compose(
         [
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]),
     'imagenet': transforms.Compose(
         [transforms.Resize(256), transforms.CenterCrop(224),
          transforms.ToTensor(),
-         # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
          ]),
     'cifar10': transforms.Compose([transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5),
@@ -113,6 +112,8 @@ def main(args):
                               help='kl-divergence coefficient in loss')
     parser.add_argument('--resume', type=str, default=None,
                         help='The path to resume.')
+    parser.add_argument('--mosaic', type=str, default=None,
+                        help='The type of mosaic.')
 
     training_parser = parser.add_argument_group('Training Parameters')
     training_parser.add_argument(
@@ -152,8 +153,8 @@ def main(args):
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     dataset_dir_name = args.dataset if args.dataset != 'custom' else args.dataset_dir_name
 
-    args.mean = [0.485, 0.456, 0.406]
-    args.std = [0.229, 0.224, 0.225]
+    args.mean = [0.5, 0.5, 0.5]
+    args.std = [0.5, 0.5, 0.5]
 
     lr = args.lr or default_hyperparams[args.dataset]['lr']
     k = args.k or default_hyperparams[args.dataset]['k']
@@ -241,18 +242,19 @@ def main(args):
         scheduler.step()
 
 
-def apply_retina(data):
+def apply_retina(data, mosaic):
     # retina
-    img_r = data[:, 0]
-    img_g = data[:, 1]
-    img_b = data[:, 2]
-    for b_ind in range(img_r.shape[0]):
-        img_r[b_ind, mask_r == 0] = 0
-        img_g[b_ind, mask_g == 0] = 0
-        img_b[b_ind, mask_b == 0] = 0
-    data[:, 0] = img_r
-    data[:, 1] = img_g
-    data[:, 2] = img_b
+    if mosaic is not None:
+        img_r = data[:, 0]
+        img_g = data[:, 1]
+        img_b = data[:, 2]
+        for b_ind in range(img_r.shape[0]):
+            img_r[b_ind, mask_r == 0] = 0
+            img_g[b_ind, mask_g == 0] = 0
+            img_b[b_ind, mask_b == 0] = 0
+        data[:, 0] = img_r
+        data[:, 1] = img_g
+        data[:, 2] = img_b
     return data
 
 
@@ -291,7 +293,7 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
             target = loader_data[1]
             org_data = data.clone()
 
-            data = apply_retina(data)
+            data = apply_retina(data, args.mosaic)
             max_len = len(train_loader)
             target = target.cuda()
 
@@ -377,7 +379,7 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
             else:
                 data = loader_data[0]
                 org_data = data.clone()
-                apply_retina(data)
+                apply_retina(data, args.mosaic)
             data = data.cuda()
             org_data = org_data.cuda()
             outputs = model(data)

@@ -16,7 +16,7 @@ from kernelphysiology.dl.experiments.intrasimilarity.model import *
 from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.utils import misc
-from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
+from kernelphysiology.dl.pytorch.utils import preprocessing
 
 from detectron2.utils.events import EventStorage
 
@@ -63,13 +63,12 @@ dataset_transforms = {
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
     'coco': transforms.Compose(
         [
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]),
     'imagenet': transforms.Compose(
         [transforms.Resize(256), transforms.CenterCrop(224),
          transforms.ToTensor(),
-         # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
          ]),
     'cifar10': transforms.Compose([transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5),
@@ -240,8 +239,10 @@ def main(args):
     for param in pos_net.parameters():
         param.requires_grad = False
 
-    args.mean = [0.485, 0.456, 0.406]
-    args.std = [0.229, 0.224, 0.225]
+    args.mean = [0.5, 0.5, 0.5]
+    args.std = [0.5, 0.5, 0.5]
+    args.imagenet_mean = [0.485, 0.456, 0.406]
+    args.imagenet_std = [0.229, 0.224, 0.225]
 
     lr = args.lr or default_hyperparams[args.dataset]['lr']
     k = args.k or default_hyperparams[args.dataset]['k']
@@ -370,8 +371,9 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
         outputs = model(data)
 
         if args.dataset == 'coco':
-            recon_imgs = outputs[0].clone()
-            recon_imgs = inv_normalise_tensor(recon_imgs, args.mean, args.std)
+            recon_imgs = preprocessing.inv_normalise_tensor(
+                outputs[0], args.mean, args.std
+            )
             for im_ind, batch_data in enumerate(loader_data):
                 org_size = batch_data['image'].shape
                 current_image = recon_imgs[im_ind].squeeze()[[2, 1, 0], :, :]
@@ -391,9 +393,15 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
                 loss_pos = sum(loss for loss in output_pos.values())
                 losses_pos.update(loss_pos, data.size(0))
         else:
+            recon_imgs = preprocessing.inv_normalise_tensor(
+                outputs[0], args.mean, args.std
+            )
+            recon_imgs = preprocessing.normalise_tensor(
+                recon_imgs, args.imagenet_mean, args.imagenet_std
+            )
             current_loss_negs = 0
             for neg_net in neg_nets:
-                output_neg = neg_net(outputs[0])
+                output_neg = neg_net(recon_imgs)
                 loss_neg = args.criterion_neg(output_neg, target)
                 acc1_neg, acc5_pos = misc.accuracy(output_neg, target,
                                                    topk=(1, 5))
@@ -401,7 +409,7 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
                 top1_neg.update(acc1_neg[0], data.size(0))
                 current_loss_negs += loss_neg
 
-            output_pos = pos_net(outputs[0])
+            output_pos = pos_net(recon_imgs)
             loss_pos = args.criterion_pos(output_pos, target)
             acc1_pos, acc5_pos = misc.accuracy(output_pos, target, topk=(1, 5))
             losses_pos.update(loss_pos.item(), data.size(0))
@@ -513,10 +521,10 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer, pos_net,
 
 
 def write_images(data, outputs, writer, suffix, mean, std):
-    original = inv_normalise_tensor(data, mean, std)
+    original = preprocessing.inv_normalise_tensor(data, mean, std)
     original_grid = make_grid(original[:6])
     writer.add_image(f'original/{suffix}', original_grid)
-    reconstructed = inv_normalise_tensor(outputs[0], mean, std)
+    reconstructed = preprocessing.inv_normalise_tensor(outputs[0], mean, std)
     reconstructed_grid = make_grid(reconstructed[:6])
     writer.add_image(f'reconstructed/{suffix}', reconstructed_grid)
 
