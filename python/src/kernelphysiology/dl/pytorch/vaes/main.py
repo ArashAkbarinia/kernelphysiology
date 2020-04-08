@@ -323,7 +323,7 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
                 data, epoch, outputs[0], save_path,
                 'reconstruction_train%.5d' % batch_idx
             )
-            ex_util.write_images(data, outputs, writer, 'train', args.mean,
+            ex_util.write_images(target, outputs, writer, 'train', args.mean,
                                  args.std, args.inv_func)
 
         if args.dataset in ['imagenet', 'coco', 'custom'] and batch_idx * len(
@@ -377,7 +377,7 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
             if i in [0, 100, 200, 300, 400]:
-                ex_util.write_images(data, outputs, writer, 'test', args.mean,
+                ex_util.write_images(target, outputs, writer, 'test', args.mean,
                                      args.std, args.inv_func)
 
                 ex_util.save_reconstructed_images(

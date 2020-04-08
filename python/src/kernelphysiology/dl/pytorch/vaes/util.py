@@ -79,6 +79,8 @@ def export_args(args, save_path):
 
 def write_images(data, outputs, writer, suffix, mean, std, inv_func=None):
     original = inv_normalise_tensor(data, mean, std)
+    if inv_func is not None:
+        original = inv_func(original)
     original_grid = make_grid(original[:6])
     writer.add_image(f'original/{suffix}', original_grid)
     reconstructed = inv_normalise_tensor(outputs[0], mean, std)
