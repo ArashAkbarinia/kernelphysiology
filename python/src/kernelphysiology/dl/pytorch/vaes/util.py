@@ -1,8 +1,11 @@
+import numpy as np
 import shutil
 import os
 import logging.config
 from datetime import datetime
 import json
+
+from skimage import io
 
 import torch
 from torchvision.utils import save_image, make_grid
@@ -95,6 +98,37 @@ def save_checkpoint(model, epoch, save_path):
     checkpoint_path = os.path.join(save_path, 'checkpoints',
                                    f'model_{epoch}.pth')
     torch.save(model.state_dict(), checkpoint_path)
+
+
+def tensor_tosave(tensor):
+    imgs = []
+    for i in range(tensor.shape[0]):
+        img = tensor[i].cpu().numpy().transpose((1, 2, 0)) * 255
+        img = img.astype('uint8')
+        imgs.append(img)
+    return imgs
+
+
+def grid_save_reconstructed_images(data, outputs, mean, std, epoch, save_path,
+                                   name, inv_func=None):
+    original = inv_normalise_tensor(data, mean, std).detach()
+    if inv_func is not None:
+        original = inv_func(original)
+    else:
+        original = tensor_tosave(original)
+    reconstructed = inv_normalise_tensor(outputs[0], mean, std).detach()
+    if inv_func is not None:
+        reconstructed = inv_func(reconstructed)
+    else:
+        reconstructed = tensor_tosave(reconstructed)
+
+    original = np.concatenate(original, axis=1)
+    reconstructed = np.concatenate(reconstructed, axis=1)
+    both_together = np.concatenate([original, reconstructed], axis=0)
+    io.imsave(
+        os.path.join(save_path, name + '_' + str(epoch) + '.png'),
+        both_together
+    )
 
 
 def save_reconstructed_images(data, epoch, outputs, save_path, name):
