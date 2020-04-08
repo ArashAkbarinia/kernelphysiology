@@ -77,11 +77,13 @@ def export_args(args, save_path):
         json.dump(dict(args._get_kwargs()), fp, sort_keys=True, indent=4)
 
 
-def write_images(data, outputs, writer, suffix, mean, std):
+def write_images(data, outputs, writer, suffix, mean, std, inv_func=None):
     original = inv_normalise_tensor(data, mean, std)
     original_grid = make_grid(original[:6])
     writer.add_image(f'original/{suffix}', original_grid)
     reconstructed = inv_normalise_tensor(outputs[0], mean, std)
+    if inv_func is not None:
+        reconstructed = inv_func(reconstructed)
     reconstructed_grid = make_grid(reconstructed[:6])
     writer.add_image(f'reconstructed/{suffix}', reconstructed_grid)
 

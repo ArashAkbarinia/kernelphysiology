@@ -10,11 +10,13 @@ import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 
+from skimage import color
+from kernelphysiology.dl.pytorch.utils.transformations import lab2rgb
+
 import util as ex_util
 from model import *
 import data_loaders
 from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
-from kernelphysiology.dl.pytorch.utils import misc
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import recursive_transforms
 
@@ -64,7 +66,7 @@ dataset_transforms = {
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]),
     'imagenet': transforms.Compose(
-        [recursive_transforms.Resize(256), recursive_transforms.CenterCrop(224),
+        [recursive_transforms.Resize(256), recursive_transforms.CenterCrop(64),
          recursive_transforms.ToTensor(),
          recursive_transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
          ]),
@@ -191,10 +193,12 @@ def main(args):
         )
     intransform = transforms.Compose(intransform_funs)
     outtransform_funs = []
+    args.inv_func = None
     if args.colour_space is not None:
         outtransform_funs.append(
             preprocessing.ColourTransformation(None, args.colour_space)
         )
+        args.inv_func = lab2rgb
     outtransform = transforms.Compose(outtransform_funs)
 
     kwargs = {'num_workers': 8, 'pin_memory': True} if args.cuda else {}
@@ -257,11 +261,6 @@ def main(args):
 
 def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
           args, writer):
-    losses_neg = misc.AverageMeter()
-    losses_pos = misc.AverageMeter()
-    top1_neg = misc.AverageMeter()
-    top1_pos = misc.AverageMeter()
-
     model.train()
     loss_dict = model.latest_losses()
     losses = {k + '_train': 0 for k, v in loss_dict.items()}
@@ -325,7 +324,7 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
                 'reconstruction_train%.5d' % batch_idx
             )
             ex_util.write_images(data, outputs, writer, 'train', args.mean,
-                                 args.std)
+                                 args.std, args.inv_func)
 
         if args.dataset in ['imagenet', 'coco', 'custom'] and batch_idx * len(
                 data) > args.max_epoch_samples:
@@ -379,7 +378,7 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
                 losses[key + '_test'] += float(latest_losses[key])
             if i in [0, 100, 200, 300, 400]:
                 ex_util.write_images(data, outputs, writer, 'test', args.mean,
-                                     args.std)
+                                     args.std, args.inv_func)
 
                 ex_util.save_reconstructed_images(
                     data, epoch, outputs[0], save_path,
