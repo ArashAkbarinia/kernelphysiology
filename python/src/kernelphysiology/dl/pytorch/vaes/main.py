@@ -66,7 +66,7 @@ dataset_transforms = {
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]),
     'imagenet': transforms.Compose(
-        [recursive_transforms.Resize(256), recursive_transforms.CenterCrop(64),
+        [recursive_transforms.Resize(256), recursive_transforms.CenterCrop(224),
          recursive_transforms.ToTensor(),
          recursive_transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
          ]),
