@@ -10,6 +10,8 @@ import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 
+import cv2
+
 import util as ex_util
 from model import *
 import data_loaders
@@ -80,24 +82,13 @@ default_hyperparams = {
     'mnist': {'lr': 1e-4, 'k': 10, 'hidden': 64}
 }
 
-from PIL import Image as PilImage
-from PIL import ImageCms
-
-rgb_p = ImageCms.createProfile('sRGB')
-lab_p = ImageCms.createProfile('LAB')
-
-rgb2lab = ImageCms.buildTransformFromOpenProfiles(rgb_p, lab_p, 'RGB', 'LAB')
-lab2rgb = ImageCms.buildTransformFromOpenProfiles(lab_p, rgb_p, 'LAB', 'RGB')
-
 
 def tensor_lab2rgb(tensor):
     imgs = []
     for i in range(tensor.shape[0]):
         img = tensor[i].cpu().numpy().transpose((1, 2, 0)) * 255
         img = img.astype('uint8')
-        img = PilImage.fromarray(img, 'LAB')
-        img = ImageCms.applyTransform(img, lab2rgb)
-        img = np.asarray(img).copy()
+        img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
         imgs.append(img)
     return imgs
 
