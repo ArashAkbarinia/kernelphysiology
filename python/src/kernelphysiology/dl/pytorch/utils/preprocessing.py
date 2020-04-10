@@ -6,6 +6,7 @@ import numpy as np
 import random
 import warnings
 
+import cv2
 from PIL import Image as PilImage
 from PIL import ImageCms
 
@@ -26,7 +27,10 @@ class ColourTransformation(object):
 
     def __call__(self, img):
         if self.colour_space == 'lab' or self.colour_inds is not None:
-            img = ImageCms.applyTransform(img, rgb2lab)
+            img = np.asarray(img).copy()
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+            img = PilImage.fromarray(img, 'LAB')
+            #img = ImageCms.applyTransform(img, rgb2lab)
             # if colour_inds is None, we consider it as trichromat
             if self.colour_inds is not None:
                 img = np.asarray(img).copy()
