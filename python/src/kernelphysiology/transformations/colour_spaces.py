@@ -27,9 +27,24 @@ def rgb2dkl(x):
     return np.dot(x, rgb_from_dkl)
 
 
+def rgb2dkl01(x):
+    x = rgb2dkl(x)
+    x /= 2
+    x[:, :, 1] += 0.5
+    x[:, :, 2] += 0.5
+    return x
+
+
 def dkl2rgb(x):
     rgb_im = np.dot(x, dkl_from_rgb)
     return normalisations.uint8im(rgb_im)
+
+
+def dkl012rgb(x):
+    x[:, :, 1] -= 0.5
+    x[:, :, 2] -= 0.5
+    x *= 2
+    return dkl2rgb(x)
 
 
 def rgb2opponency(image_rgb, colour_space='lab'):
