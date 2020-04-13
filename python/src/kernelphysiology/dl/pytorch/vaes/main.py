@@ -9,10 +9,10 @@ import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 
-import util as ex_util
-from model import *
-import data_loaders
-from arguments import parse_arguments
+from kernelphysiology.dl.pytorch.vaes import util as ex_util
+from kernelphysiology.dl.pytorch.vaes.model import *
+from kernelphysiology.dl.pytorch.vaes import data_loaders
+from kernelphysiology.dl.pytorch.vaes.arguments import parse_arguments
 from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import recursive_transforms
