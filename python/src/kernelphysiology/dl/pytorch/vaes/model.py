@@ -7,7 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 import torch.utils.data
 
-from nearest_embed import NearestEmbed
+from .nearest_embed import NearestEmbed
 
 
 class FcVAE(nn.Module):
