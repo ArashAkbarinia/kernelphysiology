@@ -1,7 +1,6 @@
 import os
 import sys
 import time
-import argparse
 
 import torch.utils.data
 from torch import optim
@@ -10,11 +9,10 @@ import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, transforms
 
-import cv2
-
 import util as ex_util
 from model import *
 import data_loaders
+from arguments import parse_arguments
 from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import recursive_transforms
@@ -83,80 +81,8 @@ default_hyperparams = {
 }
 
 
-def tensor_lab2rgb(tensor):
-    imgs = []
-    for i in range(tensor.shape[0]):
-        img = tensor[i].cpu().numpy().transpose((1, 2, 0)) * 255
-        img = img.astype('uint8')
-        img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
-        imgs.append(img)
-    return imgs
-
-
 def main(args):
-    parser = argparse.ArgumentParser(description='Variational AutoEncoders')
-    model_parser = parser.add_argument_group('Model Parameters')
-    model_parser.add_argument('--model', default='vqvae',
-                              choices=['vae', 'vqvae'],
-                              help='autoencoder variant to use: vae | vqvae')
-    model_parser.add_argument('--batch-size', type=int, default=128,
-                              metavar='N',
-                              help='input batch size for training (default: 128)')
-    model_parser.add_argument('--hidden', type=int, metavar='N',
-                              help='number of hidden channels')
-    model_parser.add_argument('-k', '--dict-size', type=int, dest='k',
-                              metavar='K',
-                              help='number of atoms in dictionary')
-    model_parser.add_argument('--lr', type=float, default=None,
-                              help='learning rate')
-    model_parser.add_argument('--vq_coef', type=float, default=None,
-                              help='vq coefficient in loss')
-    model_parser.add_argument('--commit_coef', type=float, default=None,
-                              help='commitment coefficient in loss')
-    model_parser.add_argument('--kl_coef', type=float, default=None,
-                              help='kl-divergence coefficient in loss')
-    parser.add_argument('--resume', type=str, default=None,
-                        help='The path to resume.')
-    parser.add_argument('--mosaic_pattern', type=str, default=None,
-                        help='The type of mosaic.')
-    parser.add_argument('--colour_space', type=str, default=None,
-                        help='The type of output colour space.')
-
-    training_parser = parser.add_argument_group('Training Parameters')
-    training_parser.add_argument(
-        '--dataset', default='cifar10',
-        choices=['mnist', 'cifar10', 'imagenet', 'coco', 'custom'],
-        help='dataset to use: mnist | cifar10 | imagenet | coco | custom'
-    )
-    training_parser.add_argument('--dataset_dir_name', default='',
-                                 help='name of the dir containing the dataset if dataset == custom')
-    training_parser.add_argument('--data-dir', default='/media/ssd/Datasets',
-                                 help='directory containing the dataset')
-    training_parser.add_argument('--epochs', type=int, default=20, metavar='N',
-                                 help='number of epochs to train (default: 10)')
-    training_parser.add_argument('--max-epoch-samples', type=int, default=50000,
-                                 help='max num of samples per epoch')
-    training_parser.add_argument('--no-cuda', action='store_true',
-                                 default=False,
-                                 help='enables CUDA training')
-    training_parser.add_argument('--seed', type=int, default=1, metavar='S',
-                                 help='random seed (default: 1)')
-    training_parser.add_argument('--gpus', default='0',
-                                 help='gpus used for training - e.g 0,1,3')
-
-    logging_parser = parser.add_argument_group('Logging Parameters')
-    logging_parser.add_argument('--log-interval', type=int, default=10,
-                                metavar='N',
-                                help='how many batches to wait before logging training status')
-    logging_parser.add_argument('--results-dir', metavar='RESULTS_DIR',
-                                default='./results',
-                                help='results dir')
-    logging_parser.add_argument('--save-name', default='',
-                                help='saved folder')
-    logging_parser.add_argument('--data-format', default='json',
-                                help='in which format to save the data')
-
-    args = parser.parse_args(args)
+    args = parse_arguments(args)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     dataset_dir_name = args.dataset if args.dataset != 'custom' else args.dataset_dir_name
 
@@ -171,9 +97,6 @@ def main(args):
     save_path = ex_util.setup_logging_from_args(args)
     writer = SummaryWriter(save_path)
 
-    args.criterion_pos = nn.CrossEntropyLoss().cuda()
-    args.criterion_neg = nn.CrossEntropyLoss().cuda()
-
     torch.manual_seed(args.seed)
     if args.cuda:
         torch.cuda.manual_seed_all(args.seed)
@@ -184,9 +107,6 @@ def main(args):
 
     model = models[args.dataset][args.model](hidden, k=k,
                                              num_channels=num_channels)
-    if args.resume is not None:
-        weights = torch.load(args.resume, map_location='cpu')
-        model.load_state_dict(weights)
     if args.cuda:
         model.cuda()
 
@@ -194,6 +114,18 @@ def main(args):
     scheduler = optim.lr_scheduler.StepLR(
         optimizer, 10 if args.dataset in ['imagenet', 'coco'] else 30, 0.5
     )
+
+    if args.resume is not None:
+        checkpoint = torch.load(args.resume, map_location='cpu')
+        model.load_state_dict(checkpoint['state_dict'])
+        model.cuda()
+        args.start_epoch = checkpoint['epoch'] + 1
+        scheduler.load_state_dict(checkpoint['scheduler'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+    elif args.fine_tune is not None:
+        weights = torch.load(args.fine_tune, map_location='cpu')
+        model.load_state_dict(weights)
+        model.cuda()
 
     intransform_funs = []
     if args.mosaic_pattern is not None:
@@ -207,7 +139,6 @@ def main(args):
         outtransform_funs.append(
             preprocessing.ColourTransformation(None, args.colour_space)
         )
-        args.inv_func = tensor_lab2rgb
     outtransform = transforms.Compose(outtransform_funs)
 
     kwargs = {'num_workers': 8, 'pin_memory': True} if args.cuda else {}
@@ -248,15 +179,13 @@ def main(args):
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     logging.getLogger('').addHandler(console)
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(args.start_epoch, args.epochs):
         train_losses = train(
             epoch, model, train_loader, optimizer, args.cuda, args.log_interval,
             save_path, args, writer
         )
         test_losses = test_net(epoch, model, test_loader, args.cuda, save_path,
                                args, writer)
-        ex_util.save_checkpoint(model, epoch, save_path)
-
         for k in train_losses.keys():
             name = k.replace('_train', '')
             train_name = k
@@ -266,6 +195,15 @@ def main(args):
                        'test': test_losses[test_name], }
             )
         scheduler.step()
+        ex_util.save_checkpoint(
+            {
+                'epoch': epoch,
+                'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'scheduler': scheduler.state_dict()
+            },
+            save_path
+        )
 
 
 def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,

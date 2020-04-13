@@ -93,13 +93,11 @@ def write_images(data, outputs, writer, suffix, mean, std, inv_func=None):
     writer.add_image(f'reconstructed/{suffix}', reconstructed_grid)
 
 
-def save_checkpoint(model, save_path):
-    epoch = model['epoch']
+def save_checkpoint(model, epoch, save_path):
     os.makedirs(os.path.join(save_path, 'checkpoints'), exist_ok=True)
-    weights_path = os.path.join(save_path, 'checkpoints', f'model_{epoch}.pth')
-    torch.save(model['state_dict'], weights_path)
-    resume_path = os.path.join(save_path, 'checkpoints', 'last_epoch.pth')
-    torch.save(model, resume_path)
+    checkpoint_path = os.path.join(save_path, 'checkpoints',
+                                   f'model_{epoch}.pth')
+    torch.save(model.state_dict(), checkpoint_path)
 
 
 def tensor_tosave(tensor):
