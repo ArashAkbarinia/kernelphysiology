@@ -14,8 +14,8 @@ from kernelphysiology.dl.pytorch.vaes.model import *
 from kernelphysiology.dl.pytorch.vaes import data_loaders
 from kernelphysiology.dl.pytorch.vaes.arguments import parse_arguments
 from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
-from kernelphysiology.dl.pytorch.utils import preprocessing
-from kernelphysiology.dl.pytorch.utils import recursive_transforms
+from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
+from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
 models = {
     'custom': {'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
@@ -63,9 +63,9 @@ dataset_transforms = {
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]),
     'imagenet': transforms.Compose(
-        [recursive_transforms.Resize(256), recursive_transforms.CenterCrop(224),
-         recursive_transforms.ToTensor(),
-         recursive_transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        [cv2_transforms.Resize(256), cv2_transforms.CenterCrop(64),
+         cv2_transforms.ToTensor(),
+         cv2_transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
          ]),
     'cifar10': transforms.Compose([transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5),
@@ -130,14 +130,14 @@ def main(args):
     intransform_funs = []
     if args.mosaic_pattern is not None:
         intransform_funs.append(
-            preprocessing.MosaicTransformation(args.mosaic_pattern)
+            cv2_preprocessing.MosaicTransformation(args.mosaic_pattern)
         )
     intransform = transforms.Compose(intransform_funs)
     outtransform_funs = []
     args.inv_func = None
     if args.colour_space is not None:
         outtransform_funs.append(
-            preprocessing.ColourTransformation(None, args.colour_space)
+            cv2_preprocessing.ColourTransformation(None, args.colour_space)
         )
     outtransform = transforms.Compose(outtransform_funs)
 

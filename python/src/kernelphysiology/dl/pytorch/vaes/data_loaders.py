@@ -1,3 +1,5 @@
+import numpy as np
+
 from torchvision import datasets as tdatasets
 
 
@@ -19,6 +21,7 @@ class ImageFolder(tdatasets.ImageFolder):
         """
         path, class_target = self.samples[index]
         imgin = self.loader(path)
+        imgin = np.asarray(imgin).copy()
         imgout = imgin.copy()
         if self.intransform is not None:
             imgin = self.intransform(imgin)
