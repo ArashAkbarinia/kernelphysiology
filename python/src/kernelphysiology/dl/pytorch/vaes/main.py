@@ -21,8 +21,8 @@ from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
 models = {
     'custom': {'vqvae': vae_model.VQ_CVAE},
-    'imagenet': {'vqvae': vae_model.VQ_CVAE, },
-    'coco': {'vqvae': vae_model.VQ_CVAE, },
+    'imagenet': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
+    'coco': {'vqvae': vae_model.VQ_CVAE},
     'cifar10': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
     'mnist': {'vae': vae_model.VAE, 'vqvae': vae_model.VQ_CVAE},
 }

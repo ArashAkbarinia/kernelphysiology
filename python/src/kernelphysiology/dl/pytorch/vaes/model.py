@@ -1,3 +1,7 @@
+"""
+A collection of VAE models.
+"""
+
 import abc
 import numpy as np
 import logging
@@ -8,36 +12,6 @@ from torch.nn import functional as F
 import torch.utils.data
 
 from kernelphysiology.dl.pytorch.vaes.nearest_embed import NearestEmbed
-
-
-class FcVAE(nn.Module):
-    def __init__(self, img_shape):
-        super(FcVAE, self).__init__()
-        self.img_shape = img_shape
-
-        self.fc1 = nn.Linear(self.img_shape, 400)
-        self.fc21 = nn.Linear(400, 20)
-        self.fc22 = nn.Linear(400, 20)
-        self.fc3 = nn.Linear(20, 400)
-        self.fc4 = nn.Linear(400, self.img_shape)
-
-    def encode(self, x):
-        h1 = F.relu(self.fc1(x))
-        return self.fc21(h1), self.fc22(h1)
-
-    def reparameterize(self, mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mu + eps * std
-
-    def decode(self, z):
-        h3 = F.relu(self.fc3(z))
-        return torch.sigmoid(self.fc4(h3))
-
-    def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, self.img_shape))
-        z = self.reparameterize(mu, logvar)
-        return self.decode(z), mu, logvar
 
 
 class AbstractAutoEncoder(nn.Module):
@@ -198,21 +172,20 @@ class VQ_VAE(nn.Module):
 
 
 class ResBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, mid_channels=None, bn=False):
+    def __init__(self, in_chns, out_chns, mid_chns=None, bn=False):
         super(ResBlock, self).__init__()
 
-        if mid_channels is None:
-            mid_channels = out_channels
+        if mid_chns is None:
+            mid_chns = out_chns
 
         layers = [
             nn.ReLU(),
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, stride=1,
-                      padding=1),
+            nn.Conv2d(in_chns, mid_chns, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(mid_channels, out_channels, kernel_size=1, stride=1,
-                      padding=0)]
+            nn.Conv2d(mid_chns, out_chns, kernel_size=1, stride=1, padding=0)
+        ]
         if bn:
-            layers.insert(2, nn.BatchNorm2d(out_channels))
+            layers.insert(2, nn.BatchNorm2d(out_chns))
         self.convs = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -220,11 +193,11 @@ class ResBlock(nn.Module):
 
 
 class CVAE(AbstractAutoEncoder):
-    def __init__(self, d, kl_coef=0.1, **kwargs):
+    def __init__(self, d, kl_coef=0.1, num_chns=3, **kwargs):
         super(CVAE, self).__init__()
 
         self.encoder = nn.Sequential(
-            nn.Conv2d(3, d // 2, kernel_size=4, stride=2, padding=1,
+            nn.Conv2d(num_chns, d // 2, kernel_size=4, stride=2, padding=1,
                       bias=False),
             nn.BatchNorm2d(d // 2),
             nn.ReLU(inplace=True),
@@ -307,11 +280,11 @@ class CVAE(AbstractAutoEncoder):
 
 class VQ_CVAE(nn.Module):
     def __init__(self, d, k=10, bn=True, vq_coef=1, commit_coef=0.5,
-                 num_channels=3, **kwargs):
+                 num_chns=3, **kwargs):
         super(VQ_CVAE, self).__init__()
 
         self.encoder = nn.Sequential(
-            nn.Conv2d(num_channels, d, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(num_chns, d, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(d),
             nn.ReLU(inplace=True),
             nn.Conv2d(d, d, kernel_size=4, stride=2, padding=1),
@@ -329,8 +302,7 @@ class VQ_CVAE(nn.Module):
             nn.ConvTranspose2d(d, d, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(d),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(d, num_channels, kernel_size=4, stride=2,
-                               padding=1),
+            nn.ConvTranspose2d(d, num_chns, kernel_size=4, stride=2, padding=1)
         )
         self.d = d
         self.emb = NearestEmbed(k, d)
