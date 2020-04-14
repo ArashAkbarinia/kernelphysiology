@@ -19,6 +19,52 @@ from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
+models = {
+    'custom': {'vqvae': vae_model.VQ_CVAE},
+    'imagenet': {'vqvae': vae_model.VQ_CVAE, },
+    'coco': {'vqvae': vae_model.VQ_CVAE, },
+    'cifar10': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
+    'mnist': {'vae': vae_model.VAE, 'vqvae': vae_model.VQ_CVAE},
+}
+datasets_classes = {
+    'custom': datasets.ImageFolder,
+    'imagenet': data_loaders.ImageFolder,
+    'coco': torch.utils.data.DataLoader,
+    'cifar10': datasets.CIFAR10,
+    'mnist': datasets.MNIST
+}
+dataset_train_args = {
+    'custom': {},
+    'imagenet': {},
+    'coco': {},
+    'cifar10': {'train': True, 'download': True},
+    'mnist': {'train': True, 'download': True},
+}
+dataset_test_args = {
+    'custom': {},
+    'imagenet': {},
+    'coco': {},
+    'cifar10': {'train': False, 'download': True},
+    'mnist': {'train': False, 'download': True},
+}
+dataset_n_channels = {
+    'custom': 3,
+    'imagenet': 3,
+    'coco': 3,
+    'cifar10': 3,
+    'mnist': 1,
+}
+dataset_target_size = {
+    'imagenet': 224,
+}
+default_hyperparams = {
+    'custom': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+    'imagenet': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+    'coco': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+    'cifar10': {'lr': 2e-4, 'k': 10, 'hidden': 256},
+    'mnist': {'lr': 1e-4, 'k': 10, 'hidden': 64}
+}
+
 
 def main(args):
     args = parse_arguments(args)
@@ -27,52 +73,6 @@ def main(args):
     args.mean = (0.5, 0.5, 0.5)
     args.std = (0.5, 0.5, 0.5)
     normalise = transforms.Normalize(args.mean, args.std)
-
-    models = {
-        'custom': {'vqvae': vae_model.VQ_CVAE},
-        'imagenet': {'vqvae': vae_model.VQ_CVAE, },
-        'coco': {'vqvae': vae_model.VQ_CVAE, },
-        'cifar10': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
-        'mnist': {'vae': vae_model.VAE, 'vqvae': vae_model.VQ_CVAE},
-    }
-    datasets_classes = {
-        'custom': datasets.ImageFolder,
-        'imagenet': data_loaders.ImageFolder,
-        'coco': torch.utils.data.DataLoader,
-        'cifar10': datasets.CIFAR10,
-        'mnist': datasets.MNIST
-    }
-    dataset_train_args = {
-        'custom': {},
-        'imagenet': {},
-        'coco': {},
-        'cifar10': {'train': True, 'download': True},
-        'mnist': {'train': True, 'download': True},
-    }
-    dataset_test_args = {
-        'custom': {},
-        'imagenet': {},
-        'coco': {},
-        'cifar10': {'train': False, 'download': True},
-        'mnist': {'train': False, 'download': True},
-    }
-    dataset_n_channels = {
-        'custom': 3,
-        'imagenet': 3,
-        'coco': 3,
-        'cifar10': 3,
-        'mnist': 1,
-    }
-    dataset_target_size = {
-        'imagenet': 224,
-    }
-    default_hyperparams = {
-        'custom': {'lr': 2e-4, 'k': 512, 'hidden': 128},
-        'imagenet': {'lr': 2e-4, 'k': 512, 'hidden': 128},
-        'coco': {'lr': 2e-4, 'k': 512, 'hidden': 128},
-        'cifar10': {'lr': 2e-4, 'k': 10, 'hidden': 256},
-        'mnist': {'lr': 1e-4, 'k': 10, 'hidden': 64}
-    }
 
     lr = args.lr or default_hyperparams[args.dataset]['lr']
     k = args.k or default_hyperparams[args.dataset]['k']
