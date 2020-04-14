@@ -13,6 +13,10 @@ def parse_arguments(args):
         '--batch-size', type=int, default=128, metavar='N',
         help='input batch size for training (default: 128)'
     )
+    model_parser.add_argument(
+        '--target_size', type=int, metavar='N',
+        help='image target size'
+    )
     model_parser.add_argument('--num_channels', type=int, metavar='N',
                               help='number of input channels')
     model_parser.add_argument('--hidden', type=int, metavar='N',

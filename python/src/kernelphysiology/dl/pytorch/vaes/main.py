@@ -19,76 +19,81 @@ from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
-models = {
-    'custom': {'vqvae': vae_model.VQ_CVAE},
-    'imagenet': {'vqvae': vae_model.VQ_CVAE, },
-    'coco': {'vqvae': vae_model.VQ_CVAE, },
-    'cifar10': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
-    'mnist': {'vae': vae_model.VAE, 'vqvae': vae_model.VQ_CVAE},
-}
-datasets_classes = {
-    'custom': datasets.ImageFolder,
-    'imagenet': data_loaders.ImageFolder,
-    'coco': torch.utils.data.DataLoader,
-    'cifar10': datasets.CIFAR10,
-    'mnist': datasets.MNIST
-}
-dataset_train_args = {
-    'custom': {},
-    'imagenet': {},
-    'coco': {},
-    'cifar10': {'train': True, 'download': True},
-    'mnist': {'train': True, 'download': True},
-}
-dataset_test_args = {
-    'custom': {},
-    'imagenet': {},
-    'coco': {},
-    'cifar10': {'train': False, 'download': True},
-    'mnist': {'train': False, 'download': True},
-}
-dataset_n_channels = {
-    'custom': 3,
-    'imagenet': 3,
-    'coco': 3,
-    'cifar10': 3,
-    'mnist': 1,
-}
-
-mean = (0.5, 0.5, 0.5)
-std = (0.5, 0.5, 0.5)
-dataset_transforms = {
-    'custom': transforms.Compose(
-        [transforms.Resize(256), transforms.CenterCrop(224),
-         transforms.ToTensor(), transforms.Normalize(mean, std)]),
-    'coco': transforms.Compose([transforms.Normalize(mean, std)]),
-    'imagenet': transforms.Compose(
-        [cv2_transforms.Resize(256), cv2_transforms.CenterCrop(256),
-         cv2_transforms.ToTensor(), cv2_transforms.Normalize(mean, std)]),
-    'cifar10': transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize(mean, std)]),
-    'mnist': transforms.ToTensor()
-}
-default_hyperparams = {
-    'custom': {'lr': 2e-4, 'k': 512, 'hidden': 128},
-    'imagenet': {'lr': 2e-4, 'k': 512, 'hidden': 128},
-    'coco': {'lr': 2e-4, 'k': 512, 'hidden': 128},
-    'cifar10': {'lr': 2e-4, 'k': 10, 'hidden': 256},
-    'mnist': {'lr': 1e-4, 'k': 10, 'hidden': 64}
-}
-
 
 def main(args):
     args = parse_arguments(args)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
-    args.mean = mean
-    args.std = std
+    args.mean = (0.5, 0.5, 0.5)
+    args.std = (0.5, 0.5, 0.5)
+    normalise = transforms.Normalize(args.mean, args.std)
+
+    models = {
+        'custom': {'vqvae': vae_model.VQ_CVAE},
+        'imagenet': {'vqvae': vae_model.VQ_CVAE, },
+        'coco': {'vqvae': vae_model.VQ_CVAE, },
+        'cifar10': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
+        'mnist': {'vae': vae_model.VAE, 'vqvae': vae_model.VQ_CVAE},
+    }
+    datasets_classes = {
+        'custom': datasets.ImageFolder,
+        'imagenet': data_loaders.ImageFolder,
+        'coco': torch.utils.data.DataLoader,
+        'cifar10': datasets.CIFAR10,
+        'mnist': datasets.MNIST
+    }
+    dataset_train_args = {
+        'custom': {},
+        'imagenet': {},
+        'coco': {},
+        'cifar10': {'train': True, 'download': True},
+        'mnist': {'train': True, 'download': True},
+    }
+    dataset_test_args = {
+        'custom': {},
+        'imagenet': {},
+        'coco': {},
+        'cifar10': {'train': False, 'download': True},
+        'mnist': {'train': False, 'download': True},
+    }
+    dataset_n_channels = {
+        'custom': 3,
+        'imagenet': 3,
+        'coco': 3,
+        'cifar10': 3,
+        'mnist': 1,
+    }
+    dataset_target_size = {
+        'imagenet': 224,
+    }
+    default_hyperparams = {
+        'custom': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+        'imagenet': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+        'coco': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+        'cifar10': {'lr': 2e-4, 'k': 10, 'hidden': 256},
+        'mnist': {'lr': 1e-4, 'k': 10, 'hidden': 64}
+    }
 
     lr = args.lr or default_hyperparams[args.dataset]['lr']
     k = args.k or default_hyperparams[args.dataset]['k']
     hidden = args.hidden or default_hyperparams[args.dataset]['hidden']
     num_channels = args.num_channels or dataset_n_channels[args.dataset]
+    target_size = args.target_size or dataset_target_size[args.dataset]
+
+    dataset_transforms = {
+        'custom': transforms.Compose(
+            [transforms.Resize(256), transforms.CenterCrop(224),
+             transforms.ToTensor(), normalise]),
+        'coco': transforms.Compose([normalise]),
+        'imagenet': transforms.Compose(
+            [cv2_transforms.Resize(target_size + 32),
+             cv2_transforms.CenterCrop(target_size),
+             cv2_transforms.ToTensor(),
+             cv2_transforms.Normalize(args.mean, args.std)]),
+        'cifar10': transforms.Compose(
+            [transforms.ToTensor(), normalise]),
+        'mnist': transforms.ToTensor()
+    }
 
     save_path = vae_util.setup_logging_from_args(args)
     writer = SummaryWriter(save_path)
