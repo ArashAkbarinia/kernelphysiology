@@ -5,14 +5,16 @@ import argparse
 def parse_arguments(args):
     parser = argparse.ArgumentParser(description='Variational AutoEncoders')
     model_parser = parser.add_argument_group('Model Parameters')
-    model_parser.add_argument('--model', default='vqvae',
-                              choices=['vae', 'vqvae'],
-                              help='autoencoder variant to use: vae | vqvae')
     model_parser.add_argument(
-        '--batch-size', type=int, default=128,
-        metavar='N',
+        '--model', default='vqvae', choices=['vae', 'vqvae'],
+        help='autoencoder variant to use: vae | vqvae'
+    )
+    model_parser.add_argument(
+        '--batch-size', type=int, default=128, metavar='N',
         help='input batch size for training (default: 128)'
     )
+    model_parser.add_argument('--num_channels', type=int, metavar='N',
+                              help='number of input channels')
     model_parser.add_argument('--hidden', type=int, metavar='N',
                               help='number of hidden channels')
     model_parser.add_argument('-k', '--dict-size', type=int, dest='k',
@@ -46,11 +48,23 @@ def parse_arguments(args):
         help='dataset to use: mnist | cifar10 | imagenet | coco | custom'
     )
     training_parser.add_argument(
-        '--dataset_dir_name', default='',
-        help='name of the dir containing the dataset if dataset == custom'
+        '--data_dir',
+        type=str,
+        default=None,
+        help='The path to the data directory (default: None)'
     )
-    training_parser.add_argument('--data-dir', default='/media/ssd/Datasets',
-                                 help='directory containing the dataset')
+    training_parser.add_argument(
+        '--train_dir',
+        type=str,
+        default=None,
+        help='The path to the train directory (default: None)'
+    )
+    training_parser.add_argument(
+        '--validation_dir',
+        type=str,
+        default=None,
+        help='The path to the validation directory (default: None)'
+    )
     training_parser.add_argument(
         '--epochs', type=int, default=20, metavar='N',
         help='number of epochs to train (default: 10)'

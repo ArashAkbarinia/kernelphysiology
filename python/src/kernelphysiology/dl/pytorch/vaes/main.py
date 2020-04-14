@@ -1,16 +1,18 @@
 import os
 import sys
 import time
+import logging
 
-import torch.utils.data
 from torch import optim
-from torchvision.transforms import functional
+from torch import nn
 import torch.backends.cudnn as cudnn
+import torch.utils.data
 from torch.utils.tensorboard import SummaryWriter
+from torchvision.transforms import functional
 from torchvision import datasets, transforms
 
-from kernelphysiology.dl.pytorch.vaes import util as ex_util
-from kernelphysiology.dl.pytorch.vaes.model import *
+from kernelphysiology.dl.pytorch.vaes import util as vae_util
+from kernelphysiology.dl.pytorch.vaes import model as vae_model
 from kernelphysiology.dl.pytorch.vaes import data_loaders
 from kernelphysiology.dl.pytorch.vaes.arguments import parse_arguments
 from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
@@ -18,11 +20,11 @@ from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
 models = {
-    'custom': {'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
-    'imagenet': {'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
-    'coco': {'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
-    'cifar10': {'vae': CVAE, 'vqvae': VQ_CVAE, 'vqvae2': VQ_CVAE},
-    'mnist': {'vae': VAE, 'vqvae': VQ_CVAE},
+    'custom': {'vqvae': vae_model.VQ_CVAE},
+    'imagenet': {'vqvae': vae_model.VQ_CVAE, },
+    'coco': {'vqvae': vae_model.VQ_CVAE, },
+    'cifar10': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
+    'mnist': {'vae': vae_model.VAE, 'vqvae': vae_model.VQ_CVAE},
 }
 datasets_classes = {
     'custom': datasets.ImageFolder,
@@ -53,23 +55,18 @@ dataset_n_channels = {
     'mnist': 1,
 }
 
+mean = (0.5, 0.5, 0.5)
+std = (0.5, 0.5, 0.5)
 dataset_transforms = {
     'custom': transforms.Compose(
         [transforms.Resize(256), transforms.CenterCrop(224),
-         transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
-    'coco': transforms.Compose(
-        [
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ]),
+         transforms.ToTensor(), transforms.Normalize(mean, std)]),
+    'coco': transforms.Compose([transforms.Normalize(mean, std)]),
     'imagenet': transforms.Compose(
-        [cv2_transforms.Resize(256), cv2_transforms.CenterCrop(64),
-         cv2_transforms.ToTensor(),
-         cv2_transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-         ]),
-    'cifar10': transforms.Compose([transforms.ToTensor(),
-                                   transforms.Normalize((0.5, 0.5, 0.5),
-                                                        (0.5, 0.5, 0.5))]),
+        [cv2_transforms.Resize(256), cv2_transforms.CenterCrop(256),
+         cv2_transforms.ToTensor(), cv2_transforms.Normalize(mean, std)]),
+    'cifar10': transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize(mean, std)]),
     'mnist': transforms.ToTensor()
 }
 default_hyperparams = {
@@ -84,17 +81,16 @@ default_hyperparams = {
 def main(args):
     args = parse_arguments(args)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
-    dataset_dir_name = args.dataset if args.dataset != 'custom' else args.dataset_dir_name
 
-    args.mean = [0.5, 0.5, 0.5]
-    args.std = [0.5, 0.5, 0.5]
+    args.mean = mean
+    args.std = std
 
     lr = args.lr or default_hyperparams[args.dataset]['lr']
     k = args.k or default_hyperparams[args.dataset]['k']
     hidden = args.hidden or default_hyperparams[args.dataset]['hidden']
-    num_channels = dataset_n_channels[args.dataset]
+    num_channels = args.num_channels or dataset_n_channels[args.dataset]
 
-    save_path = ex_util.setup_logging_from_args(args)
+    save_path = vae_util.setup_logging_from_args(args)
     writer = SummaryWriter(save_path)
 
     torch.manual_seed(args.seed)
@@ -112,7 +108,7 @@ def main(args):
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.StepLR(
-        optimizer, 10 if args.dataset in ['imagenet', 'coco'] else 30, 0.5
+        optimizer, int(args.epochs / 3), 0.5
     )
 
     if args.resume is not None:
@@ -141,12 +137,13 @@ def main(args):
         )
     outtransform = transforms.Compose(outtransform_funs)
 
+    if args.data_dir is not None:
+        args.train_dir = os.path.join(args.data_dir, 'train')
+        args.validation_dir = os.path.join(args.data_dir, 'validation')
+    else:
+        args.train_dir = args.train_dir
+        args.validation_dir = args.validation_dir
     kwargs = {'num_workers': 8, 'pin_memory': True} if args.cuda else {}
-    dataset_train_dir = os.path.join(args.data_dir, dataset_dir_name)
-    dataset_test_dir = os.path.join(args.data_dir, dataset_dir_name)
-    if args.dataset in ['imagenet', 'custom']:
-        dataset_train_dir = os.path.join(args.data_dir, 'train')
-        dataset_test_dir = os.path.join(args.data_dir, 'validation')
     if args.dataset == 'coco':
         train_loader = panoptic_utils.get_coco_train(
             args.batch_size, args.opts, args.cfg_file
@@ -157,7 +154,7 @@ def main(args):
     else:
         train_loader = torch.utils.data.DataLoader(
             datasets_classes[args.dataset](
-                root=dataset_train_dir,
+                root=args.train_dir,
                 intransform=intransform,
                 outtransform=outtransform,
                 transform=dataset_transforms[args.dataset],
@@ -167,7 +164,7 @@ def main(args):
         )
         test_loader = torch.utils.data.DataLoader(
             datasets_classes[args.dataset](
-                root=dataset_test_dir,
+                root=args.validation_dir,
                 intransform=intransform,
                 outtransform=outtransform,
                 transform=dataset_transforms[args.dataset],
@@ -182,10 +179,10 @@ def main(args):
     for epoch in range(args.start_epoch, args.epochs):
         train_losses = train(
             epoch, model, train_loader, optimizer, args.cuda, args.log_interval,
-            save_path, args, writer
+            save_path, args
         )
         test_losses = test_net(epoch, model, test_loader, args.cuda, save_path,
-                               args, writer)
+                               args)
         for k in train_losses.keys():
             name = k.replace('_train', '')
             train_name = k
@@ -195,19 +192,20 @@ def main(args):
                        'test': test_losses[test_name], }
             )
         scheduler.step()
-        ex_util.save_checkpoint(
+        vae_util.save_checkpoint(
             {
                 'epoch': epoch,
                 'state_dict': model.state_dict(),
                 'optimizer': optimizer.state_dict(),
-                'scheduler': scheduler.state_dict()
+                'scheduler': scheduler.state_dict(),
+                'arch': {'k': args.k, 'hidden': args.hidden}
             },
             save_path
         )
 
 
 def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
-          args, writer):
+          args):
     model.train()
     loss_dict = model.latest_losses()
     losses = {k + '_train': 0 for k, v in loss_dict.items()}
@@ -266,13 +264,7 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
             for key in latest_losses:
                 losses[key + '_train'] = 0
         if batch_idx in [18, 180, 1650, max_len - 1]:
-            # ex_util.save_reconstructed_images(
-            #     target, epoch, outputs[0], save_path,
-            #     'reconstruction_train%.5d' % batch_idx
-            # )
-            # ex_util.write_images(target, outputs, writer, 'train', args.mean,
-            #                      args.std, args.inv_func)
-            ex_util.grid_save_reconstructed_images(
+            vae_util.grid_save_reconstructed_images(
                 target, outputs, args.mean, args.std, epoch, save_path,
                 'reconstruction_train%.5d' % batch_idx, args.inv_func
             )
@@ -295,7 +287,7 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
     return epoch_losses
 
 
-def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
+def test_net(epoch, model, test_loader, cuda, save_path, args):
     model.eval()
     loss_dict = model.latest_losses()
     losses = {k + '_test': 0 for k, v in loss_dict.items()}
@@ -328,14 +320,7 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
             if i in [0, 100, 200, 300, 400]:
-                # ex_util.write_images(target, outputs, writer, 'test', args.mean,
-                #                      args.std, args.inv_func)
-                #
-                # ex_util.save_reconstructed_images(
-                #     target, epoch, outputs[0], save_path,
-                #     'reconstruction_test_%.5d' % i
-                # )
-                ex_util.grid_save_reconstructed_images(
+                vae_util.grid_save_reconstructed_images(
                     target, outputs, args.mean, args.std, epoch, save_path,
                     'reconstruction_test%.5d' % i, args.inv_func
                 )
