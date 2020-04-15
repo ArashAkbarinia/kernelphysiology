@@ -10,8 +10,6 @@ from skimage import io
 import torch
 from torchvision.utils import save_image, make_grid
 
-from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
-
 
 def setup_logging_from_args(args):
     """
@@ -143,3 +141,12 @@ def save_reconstructed_images(data, epoch, outputs, save_path, name):
         os.path.join(save_path, name + '_' + str(epoch) + '.png'), nrow=n,
         normalize=True
     )
+
+
+def inv_normalise_tensor(tensor, mean, std):
+    tensor = tensor.clone()
+    # inverting the normalisation for each channel
+    for i in range(tensor.shape[1]):
+        tensor[:, i, ] = (tensor[:, i, ] * std[i]) + mean[i]
+    tensor = tensor.clamp(0, 1)
+    return tensor
