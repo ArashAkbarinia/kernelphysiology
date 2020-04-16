@@ -135,7 +135,7 @@ def main(args):
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.StepLR(
-        optimizer, 10 if args.dataset in ['imagenet', 'custom'] else 30, 0.5
+        optimizer, int(args.epochs / 3), 0.5
     )
 
     # NOTE: right now there's no additional transformaiton function
