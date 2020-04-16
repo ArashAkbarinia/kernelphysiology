@@ -125,7 +125,7 @@ def grid_save_reconstructed_images(data, outputs, mean, std, epoch, save_path,
     both_together = np.concatenate([original, reconstructed], axis=0)
     io.imsave(
         os.path.join(save_path, name + '_' + str(epoch) + '.png'),
-        both_together
+        both_together.squeeze()
     )
 
 
