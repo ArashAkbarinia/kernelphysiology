@@ -273,7 +273,7 @@ def main(args):
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.StepLR(
-        optimizer, 10 if args.dataset in ['imagenet', 'coco'] else 30, 0.5
+        optimizer, int(args.epochs / 3), 0.5
     )
 
     kwargs = {'num_workers': 8, 'pin_memory': True} if args.cuda else {}
