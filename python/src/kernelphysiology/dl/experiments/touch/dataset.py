@@ -29,8 +29,8 @@ class TouchDataset(Dataset):
             img, gt = self.transforms(img, gt)
         img = img[0].unsqueeze(0)
         gt = gt[0].unsqueeze(0)
-        if gt.max() > 0:
-            gt /= gt.max()
+        # if gt.max() > 0:
+        #     gt /= gt.max()
 
         return img, gt
 
