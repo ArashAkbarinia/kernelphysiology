@@ -108,7 +108,7 @@ def main(args):
 
     if args.model == 'wavenet':
         model = wavenet_vae.wavenet_bottleneck(
-            latent_dim=k, num_channels=num_channels
+            latent_dim=k, in_channels=num_channels
         )
     else:
         model = models[args.dataset][args.model](hidden, k=k,
