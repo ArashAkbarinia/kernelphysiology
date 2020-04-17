@@ -6,7 +6,7 @@ def parse_arguments(args):
     parser = argparse.ArgumentParser(description='Variational AutoEncoders')
     model_parser = parser.add_argument_group('Model Parameters')
     model_parser.add_argument(
-        '--model', default='vqvae', choices=['vae', 'vqvae', 'wavenet'],
+        '--model', default='vqvae',
         help='autoencoder variant to use: vae | vqvae'
     )
     model_parser.add_argument(
