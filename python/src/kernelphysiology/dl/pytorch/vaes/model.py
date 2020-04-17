@@ -278,10 +278,23 @@ class CVAE(AbstractAutoEncoder):
         return {'mse': self.mse, 'kl': self.kl_loss}
 
 
+class HueLoss(torch.nn.Module):
+    def forward(self, recon_x, x):
+        # import pdb
+        # pdb.set_trace()
+        ret = recon_x - x
+        ret[ret > 1] -= 2
+        ret = ret ** 2
+        return torch.mean(ret)
+
+
 class VQ_CVAE(nn.Module):
     def __init__(self, d, k=10, bn=True, vq_coef=1, commit_coef=0.5,
-                 num_chns=3, **kwargs):
+                 num_chns=3, colour_space='rgb', **kwargs):
         super(VQ_CVAE, self).__init__()
+
+        self.colour_space = colour_space
+        self.hue_loss = HueLoss()
 
         self.encoder = nn.Sequential(
             nn.Conv2d(num_chns, d, kernel_size=4, stride=2, padding=1),
@@ -344,7 +357,11 @@ class VQ_CVAE(nn.Module):
         return self.decode(emb.view(size, self.d, self.f, self.f)).cpu()
 
     def loss_function(self, x, recon_x, z_e, emb, argmin):
-        self.mse = F.mse_loss(recon_x, x)
+        if self.colour_space == 'hsv':
+            self.mse = F.mse_loss(recon_x[:, 1:], x[:, 1:])
+            self.mse += self.hue_loss(recon_x[:, 0], x[:, 0])
+        else:
+            self.mse = F.mse_loss(recon_x, x)
 
         self.vq_loss = torch.mean(torch.norm((emb - z_e.detach()) ** 2, 2, 1))
         self.commit_loss = torch.mean(

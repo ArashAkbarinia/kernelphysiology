@@ -111,8 +111,10 @@ def main(args):
             latent_dim=k, in_channels=num_channels
         )
     else:
-        model = models[args.dataset][args.model](hidden, k=k,
-                                                 num_channels=num_channels)
+        model = models[args.dataset][args.model](
+            hidden, k=k, num_channels=num_channels,
+            colour_space=args.colour_space
+        )
     if args.cuda:
         model.cuda()
 
