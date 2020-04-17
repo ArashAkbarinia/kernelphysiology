@@ -13,15 +13,15 @@ from torchvision import datasets, transforms
 
 from kernelphysiology.dl.pytorch.vaes import util as vae_util
 from kernelphysiology.dl.pytorch.vaes import model as vae_model
+from kernelphysiology.dl.pytorch.vaes import wavenet_vae
 from kernelphysiology.dl.pytorch.vaes import data_loaders
 from kernelphysiology.dl.pytorch.vaes.arguments import parse_arguments
-from kernelphysiology.dl.experiments.intrasimilarity import panoptic_utils
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
 models = {
     'custom': {'vqvae': vae_model.VQ_CVAE},
-    'imagenet': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
+    'imagenet': {'vqvae': vae_model.VQ_CVAE},
     'coco': {'vqvae': vae_model.VQ_CVAE},
     'cifar10': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
     'mnist': {'vae': vae_model.VAE, 'vqvae': vae_model.VQ_CVAE},
@@ -106,8 +106,13 @@ def main(args):
         cudnn.benchmark = True
         torch.cuda.manual_seed(args.seed)
 
-    model = models[args.dataset][args.model](hidden, k=k,
-                                             num_channels=num_channels)
+    if args.model == 'wavenet':
+        model = wavenet_vae.wavenet_bottleneck(
+            latent_dim=k, num_channels=num_channels
+        )
+    else:
+        model = models[args.dataset][args.model](hidden, k=k,
+                                                 num_channels=num_channels)
     if args.cuda:
         model.cuda()
 
