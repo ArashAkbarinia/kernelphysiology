@@ -163,6 +163,29 @@ def main(args):
         test_loader = panoptic_utils.get_coco_test(
             args.batch_size, args.opts, args.cfg_file
         )
+    elif args.category is not None:
+        train_loader = torch.utils.data.DataLoader(
+            data_loaders.CategoryImages(
+                root=args.train_dir,
+                category=args.category,
+                intransform=intransform,
+                outtransform=outtransform,
+                transform=dataset_transforms[args.dataset],
+                **dataset_train_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=True, **kwargs
+        )
+        test_loader = torch.utils.data.DataLoader(
+            data_loaders.CategoryImages(
+                root=args.validation_dir,
+                category=args.category,
+                intransform=intransform,
+                outtransform=outtransform,
+                transform=dataset_transforms[args.dataset],
+                **dataset_test_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=False, **kwargs
+        )
     else:
         train_loader = torch.utils.data.DataLoader(
             datasets_classes[args.dataset](

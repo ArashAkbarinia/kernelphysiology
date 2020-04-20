@@ -58,6 +58,12 @@ def parse_arguments(args):
         help='The path to the data directory (default: None)'
     )
     training_parser.add_argument(
+        '--category',
+        type=str,
+        default=None,
+        help='The specific category (default: None)'
+    )
+    training_parser.add_argument(
         '--train_dir',
         type=str,
         default=None,

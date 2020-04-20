@@ -280,8 +280,6 @@ class CVAE(AbstractAutoEncoder):
 
 class HueLoss(torch.nn.Module):
     def forward(self, recon_x, x):
-        # import pdb
-        # pdb.set_trace()
         ret = recon_x - x
         ret[ret > 1] -= 2
         ret = ret ** 2
