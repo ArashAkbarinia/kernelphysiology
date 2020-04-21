@@ -168,16 +168,16 @@ def center_crop(img, output_size):
     return crop(img, i, j, th, tw)
 
 
-def resized_crop(img, i, j, h, w, size, interpolation='BILINEAR'):
+def resized_crop(img, top, left, height, width, size, interpolation='BILINEAR'):
     """Crop the given CV2 Image and resize it to desired size. Notably used in
     RandomResizedCrop.
 
     Args:
         img (np.ndarray): Image to be cropped.
-        i: Upper pixel coordinate.
-        j: Left pixel coordinate.
-        h: Height of the cropped image.
-        w: Width of the cropped image.
+        top: Upper pixel coordinate.
+        left: Left pixel coordinate.
+        height: Height of the cropped image.
+        width: Width of the cropped image.
         size (sequence or int): Desired output size. Same semantics as ``scale``.
         interpolation (str, optional): Desired interpolation. Default is
             ``BILINEAR``.
@@ -185,7 +185,7 @@ def resized_crop(img, i, j, h, w, size, interpolation='BILINEAR'):
         np.ndarray: Cropped image.
     """
     assert _is_numpy_image(img), 'img should be CV Image'
-    img = crop(img, i, j, h, w)
+    img = crop(img, top, left, height, width)
     img = resize(img, size, interpolation)
     return img
 

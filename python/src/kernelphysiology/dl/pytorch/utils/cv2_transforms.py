@@ -54,7 +54,7 @@ class RandomResizedCrop(object):
             tuple: params (i, j, h, w) to be passed to ``crop`` for a random
                 sized crop.
         """
-        area = img.size[0] * img.size[1]
+        area = img.shape[0] * img.shape[1]
 
         for attempt in range(10):
             target_area = random.uniform(*scale) * area
@@ -66,15 +66,15 @@ class RandomResizedCrop(object):
             if random.random() < 0.5 and min(ratio) <= (h / w) <= max(ratio):
                 w, h = h, w
 
-            if w <= img.size[0] and h <= img.size[1]:
-                i = random.randint(0, img.size[1] - h)
-                j = random.randint(0, img.size[0] - w)
+            if w <= img.shape[0] and h <= img.shape[1]:
+                i = random.randint(0, img.shape[1] - h)
+                j = random.randint(0, img.shape[0] - w)
                 return i, j, h, w
 
         # Fallback
-        w = min(img.size[0], img.size[1])
-        i = (img.size[1] - w) // 2
-        j = (img.size[0] - w) // 2
+        w = min(img.shape[0], img.shape[1])
+        i = (img.shape[1] - w) // 2
+        j = (img.shape[0] - w) // 2
         return i, j, w, w
 
     def __call__(self, imgs):
@@ -188,7 +188,7 @@ class Normalize(object):
         self.std = std
         self.inplace = inplace
         self.kwargs = {
-            'mean': self.mean, 'std': self.std, #FIXME'inplace': self.inplace
+            'mean': self.mean, 'std': self.std,  # FIXME'inplace': self.inplace
         }
 
     def __call__(self, tensors):
