@@ -46,12 +46,15 @@ def to_tensor(pic):
             return img
     elif _is_tensor_image(pic):
         return pic
-
     else:
         try:
             return to_tensor(np.array(pic))
         except Exception:
             raise TypeError('pic should be ndarray. Got {}'.format(type(pic)))
+
+
+def to_tensor_classes(pic):
+    return torch.as_tensor(np.asarray(pic), dtype=torch.int64)
 
 
 def normalize(tensor, mean, std):

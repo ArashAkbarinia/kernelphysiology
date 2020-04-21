@@ -109,7 +109,7 @@ class RandomResizedCrop(object):
 
 
 class RandomHorizontalFlip(object):
-    """Horizontally flip the given PIL Image randomly with a given probability.
+    """Horizontally flip the given cv2 Image randomly with a given probability.
 
     Args:
         p (float): probability of the image being flipped. Default value is 0.5
@@ -121,10 +121,10 @@ class RandomHorizontalFlip(object):
     def __call__(self, imgs):
         """
         Args:
-            imgs (PIL Image): List of images to be flipped.
+            imgs (cv2 Image): List of images to be flipped.
 
         Returns:
-            PIL Image: Randomly flipped images.
+            cv2 Image: Randomly flipped images.
         """
         if random.random() < self.p:
             fun = tfunctional.hflip
@@ -136,7 +136,7 @@ class RandomHorizontalFlip(object):
 
 
 class Resize(object):
-    """Resize the input PIL Image to the given size.
+    """Resize the input cv2 Image to the given size.
 
     Args:
         size (sequence or int): Desired output size. If size is a sequence like
@@ -145,7 +145,7 @@ class Resize(object):
             i.e, if height > width, then image will be rescaled to
             (size * height / width, size)
         interpolation (int, optional): Desired interpolation. Default is
-            ``PIL.Image.BILINEAR``
+            ``cv2.Image.BILINEAR``
     """
 
     def __init__(self, size, interpolation='BILINEAR'):
@@ -158,10 +158,10 @@ class Resize(object):
     def __call__(self, imgs):
         """
         Args:
-            imgs (PIL Image): List of images to be scaled.
+            imgs (cv2 Image): List of images to be scaled.
 
         Returns:
-            PIL Image: Rescaled image.
+            cv2 Image: Rescaled image.
         """
         fun = tfunctional.resize
         kwargs = self.kwargs
@@ -210,15 +210,52 @@ class Normalize(object):
         )
 
 
+class NormalizeSegmentation(object):
+    """Normalize a tensor image with mean and standard deviation.
+
+    Args:
+        mean (sequence): Sequence of means for each channel.
+        std (sequence): Sequence of standard deviations for each channel.
+        inplace(bool,optional): Bool to make this operation in-place.
+    """
+
+    def __init__(self, mean, std, inplace=False):
+        self.mean = mean
+        self.std = std
+        self.inplace = inplace
+        self.kwargs = {
+            'mean': self.mean, 'std': self.std,  # FIXME'inplace': self.inplace
+        }
+
+    def __call__(self, tensors):
+        """
+        Args:
+            tensors (Tensor): List of tensor images of size (C, H, W) to be
+             normalised.
+
+        Returns:
+            Tensor: Normalized Tensor image.
+        """
+        assert len(tensors) == 2
+        kwargs = self.kwargs
+        image = tfunctional.normalize(tensors[0], **kwargs)
+        return image, tensors[1]
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(
+            self.mean, self.std
+        )
+
+
 class ToTensor(object):
-    """Convert a ``PIL Image`` or ``numpy.ndarray`` to tensor.
+    """Convert a ``cv2 Image`` or ``numpy.ndarray`` to tensor.
     In the other cases, tensors are returned without scaling.
     """
 
     def __call__(self, pics):
         """
         Args:
-            pics (List of PIL Image or numpy.ndarray): Image to be converted to
+            pics (List of cv2 Image or numpy.ndarray): Image to be converted to
              tensor.
 
         Returns:
@@ -231,8 +268,31 @@ class ToTensor(object):
         return self.__class__.__name__ + '()'
 
 
+class ToTensorSegmentation(object):
+    """Convert a ``cv2 Image`` or ``numpy.ndarray`` to tensor.
+    In the other cases, tensors are returned without scaling.
+    """
+
+    def __call__(self, pics):
+        """
+        Args:
+            pics (List of cv2 Image or numpy.ndarray): Image to be converted to
+             tensor.
+
+        Returns:
+            Tensor: Converted images.
+        """
+        assert len(pics) == 2
+        image = tfunctional.to_tensor(pics[0])
+        target = tfunctional.to_tensor_classes(pics[1])
+        return image, target
+
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
+
 class CenterCrop(object):
-    """Crops the given PIL Image at the center.
+    """Crops the given cv2 Image at the center.
 
     Args:
         size (sequence or int): Desired output size of the crop. If size is an
@@ -250,10 +310,10 @@ class CenterCrop(object):
     def __call__(self, imgs):
         """
         Args:
-            imgs (PIL Image): List of images to be cropped.
+            imgs (cv2 Image): List of images to be cropped.
 
         Returns:
-            PIL Image: Cropped images.
+            cv2 Image: Cropped images.
         """
         fun = tfunctional.center_crop
         kwargs = self.kwargs
