@@ -47,8 +47,7 @@ def parse_arguments(args):
 
     training_parser = parser.add_argument_group('Training Parameters')
     training_parser.add_argument(
-        '--dataset', default='cifar10',
-        choices=['mnist', 'cifar10', 'imagenet', 'coco', 'custom'],
+        '--dataset', default=None,
         help='dataset to use: mnist | cifar10 | imagenet | coco | custom'
     )
     training_parser.add_argument(
