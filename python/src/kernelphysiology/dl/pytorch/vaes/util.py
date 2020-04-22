@@ -11,6 +11,7 @@ import torch
 from torchvision.utils import save_image, make_grid
 
 from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
+from kernelphysiology.transformations import labels
 
 
 def setup_logging_from_args(args):
@@ -118,8 +119,8 @@ def tensor_colourlabel(tensor, do_argmax=False):
         if do_argmax:
             img = img.argmax(axis=0)
         img = img.astype('uint8')
-        img = np.expand_dims(img, axis=2)
-        img = np.repeat(img, 3, axis=2)
+        # FIXME: hardcoded dataset
+        img = labels.colour_label(img, dataset='voc')
         imgs.append(img)
     return imgs
 

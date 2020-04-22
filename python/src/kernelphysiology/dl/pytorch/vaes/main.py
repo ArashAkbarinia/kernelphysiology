@@ -263,7 +263,7 @@ def main(args):
             test_name = k.replace('train', 'test')
             writer.add_scalars(
                 name, {'train': train_losses[train_name],
-                       'test': test_losses[test_name], }
+                       'test': test_losses[test_name]}, epoch
             )
         scheduler.step()
         vae_util.save_checkpoint(
