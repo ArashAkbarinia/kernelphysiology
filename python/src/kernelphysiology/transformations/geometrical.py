@@ -1,38 +1,38 @@
 import numpy as np
 
 
-def rigid_transform(points_a, points_b):
-    assert len(points_a) == len(points_b)
+def rigid_transform(pts1, pts2):
+    assert len(pts1) == len(pts2)
 
-    rows_a, cols_a = points_a.shape
-    rows_b, cols_b = points_b.shape
+    rows1, cols1 = pts1.shape
+    rows2, cols2 = pts2.shape
 
     # find mean column wise
-    cen_a = np.mean(points_a, axis=1)
-    cen_b = np.mean(points_b, axis=1)
+    cen1 = np.mean(pts1, axis=1)
+    cen2 = np.mean(pts2, axis=1)
 
-    if cols_a > cols_b:
-        new_b = np.ones((rows_b, cols_a))
-        new_b[:, :cols_b] = points_b
-        d_cols = cols_a - cols_b
-        new_b[:, cols_b:] = np.broadcast_to(cen_b, (d_cols, rows_b)).transpose()
-        points_b = new_b
-        rows_b, cols_b = points_b.shape
-        cen_b = np.mean(points_b, axis=1)
-    elif cols_a < cols_b:
-        new_a = np.ones((rows_a, cols_b))
-        new_a[:, :cols_a] = points_a
-        d_cols = cols_b - cols_a
-        new_a[:, cols_a:] = np.broadcast_to(cen_a, (d_cols, rows_a)).transpose()
-        points_a = new_a
-        rows_a, cols_a = points_a.shape
-        cen_a = np.mean(points_a, axis=1)
+    if cols1 > cols2:
+        new_b = np.ones((rows2, cols1))
+        new_b[:, :cols2] = pts2
+        d_cols = cols1 - cols2
+        new_b[:, cols2:] = np.broadcast_to(cen2, (d_cols, rows2)).transpose()
+        pts2 = new_b
+        rows2, cols2 = pts2.shape
+        cen2 = np.mean(pts2, axis=1)
+    elif cols1 < cols2:
+        new_a = np.ones((rows1, cols2))
+        new_a[:, :cols1] = pts1
+        d_cols = cols2 - cols1
+        new_a[:, cols1:] = np.broadcast_to(cen1, (d_cols, rows1)).transpose()
+        pts1 = new_a
+        rows1, cols1 = pts1.shape
+        cen1 = np.mean(pts1, axis=1)
 
     # subtract mean
-    acentred = points_a - np.broadcast_to(cen_a, (cols_a, rows_a)).transpose()
-    bcentred = points_b - np.broadcast_to(cen_b, (cols_b, rows_b)).transpose()
+    pts1_centred = pts1 - np.broadcast_to(cen1, (cols1, rows1)).transpose()
+    pts2_centred = pts2 - np.broadcast_to(cen2, (cols2, rows2)).transpose()
 
-    hmat = np.matmul(acentred, bcentred.transpose())
+    hmat = np.matmul(pts1_centred, pts2_centred.transpose())
 
     # sanity check
     # print(np.linalg.matrix_rank(hmat))
@@ -56,6 +56,24 @@ def rigid_transform(points_a, points_b):
     #     vt[-1, :] *= -1
     #     rot_mat = np.matmul(vt.T, u.T)
 
-    trans_vec = np.matmul(-rot_mat, cen_a) + cen_b
+    trans_vec = np.matmul(-rot_mat, cen1) + cen2
 
     return rot_mat, trans_vec
+
+
+def affine_transform(pts1, pts2):
+    # Compute the affine transformation using homogenous coordinates
+    hom_pts1 = np.vstack([pts1, np.ones(len(pts1.T))])
+    hom_pts2 = np.vstack([pts2, np.ones(len(pts2.T))])
+
+    affine_mat = np.linalg.lstsq(hom_pts1.T, hom_pts2.T, rcond=None)[0]
+
+    return affine_mat.T
+
+
+def apply_affine_transform(affine_mat, pts):
+    hom_pts = np.vstack([pts, np.ones(len(pts.T))])
+    tmp = np.matmul(affine_mat, hom_pts)
+    out_pts = np.array([x[:-1] / x[-1] for x in tmp.T])
+
+    return out_pts.T
