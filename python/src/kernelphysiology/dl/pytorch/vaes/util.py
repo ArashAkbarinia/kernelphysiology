@@ -111,18 +111,35 @@ def tensor_tosave(tensor):
     return imgs
 
 
+def tensor_colourlabel(tensor, do_argmax=False):
+    imgs = []
+    for i in range(tensor.shape[0]):
+        img = tensor[i].detach().cpu().numpy()
+        if do_argmax:
+            img = img.argmax(axis=0)
+        img = img.astype('uint8')
+        img = np.expand_dims(img, axis=2)
+        img = np.repeat(img, 3, axis=2)
+        imgs.append(img)
+    return imgs
+
+
 def grid_save_reconstructed_images(data, outputs, mean, std, epoch, save_path,
                                    name, inv_func=None):
-    original = inv_normalise_tensor(data, mean, std).detach()
-    if inv_func is not None:
-        original = inv_func(original)
+    if outputs[0].shape[1] < 3:
+        original = inv_normalise_tensor(data, mean, std).detach()
+        if inv_func is not None:
+            original = inv_func(original)
+        else:
+            original = tensor_tosave(original)
+        reconstructed = inv_normalise_tensor(outputs[0], mean, std).detach()
+        if inv_func is not None:
+            reconstructed = inv_func(reconstructed)
+        else:
+            reconstructed = tensor_tosave(reconstructed)
     else:
-        original = tensor_tosave(original)
-    reconstructed = inv_normalise_tensor(outputs[0], mean, std).detach()
-    if inv_func is not None:
-        reconstructed = inv_func(reconstructed)
-    else:
-        reconstructed = tensor_tosave(reconstructed)
+        original = tensor_colourlabel(data)
+        reconstructed = tensor_colourlabel(outputs[0], True)
 
     original = np.concatenate(original, axis=1)
     reconstructed = np.concatenate(reconstructed, axis=1)

@@ -108,6 +108,59 @@ class RandomResizedCrop(object):
         return format_string
 
 
+class RandomResizedCropSegmentation(RandomResizedCrop):
+    """Crop the given CV2 Image to random size and aspect ratio.
+
+    A crop of random size (default: of 0.08 to 1.0) of the original size and a
+    random aspect ratio (default: of 3/4 to 4/3) of the original aspect ratio is
+    made. This crop is finally resized to given size.
+    This is popularly used to train the Inception networks.
+
+    Args:
+        size: expected output size of each edge
+        scale: range of size of the origin size cropped
+        ratio: range of aspect ratio of the origin aspect ratio cropped
+        interpolation: Default: BILINEAR
+    """
+
+    def __call__(self, imgs):
+        """
+        Args:
+            imgs (PIL Image): List of images to be cropped and resized.
+
+        Returns:
+            PIL Image: Randomly cropped and resized images.
+        """
+        assert len(imgs) == 2
+        top, left, height, width = self.get_params(
+            _find_first_image_recursive(imgs), self.scale, self.ratio
+        )
+
+        kwargs = {
+            'top': top, 'left': left, 'height': height, 'width': width,
+            'size': self.size, 'interpolation': self.interpolation
+        }
+        image = tfunctional.resized_crop(imgs[0], **kwargs)
+        kwargs = {
+            'top': top, 'left': left, 'height': height, 'width': width,
+            'size': self.size, 'interpolation': 'NEAREST'
+        }
+        target = tfunctional.resized_crop(imgs[1], **kwargs)
+        return image, target
+
+    def __repr__(self):
+        interpolate_str = self.interpolation
+        format_string = self.__class__.__name__ + '(size={0}'.format(self.size)
+        format_string += ', scale={0}'.format(
+            tuple(round(s, 4) for s in self.scale)
+        )
+        format_string += ', ratio={0}'.format(
+            tuple(round(r, 4) for r in self.ratio)
+        )
+        format_string += ', interpolation={0})'.format(interpolate_str)
+        return format_string
+
+
 class RandomHorizontalFlip(object):
     """Horizontally flip the given cv2 Image randomly with a given probability.
 

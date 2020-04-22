@@ -286,16 +286,29 @@ class HueLoss(torch.nn.Module):
         return torch.mean(ret)
 
 
+class SegLoss(torch.nn.Module):
+    def forward(self, recon_x, x):
+        ret = recon_x - x
+        ret[ret != 0] = 1
+        ret = ret ** 2
+        return torch.mean(ret)
+
+
 class VQ_CVAE(nn.Module):
     def __init__(self, d, k=10, bn=True, vq_coef=1, commit_coef=0.5,
-                 num_chns=3, colour_space='rgb', **kwargs):
+                 in_chns=3, colour_space='rgb', out_chns=None, task=None,
+                 **kwargs):
         super(VQ_CVAE, self).__init__()
 
+        if out_chns is None:
+            out_chns = in_chns
+
         self.colour_space = colour_space
+        self.task = task
         self.hue_loss = HueLoss()
 
         self.encoder = nn.Sequential(
-            nn.Conv2d(num_chns, d, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(in_chns, d, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(d),
             nn.ReLU(inplace=True),
             nn.Conv2d(d, d, kernel_size=4, stride=2, padding=1),
@@ -313,8 +326,14 @@ class VQ_CVAE(nn.Module):
             nn.ConvTranspose2d(d, d, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(d),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(d, num_chns, kernel_size=4, stride=2, padding=1)
+            nn.ConvTranspose2d(d, out_chns, kernel_size=4, stride=2, padding=1)
         )
+        if self.task == 'segmentation':
+            self.fc = nn.Sequential(
+                nn.BatchNorm2d(out_chns),
+                nn.ReLU(),
+                nn.Conv2d(out_chns, out_chns, 1)
+            )
         self.d = d
         self.emb = NearestEmbed(k, d)
         self.vq_coef = vq_coef
@@ -338,6 +357,8 @@ class VQ_CVAE(nn.Module):
         return self.encoder(x)
 
     def decode(self, x):
+        if self.task == 'segmentation':
+            return self.fc(self.decoder(x))
         return torch.tanh(self.decoder(x))
 
     def forward(self, x):
@@ -358,6 +379,8 @@ class VQ_CVAE(nn.Module):
         if self.colour_space == 'hsv':
             self.mse = F.mse_loss(recon_x[:, 1:], x[:, 1:])
             self.mse += self.hue_loss(recon_x[:, 0], x[:, 0])
+        elif self.task == 'segmentation':
+            self.mse = F.cross_entropy(recon_x, x, ignore_index=255)
         else:
             self.mse = F.mse_loss(recon_x, x)
 

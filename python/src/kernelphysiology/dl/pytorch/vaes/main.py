@@ -18,10 +18,12 @@ from kernelphysiology.dl.pytorch.vaes import data_loaders
 from kernelphysiology.dl.pytorch.vaes.arguments import parse_arguments
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
+from kernelphysiology.dl.pytorch.utils import segmentation_utils as seg_utils
 
 models = {
     'custom': {'vqvae': vae_model.VQ_CVAE},
     'imagenet': {'vqvae': vae_model.VQ_CVAE},
+    'voc': {'vqvae': vae_model.VQ_CVAE},
     'coco': {'vqvae': vae_model.VQ_CVAE},
     'cifar10': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
     'mnist': {'vae': vae_model.VAE, 'vqvae': vae_model.VQ_CVAE},
@@ -36,6 +38,7 @@ datasets_classes = {
 dataset_train_args = {
     'custom': {},
     'imagenet': {},
+    'voc': {},
     'coco': {},
     'cifar10': {'train': True, 'download': True},
     'mnist': {'train': True, 'download': True},
@@ -43,6 +46,7 @@ dataset_train_args = {
 dataset_test_args = {
     'custom': {},
     'imagenet': {},
+    'voc': {},
     'coco': {},
     'cifar10': {'train': False, 'download': True},
     'mnist': {'train': False, 'download': True},
@@ -50,6 +54,7 @@ dataset_test_args = {
 dataset_n_channels = {
     'custom': 3,
     'imagenet': 3,
+    'voc': 3,
     'coco': 3,
     'cifar10': 3,
     'mnist': 1,
@@ -60,6 +65,7 @@ dataset_target_size = {
 default_hyperparams = {
     'custom': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'imagenet': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+    'voc': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'coco': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'cifar10': {'lr': 2e-4, 'k': 10, 'hidden': 256},
     'mnist': {'lr': 1e-4, 'k': 10, 'hidden': 64}
@@ -85,6 +91,10 @@ def main(args):
             [transforms.Resize(256), transforms.CenterCrop(224),
              transforms.ToTensor(), normalise]),
         'coco': transforms.Compose([normalise]),
+        'voc': transforms.Compose(
+            [cv2_transforms.RandomResizedCropSegmentation(target_size),
+             cv2_transforms.ToTensorSegmentation(),
+             cv2_transforms.NormalizeSegmentation(args.mean, args.std)]),
         'imagenet': transforms.Compose(
             [cv2_transforms.Resize(target_size + 32),
              cv2_transforms.CenterCrop(target_size),
@@ -111,9 +121,15 @@ def main(args):
             latent_dim=k, in_channels=num_channels
         )
     else:
+        task = None
+        out_chns = 3
+        if 'voc' in args.dataset:
+            task = 'segmentation'
+            out_chns = 21
         model = models[args.dataset][args.model](
             hidden, k=k, num_channels=num_channels,
-            colour_space=args.colour_space
+            colour_space=args.colour_space, task=task,
+            out_chns=out_chns
         )
     if args.cuda:
         model.cuda()
@@ -162,6 +178,29 @@ def main(args):
         )
         test_loader = panoptic_utils.get_coco_test(
             args.batch_size, args.opts, args.cfg_file
+        )
+    elif 'voc' in args.dataset:
+        train_loader = torch.utils.data.DataLoader(
+            data_loaders.VOCSegmentation(
+                root=args.data_dir,
+                image_set='train',
+                intransform=intransform,
+                outtransform=outtransform,
+                transform=dataset_transforms[args.dataset],
+                **dataset_train_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=True, **kwargs
+        )
+        test_loader = torch.utils.data.DataLoader(
+            data_loaders.VOCSegmentation(
+                root=args.data_dir,
+                image_set='val',
+                intransform=intransform,
+                outtransform=outtransform,
+                transform=dataset_transforms[args.dataset],
+                **dataset_test_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=False, **kwargs
         )
     elif args.category is not None:
         train_loader = torch.utils.data.DataLoader(
@@ -267,7 +306,6 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
         else:
             data = loader_data[0]
             target = loader_data[1]
-
             max_len = len(train_loader)
             target = target.cuda()
 
