@@ -5,11 +5,7 @@ Wrappers around different libraries to plot beautiful bar charts!
 import numpy as np
 from matplotlib import pyplot as plt
 
-
-def get_cmap(n, name='gist_rainbow'):
-    """Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
-    RGB color; the keyword argument name must be a standard colormap name."""
-    return plt.cm.get_cmap(name, n)
+from kernelphysiology.utils.visualise.colour_world import default_colours
 
 
 def plot_list_data(list_data, figsize=(12, 4), width=0.2,
@@ -39,10 +35,7 @@ def plot_list_data(list_data, figsize=(12, 4), width=0.2,
     bar_inds = np.arange(items_per_group)
 
     if colours is None:
-        tmp_colours = get_cmap(num_groups)
-        colours = []
-        for i in range(num_groups):
-            colours.append(tmp_colours(i))
+        colours = default_colours(num_groups)
 
     for i, current_data in enumerate(list_data):
         color = colours[i]
