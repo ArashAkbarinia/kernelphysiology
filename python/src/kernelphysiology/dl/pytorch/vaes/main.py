@@ -18,7 +18,6 @@ from kernelphysiology.dl.pytorch.vaes import data_loaders
 from kernelphysiology.dl.pytorch.vaes.arguments import parse_arguments
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
-from kernelphysiology.dl.pytorch.utils import segmentation_utils as seg_utils
 
 models = {
     'custom': {'vqvae': vae_model.VQ_CVAE},
@@ -148,7 +147,7 @@ def main(args):
         optimizer.load_state_dict(checkpoint['optimizer'])
     elif args.fine_tune is not None:
         weights = torch.load(args.fine_tune, map_location='cpu')
-        model.load_state_dict(weights)
+        model.load_state_dict(weights, strict=False)
         model.cuda()
 
     intransform_funs = []
