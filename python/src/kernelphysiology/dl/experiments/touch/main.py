@@ -38,8 +38,10 @@ default_hyperparams = {
 
 def main(args):
     parser = argparse.ArgumentParser(description='Variational AutoEncoders')
-    parser.add_argument('train_dir', help='path to training data')
-    parser.add_argument('val_dir', help='path to validation data')
+    parser.add_argument('data_dir', help='path to training data')
+    parser.add_argument(
+        '--test_inds', type=int, nargs='+', help='inds test participants'
+    )
     parser.add_argument('--target-size', default=100, type=int)
     parser.add_argument(
         '-j', '--workers', default=4, type=int,
@@ -145,8 +147,8 @@ def main(args):
     args.std = [0.5, 0.5, 0.5]
 
     train_dataset = get_train_dataset(
-        args.train_dir + '/img/', args.train_dir + '/gt/',
-        args.train_dir + '/imgs.txt', args.train_dir + '/gts.txt',
+        args.data_dir + '/img/', args.data_dir + '/gt/',
+        args.data_dir + '/all_imgs.txt', args.test_inds,
         trans_funcs, args.mean, args.std, args.target_size
     )
 
@@ -156,8 +158,8 @@ def main(args):
     )
 
     val_dataset = get_val_dataset(
-        args.val_dir + '/img/', args.val_dir + '/gt/',
-        args.val_dir + '/imgs.txt', args.val_dir + '/gts.txt',
+        args.data_dir + '/img/', args.data_dir + '/gt/',
+        args.data_dir + '/all_imgs.txt', args.test_inds,
         trans_funcs, args.mean, args.std, args.target_size
     )
 

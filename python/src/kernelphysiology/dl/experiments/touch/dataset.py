@@ -10,11 +10,22 @@ from torchvision.datasets.folder import pil_loader
 
 
 class TouchDataset(Dataset):
-    def __init__(self, img_dir, gt_dir, img_txt, gt_txt, transforms=None):
+    def __init__(self, img_dir, gt_dir, all_txt, test_inds, image_set,
+                 transforms=None):
         self.img_dir = img_dir
         self.gt_dir = gt_dir
-        self.inputs = np.loadtxt(img_txt, dtype=str)
-        self.targets = np.loadtxt(gt_txt, dtype=str)
+        self.all_imgs = np.loadtxt(all_txt, delimiter=',', dtype=int)
+        self.inputs = []
+        self.targets = []
+        for img_info in self.all_imgs:
+            img_name = str(img_info[1]) + '.png'
+            if img_info[1] in test_inds and image_set == 'test':
+                self.inputs.append(img_name)
+                self.targets.append(img_name)
+            elif img_info[1] not in test_inds and image_set == 'train':
+                self.inputs.append(img_name)
+                self.targets.append(img_name)
+        print('set %s has %d images' % (image_set, len(self.inputs)))
         self.transforms = transforms
         self.data_loader = pil_loader
 
@@ -38,8 +49,8 @@ class TouchDataset(Dataset):
         return len(self.inputs)
 
 
-def get_train_dataset(img_dir, gt_dir, img_txt, gt_txt, trans_funcs, mean, std,
-                      target_size):
+def get_train_dataset(img_dir, gt_dir, all_txt, test_inds,
+                      trans_funcs, mean, std, target_size):
     train_transforms = Compose([
         *trans_funcs,
         RandomHorizontalFlip(),
@@ -49,13 +60,13 @@ def get_train_dataset(img_dir, gt_dir, img_txt, gt_txt, trans_funcs, mean, std,
     ])
 
     train_dataset = TouchDataset(
-        img_dir, gt_dir, img_txt, gt_txt, train_transforms
+        img_dir, gt_dir, all_txt, test_inds, 'train', train_transforms
     )
 
     return train_dataset
 
 
-def get_val_dataset(img_dir, gt_dir, img_txt, gt_txt, trans_funcs, mean, std,
+def get_val_dataset(img_dir, gt_dir, all_txt, test_inds, trans_funcs, mean, std,
                     target_size):
     train_transforms = Compose([
         *trans_funcs,
@@ -65,7 +76,7 @@ def get_val_dataset(img_dir, gt_dir, img_txt, gt_txt, trans_funcs, mean, std,
     ])
 
     train_dataset = TouchDataset(
-        img_dir, gt_dir, img_txt, gt_txt, train_transforms
+        img_dir, gt_dir, all_txt, test_inds, 'test', train_transforms
     )
 
     return train_dataset
