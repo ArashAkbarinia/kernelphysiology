@@ -18,7 +18,7 @@ class TouchDataset(Dataset):
         self.inputs = []
         self.targets = []
         for img_info in self.all_imgs:
-            img_name = str(img_info[1]) + '.png'
+            img_name = str(img_info[0]) + '.png'
             if img_info[1] in test_inds and image_set == 'test':
                 self.inputs.append(img_name)
                 self.targets.append(img_name)
