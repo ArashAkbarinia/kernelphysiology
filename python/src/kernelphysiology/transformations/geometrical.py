@@ -61,6 +61,21 @@ def rigid_transform(pts1, pts2):
     return rot_mat, trans_vec
 
 
+def apply_rigid_transform(rot_mat, trans_vec, pts):
+    if rot_mat is not None:
+        rotated_pts = np.matmul(rot_mat, pts)
+    else:
+        rotated_pts = pts
+    if trans_vec is not None:
+        trans_mat = np.broadcast_to(
+            trans_vec, (pts.shape[1], trans_vec.shape[0])
+        ).transpose()
+        out = rotated_pts + trans_mat
+    else:
+        out = rotated_pts
+    return out
+
+
 def affine_transform(pts1, pts2):
     # Compute the affine transformation using homogenous coordinates
     hom_pts1 = np.vstack([pts1, np.ones(len(pts1.T))])
