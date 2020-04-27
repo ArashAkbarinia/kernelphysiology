@@ -116,8 +116,27 @@ def main(args):
         torch.cuda.manual_seed(args.seed)
 
     if args.model == 'wavenet':
-        model = wavenet_vae.wavenet_bottleneck(
-            latent_dim=k, in_channels=num_channels
+        # model = wavenet_vae.wavenet_bottleneck(
+        #     latent_dim=k, in_channels=num_channels
+        # )
+        task = None
+        out_chns = 3
+        if 'voc' in args.dataset:
+            task = 'segmentation'
+            out_chns = 21
+        from kernelphysiology.dl.pytorch.models import model_utils as model_utils
+        backbone, _ = model_utils.which_network_classification(
+            'resnet50', num_classes=1000
+        )
+        from torchvision.models._utils import IntermediateLayerGetter
+        return_layers = {'layer1': 'out'}
+        resnet = IntermediateLayerGetter(
+            backbone, return_layers=return_layers
+        )
+        model = vae_model.ResNet_VQ_CVAE(
+            hidden, k=k, resnet=resnet, num_channels=num_channels,
+            colour_space=args.colour_space, task=task,
+            out_chns=out_chns
         )
     else:
         task = None
