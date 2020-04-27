@@ -127,7 +127,8 @@ def tensor_colourlabel(tensor, do_argmax=False):
 
 def grid_save_reconstructed_images(data, outputs, mean, std, epoch, save_path,
                                    name, inv_func=None):
-    if outputs[0].shape[1] < 3:
+    # FIXME this is not a solution!!
+    if outputs[0].shape[1] < 4:
         original = inv_normalise_tensor(data, mean, std).detach()
         if inv_func is not None:
             original = inv_func(original)
