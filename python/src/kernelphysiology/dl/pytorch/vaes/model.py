@@ -282,6 +282,7 @@ class HueLoss(torch.nn.Module):
     def forward(self, recon_x, x):
         ret = recon_x - x
         ret[ret > 1] -= 2
+        ret[ret < -1] += 2
         ret = ret ** 2
         return torch.mean(ret)
 
@@ -292,6 +293,116 @@ class SegLoss(torch.nn.Module):
         ret[ret != 0] = 1
         ret = ret ** 2
         return torch.mean(ret)
+
+
+class ResNet_VQ_CVAE(nn.Module):
+    def __init__(self, d, k=10, resnet=None, vq_coef=1, commit_coef=0.5,
+                 in_chns=3, colour_space='rgb', out_chns=None, task=None,
+                 **kwargs):
+        super(ResNet_VQ_CVAE, self).__init__()
+
+        if out_chns is None:
+            out_chns = in_chns
+
+        self.colour_space = colour_space
+        self.task = task
+        self.hue_loss = HueLoss()
+
+        self.resnet = resnet
+        self.encoder = nn.Sequential(
+            nn.Conv2d(2048, 1024, kernel_size=3, padding=1),
+            nn.BatchNorm2d(1024),
+            nn.ReLU(),
+            nn.Conv2d(1024, d, kernel_size=3, padding=1),
+            nn.BatchNorm2d(d),
+        )
+        from torchvision.models.segmentation.deeplabv3 import ASPP
+        self.decoder = nn.Sequential(
+            ASPP(d, d, [12, 24, 36]),
+            nn.Conv2d(d, d, 3, padding=1, bias=False),
+        )
+        if self.task == 'segmentation':
+            self.fc = nn.Sequential(
+                nn.BatchNorm2d(d),
+                nn.ReLU(),
+                nn.Conv2d(d, out_chns, 1)
+            )
+        self.d = d
+        self.emb = NearestEmbed(k, d)
+        self.vq_coef = vq_coef
+        self.commit_coef = commit_coef
+        self.mse = 0
+        self.vq_loss = torch.zeros(1)
+        self.commit_loss = 0
+
+        for l in self.modules():
+            if l in resnet.modules():
+                continue
+            if isinstance(l, nn.Linear) or isinstance(l, nn.Conv2d):
+                l.weight.detach().normal_(0, 0.02)
+                torch.fmod(l.weight, 0.04)
+                if l.bias is not None:
+                    nn.init.constant_(l.bias, 0)
+
+        self.encoder[-1].weight.detach().fill_(1 / 40)
+
+        self.emb.weight.detach().normal_(0, 0.02)
+        torch.fmod(self.emb.weight, 0.04)
+
+    def encode(self, x):
+        features = self.resnet(x)
+        x = features["out"]
+        return self.encoder(x)
+
+    def decode(self, x, input_shape):
+        if self.task == 'segmentation':
+            x = self.fc(self.decoder(x))
+            x = F.interpolate(
+                x, size=input_shape, mode='bilinear', align_corners=False
+            )
+            return x
+        return torch.tanh(self.decoder(x))
+
+    def forward(self, x):
+        input_shape = x.shape[-2:]
+        z_e = self.encode(x)
+        self.f = z_e.shape[-1]
+        z_q, argmin = self.emb(z_e, weight_sg=True)
+        emb, _ = self.emb(z_e.detach())
+        return self.decode(z_q, input_shape), z_e, emb, argmin
+
+    def sample(self, size):
+        sample = torch.randn(size, self.d, self.f, self.f, requires_grad=False),
+        if self.cuda():
+            sample = sample.cuda()
+        emb, _ = self.emb(sample)
+        return self.decode(emb.view(size, self.d, self.f, self.f)).cpu()
+
+    def loss_function(self, x, recon_x, z_e, emb, argmin):
+        if self.colour_space == 'hsv':
+            self.mse = F.mse_loss(recon_x[:, 1:], x[:, 1:])
+            self.mse += self.hue_loss(recon_x[:, 0], x[:, 0])
+        elif self.task == 'segmentation':
+            self.mse = F.cross_entropy(recon_x, x, ignore_index=255)
+        else:
+            self.mse = F.mse_loss(recon_x, x)
+
+        self.vq_loss = torch.mean(torch.norm((emb - z_e.detach()) ** 2, 2, 1))
+        self.commit_loss = torch.mean(
+            torch.norm((emb.detach() - z_e) ** 2, 2, 1))
+
+        return self.mse + self.vq_coef * self.vq_loss + self.commit_coef * self.commit_loss
+
+    def latest_losses(self):
+        return {'mse': self.mse, 'vq': self.vq_loss,
+                'commitment': self.commit_loss}
+
+    def print_atom_hist(self, argmin):
+
+        argmin = argmin.detach().cpu().numpy()
+        unique, counts = np.unique(argmin, return_counts=True)
+        logging.info(counts)
+        logging.info(unique)
 
 
 class VQ_CVAE(nn.Module):
