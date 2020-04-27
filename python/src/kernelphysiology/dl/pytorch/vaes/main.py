@@ -125,11 +125,13 @@ def main(args):
             task = 'segmentation'
             out_chns = 21
         from kernelphysiology.dl.pytorch.models import model_utils as model_utils
-        backbone, _ = model_utils.which_network_classification(
-            'resnet50', num_classes=1000
+        from torchvision.models import resnet
+        backbone = resnet.__dict__['resnet50'](
+            pretrained=True,
+            replace_stride_with_dilation=[False, True, True]
         )
         from torchvision.models._utils import IntermediateLayerGetter
-        return_layers = {'layer1': 'out'}
+        return_layers = {'layer4': 'out'}
         resnet = IntermediateLayerGetter(
             backbone, return_layers=return_layers
         )
