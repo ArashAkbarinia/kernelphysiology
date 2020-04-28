@@ -191,7 +191,7 @@ def main(args):
     else:
         args.train_dir = args.train_dir
         args.validation_dir = args.validation_dir
-    kwargs = {'num_workers': 8, 'pin_memory': True} if args.cuda else {}
+    kwargs = {'num_workers': 14, 'pin_memory': True} if args.cuda else {}
     if args.dataset == 'coco':
         train_loader = panoptic_utils.get_coco_train(
             args.batch_size, args.opts, args.cfg_file
