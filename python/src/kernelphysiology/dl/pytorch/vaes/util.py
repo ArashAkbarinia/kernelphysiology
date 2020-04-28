@@ -106,10 +106,12 @@ def save_checkpoint(model, save_path):
 def tensor_tosave(tensor, inv_func=None):
     imgs = []
     for i in range(tensor.shape[0]):
-        img = tensor[i].cpu().numpy().transpose((1, 2, 0)) * 255
-        img = img.astype('uint8')
+        img = tensor[i].cpu().numpy().transpose((1, 2, 0))
         if inv_func is not None:
             img = inv_func(img)
+        else:
+            img *= 255
+            img = img.astype('uint8')
         imgs.append(img)
     return imgs
 

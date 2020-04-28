@@ -77,12 +77,12 @@ default_hyperparams = {
 
 def generic_inv_fun(x, colour_space):
     if colour_space == 'hsv':
-        x = x.astype('float') / 255
         x = colour_spaces.hsv012rgb(x)
     elif colour_space == 'dkl':
-        x = x.astype('float') / 255
         x = colour_spaces.dkl012rgb(x)
     elif colour_space == 'lab':
+        x *= 255
+        x = x.astype('uint8')
         x = cv2.cvtColor(x, cv2.COLOR_LAB2RGB)
     return x
 
