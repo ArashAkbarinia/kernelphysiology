@@ -26,7 +26,8 @@ class ColourTransformation(object):
                 img = colour_spaces.rgb2dkl01(img)
                 img = normalisations.uint8im(img)
             elif self.colour_space == 'hsv':
-                img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+                img = colour_spaces.rgb2hsv01(img)
+                img = normalisations.uint8im(img)
 
             # if colour_inds is None, we consider it as trichromat
             if self.colour_inds is not None:

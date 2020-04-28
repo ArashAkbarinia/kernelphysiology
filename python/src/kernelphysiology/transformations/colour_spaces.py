@@ -59,8 +59,7 @@ def rgb2hsv01(x):
 
 
 def hsv012rgb(x):
-    x[:, :, 0] *= 180
-    x[:, :, 1:] *= 255
+    x[:, :, 0] *= (180 / 255)
     x = normalisations.uint8im(x)
     return cv2.cvtColor(x, cv2.COLOR_HSV2RGB)
 
