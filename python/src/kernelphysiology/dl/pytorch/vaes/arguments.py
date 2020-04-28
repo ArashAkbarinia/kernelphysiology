@@ -87,6 +87,9 @@ def parse_arguments(args):
     training_parser.add_argument('--no-cuda', action='store_true',
                                  default=False,
                                  help='enables CUDA training')
+    training_parser.add_argument('--vis_rgb', action='store_true',
+                                 default=False,
+                                 help='visualise the output in RGB')
     training_parser.add_argument('--seed', type=int, default=1, metavar='S',
                                  help='random seed (default: 1)')
     training_parser.add_argument('--gpus', default='0',

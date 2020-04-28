@@ -103,11 +103,13 @@ def save_checkpoint(model, save_path):
     torch.save(model, resume_path)
 
 
-def tensor_tosave(tensor):
+def tensor_tosave(tensor, inv_func=None):
     imgs = []
     for i in range(tensor.shape[0]):
         img = tensor[i].cpu().numpy().transpose((1, 2, 0)) * 255
         img = img.astype('uint8')
+        if inv_func is not None:
+            img = inv_func(img)
         imgs.append(img)
     return imgs
 
@@ -130,15 +132,9 @@ def grid_save_reconstructed_images(data, outputs, mean, std, epoch, save_path,
     # FIXME this is not a solution!!
     if outputs[0].shape[1] < 4:
         original = inv_normalise_tensor(data, mean, std).detach()
-        if inv_func is not None:
-            original = inv_func(original)
-        else:
-            original = tensor_tosave(original)
+        original = tensor_tosave(original, inv_func)
         reconstructed = inv_normalise_tensor(outputs[0], mean, std).detach()
-        if inv_func is not None:
-            reconstructed = inv_func(reconstructed)
-        else:
-            reconstructed = tensor_tosave(reconstructed)
+        reconstructed = tensor_tosave(reconstructed, inv_func)
     else:
         original = tensor_colourlabel(data)
         reconstructed = tensor_colourlabel(outputs[0], True)

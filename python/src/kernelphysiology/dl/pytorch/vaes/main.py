@@ -18,6 +18,10 @@ from kernelphysiology.dl.pytorch.vaes import data_loaders
 from kernelphysiology.dl.pytorch.vaes.arguments import parse_arguments
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
+from kernelphysiology.transformations import colour_spaces
+from kernelphysiology.transformations import normalisations
+
+import cv2
 
 models = {
     'custom': {'vqvae': vae_model.VQ_CVAE},
@@ -69,6 +73,18 @@ default_hyperparams = {
     'cifar10': {'lr': 2e-4, 'k': 10, 'hidden': 256},
     'mnist': {'lr': 1e-4, 'k': 10, 'hidden': 64}
 }
+
+
+def generic_inv_fun(x, colour_space):
+    if colour_space == 'hsv':
+        x = x.astype('float') / 255
+        x = colour_spaces.hsv012rgb(x)
+    elif colour_space == 'dkl':
+        x = x.astype('float') / 255
+        x = colour_spaces.dkl012rgb(x)
+    elif colour_space == 'lab':
+        x = cv2.cvtColor(x, cv2.COLOR_LAB2RGB)
+    return x
 
 
 def main(args):
@@ -124,7 +140,8 @@ def main(args):
         if 'voc' in args.dataset:
             task = 'segmentation'
             out_chns = 21
-        from kernelphysiology.dl.pytorch.models import model_utils as model_utils
+        from kernelphysiology.dl.pytorch.models import \
+            model_utils as model_utils
         from torchvision.models import resnet
         backbone = resnet.__dict__['resnet50'](
             pretrained=True,
@@ -183,6 +200,8 @@ def main(args):
         outtransform_funs.append(
             cv2_preprocessing.ColourTransformation(None, args.colour_space)
         )
+        if args.vis_rgb:
+            args.inv_func = lambda x: generic_inv_fun(x, args.colour_space)
     outtransform = transforms.Compose(outtransform_funs)
 
     if args.data_dir is not None:
