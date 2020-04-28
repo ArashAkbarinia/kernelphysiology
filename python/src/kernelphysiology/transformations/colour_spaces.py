@@ -5,7 +5,7 @@ Functions related to change or manipulation of colour spaces.
 import numpy as np
 import sys
 
-from skimage.color import rgb2lab, lab2rgb
+import cv2
 
 from kernelphysiology.transformations import normalisations
 
@@ -23,11 +23,13 @@ rgb_from_dkl = np.array(
 
 
 def rgb2dkl(x):
+    assert x.dtype == 'uint8'
     x = normalisations.im2double(x)
     return np.dot(x, rgb_from_dkl)
 
 
 def rgb2dkl01(x):
+    assert x.dtype == 'uint8'
     x = rgb2dkl(x)
     x /= 2
     x[:, :, 1] += 0.5
@@ -47,12 +49,28 @@ def dkl012rgb(x):
     return dkl2rgb(x)
 
 
+def rgb2hsv01(x):
+    assert x.dtype == 'uint8'
+    x = cv2.cvtColor(x, cv2.COLOR_RGB2HSV)
+    x = x.astype('float')
+    x[:, :, 0] /= 180
+    x[:, :, 1:] /= 255
+    return x
+
+
+def hsv012rgb(x):
+    x[:, :, 0] *= 180
+    x[:, :, 1:] *= 255
+    x = normalisations.uint8im(x)
+    return cv2.cvtColor(x, cv2.COLOR_HSV2RGB)
+
+
 def rgb2opponency(image_rgb, colour_space='lab'):
     if colour_space is None:
         # it's already in opponency
         image_opponent = image_rgb
     elif colour_space == 'lab':
-        image_opponent = rgb2lab(image_rgb)
+        image_opponent = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2LAB)
     elif colour_space == 'dkl':
         image_opponent = rgb2dkl(image_rgb)
     else:
@@ -67,7 +85,7 @@ def opponency2rgb(image_opponent, colour_space='lab'):
         # it's already in rgb
         image_rgb = image_opponent
     elif colour_space == 'lab':
-        image_rgb = lab2rgb(image_opponent)
+        image_rgb = cv2.cvtColor(image_opponent, cv2.COLOR_LAB2RGB)
     elif colour_space == 'dkl':
         image_rgb = dkl2rgb(image_opponent)
         image_rgb = normalisations.min_max_normalise(image_rgb)
