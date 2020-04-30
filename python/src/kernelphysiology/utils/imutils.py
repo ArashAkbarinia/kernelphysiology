@@ -115,33 +115,26 @@ def crop_image_centre(img, target_size, extended_crop=None):
 
 
 def invert_colour_opponency(image, colour_space='lab'):
-    image, max_pixel = im2double_max(image)
-    image_opponent = rgb2opponency(image, colour_space=colour_space)
+    image_opponent = rgb2opponency(image, opponent_space=colour_space)
     rg = image_opponent[:, :, 1].copy()
     image_opponent[:, :, 1] = image_opponent[:, :, 2].copy()
     image_opponent[:, :, 2] = rg
-
-    output = opponency2rgb(image_opponent, colour_space=colour_space)
-    output *= max_pixel
+    output = opponency2rgb(image_opponent, opponent_space=colour_space)
     return output
 
 
 def invert_chromaticity(image, colour_space='lab'):
-    image, max_pixel = im2double_max(image)
-    image_opponent = rgb2opponency(image, colour_space=colour_space)
+    image_opponent = rgb2opponency(image, opponent_space=colour_space)
     image_opponent[:, :, 1:3] *= -1
-    output = opponency2rgb(image_opponent, colour_space=colour_space)
-    output *= max_pixel
+    output = opponency2rgb(image_opponent, opponent_space=colour_space)
     return output
 
 
 def invert_lightness(image, colour_space='lab'):
-    image, max_pixel = im2double_max(image)
-    image_opponent = rgb2opponency(image, colour_space=colour_space)
-    max_lightness = get_max_lightness(colour_space=colour_space)
+    image_opponent = rgb2opponency(image, opponent_space=colour_space)
+    max_lightness = get_max_lightness(opponent_space=colour_space)
     image_opponent[:, :, 0] = max_lightness - image_opponent[:, :, 0]
-    output = opponency2rgb(image_opponent, colour_space=colour_space)
-    output *= max_pixel
+    output = opponency2rgb(image_opponent, opponent_space=colour_space)
     return output
 
 
@@ -222,11 +215,9 @@ def reduce_red_green(image, amount, colour_space='lab'):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    image, max_pixel = im2double_max(image)
-    image_opponent = rgb2opponency(image, colour_space=colour_space)
+    image_opponent = rgb2opponency(image, opponent_space=colour_space)
     image_opponent[:, :, 1] *= amount
-    output = opponency2rgb(image_opponent, colour_space=colour_space)
-    output *= max_pixel
+    output = opponency2rgb(image_opponent, opponent_space=colour_space)
     return output
 
 
@@ -234,11 +225,9 @@ def reduce_yellow_blue(image, amount, colour_space='lab'):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    image, max_pixel = im2double_max(image)
-    image_opponent = rgb2opponency(image, colour_space=colour_space)
+    image_opponent = rgb2opponency(image, opponent_space=colour_space)
     image_opponent[:, :, 2] *= amount
-    output = opponency2rgb(image_opponent, colour_space=colour_space)
-    output *= max_pixel
+    output = opponency2rgb(image_opponent, opponent_space=colour_space)
     return output
 
 
@@ -246,11 +235,9 @@ def reduce_chromaticity(image, amount, colour_space='lab'):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    image, max_pixel = im2double_max(image)
-    image_opponent = rgb2opponency(image, colour_space=colour_space)
+    image_opponent = rgb2opponency(image, opponent_space=colour_space)
     image_opponent[:, :, 1:3] *= amount
-    output = opponency2rgb(image_opponent, colour_space=colour_space)
-    output *= max_pixel
+    output = opponency2rgb(image_opponent, opponent_space=colour_space)
     return output
 
 
@@ -258,13 +245,11 @@ def reduce_lightness(image, amount, colour_space='lab'):
     assert (amount >= 0.0), 'amount too low.'
     assert (amount <= 1.0), 'amount too high.'
 
-    image, max_pixel = im2double_max(image)
-    image_opponent = rgb2opponency(image, colour_space=colour_space)
-    max_lightness = get_max_lightness(colour_space=colour_space)
+    image_opponent = rgb2opponency(image, opponent_space=colour_space)
+    max_lightness = get_max_lightness(opponent_space=colour_space)
     image_opponent[:, :, 0] = ((1 - amount) / 2 + np.multiply(
         image_opponent[:, :, 0] / max_lightness, amount)) * max_lightness
-    output = opponency2rgb(image_opponent, colour_space=colour_space)
-    output *= max_pixel
+    output = opponency2rgb(image_opponent, opponent_space=colour_space)
     return output
 
 

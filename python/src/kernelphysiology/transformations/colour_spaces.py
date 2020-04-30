@@ -22,14 +22,15 @@ rgb_from_dkl = np.array(
 ).T
 
 
-def rgb2dkl(x):
-    assert x.dtype == 'uint8'
-    x = normalisations.im2double(x)
+def rgb012dkl(x):
     return np.dot(x, rgb_from_dkl)
 
 
+def rgb2dkl(x):
+    return rgb012dkl(normalisations.rgb2double(x))
+
+
 def rgb2dkl01(x):
-    assert x.dtype == 'uint8'
     x = rgb2dkl(x)
     x /= 2
     x[:, :, 1] += 0.5
@@ -38,15 +39,22 @@ def rgb2dkl01(x):
 
 
 def dkl2rgb(x):
-    rgb_im = np.dot(x, dkl_from_rgb)
-    return normalisations.uint8im(rgb_im)
+    return normalisations.uint8im(dkl2rgb01(x))
+
+
+def dkl2rgb01(x):
+    return np.dot(x, dkl_from_rgb)
 
 
 def dkl012rgb(x):
+    return normalisations.uint8im(dkl012rgb01(x))
+
+
+def dkl012rgb01(x):
     x[:, :, 1] -= 0.5
     x[:, :, 2] -= 0.5
     x *= 2
-    return dkl2rgb(x)
+    return dkl2rgb01(x)
 
 
 def rgb2hsv01(x):
@@ -64,43 +72,42 @@ def hsv012rgb(x):
     return cv2.cvtColor(x, cv2.COLOR_HSV2RGB)
 
 
-def rgb2opponency(image_rgb, colour_space='lab'):
-    if colour_space is None:
+def rgb2opponency(image_rgb, opponent_space='lab'):
+    image_rgb = normalisations.rgb2double(image_rgb)
+    if opponent_space is None:
         # it's already in opponency
         image_opponent = image_rgb
-    elif colour_space == 'lab':
+    elif opponent_space == 'lab':
         image_opponent = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2LAB)
-    elif colour_space == 'dkl':
-        image_opponent = rgb2dkl(image_rgb)
+    elif opponent_space == 'dkl':
+        image_opponent = rgb012dkl(image_rgb)
     else:
-        sys.exit('Not supported colour space %s' % colour_space)
+        sys.exit('Not supported colour space %s' % opponent_space)
     return image_opponent
 
 
-def opponency2rgb(image_opponent, colour_space='lab'):
-    # TODO: this is a hack to solve the problem of when the image is already in
-    #  the desired colour space.
-    if colour_space is None:
+def opponency2rgb(image_opponent, opponent_space='lab'):
+    if opponent_space is None:
         # it's already in rgb
         image_rgb = image_opponent
-    elif colour_space == 'lab':
+    elif opponent_space == 'lab':
         image_rgb = cv2.cvtColor(image_opponent, cv2.COLOR_LAB2RGB)
-    elif colour_space == 'dkl':
+        image_rgb = normalisations.uint8im(image_rgb)
+    elif opponent_space == 'dkl':
         image_rgb = dkl2rgb(image_opponent)
-        image_rgb = normalisations.min_max_normalise(image_rgb)
     else:
-        sys.exit('Not supported colour space %s' % colour_space)
+        sys.exit('Not supported colour space %s' % opponent_space)
     return image_rgb
 
 
-def get_max_lightness(colour_space='lab'):
-    if colour_space is None:
+def get_max_lightness(opponent_space='lab'):
+    if opponent_space is None:
         # it's already in rgb
         max_lightness = 255
-    elif colour_space == 'lab':
+    elif opponent_space == 'lab':
         max_lightness = 100
-    elif colour_space == 'dkl':
+    elif opponent_space == 'dkl':
         max_lightness = 2
     else:
-        sys.exit('Not supported colour space %s' % colour_space)
+        sys.exit('Not supported colour space %s' % opponent_space)
     return max_lightness

@@ -30,6 +30,14 @@ def im2double(image):
     return image
 
 
+def rgb2double(x):
+    if x.dtype == 'uint8':
+        x = im2double(x)
+    else:
+        assert x.max() <= 1, 'rgb must be either uint8 or in the range of [0 1]'
+    return x
+
+
 def uint8im(image):
     image = np.maximum(image, 0)
     image = np.minimum(image, 1)

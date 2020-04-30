@@ -1,9 +1,17 @@
+"""
+cv2 implementation of PyTorch functional file.
+"""
+
 from __future__ import division
-import torch
-import cv2
+
 import numpy as np
 import numbers
 import collections
+import warnings
+
+import torch
+
+import cv2
 
 INTER_MODE = {
     'NEAREST': cv2.INTER_NEAREST, 'BILINEAR': cv2.INTER_LINEAR,
@@ -110,13 +118,15 @@ def resize(img, size, interpolation='BILINEAR'):
         if w < h:
             ow = size
             oh = int(size * h / w)
-            return cv2.resize(img, dsize=(ow, oh),
-                              interpolation=INTER_MODE[interpolation])
+            return cv2.resize(
+                img, dsize=(ow, oh), interpolation=INTER_MODE[interpolation]
+            )
         else:
             oh = size
             ow = int(size * w / h)
-            return cv2.resize(img, dsize=(ow, oh),
-                              interpolation=INTER_MODE[interpolation])
+            return cv2.resize(
+                img, dsize=(ow, oh), interpolation=INTER_MODE[interpolation]
+            )
     else:
         oh, ow = size
         return cv2.resize(
@@ -145,13 +155,19 @@ def crop(img, x, y, h, w):
     x1, y1, x2, y2 = round(x), round(y), round(x + h), round(y + w)
 
     try:
-        check_point1 = img[x1, y1, ...]
-        check_point2 = img[x2 - 1, y2 - 1, ...]
+        _ = img[x1, y1, ...]
+        _ = img[x2 - 1, y2 - 1, ...]
     except IndexError:
-        # warnings.warn('crop region is {} but image size is {}'.format((x1, y1, x2, y2), img.shape))
-        img = cv2.copyMakeBorder(img, - min(0, x1), max(x2 - img.shape[0], 0),
-                                 -min(0, y1), max(y2 - img.shape[1], 0),
-                                 cv2.BORDER_CONSTANT, value=[0, 0, 0])
+        warnings.warn(
+            'crop region is {} but image size is {}'.format(
+                (x1, y1, x2, y2), img.shape
+            )
+        )
+        img = cv2.copyMakeBorder(
+            img, - min(0, x1), max(x2 - img.shape[0], 0),
+            -min(0, y1), max(y2 - img.shape[1], 0),
+            cv2.BORDER_CONSTANT, value=[0, 0, 0]
+        )
         y2 += -min(0, y1)
         y1 += -min(0, y1)
         x2 += -min(0, x1)
@@ -181,7 +197,7 @@ def resized_crop(img, top, left, height, width, size, interpolation='BILINEAR'):
         left: Left pixel coordinate.
         height: Height of the cropped image.
         width: Width of the cropped image.
-        size (sequence or int): Desired output size. Same semantics as ``scale``.
+        size (sequence or int): Desired output size. Same semantic as ``scale``.
         interpolation (str, optional): Desired interpolation. Default is
             ``BILINEAR``.
     Returns:
