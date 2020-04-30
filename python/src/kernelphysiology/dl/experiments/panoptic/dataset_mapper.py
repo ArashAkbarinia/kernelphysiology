@@ -185,6 +185,9 @@ class DatasetMapper:
             reconstructed = inv_normalise_tensor(output[0], self.mean, self.std)
             reconstructed = reconstructed.detach().numpy().squeeze().transpose(
                 1, 2, 0)
+            reconstructed = cv2.resize(
+                reconstructed, (img.shape[1], img.shape[0])
+            )
             # FIXME ahrd coded coloru space
             if 'dkl' in self.gen_path:
                 reconstructed = colour_spaces.dkl012rgb(reconstructed)
