@@ -172,6 +172,7 @@ class DatasetMapper:
             print(which_vec)
             self.net.state_dict()['emb.weight'][:, which_vec] = 0
         self.net.eval()
+        self.net.cuda()
         self.transform_funcs = transforms.Compose([
             cv2_transforms.ToTensor(),
             cv2_transforms.Normalize(self.mean, self.std)
