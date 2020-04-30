@@ -4,23 +4,16 @@ import sys
 import logging
 import numpy as np
 import random
-import torch
 from fvcore.common.file_io import PathManager
 
 from detectron2.data import transforms as T
 from detectron2.data import detection_utils as utils
 
 from PIL import Image, ImageOps
-import cv2
 
 from kernelphysiology.utils import imutils
 import torch
-from torchvision import transforms
-from kernelphysiology.dl.pytorch.utils import cv2_transforms
-from kernelphysiology.dl.pytorch.vaes import model as vqmodel
-from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
-from kernelphysiology.transformations import colour_spaces
-from kernelphysiology.transformations import normalisations
+import ntpath
 
 """
 This file contains the default mapping that's applied to "dataset dicts".
@@ -42,10 +35,10 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
     Returns:
         image (np.ndarray): an HWC image in the given format.
     """
+    if apply_net is not None:
+        file_name = apply_net(file_name)
     with PathManager.open(file_name, "rb") as f:
         image = Image.open(f).convert('RGB')
-        if apply_net is not None:
-            image = apply_net(image)
 
         if contrast is not None:
             image = np.asarray(image).copy()
@@ -155,53 +148,12 @@ class DatasetMapper:
         if self.contrast == 1.0:
             self.contrast = None
 
-        self.mean = (0.5, 0.5, 0.5)
-        self.std = (0.5, 0.5, 0.5)
-        self.gen_path = cfg.INPUT.GENNET_PATH
-        weights = torch.load(self.gen_path, map_location='cpu')
-        # FIXME, hard coded 128 and 8
-        self.net = vqmodel.VQ_CVAE(128, k=8, num_channels=3)
-        self.net.load_state_dict(weights)
-        if cfg.INPUT.GENNET_VEC > 0:
-            which_vec = [cfg.INPUT.GENNET_VEC - 1]
-            print(which_vec)
-            self.net.state_dict()['emb.weight'][:, which_vec] = 0
-        elif cfg.INPUT.GENNET_VEC < 0:
-            which_vec = [*range(8)]
-            which_vec.remove(abs(cfg.INPUT.GENNET_VEC) - 1)
-            print(which_vec)
-            self.net.state_dict()['emb.weight'][:, which_vec] = 0
-        self.net.eval()
-        self.net.cuda()
-        self.transform_funcs = transforms.Compose([
-            cv2_transforms.ToTensor(),
-            cv2_transforms.Normalize(self.mean, self.std)
-        ])
+        self.new_dir = cfg.INPUT.NEW_PATH
 
-    def apply_net(self, img):
-        with torch.no_grad():
-            img = np.asarray(img).copy()
-            img_ready = self.transform_funcs(img).unsqueeze(0)
-            output = self.net(img_ready)
-            reconstructed = inv_normalise_tensor(output[0], self.mean, self.std)
-            reconstructed = reconstructed.detach().numpy().squeeze().transpose(
-                1, 2, 0)
-            reconstructed = cv2.resize(
-                reconstructed, (img.shape[1], img.shape[0])
-            )
-            # FIXME ahrd coded coloru space
-            if 'dkl' in self.gen_path:
-                reconstructed = colour_spaces.dkl012rgb(reconstructed)
-            elif 'lab' in self.gen_path:
-                reconstructed = reconstructed * 255
-                reconstructed = reconstructed.astype('uint8')
-                reconstructed = cv2.cvtColor(reconstructed, cv2.COLOR_LAB2RGB)
-            elif 'hsv' in self.gen_path:
-                reconstructed = colour_spaces.hsv012rgb(reconstructed)
-            else:
-                reconstructed = normalisations.uint8im(reconstructed)
-            reconstructed = Image.fromarray(reconstructed.astype('uint8'))
-            return reconstructed
+    def apply_net(self, img_path):
+        img_name = ntpath.basename(img_path)
+        new_path = self.new_dir + '/' + img_name
+        return new_path
 
     def __call__(self, dataset_dict):
         """

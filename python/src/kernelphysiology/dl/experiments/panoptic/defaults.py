@@ -85,8 +85,7 @@ _C.INPUT.VISION_TYPE = "trichromat"
 _C.INPUT.CONTRAST = 1.0
 _C.INPUT.OPPONENT_SPACE = "lab"
 _C.INPUT.MOSAIC_PATTERN = ""
-_C.INPUT.GENNET_PATH = ""
-_C.INPUT.GENNET_VEC = 0
+_C.INPUT.NEW_PATH = ""
 
 
 # -----------------------------------------------------------------------------
