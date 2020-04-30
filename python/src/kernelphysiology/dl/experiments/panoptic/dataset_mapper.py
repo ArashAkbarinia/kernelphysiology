@@ -162,6 +162,15 @@ class DatasetMapper:
         # FIXME, hard coded 128 and 8
         self.net = vqmodel.VQ_CVAE(128, k=8, num_channels=3)
         self.net.load_state_dict(weights)
+        if cfg.INPUT.GENNET_VEC > 0:
+            which_vec = [cfg.INPUT.GENNET_VEC - 1]
+            print(which_vec)
+            self.net.state_dict()['emb.weight'][:, which_vec] = 0
+        elif cfg.INPUT.GENNET_VEC < 0:
+            which_vec = [*range(8)]
+            which_vec.remove(abs(cfg.INPUT.GENNET_VEC) - 1)
+            print(which_vec)
+            self.net.state_dict()['emb.weight'][:, which_vec] = 0
         self.net.eval()
         self.transform_funcs = transforms.Compose([
             cv2_transforms.ToTensor(),
