@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import copy
+import sys
 import logging
 import numpy as np
 import random
@@ -10,22 +11,14 @@ from detectron2.data import transforms as T
 from detectron2.data import detection_utils as utils
 
 from PIL import Image, ImageOps
-from PIL import ImageCms
+
+from kernelphysiology.utils import imutils
 
 """
 This file contains the default mapping that's applied to "dataset dicts".
 """
 
 __all__ = ["DatasetMapper"]
-
-rgb_p = ImageCms.createProfile('sRGB')
-lab_p = ImageCms.createProfile('LAB')
-
-rgb2lab = ImageCms.buildTransformFromOpenProfiles(rgb_p, lab_p, 'RGB', 'LAB')
-lab2rgb = ImageCms.buildTransformFromOpenProfiles(lab_p, rgb_p, 'LAB', 'RGB')
-
-from kernelphysiology.utils import imutils
-from kernelphysiology.transformations import colour_spaces
 
 
 def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
@@ -55,38 +48,32 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
             image = Image.fromarray(image.astype('uint8'))
 
         if vision_type != 'trichromat':
-            if opponent_space == 'lab':
-                image = ImageCms.applyTransform(image, rgb2lab)
-                image = np.asarray(image).copy()
-                if vision_type == 'monochromat' or vision_type == 'dichromat_rg':
-                    image[:, :, 1] = 0
-                if vision_type == 'monochromat' or vision_type == 'dichromat_yb':
-                    image[:, :, 2] = 0
-                image = Image.fromarray(image, 'LAB')
-                image = ImageCms.applyTransform(image, lab2rgb)
-            elif opponent_space == 'dkl':
-                image = np.asarray(image).copy()
-                image = colour_spaces.rgb2dkl(image)
-                if vision_type == 'monochromat' or vision_type == 'dichromat_rg':
-                    image[:, :, 1] = 0
-                if vision_type == 'monochromat' or vision_type == 'dichromat_yb':
-                    image[:, :, 2] = 0
-                image = colour_spaces.dkl2rgb(image)
-                image = Image.fromarray(image)
+            image = np.asarray(image).copy()
+            if vision_type == 'monochromat':
+                image = imutils.reduce_chromaticity(image, 0, opponent_space)
+            elif vision_type == 'dichromat_yb':
+                image = imutils.reduce_yellow_blue(image, 0, opponent_space)
+            elif vision_type == 'dichromat_rg':
+                image = imutils.reduce_red_green(image, 0, opponent_space)
+            else:
+                sys.exit('Not supported vision type %s' % vision_type)
+            image = Image.fromarray(image)
 
         if mosaic_pattern != "" and mosaic_pattern is not None:
             image = np.asarray(image).copy()
             image = imutils.im2mosaic(image, mosaic_pattern)
             image = Image.fromarray(image.astype('uint8'))
 
-        # capture and ignore this bug: https://github.com/python-pillow/Pillow/issues/3973
+        # capture and ignore this bug:
+        # https://github.com/python-pillow/Pillow/issues/3973
         try:
             image = ImageOps.exif_transpose(image)
         except Exception:
             pass
 
         if format is not None:
-            # PIL only supports RGB, so convert to RGB and flip channels over below
+            # PIL only supports RGB, so convert to RGB and flip channels over
+            # below
             conversion_format = format
             if format == "BGR":
                 conversion_format = "RGB"
@@ -106,7 +93,8 @@ class DatasetMapper:
     A callable which takes a dataset dict in Detectron2 Dataset format,
     and map it into a format used by the model.
 
-    This is the default callable to be used to map your dataset dict into training data.
+    This is the default callable to be used to map your dataset dict into
+    training data.
     You may need to follow it to implement your own one for customized logic.
 
     The callable currently does the following:
@@ -118,8 +106,9 @@ class DatasetMapper:
 
     def __init__(self, cfg, is_train=True):
         if cfg.INPUT.CROP.ENABLED and is_train:
-            self.crop_gen = T.RandomCrop(cfg.INPUT.CROP.TYPE,
-                                         cfg.INPUT.CROP.SIZE)
+            self.crop_gen = T.RandomCrop(
+                cfg.INPUT.CROP.TYPE, cfg.INPUT.CROP.SIZE
+            )
             logging.getLogger(__name__).info(
                 "CropGen used in training: " + str(self.crop_gen))
         else:
@@ -159,7 +148,8 @@ class DatasetMapper:
     def __call__(self, dataset_dict):
         """
         Args:
-            dataset_dict (dict): Metadata of one image, in Detectron2 Dataset format.
+            dataset_dict (dict): Metadata of one image, in Detectron2 Dataset
+            format.
 
         Returns:
             dict: a format that builtin models in detectron2 accept
@@ -196,8 +186,9 @@ class DatasetMapper:
 
         image_shape = image.shape[:2]  # h, w
 
-        # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
-        # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
+        # Pytorch's dataloader is efficient on torch.Tensor due to
+        # shared-memory, but not efficient on large generic data structures due
+        # to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
         dataset_dict["image"] = torch.as_tensor(
             np.ascontiguousarray(image.transpose(2, 0, 1)))
@@ -223,7 +214,8 @@ class DatasetMapper:
                 if not self.keypoint_on:
                     anno.pop("keypoints", None)
 
-            # USER: Implement additional transformations if you have other types of data
+            # USER: Implement additional transformations if you have other types
+            # of data
             annos = [
                 utils.transform_instance_annotations(
                     obj, transforms, image_shape,
@@ -235,15 +227,17 @@ class DatasetMapper:
             instances = utils.annotations_to_instances(
                 annos, image_shape, mask_format=self.mask_format
             )
-            # Create a tight bounding box from masks, useful when image is cropped
+            # Create a tight bounding box from masks, useful when image is
+            # cropped
             if self.crop_gen and instances.has("gt_masks"):
                 instances.gt_boxes = instances.gt_masks.get_bounding_boxes()
             dataset_dict["instances"] = utils.filter_empty_instances(instances)
 
         # USER: Remove if you don't do semantic/panoptic segmentation.
         if "sem_seg_file_name" in dataset_dict:
-            with PathManager.open(dataset_dict.pop("sem_seg_file_name"),
-                                  "rb") as f:
+            with PathManager.open(
+                    dataset_dict.pop("sem_seg_file_name"), "rb"
+            ) as f:
                 sem_seg_gt = Image.open(f)
                 sem_seg_gt = np.asarray(sem_seg_gt, dtype="uint8")
             sem_seg_gt = transforms.apply_segmentation(sem_seg_gt)
