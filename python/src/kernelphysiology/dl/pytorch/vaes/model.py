@@ -414,6 +414,8 @@ class VQ_CVAE(nn.Module):
         if out_chns is None:
             out_chns = in_chns
         self.out_chns = out_chns
+        if self.task == 'segmentation':
+            out_chns = d
 
         self.colour_space = colour_space
         self.task = task
@@ -442,9 +444,9 @@ class VQ_CVAE(nn.Module):
         )
         if self.task == 'segmentation':
             self.fc = nn.Sequential(
-                nn.BatchNorm2d(out_chns),
+                nn.BatchNorm2d(d),
                 nn.ReLU(),
-                nn.Conv2d(out_chns, out_chns, 1)
+                nn.Conv2d(d, self.out_chns, 1)
             )
         self.d = d
         self.emb = NearestEmbed(k, d)
