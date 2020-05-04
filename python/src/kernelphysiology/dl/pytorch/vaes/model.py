@@ -480,9 +480,15 @@ class VQ_CVAE(nn.Module):
         return self.decode(z_q), z_e, emb, argmin
 
     def sample(self, size):
-        sample = torch.randn(size, self.d, self.f, self.f, requires_grad=False),
         if self.cuda():
-            sample = sample.cuda()
+            sample = torch.tensor(
+                torch.randn(size, self.d, self.f, self.f), requires_grad=False
+            ).cuda()
+            print(sample)
+        else:
+            sample = torch.tensor(
+                torch.randn(size, self.d, self.f, self.f), requires_grad=False
+            )
         emb, _ = self.emb(sample)
         return self.decode(emb.view(size, self.d, self.f, self.f)).cpu()
 
