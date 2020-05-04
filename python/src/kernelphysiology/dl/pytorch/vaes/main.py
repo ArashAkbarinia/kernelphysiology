@@ -113,11 +113,11 @@ def main(args):
              transforms.ToTensor(), normalise]),
         'coco': transforms.Compose([normalise]),
         'voc': transforms.Compose(
-            [cv2_transforms.RandomResizedCropSegmentation(target_size),
+            [cv2_transforms.RandomResizedCropSegmentation(target_size, scale=(0.50, 1.0)),
              cv2_transforms.ToTensorSegmentation(),
              cv2_transforms.NormalizeSegmentation(args.mean, args.std)]),
         'bsds': transforms.Compose(
-            [cv2_transforms.RandomResizedCropSegmentation(target_size),
+            [cv2_transforms.RandomResizedCropSegmentation(target_size, scale=(0.50, 1.0)),
              cv2_transforms.ToTensorSegmentation(),
              cv2_transforms.NormalizeSegmentation(args.mean, args.std)]),
         'imagenet': transforms.Compose(
@@ -224,6 +224,7 @@ def main(args):
         args.train_dir = args.train_dir
         args.validation_dir = args.validation_dir
     kwargs = {'num_workers': 14, 'pin_memory': True} if args.cuda else {}
+    args.vis_func = vae_util.grid_save_reconstructed_images
     if args.dataset == 'coco':
         train_loader = panoptic_utils.get_coco_train(
             args.batch_size, args.opts, args.cfg_file
@@ -278,6 +279,7 @@ def main(args):
             batch_size=args.batch_size, shuffle=False, **kwargs
         )
     elif args.dataset == 'bsds':
+        args.vis_func = vae_util.grid_save_reconstructed_bsds
         train_loader = torch.utils.data.DataLoader(
             datasets_classes[args.dataset](
                 root=args.data_dir,
@@ -410,7 +412,7 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
             for key in latest_losses:
                 losses[key + '_train'] = 0
         if batch_idx in [18, 180, 1650, max_len - 1]:
-            vae_util.grid_save_reconstructed_images(
+            args.vis_func(
                 target, outputs, args.mean, args.std, epoch, save_path,
                 'reconstruction_train%.5d' % batch_idx, args.inv_func
             )
@@ -466,7 +468,7 @@ def test_net(epoch, model, test_loader, cuda, save_path, args):
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
             if i in [0, 100, 200, 300, 400]:
-                vae_util.grid_save_reconstructed_images(
+                args.vis_func(
                     target, outputs, args.mean, args.std, epoch, save_path,
                     'reconstruction_test%.5d' % i, args.inv_func
                 )

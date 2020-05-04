@@ -9,6 +9,7 @@ from skimage import io
 
 import torch
 from torchvision.utils import save_image, make_grid
+from torch.nn import functional as F
 
 from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 from kernelphysiology.transformations import labels
@@ -140,6 +141,25 @@ def grid_save_reconstructed_images(data, outputs, mean, std, epoch, save_path,
     else:
         original = tensor_colourlabel(data)
         reconstructed = tensor_colourlabel(outputs[0], True)
+
+    original = np.concatenate(original, axis=1)
+    reconstructed = np.concatenate(reconstructed, axis=1)
+    both_together = np.concatenate([original, reconstructed], axis=0)
+    io.imsave(
+        os.path.join(save_path, name + '_' + str(epoch) + '.png'),
+        both_together
+    )
+
+
+def grid_save_reconstructed_bsds(data, outputs, mean, std, epoch, save_path,
+                                 name, inv_func=None):
+    original = []
+    data = data.detach().cpu().numpy()
+    reconstructed = []
+    outputs = F.sigmoid(outputs[0]).detach().cpu().numpy().squeeze()
+    for i in range(data.shape[0]):
+        original.append(data[i])
+        reconstructed.append(outputs[i])
 
     original = np.concatenate(original, axis=1)
     reconstructed = np.concatenate(reconstructed, axis=1)
