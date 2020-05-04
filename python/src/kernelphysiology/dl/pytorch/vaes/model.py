@@ -414,7 +414,7 @@ class VQ_CVAE(nn.Module):
         if out_chns is None:
             out_chns = in_chns
         self.out_chns = out_chns
-        if self.task == 'segmentation':
+        if task == 'segmentation':
             out_chns = d
 
         self.colour_space = colour_space
