@@ -26,6 +26,7 @@ import cv2
 models = {
     'custom': {'vqvae': vae_model.VQ_CVAE},
     'imagenet': {'vqvae': vae_model.VQ_CVAE},
+    'bsds': {'vqvae': vae_model.VQ_CVAE},
     'voc': {'vqvae': vae_model.VQ_CVAE},
     'coco': {'vqvae': vae_model.VQ_CVAE},
     'cifar10': {'vae': vae_model.CVAE, 'vqvae': vae_model.VQ_CVAE},
@@ -34,6 +35,7 @@ models = {
 datasets_classes = {
     'custom': datasets.ImageFolder,
     'imagenet': data_loaders.ImageFolder,
+    'bsds': data_loaders.BSDSEdges,
     'coco': torch.utils.data.DataLoader,
     'cifar10': datasets.CIFAR10,
     'mnist': datasets.MNIST
@@ -41,6 +43,7 @@ datasets_classes = {
 dataset_train_args = {
     'custom': {},
     'imagenet': {},
+    'bsds': {},
     'voc': {},
     'coco': {},
     'cifar10': {'train': True, 'download': True},
@@ -49,6 +52,7 @@ dataset_train_args = {
 dataset_test_args = {
     'custom': {},
     'imagenet': {},
+    'bsds': {},
     'voc': {},
     'coco': {},
     'cifar10': {'train': False, 'download': True},
@@ -57,6 +61,7 @@ dataset_test_args = {
 dataset_n_channels = {
     'custom': 3,
     'imagenet': 3,
+    'bsds': 3,
     'voc': 3,
     'coco': 3,
     'cifar10': 3,
@@ -68,6 +73,7 @@ dataset_target_size = {
 default_hyperparams = {
     'custom': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'imagenet': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+    'bsds': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'voc': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'coco': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'cifar10': {'lr': 2e-4, 'k': 10, 'hidden': 256},
@@ -107,6 +113,10 @@ def main(args):
              transforms.ToTensor(), normalise]),
         'coco': transforms.Compose([normalise]),
         'voc': transforms.Compose(
+            [cv2_transforms.RandomResizedCropSegmentation(target_size),
+             cv2_transforms.ToTensorSegmentation(),
+             cv2_transforms.NormalizeSegmentation(args.mean, args.std)]),
+        'bsds': transforms.Compose(
             [cv2_transforms.RandomResizedCropSegmentation(target_size),
              cv2_transforms.ToTensorSegmentation(),
              cv2_transforms.NormalizeSegmentation(args.mean, args.std)]),
@@ -163,6 +173,9 @@ def main(args):
         if 'voc' in args.dataset:
             task = 'segmentation'
             out_chns = 21
+        elif 'bsds' in args.dataset:
+            task = 'segmentation'
+            out_chns = 1
         model = models[args.dataset][args.model](
             hidden, k=k, num_channels=num_channels,
             colour_space=args.colour_space, task=task,
