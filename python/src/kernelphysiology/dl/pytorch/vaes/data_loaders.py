@@ -187,7 +187,9 @@ class BSDSEdges(tdatasets.VisionDataset):
 
         if self.transform is not None:
             imgin, imgout = self.transform([imgin, imgout])
-        imgout = imgout.unsqueeze(0)
+
+        # because it's binary classification, it should be converted to float
+        imgout = imgout.float()
         return imgin, imgout, path
 
     def __len__(self):

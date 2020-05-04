@@ -500,7 +500,9 @@ class VQ_CVAE(nn.Module):
             self.mse += self.hue_loss(recon_x[:, 0], x[:, 0])
         elif self.task == 'segmentation':
             if self.out_chns == 1:
-                self.mse = F.binary_cross_entropy_with_logits(recon_x, x)
+                self.mse = F.binary_cross_entropy_with_logits(
+                    recon_x.squeeze(), x
+                )
             else:
                 self.mse = F.cross_entropy(recon_x, x, ignore_index=255)
         else:
