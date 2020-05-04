@@ -180,6 +180,7 @@ class BSDSEdges(tdatasets.VisionDataset):
         imgout = loadmat(edge_path)
         gt_ind = random.randint(0, imgout['groundTruth'].shape[1] - 1)
         imgout = imgout['groundTruth'][0, gt_ind][0][0][1]
+        imgout = np.expand_dims(imgout, axis=2)
         if self.intransform is not None:
             imgin = self.intransform(imgin)
         if self.outtransform is not None:
