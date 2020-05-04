@@ -277,6 +277,27 @@ def main(args):
             ),
             batch_size=args.batch_size, shuffle=False, **kwargs
         )
+    elif args.dataset == 'bsds':
+        train_loader = torch.utils.data.DataLoader(
+            datasets_classes[args.dataset](
+                root=args.data_dir,
+                intransform=intransform,
+                outtransform=outtransform,
+                transform=dataset_transforms[args.dataset],
+                **dataset_train_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=True, **kwargs
+        )
+        test_loader = torch.utils.data.DataLoader(
+            datasets_classes[args.dataset](
+                root=args.data_dir,
+                intransform=intransform,
+                outtransform=outtransform,
+                transform=dataset_transforms[args.dataset],
+                **dataset_test_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=False, **kwargs
+        )
     else:
         train_loader = torch.utils.data.DataLoader(
             datasets_classes[args.dataset](
