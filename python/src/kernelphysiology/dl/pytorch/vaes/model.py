@@ -484,7 +484,6 @@ class VQ_CVAE(nn.Module):
             sample = torch.tensor(
                 torch.randn(size, self.d, self.f, self.f), requires_grad=False
             ).cuda()
-            print(sample)
         else:
             sample = torch.tensor(
                 torch.randn(size, self.d, self.f, self.f), requires_grad=False
