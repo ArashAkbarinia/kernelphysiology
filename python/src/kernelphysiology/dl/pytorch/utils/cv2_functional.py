@@ -135,24 +135,26 @@ def resize(img, size, interpolation='BILINEAR'):
         )
 
 
-def crop(img, x, y, h, w):
+def crop(img, top, left, height, width):
     """Crop the given CV Image.
 
     Args:
         img (np.ndarray): Image to be cropped.
-        x: Upper pixel coordinate.
-        y: Left pixel coordinate.
-        h: Height of the cropped image.
-        w: Width of the cropped image.
+        top: Upper pixel coordinate.
+        left: Left pixel coordinate.
+        height: Height of the cropped image.
+        width: Width of the cropped image.
 
     Returns:
         CV Image: Cropped image.
     """
     assert _is_numpy_image(img), 'img should be CV Image. Got {}'.format(
         type(img))
-    assert h > 0 and w > 0, 'h={} and w={} should greater than 0'.format(h, w)
+    assert height > 0 and width > 0, 'h={} and w={} should greater than 0'.format(
+        height, width)
 
-    x1, y1, x2, y2 = round(x), round(y), round(x + h), round(y + w)
+    x1, y1, x2, y2 = round(top), round(left), round(top + height), round(
+        left + width)
 
     try:
         _ = img[x1, y1, ...]

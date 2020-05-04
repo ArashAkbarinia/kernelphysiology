@@ -66,15 +66,15 @@ class RandomResizedCrop(object):
             if random.random() < 0.5 and min(ratio) <= (h / w) <= max(ratio):
                 w, h = h, w
 
-            if w <= img.shape[0] and h <= img.shape[1]:
-                i = random.randint(0, img.shape[1] - h)
-                j = random.randint(0, img.shape[0] - w)
+            if w <= img.shape[1] and h <= img.shape[0]:
+                i = random.randint(0, img.shape[0] - h)
+                j = random.randint(0, img.shape[1] - w)
                 return i, j, h, w
 
         # Fallback
         w = min(img.shape[0], img.shape[1])
-        i = (img.shape[1] - w) // 2
-        j = (img.shape[0] - w) // 2
+        i = (img.shape[0] - w) // 2
+        j = (img.shape[1] - w) // 2
         return i, j, w, w
 
     def __call__(self, imgs):
