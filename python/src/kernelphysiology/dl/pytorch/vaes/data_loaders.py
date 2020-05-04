@@ -43,11 +43,10 @@ class ImageFolder(tdatasets.ImageFolder):
         return imgin, imgout, path
 
 
-class CategoryImages(tdatasets.VisionDataset):
-    def __init__(self, category, intransform=None, outtransform=None,
-                 **kwargs):
-        super(CategoryImages, self).__init__(**kwargs)
-        self.samples = path_utils.image_in_folder(self.root + '/' + category)
+class OneFolder(tdatasets.VisionDataset):
+    def __init__(self, intransform=None, outtransform=None, **kwargs):
+        super(OneFolder, self).__init__(**kwargs)
+        self.samples = path_utils.image_in_folder(self.root)
         print('Read %d images.' % len(self.samples))
         self.loader = tdatasets.folder.pil_loader
         self.intransform = intransform
@@ -78,6 +77,12 @@ class CategoryImages(tdatasets.VisionDataset):
 
     def __len__(self):
         return len(self.samples)
+
+
+class CategoryImages(OneFolder):
+    def __init__(self, root, category, **kwargs):
+        kwargs['root'] = root + '/' + category
+        super(CategoryImages, self).__init__(**kwargs)
 
 
 class CocoDetection(tdatasets.CocoDetection):
