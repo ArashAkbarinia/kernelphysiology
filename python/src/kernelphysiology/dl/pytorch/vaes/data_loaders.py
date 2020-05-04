@@ -1,6 +1,12 @@
+"""
+Various types of dataloader.
+"""
+
 import os
 import numpy as np
+import random
 
+from scipy.io import loadmat
 from PIL import Image
 
 from torchvision import datasets as tdatasets
@@ -81,7 +87,7 @@ class OneFolder(tdatasets.VisionDataset):
 
 class CategoryImages(OneFolder):
     def __init__(self, root, category, **kwargs):
-        kwargs['root'] = root + '/' + category
+        kwargs['root'] = os.path.join(root, category)
         super(CategoryImages, self).__init__(**kwargs)
 
 
@@ -144,3 +150,45 @@ class VOCSegmentation(tdatasets.VOCSegmentation):
 
     def __len__(self):
         return len(self.images)
+
+
+class BSDSEdges(tdatasets.VisionDataset):
+    def __init__(self, img_list='all_imgs.txt', intransform=None,
+                 outtransform=None, **kwargs):
+        super(BSDSEdges, self).__init__(**kwargs)
+        self.samples = np.loadtxt(os.path.join(self.root, img_list), dtype=str)
+        print('Read %d images.' % len(self.samples))
+        self.loader = tdatasets.folder.pil_loader
+        self.intransform = intransform
+        self.outtransform = outtransform
+        self.imgs_root = os.path.join(self.root, 'images')
+        self.gts_root = os.path.join(self.root, 'groundTruth')
+
+    def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (imgin, imgout) where imgout is the same size as
+             original image after applied manipulations.
+        """
+        path = os.path.join(self.imgs_root, self.samples[index] + '.jpg')
+        imgin = self.loader(path)
+        imgin = np.asarray(imgin).copy()
+        edge_path = os.path.join(self.gts_root, self.samples[index] + '.mat')
+        imgout = loadmat(edge_path)
+        gt_ind = random.randint(0, imgout['groundTruth'].shape[1] - 1)
+        imgout = imgout['groundTruth'][0, gt_ind][0][0][1]
+        if self.intransform is not None:
+            imgin = self.intransform(imgin)
+        if self.outtransform is not None:
+            imgout = self.outtransform(imgout)
+
+        if self.transform is not None:
+            imgin, imgout = self.transform([imgin, imgout])
+
+        return imgin, imgout, path
+
+    def __len__(self):
+        return len(self.samples)
