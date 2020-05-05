@@ -144,6 +144,8 @@ if __name__ == '__main__':
         for img_ind in range(len(img_org_paths)):
             print(img_lesion_paths[img_ind])
             img_org = io.imread(img_org_paths[img_ind])
+            if len(img_org.shape) == 2:
+                img_org = np.repeat(img_org[:, :, np.newaxis], 3, axis=2)
             img_full = io.imread(img_full_paths[img_ind])
             img_lesion = io.imread(img_lesion_paths[img_ind])
             current_report = report_vector_influence(
