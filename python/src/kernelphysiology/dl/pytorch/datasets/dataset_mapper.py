@@ -13,6 +13,7 @@ from detectron2.data import detection_utils as utils
 from PIL import Image, ImageOps
 
 from kernelphysiology.utils import imutils
+from kernelphysiology.dl.utils.augmentation import get_testing_augmentations
 
 """
 This file contains the default mapping that's applied to "dataset dicts".
@@ -22,7 +23,8 @@ __all__ = ["DatasetMapper"]
 
 
 def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
-                opponent_space='lab', mosaic_pattern=None):
+                opponent_space='lab', mosaic_pattern=None,
+                manipulation_fun=None, manipulation_value=None):
     """
     Read an image into the given format.
     Will apply rotation and flipping if the image has such exif information.
@@ -36,19 +38,21 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
     """
     with PathManager.open(file_name, "rb") as f:
         image = Image.open(f).convert('RGB')
+        image = np.asarray(image).copy()
+        # FIXME: right now only for chromaticity manipulations
+        if manipulation_fun is not None:
+            image = manipulation_fun(image, manipulation_value)
 
         if contrast is not None:
-            image = np.asarray(image).copy()
             # FIXME: nicer solution
             if type(contrast) is list:
                 amount = random.uniform(contrast, 1)
             else:
                 amount = contrast
             image = imutils.adjust_contrast(image, amount)
-            image = Image.fromarray(image.astype('uint8'))
+            image = image.astype('uint8')
 
         if vision_type != 'trichromat':
-            image = np.asarray(image).copy()
             if vision_type == 'monochromat':
                 image = imutils.reduce_chromaticity(image, 0, opponent_space)
             elif vision_type == 'dichromat_yb':
@@ -57,12 +61,12 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
                 image = imutils.reduce_red_green(image, 0, opponent_space)
             else:
                 sys.exit('Not supported vision type %s' % vision_type)
-            image = Image.fromarray(image)
 
         if mosaic_pattern != "" and mosaic_pattern is not None:
-            image = np.asarray(image).copy()
             image = imutils.im2mosaic(image, mosaic_pattern)
-            image = Image.fromarray(image.astype('uint8'))
+            image = image.astype('uint8')
+
+        image = Image.fromarray(image)
 
         # capture and ignore this bug:
         # https://github.com/python-pillow/Pillow/issues/3973
@@ -139,6 +143,13 @@ class DatasetMapper:
             )
         self.is_train = is_train
         self.vision_type = cfg.INPUT.VISION_TYPE
+        self.manipulation_type = cfg.INPUT.INFER_MANIPULATION_TYPE
+        self.manipulation_fun = None
+        if self.manipulation_type != "":
+            supported_manipulations = get_testing_augmentations()
+            self.manipulation_fun = supported_manipulations[
+                self.manipulation_type]
+        self.manipulation_value = cfg.INPUT.INFER_MANIPULATION_VALUE
         self.opponent_space = cfg.INPUT.OPPONENT_SPACE
         self.contrast = cfg.INPUT.CONTRAST
         self.mosaic_pattern = cfg.INPUT.MOSAIC_PATTERN
@@ -161,7 +172,9 @@ class DatasetMapper:
             dataset_dict["file_name"], format=self.img_format,
             vision_type=self.vision_type, contrast=self.contrast,
             opponent_space=self.opponent_space,
-            mosaic_pattern=self.mosaic_pattern
+            mosaic_pattern=self.mosaic_pattern,
+            manipulation_fun=self.manipulation_fun,
+            manipulation_value=self.manipulation_value
         )
         utils.check_image_size(dataset_dict, image)
 

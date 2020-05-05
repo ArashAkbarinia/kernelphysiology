@@ -87,12 +87,25 @@ if __name__ == "__main__":
             contrast = cfg.INPUT.CONTRAST
             opponent_space = cfg.INPUT.OPPONENT_SPACE
             mosaic_pattern = cfg.INPUT.MOSAIC_PATTERN
+            manipulation_type = cfg.INPUT.INFER_MANIPULATION_TYPE
+            manipulation_fun = None
+            if manipulation_type != "":
+                from kernelphysiology.dl.utils.augmentation import \
+                    get_testing_augmentations
+                supported_manipulations = get_testing_augmentations()
+                manipulation_fun = supported_manipulations[
+                    manipulation_type]
+            manipulation_value = cfg.INPUT.INFER_MANIPULATION_VALUE
             print(vision_type)
             img = _read_image(
                 path, format="BGR", vision_type=vision_type,
                 opponent_space=opponent_space, contrast=contrast,
-                mosaic_pattern=mosaic_pattern
+                mosaic_pattern=mosaic_pattern,
+                manipulation_fun=manipulation_fun,
+                manipulation_value=manipulation_value
             )
+            from skimage import io
+            io.imsave('/home/arash/Desktop/org.png', img[:,:, ::-1])
             start_time = time.time()
             predictions, visualized_output = demo.run_on_image(img)
             logger.info(
