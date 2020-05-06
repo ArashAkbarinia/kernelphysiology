@@ -113,11 +113,13 @@ def main(args):
              transforms.ToTensor(), normalise]),
         'coco': transforms.Compose([normalise]),
         'voc': transforms.Compose(
-            [cv2_transforms.RandomResizedCropSegmentation(target_size, scale=(0.50, 1.0)),
+            [cv2_transforms.RandomResizedCropSegmentation(target_size,
+                                                          scale=(0.50, 1.0)),
              cv2_transforms.ToTensorSegmentation(),
              cv2_transforms.NormalizeSegmentation(args.mean, args.std)]),
         'bsds': transforms.Compose(
-            [cv2_transforms.RandomResizedCropSegmentation(target_size, scale=(0.50, 1.0)),
+            [cv2_transforms.RandomResizedCropSegmentation(target_size,
+                                                          scale=(0.50, 1.0)),
              cv2_transforms.ToTensorSegmentation(),
              cv2_transforms.NormalizeSegmentation(args.mean, args.std)]),
         'imagenet': transforms.Compose(
@@ -184,7 +186,16 @@ def main(args):
     if args.cuda:
         model.cuda()
 
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    if 'voc' in args.dataset and args.model != 'wavenet':
+        params_to_optimize = [
+            {'params': [p for p in model.decoder.parameters() if
+                        p.requires_grad]},
+            {'params': [p for p in model.fc.parameters() if
+                        p.requires_grad]},
+        ]
+        optimizer = optim.Adam(params_to_optimize, lr=lr)
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.StepLR(
         optimizer, int(args.epochs / 3), 0.5
     )
