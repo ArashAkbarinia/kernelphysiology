@@ -93,6 +93,15 @@ def generic_inv_fun(x, colour_space):
     return x
 
 
+def removekey(d, r_key):
+    r = dict(d)
+    for key, val in d.items():
+        if r_key in key:
+            print(key)
+            del r[key]
+    return r
+
+
 def main(args):
     args = parse_arguments(args)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -186,7 +195,7 @@ def main(args):
     if args.cuda:
         model.cuda()
 
-    if 'voc' in args.dataset and args.model != 'wavenet':
+    if args.load_encoder is not None:
         params_to_optimize = [
             {'params': [p for p in model.decoder.parameters() if
                         p.requires_grad]},
@@ -209,6 +218,11 @@ def main(args):
         optimizer.load_state_dict(checkpoint['optimizer'])
     elif args.fine_tune is not None:
         weights = torch.load(args.fine_tune, map_location='cpu')
+        model.load_state_dict(weights, strict=False)
+        model.cuda()
+    elif args.load_encoder is not None:
+        weights = torch.load(args.fine_tune, map_location='cpu')
+        weights = removekey(weights, 'encode')
         model.load_state_dict(weights, strict=False)
         model.cuda()
 

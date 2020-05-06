@@ -40,6 +40,10 @@ def parse_arguments(args):
         '-ft', '--fine_tune', type=str, default=None,
         help='The path to weights to be fine-tuned (default: None).'
     )
+    parser.add_argument(
+        '--load_encoder', type=str, default=None,
+        help='The path to weights to be loaded for encoder (default: None).'
+    )
     parser.add_argument('--mosaic_pattern', type=str, default=None,
                         help='The type of mosaic.')
     parser.add_argument('--colour_space', type=str, default=None,
