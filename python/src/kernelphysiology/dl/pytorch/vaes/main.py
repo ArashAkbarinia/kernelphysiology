@@ -97,7 +97,6 @@ def removekey(d, r_key):
     r = dict(d)
     for key, val in d.items():
         if r_key in key:
-            print(key)
             del r[key]
     return r
 
@@ -221,8 +220,8 @@ def main(args):
         model.load_state_dict(weights, strict=False)
         model.cuda()
     elif args.load_encoder is not None:
-        weights = torch.load(args.fine_tune, map_location='cpu')
-        weights = removekey(weights, 'encode')
+        weights = torch.load(args.load_encoder, map_location='cpu')
+        weights = removekey(weights, 'decode')
         model.load_state_dict(weights, strict=False)
         model.cuda()
 
