@@ -449,6 +449,7 @@ class VQ_CVAE(nn.Module):
                 nn.Conv2d(d, self.out_chns, 1)
             )
         self.d = d
+        self.k = k
         self.emb = NearestEmbed(k, d)
         self.vq_coef = vq_coef
         self.commit_coef = commit_coef
@@ -502,7 +503,7 @@ class VQ_CVAE(nn.Module):
         weights = self.emb.weight.detach().cpu().numpy()
         sample = np.zeros((self.d, rows, cols))
         sample = sample.reshape(self.d, rows * cols)
-        for i in range(8):
+        for i in range(self.k):
             which_inds = inds == i
             sample[:, which_inds] = np.broadcast_to(
                 weights[:, i], (which_inds.sum(), 128)
