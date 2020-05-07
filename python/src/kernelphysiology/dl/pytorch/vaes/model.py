@@ -178,6 +178,8 @@ class ResBlock(nn.Module):
         if mid_chns is None:
             mid_chns = out_chns
 
+        self.in_chns = in_chns
+        self.out_chns = out_chns
         layers = [
             nn.ReLU(),
             nn.Conv2d(in_chns, mid_chns, kernel_size=3, stride=1, padding=1),
@@ -189,7 +191,10 @@ class ResBlock(nn.Module):
         self.convs = nn.Sequential(*layers)
 
     def forward(self, x):
-        return x + self.convs(x)
+        if self.in_chns == self.out_chns:
+            return x + self.convs(x)
+        else:
+            self.convs(x)
 
 
 class CVAE(AbstractAutoEncoder):
