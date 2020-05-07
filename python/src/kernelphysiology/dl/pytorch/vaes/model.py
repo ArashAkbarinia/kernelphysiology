@@ -511,11 +511,11 @@ class VQ_CVAE(nn.Module):
         inds = inds.reshape(rows * cols)
         weights = self.emb.weight.detach().cpu().numpy()
         sample = np.zeros((self.kl, rows, cols))
-        sample = sample.reshape(self.d, rows * cols)
+        sample = sample.reshape(self.kl, rows * cols)
         for i in range(self.k):
             which_inds = inds == i
             sample[:, which_inds] = np.broadcast_to(
-                weights[:, i], (which_inds.sum(), 128)
+                weights[:, i], (which_inds.sum(), self.kl)
             ).T
         sample = sample.reshape(self.kl, rows, cols)
         emb = torch.tensor(sample, dtype=torch.float32).unsqueeze(dim=0)
