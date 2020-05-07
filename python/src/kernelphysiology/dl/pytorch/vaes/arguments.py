@@ -24,6 +24,8 @@ def parse_arguments(args):
     model_parser.add_argument('-k', '--dict-size', type=int, dest='k',
                               metavar='K',
                               help='number of atoms in dictionary')
+    model_parser.add_argument('-kl', '--dict-length', type=int, dest='kl',
+                              help='length of vector in dictionary')
     model_parser.add_argument('--lr', type=float, default=None,
                               help='learning rate')
     model_parser.add_argument('--vq_coef', type=float, default=None,

@@ -187,7 +187,7 @@ def main(args):
             task = 'segmentation'
             out_chns = 1
         model = models[args.dataset][args.model](
-            hidden, k=k, num_channels=num_channels,
+            hidden, k=k, kl=args.kl, num_channels=num_channels,
             colour_space=args.colour_space, task=task,
             out_chns=out_chns
         )

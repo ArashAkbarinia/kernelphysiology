@@ -406,7 +406,7 @@ class ResNet_VQ_CVAE(nn.Module):
 
 
 class VQ_CVAE(nn.Module):
-    def __init__(self, d, k=10, bn=True, vq_coef=1, commit_coef=0.5,
+    def __init__(self, d, k=10, kl=None, bn=True, vq_coef=1, commit_coef=0.5,
                  in_chns=3, colour_space='rgb', out_chns=None, task=None,
                  **kwargs):
         super(VQ_CVAE, self).__init__()
@@ -416,6 +416,13 @@ class VQ_CVAE(nn.Module):
         self.out_chns = out_chns
         if task == 'segmentation':
             out_chns = d
+
+        self.d = d
+        self.k = k
+        if kl is None:
+            kl = d
+        self.kl = kl
+        self.emb = NearestEmbed(k, kl)
 
         self.colour_space = colour_space
         self.task = task
@@ -430,11 +437,11 @@ class VQ_CVAE(nn.Module):
             nn.ReLU(inplace=True),
             ResBlock(d, d, bn=True),
             nn.BatchNorm2d(d),
-            ResBlock(d, d, bn=True),
-            nn.BatchNorm2d(d),
+            ResBlock(d, kl, bn=True),
+            nn.BatchNorm2d(kl),
         )
         self.decoder = nn.Sequential(
-            ResBlock(d, d),
+            ResBlock(kl, d),
             nn.BatchNorm2d(d),
             ResBlock(d, d),
             nn.ConvTranspose2d(d, d, kernel_size=4, stride=2, padding=1),
@@ -448,9 +455,6 @@ class VQ_CVAE(nn.Module):
                 nn.ReLU(),
                 nn.Conv2d(d, self.out_chns, 1)
             )
-        self.d = d
-        self.k = k
-        self.emb = NearestEmbed(k, d)
         self.vq_coef = vq_coef
         self.commit_coef = commit_coef
         self.mse = 0
@@ -486,14 +490,14 @@ class VQ_CVAE(nn.Module):
     def sample(self, size):
         if self.cuda():
             sample = torch.tensor(
-                torch.randn(size, self.d, self.f, self.f), requires_grad=False
+                torch.randn(size, self.kl, self.f, self.f), requires_grad=False
             ).cuda()
         else:
             sample = torch.tensor(
-                torch.randn(size, self.d, self.f, self.f), requires_grad=False
+                torch.randn(size, self.kl, self.f, self.f), requires_grad=False
             )
         emb, _ = self.emb(sample)
-        return self.decode(emb.view(size, self.d, self.f, self.f)).cpu()
+        return self.decode(emb.view(size, self.kl, self.f, self.f)).cpu()
 
     def sample_inds(self, inds):
         assert len(inds.shape) == 2
@@ -501,14 +505,14 @@ class VQ_CVAE(nn.Module):
         cols = inds.shape[1]
         inds = inds.reshape(rows * cols)
         weights = self.emb.weight.detach().cpu().numpy()
-        sample = np.zeros((self.d, rows, cols))
+        sample = np.zeros((self.kl, rows, cols))
         sample = sample.reshape(self.d, rows * cols)
         for i in range(self.k):
             which_inds = inds == i
             sample[:, which_inds] = np.broadcast_to(
                 weights[:, i], (which_inds.sum(), 128)
             ).T
-        sample = sample.reshape(self.d, rows, cols)
+        sample = sample.reshape(self.kl, rows, cols)
         emb = torch.tensor(sample, dtype=torch.float32).unsqueeze(dim=0)
         return self.decode(emb).cpu()
 
