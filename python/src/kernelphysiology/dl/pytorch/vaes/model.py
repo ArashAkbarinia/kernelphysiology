@@ -494,6 +494,23 @@ class VQ_CVAE(nn.Module):
         emb, _ = self.emb(sample)
         return self.decode(emb.view(size, self.d, self.f, self.f)).cpu()
 
+    def sample_inds(self, inds):
+        assert len(inds.shape) == 2
+        rows = inds.shape[0]
+        cols = inds.shape[1]
+        inds = inds.reshape(rows * cols)
+        weights = self.emb.weight.detach().cpu().numpy()
+        sample = np.zeros((self.d, rows, cols))
+        sample = sample.reshape(self.d, rows * cols)
+        for i in range(8):
+            which_inds = inds == i
+            sample[:, which_inds] = np.broadcast_to(
+                weights[:, i], (which_inds.sum(), 128)
+            ).T
+        sample = sample.reshape(self.d, rows, cols)
+        emb = torch.tensor(sample, dtype=torch.float32).unsqueeze(dim=0)
+        return self.decode(emb).cpu()
+
     def loss_function(self, x, recon_x, z_e, emb, argmin):
         if self.colour_space == 'hsv':
             self.mse = F.mse_loss(recon_x[:, 1:], x[:, 1:])
