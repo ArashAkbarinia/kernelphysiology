@@ -194,7 +194,7 @@ class ResBlock(nn.Module):
         if self.in_chns == self.out_chns:
             return x + self.convs(x)
         else:
-            self.convs(x)
+            return self.convs(x)
 
 
 class CVAE(AbstractAutoEncoder):
