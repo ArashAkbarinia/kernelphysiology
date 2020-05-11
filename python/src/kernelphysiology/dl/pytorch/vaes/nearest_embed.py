@@ -14,11 +14,11 @@ class NearestEmbedFunc(Function):
     """
 
     @staticmethod
-    def forward(ctx, input, emb):
+    def forward(ctx, input, emb, cos_distance=False):
         if input.size(1) != emb.size(0):
             raise RuntimeError(
                 'invalid argument: input.size(1) ({}) must be equal to emb.size(0) ({})'.
-                format(input.size(1), emb.size(0)))
+                    format(input.size(1), emb.size(0)))
 
         # save sizes for backward
         ctx.batch_size = input.size(0)
@@ -38,8 +38,15 @@ class NearestEmbedFunc(Function):
             emb_expanded = emb
 
         # find nearest neighbors
-        dist = torch.norm(x_expanded - emb_expanded, 2, 1)
-        _, argmin = dist.min(-1)
+        if cos_distance:
+            cos_sim = torch.nn.functional.cosine_similarity(
+                x_expanded, emb_expanded.unsqueeze(0), dim=1
+            )
+            angle_in_radians = torch.acos(cos_sim)
+            _, argmin = angle_in_radians.min(-1)
+        else:
+            dist = torch.norm(x_expanded - emb_expanded, 2, 1)
+            _, argmin = dist.min(-1)
         shifted_shape = [input.shape[0], *list(input.shape[2:]), input.shape[1]]
         result = emb.t().index_select(0, argmin.view(-1)).view(
             shifted_shape).permute(0, ctx.dims[-1], *ctx.dims[1:-1])
@@ -48,7 +55,7 @@ class NearestEmbedFunc(Function):
         return result.contiguous(), argmin
 
     @staticmethod
-    def backward(ctx, grad_output, argmin=None):
+    def backward(ctx, grad_output, argmin=None, cos_distance=False):
         grad_input = grad_emb = None
         if ctx.needs_input_grad[0]:
             grad_input = grad_output
@@ -56,9 +63,9 @@ class NearestEmbedFunc(Function):
         if ctx.needs_input_grad[1]:
             argmin, = ctx.saved_variables
             latent_indices = torch.arange(ctx.num_emb).type_as(argmin)
-            idx_choices = (argmin.view(-1, 1) == latent_indices.view(1,
-                                                                     -1)).type_as(
-                grad_output.data)
+            idx_choices = (
+                    argmin.view(-1, 1) == latent_indices.view(1, -1)
+            ).type_as(grad_output.data)
             n_idx_choice = idx_choices.sum(0)
             n_idx_choice[n_idx_choice == 0] = 1
             idx_avg_choices = idx_choices / n_idx_choice
@@ -70,13 +77,14 @@ class NearestEmbedFunc(Function):
         return grad_input, grad_emb, None, None
 
 
-def nearest_embed(x, emb):
-    return NearestEmbedFunc().apply(x, emb)
+def nearest_embed(x, emb, cos_distance=False):
+    return NearestEmbedFunc().apply(x, emb, cos_distance)
 
 
 class NearestEmbed(nn.Module):
-    def __init__(self, num_embeddings, embeddings_dim):
+    def __init__(self, num_embeddings, embeddings_dim, cos_distance=False):
         super(NearestEmbed, self).__init__()
+        self.cos_distance = cos_distance
         self.weight = nn.Parameter(torch.rand(embeddings_dim, num_embeddings))
 
     def forward(self, x, weight_sg=False):
@@ -84,8 +92,10 @@ class NearestEmbed(nn.Module):
         ---------
         x - (batch_size, emb_size, *)
         """
-        return nearest_embed(x,
-                             self.weight.detach() if weight_sg else self.weight)
+        return nearest_embed(
+            x, self.weight.detach() if weight_sg else self.weight,
+            self.cos_distance
+        )
 
 
 # adapted from https://github.com/rosinality/vq-vae-2-pytorch/blob/master/vqvae.py#L25
@@ -147,7 +157,7 @@ class NearestEmbedEMA(nn.Module):
             n = self.cluster_size.sum()
             cluster_size = (
                     (self.cluster_size + self.eps) / (
-                        n + self.n_emb * self.eps) * n
+                    n + self.n_emb * self.eps) * n
             )
             embed_normalized = self.embed_avg / cluster_size.unsqueeze(0)
             self.weight.data.copy_(embed_normalized)

@@ -27,11 +27,14 @@ def parse_arguments(args):
                               help='number of input channels')
     model_parser.add_argument('--hidden', type=int, metavar='N',
                               help='number of hidden channels')
-    model_parser.add_argument('-k', '--dict-size', type=int, dest='k',
+    model_parser.add_argument('-k', '--k', type=int, dest='k',
                               metavar='K',
                               help='number of atoms in dictionary')
-    model_parser.add_argument('-kl', '--dict-length', type=int, dest='kl',
+    model_parser.add_argument('-kl', '--kl', type=int, dest='kl',
                               help='length of vector in dictionary')
+    model_parser.add_argument('--cos_dis', action='store_true',
+                              default=False,
+                              help='cosine distance')
     model_parser.add_argument('--lr', type=float, default=None,
                               help='learning rate')
     model_parser.add_argument('--vq_coef', type=float, default=None,

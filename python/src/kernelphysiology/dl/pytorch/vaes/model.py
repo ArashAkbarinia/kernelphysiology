@@ -11,7 +11,7 @@ from torch import nn
 from torch.nn import functional as F
 import torch.utils.data
 
-from kernelphysiology.dl.pytorch.vaes.nearest_embed import NearestEmbed
+from kernelphysiology.dl.pytorch.vaes import nearest_embed
 
 
 class AbstractAutoEncoder(nn.Module):
@@ -124,7 +124,7 @@ class VQ_VAE(nn.Module):
         self.fc3 = nn.Linear(hidden, 400)
         self.fc4 = nn.Linear(400, 784)
 
-        self.emb = NearestEmbed(k, self.emb_size)
+        self.emb = nearest_embed.NearestEmbed(k, self.emb_size)
 
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -333,7 +333,7 @@ class ResNet_VQ_CVAE(nn.Module):
                 nn.Conv2d(d, out_chns, 1)
             )
         self.d = d
-        self.emb = NearestEmbed(k, d)
+        self.emb = nearest_embed.NearestEmbed(k, d)
         self.vq_coef = vq_coef
         self.commit_coef = commit_coef
         self.mse = 0
@@ -413,7 +413,7 @@ class ResNet_VQ_CVAE(nn.Module):
 class VQ_CVAE(nn.Module):
     def __init__(self, d, k=10, kl=None, bn=True, vq_coef=1, commit_coef=0.5,
                  in_chns=3, colour_space='rgb', out_chns=None, task=None,
-                 **kwargs):
+                 cos_distance=False, **kwargs):
         super(VQ_CVAE, self).__init__()
 
         if out_chns is None:
@@ -427,7 +427,7 @@ class VQ_CVAE(nn.Module):
         if kl is None:
             kl = d
         self.kl = kl
-        self.emb = NearestEmbed(k, kl)
+        self.emb = nearest_embed.NearestEmbed(k, kl, cos_distance)
 
         self.colour_space = colour_space
         self.task = task
