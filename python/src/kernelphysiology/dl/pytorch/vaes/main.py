@@ -247,7 +247,7 @@ def main(args):
     else:
         args.train_dir = args.train_dir
         args.validation_dir = args.validation_dir
-    kwargs = {'num_workers': 14, 'pin_memory': True} if args.cuda else {}
+    kwargs = {'num_workers': args.workers, 'pin_memory': True} if args.cuda else {}
     args.vis_func = vae_util.grid_save_reconstructed_images
     if args.dataset == 'coco':
         train_loader = panoptic_utils.get_coco_train(

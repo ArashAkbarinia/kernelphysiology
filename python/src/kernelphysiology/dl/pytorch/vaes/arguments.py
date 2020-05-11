@@ -17,6 +17,12 @@ def parse_arguments(args):
         '--target_size', type=int, metavar='N',
         help='image target size'
     )
+    model_parser.add_argument(
+        '-j', '--workers',
+        type=int,
+        default=1,
+        help='Number of workers for image generator (default: 1)'
+    )
     model_parser.add_argument('--num_channels', type=int, metavar='N',
                               help='number of input channels')
     model_parser.add_argument('--hidden', type=int, metavar='N',
