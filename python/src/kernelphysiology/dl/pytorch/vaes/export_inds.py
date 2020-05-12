@@ -29,6 +29,8 @@ def parse_arguments(args):
                         help='number of atoms in dictionary')
     parser.add_argument('--kl', type=int, dest='kl',
                         help='number of atoms in dictionary')
+    parser.add_argument('--cos_dis', action='store_true',
+                        default=False, help='cosine distance')
     parser.add_argument('--exclude', type=int, default=0, metavar='K',
                         help='number of atoms in dictionary')
     parser.add_argument('--colour_space', type=str, default=None,
@@ -65,7 +67,8 @@ def parse_arguments(args):
 def main(args):
     args = parse_arguments(args)
     weights_rgb = torch.load(args.model_path, map_location='cpu')
-    network = vqmodel.VQ_CVAE(128, k=args.k, kl=args.kl, in_chns=3)
+    network = vqmodel.VQ_CVAE(128, k=args.k, kl=args.kl, in_chns=3,
+                              cos_distance=args.cos_dis)
     network.load_state_dict(weights_rgb)
     if args.exclude > 0:
         which_vec = [args.exclude - 1]
