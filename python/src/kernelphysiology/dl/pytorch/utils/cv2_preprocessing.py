@@ -66,3 +66,14 @@ class MosaicTransformation(object):
         img = np.asarray(img).copy()
         img = imutils.im2mosaic(img, self.mosaic_pattern)
         return img
+
+
+class UniqueTransformation(object):
+
+    def __init__(self, manipulation_function, **kwargs):
+        self.manipulation_function = manipulation_function
+        self.kwargs = kwargs
+
+    def __call__(self, x):
+        x = self.manipulation_function(x, **self.kwargs)
+        return x
