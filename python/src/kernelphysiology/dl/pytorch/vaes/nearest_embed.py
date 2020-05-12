@@ -17,8 +17,10 @@ class NearestEmbedFunc(Function):
     def forward(ctx, input, emb, cos_distance=False):
         if input.size(1) != emb.size(0):
             raise RuntimeError(
-                'invalid argument: input.size(1) ({}) must be equal to emb.size(0) ({})'.
-                    format(input.size(1), emb.size(0)))
+                'invalid argument: input.size(1) ({}) '
+                'must be equal to emb.size(0) ({})'.
+                    format(input.size(1), emb.size(0))
+            )
 
         # save sizes for backward
         ctx.batch_size = input.size(0)
@@ -32,8 +34,9 @@ class NearestEmbedFunc(Function):
         x_expanded = input.unsqueeze(-1)
         num_arbitrary_dims = len(ctx.dims) - 2
         if num_arbitrary_dims:
-            emb_expanded = emb.view(emb.shape[0], *([1] * num_arbitrary_dims),
-                                    emb.shape[1])
+            emb_expanded = emb.view(
+                emb.shape[0], *([1] * num_arbitrary_dims), emb.shape[1]
+            )
         else:
             emb_expanded = emb
 
@@ -49,7 +52,8 @@ class NearestEmbedFunc(Function):
             _, argmin = dist.min(-1)
         shifted_shape = [input.shape[0], *list(input.shape[2:]), input.shape[1]]
         result = emb.t().index_select(0, argmin.view(-1)).view(
-            shifted_shape).permute(0, ctx.dims[-1], *ctx.dims[1:-1])
+            shifted_shape
+        ).permute(0, ctx.dims[-1], *ctx.dims[1:-1])
 
         ctx.save_for_backward(argmin)
         return result.contiguous(), argmin
@@ -70,10 +74,13 @@ class NearestEmbedFunc(Function):
             n_idx_choice[n_idx_choice == 0] = 1
             idx_avg_choices = idx_choices / n_idx_choice
             grad_output = grad_output.permute(0, *ctx.dims[2:], 1).contiguous()
-            grad_output = grad_output.view(ctx.batch_size * ctx.num_latents,
-                                           ctx.emb_dim)
-            grad_emb = torch.sum(grad_output.data.view(-1, ctx.emb_dim, 1) *
-                                 idx_avg_choices.view(-1, 1, ctx.num_emb), 0)
+            grad_output = grad_output.view(
+                ctx.batch_size * ctx.num_latents, ctx.emb_dim
+            )
+            grad_emb = torch.sum(
+                grad_output.data.view(-1, ctx.emb_dim, 1) *
+                idx_avg_choices.view(-1, 1, ctx.num_emb), 0
+            )
         return grad_input, grad_emb, None, None
 
 
