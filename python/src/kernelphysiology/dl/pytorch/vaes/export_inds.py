@@ -92,6 +92,12 @@ def main(args):
         if args.manipulation[0] == 'contrast':
             man_func = imutils.adjust_contrast
             parameters = {'amount': float(args.manipulation[1])}
+        elif args.manipulation[0] == 'gamma':
+            man_func = imutils.adjust_gamma
+            parameters = {'amount': float(args.manipulation[1])}
+        elif args.manipulation[0] == 'luminance':
+            man_func = imutils.reduce_lightness
+            parameters = {'amount': float(args.manipulation[1])}
         elif args.manipulation[0] == 'chromaticity':
             man_func = imutils.reduce_chromaticity
             parameters = {'amount': float(args.manipulation[1])}
