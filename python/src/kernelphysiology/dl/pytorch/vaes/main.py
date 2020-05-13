@@ -151,6 +151,10 @@ def main(args):
         cudnn.benchmark = True
         torch.cuda.manual_seed(args.seed)
 
+    in_colour_space = args.colour_space[:3]
+    out_colour_space = args.colour_space[4:]
+    args.colour_space = out_colour_space
+
     if args.model == 'wavenet':
         # model = wavenet_vae.wavenet_bottleneck(
         #     latent_dim=k, in_channels=num_channels
@@ -230,6 +234,10 @@ def main(args):
         intransform_funs.append(
             cv2_preprocessing.MosaicTransformation(args.mosaic_pattern)
         )
+    if in_colour_space != ' rgb':
+        intransform_funs.append(
+            cv2_preprocessing.ColourTransformation(None, in_colour_space)
+        )
     intransform = transforms.Compose(intransform_funs)
     outtransform_funs = []
     args.inv_func = None
@@ -247,7 +255,8 @@ def main(args):
     else:
         args.train_dir = args.train_dir
         args.validation_dir = args.validation_dir
-    kwargs = {'num_workers': args.workers, 'pin_memory': True} if args.cuda else {}
+    kwargs = {'num_workers': args.workers,
+              'pin_memory': True} if args.cuda else {}
     args.vis_func = vae_util.grid_save_reconstructed_images
     if args.dataset == 'coco':
         train_loader = panoptic_utils.get_coco_train(
