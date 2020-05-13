@@ -60,6 +60,8 @@ def parse_arguments(args):
         default=None,
         help='The path to the validation directory (default: None)'
     )
+    parser.add_argument('--colour_space', type=str, default=None,
+                        help='The type of output colour space.')
 
     return parser.parse_args(args)
 
@@ -125,7 +127,18 @@ def main(args):
         manipulation_func.append(cv2_preprocessing.UniqueTransformation(
             man_func, **parameters
         ))
-    intransform = transforms.Compose([*manipulation_func])
+
+    in_colour_space = args.colour_space[:3]
+    out_colour_space = args.colour_space[4:]
+    args.colour_space = out_colour_space
+
+    intransform_funs = []
+    intransform_funs.append(*manipulation_func)
+    if in_colour_space != ' rgb':
+        intransform_funs.append(
+            cv2_preprocessing.ColourTransformation(None, in_colour_space)
+        )
+    intransform = transforms.Compose(intransform_funs)
     transform_funcs = transforms.Compose([
         # cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
         cv2_transforms.ToTensor(),

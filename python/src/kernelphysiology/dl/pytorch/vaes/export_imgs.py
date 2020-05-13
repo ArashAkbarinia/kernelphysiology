@@ -14,7 +14,7 @@ from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 from kernelphysiology.transformations import colour_spaces
 
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
-from kernelphysiology.dl.pytorch.utils import preprocessing
+from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.transformations import normalisations
 import argparse
 
@@ -87,6 +87,10 @@ def main(args):
     if not os.path.exists(args.out_dir):
         os.mkdir(args.out_dir)
 
+    in_colour_space = args.colour_space[:3]
+    out_colour_space = args.colour_space[4:]
+    args.colour_space = out_colour_space
+
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
     transform_funcs = transforms.Compose([
@@ -95,11 +99,17 @@ def main(args):
         cv2_transforms.Normalize(mean, std)
     ])
 
+    intransform_funs = []
+    if in_colour_space != ' rgb':
+        intransform_funs.append(
+            cv2_preprocessing.ColourTransformation(None, in_colour_space)
+        )
+
     if args.dataset == 'imagenet':
         test_loader = torch.utils.data.DataLoader(
             data_loaders.ImageFolder(
                 root=args.validation_dir,
-                intransform=None,
+                intransform=intransform_funs,
                 outtransform=None,
                 transform=transform_funcs
             ),
@@ -111,7 +121,7 @@ def main(args):
                 root=args.validation_dir,
                 # FIXME
                 category=args.category,
-                intransform=None,
+                intransform=intransform_funs,
                 outtransform=None,
                 transform=transform_funcs
             ),
