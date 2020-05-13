@@ -104,6 +104,7 @@ def main(args):
         intransform_funs.append(
             cv2_preprocessing.ColourTransformation(None, in_colour_space)
         )
+    intransform = transforms.Compose(intransform_funs)
 
     if args.dataset == 'imagenet':
         test_loader = torch.utils.data.DataLoader(
@@ -121,7 +122,7 @@ def main(args):
                 root=args.validation_dir,
                 # FIXME
                 category=args.category,
-                intransform=intransform_funs,
+                intransform=intransform,
                 outtransform=None,
                 transform=transform_funcs
             ),
