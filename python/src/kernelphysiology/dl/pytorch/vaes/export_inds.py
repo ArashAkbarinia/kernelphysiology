@@ -128,15 +128,14 @@ def main(args):
             man_func, **parameters
         ))
 
-    in_colour_space = args.colour_space[:3]
-    out_colour_space = args.colour_space[4:]
-    args.colour_space = out_colour_space
+    args.in_colour_space = args.colour_space[:3]
+    args.out_colour_space = args.colour_space[4:]
 
     intransform_funs = []
     intransform_funs.append(*manipulation_func)
-    if in_colour_space != ' rgb':
+    if args.in_colour_space != ' rgb':
         intransform_funs.append(
-            cv2_preprocessing.ColourTransformation(None, in_colour_space)
+            cv2_preprocessing.ColourTransformation(None, args.in_colour_space)
         )
     intransform = transforms.Compose(intransform_funs)
     transform_funcs = transforms.Compose([

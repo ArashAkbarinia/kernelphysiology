@@ -87,9 +87,8 @@ def main(args):
     if not os.path.exists(args.out_dir):
         os.mkdir(args.out_dir)
 
-    in_colour_space = args.colour_space[:3]
-    out_colour_space = args.colour_space[4:]
-    args.colour_space = out_colour_space
+    args.in_colour_space = args.colour_space[:3]
+    args.out_colour_space = args.colour_space[4:]
 
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
@@ -100,9 +99,9 @@ def main(args):
     ])
 
     intransform_funs = []
-    if in_colour_space != ' rgb':
+    if args.in_colour_space != ' rgb':
         intransform_funs.append(
-            cv2_preprocessing.ColourTransformation(None, in_colour_space)
+            cv2_preprocessing.ColourTransformation(None, args.in_colour_space)
         )
     intransform = transforms.Compose(intransform_funs)
 
@@ -172,13 +171,13 @@ def export(data_loader, model, mean, std, args):
                 rec_img_tmp = cv2.resize(
                     rec_img_tmp, (org_img_tmp.shape[1], org_img_tmp.shape[0])
                 )
-                if args.colour_space == 'lab':
+                if args.out_colour_space == 'lab':
                     rec_img_tmp = rec_img_tmp * 255
                     rec_img_tmp = rec_img_tmp.astype('uint8')
                     rec_img_tmp = cv2.cvtColor(rec_img_tmp, cv2.COLOR_LAB2RGB)
-                elif args.colour_space == 'hsv':
+                elif args.out_colour_space == 'hsv':
                     rec_img_tmp = colour_spaces.hsv012rgb(rec_img_tmp)
-                elif args.colour_space == 'dkl':
+                elif args.out_colour_space == 'dkl':
                     rec_img_tmp = colour_spaces.dkl012rgb(rec_img_tmp)
                 else:
                     rec_img_tmp = normalisations.uint8im(rec_img_tmp)
