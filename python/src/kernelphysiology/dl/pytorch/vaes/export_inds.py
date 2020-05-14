@@ -85,6 +85,7 @@ def main(args):
     if not os.path.exists(args.out_dir):
         os.mkdir(args.out_dir)
 
+    intransform_funs = []
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
     manipulation_func = []
@@ -125,12 +126,11 @@ def main(args):
         manipulation_func.append(cv2_preprocessing.UniqueTransformation(
             man_func, **parameters
         ))
+        intransform_funs.append(*manipulation_func)
 
     args.in_colour_space = args.colour_space[:3]
     args.out_colour_space = args.colour_space[4:]
 
-    intransform_funs = []
-    intransform_funs.append(*manipulation_func)
     if args.in_colour_space != ' rgb':
         intransform_funs.append(
             cv2_preprocessing.ColourTransformation(None, args.in_colour_space)
