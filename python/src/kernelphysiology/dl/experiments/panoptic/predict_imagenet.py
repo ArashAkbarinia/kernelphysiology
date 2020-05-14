@@ -5,18 +5,56 @@ import sys
 import torch
 from torchvision import transforms
 
-from skimage import io
 import cv2
-from kernelphysiology.dl.pytorch.vaes import data_loaders
 
 from kernelphysiology.dl.pytorch.vaes import model as vqmodel
 from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 from kernelphysiology.transformations import colour_spaces
 
+from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.transformations import normalisations
+from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
+from kernelphysiology.dl.pytorch.utils.misc import accuracy_preds
 import argparse
+
+from torchvision import datasets as tdatasets
+
+
+class ImageFolder(tdatasets.ImageFolder):
+    def __init__(self, intransform=None, outtransform=None, **kwargs):
+        super(ImageFolder, self).__init__(**kwargs)
+        self.imgs = self.samples
+        self.intransform = intransform
+        self.outtransform = outtransform
+
+    def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (imgin, imgout) where imgout is the same size as
+             original image after applied manipulations.
+        """
+        path, class_target = self.samples[index]
+        imgin = self.loader(path)
+        imgin = np.asarray(imgin).copy()
+        imgout = imgin.copy()
+        if self.intransform is not None:
+            imgin = self.intransform(imgin)
+        if self.outtransform is not None:
+            imgout = self.outtransform(imgout)
+
+        if self.transform is not None:
+            imgin, imgout = self.transform([imgin, imgout])
+
+        # right now we're not using the class target, but perhaps in the future
+        if self.target_transform is not None:
+            class_target = self.target_transform(class_target)
+
+        return imgin, imgout, path, class_target
 
 
 def parse_arguments(args):
@@ -25,6 +63,7 @@ def parse_arguments(args):
         '--model_path',
         help='autoencoder variant to use: vae | vqvae'
     )
+    parser.add_argument('--imagenet_model', help='path to the imagenet model')
     parser.add_argument(
         '--batch_size', type=int, default=128, metavar='N',
         help='input batch size for training (default: 128)'
@@ -39,17 +78,6 @@ def parse_arguments(args):
                         help='number of atoms in dictionary')
     parser.add_argument('--colour_space', type=str, default=None,
                         help='The type of output colour space.')
-
-    parser.add_argument(
-        '--dataset', default=None,
-        help='dataset to use: mnist | cifar10 | imagenet | coco | custom'
-    )
-    parser.add_argument(
-        '--category',
-        type=str,
-        default=None,
-        help='The specific category (default: None)'
-    )
     parser.add_argument(
         '--validation_dir',
         type=str,
@@ -90,12 +118,24 @@ def main(args):
     args.in_colour_space = args.colour_space[:3]
     args.out_colour_space = args.colour_space[4:]
 
+    (imagenet_model, target_size) = model_utils.which_network(
+        args.imagenet_model, 'classification', num_classes=1000,
+    )
+    imagenet_model.cuda()
+    imagenet_model.eval()
+
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
     transform_funcs = transforms.Compose([
         # cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std)
+    ])
+
+    imagenet_transformations = transforms.Compose([
+        cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
+        cv2_transforms.ToTensor(),
+        cv2_transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
     intransform_funs = []
@@ -105,50 +145,38 @@ def main(args):
         )
     intransform = transforms.Compose(intransform_funs)
 
-    if args.dataset == 'imagenet':
-        test_loader = torch.utils.data.DataLoader(
-            data_loaders.ImageFolder(
-                root=args.validation_dir,
-                intransform=intransform,
-                outtransform=None,
-                transform=transform_funcs
-            ),
-            batch_size=args.batch_size, shuffle=False
-        )
-    else:
-        test_loader = torch.utils.data.DataLoader(
-            data_loaders.CategoryImages(
-                root=args.validation_dir,
-                # FIXME
-                category=args.category,
-                intransform=intransform,
-                outtransform=None,
-                transform=transform_funcs
-            ),
-            batch_size=args.batch_size, shuffle=False
-        )
-    export(test_loader, network, mean, std, args)
+    test_loader = torch.utils.data.DataLoader(
+        ImageFolder(
+            root=args.validation_dir,
+            intransform=intransform,
+            outtransform=None,
+            transform=transform_funcs
+        ),
+        batch_size=args.batch_size, shuffle=False
+    )
+    top1, top5, prediction_output = export(test_loader, network, mean, std,
+                                           imagenet_model,
+                                           imagenet_transformations, args)
+    output_file = '%s/%s.csv' % (args.out_dir, args.colour_space)
+    np.savetxt(output_file, prediction_output, delimiter=',', fmt='%i')
 
 
-def export(data_loader, model, mean, std, args):
-    diffs = []
+def export(data_loader, model, mean, std, imagenet_model,
+           imagenet_transformations, args):
+    top1 = AverageMeter()
+    top5 = AverageMeter()
     with torch.no_grad():
-        for i, (img_readies, img_target, img_paths) in enumerate(data_loader):
+        all_predictions = []
+        for i, (img_readies, img_target, img_paths, targets) in enumerate(
+                data_loader):
             img_readies = img_readies.cuda()
             out_rgb = model(img_readies)
             out_rgb = out_rgb[0].detach().cpu()
             img_readies = img_readies.detach().cpu()
+            targets = targets.cuda()
 
             for img_ind in range(out_rgb.shape[0]):
-                img_path = img_paths[img_ind]
                 img_ready = img_readies[img_ind].unsqueeze(0)
-
-                cat_in_dir = os.path.dirname(img_path) + '/'
-
-                cat_out_dir = cat_in_dir.replace(args.validation_dir,
-                                                 args.out_dir)
-                if not os.path.exists(cat_out_dir):
-                    os.mkdir(cat_out_dir)
 
                 org_img_tmp = inv_normalise_tensor(img_ready, mean, std)
                 org_img_tmp = org_img_tmp.numpy().squeeze().transpose(1, 2, 0)
@@ -156,15 +184,6 @@ def export(data_loader, model, mean, std, args):
                 org_img_tmp = org_img_tmp.astype('uint8')
                 # org_img.append(org_img_tmp)
 
-                rec_dir = cat_out_dir + '/' + args.colour_space + '/'
-                if not os.path.exists(rec_dir):
-                    os.mkdir(rec_dir)
-
-                # if os.path.exists(img_path.replace(cat_in_dir, rgb_dir)):
-                #     rec_rgb_tmp = cv2.imread(
-                #         img_path.replace(cat_in_dir, rgb_dir))
-                #     rec_rgb_tmp = cv2.cvtColor(rec_rgb_tmp, cv2.COLOR_BGR2RGB)
-                # else:
                 rec_img_tmp = inv_normalise_tensor(
                     out_rgb[img_ind].unsqueeze(0), mean, std)
                 rec_img_tmp = rec_img_tmp.numpy().squeeze().transpose(1, 2, 0)
@@ -182,15 +201,42 @@ def export(data_loader, model, mean, std, args):
                 else:
                     rec_img_tmp = normalisations.uint8im(rec_img_tmp)
 
-                tmp_org = org_img_tmp.astype('float') / 255
-                tmp_rgb = rec_img_tmp.astype('float') / 255
-                diffs.append(np.array((tmp_org - tmp_rgb) ** 2).mean())
+                # imagenet stuff
+                img_imagenet = imagenet_transformations(rec_img_tmp).unsqueeze(
+                    0)
+                output = imagenet_model(img_imagenet.cuda())
 
-                # if not os.path.exists(img_path.replace(cat_in_dir, rec_dir)):
-                print(img_path.replace(cat_in_dir, rec_dir))
-                io.imsave(img_path.replace(cat_in_dir, rec_dir), rec_img_tmp)
-            np.savetxt(args.out_dir + '/' + args.colour_space + '.txt',
-                       np.array(diffs))
+                # measure accuracy and record loss
+                ((acc1, acc5), (corrects1, corrects5)) = accuracy_preds(
+                    output, targets[img_ind:img_ind+1], topk=(1, 5)
+                )
+                corrects1 = corrects1.cpu().numpy()
+                corrects5 = corrects5.cpu().numpy().sum(axis=0)
+
+                pred_outs = np.zeros((corrects1.shape[1], 3))
+                pred_outs[:, 0] = corrects1
+                pred_outs[:, 1] = corrects5
+                pred_outs[:, 2] = output.cpu().numpy().argmax(axis=1)
+
+                # I'm not sure if this is all necessary, copied from keras
+                if not isinstance(pred_outs, list):
+                    pred_outs = [pred_outs]
+
+                if not all_predictions:
+                    for _ in pred_outs:
+                        all_predictions.append([])
+
+                for j, out in enumerate(pred_outs):
+                    all_predictions[j].append(out)
+
+                top1.update(acc1[0], img_imagenet.size(0))
+                top5.update(acc5[0], img_imagenet.size(0))
+            print(i, top1.avg, top5.avg)
+        if len(all_predictions) == 1:
+            prediction_output = np.concatenate(all_predictions[0])
+        else:
+            prediction_output = [np.concatenate(out) for out in all_predictions]
+    return top1.avg, top5.avg, prediction_output
 
 
 if __name__ == "__main__":
