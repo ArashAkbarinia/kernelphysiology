@@ -171,8 +171,8 @@ def main(args):
 
 def export(data_loader, model, mean, std, args):
     hists = []
-    bins = [*range(model.state_dict()['emb.weight'].shape[0] + 1)]
-    hist_rng = [0, model.state_dict()['emb.weight'].shape[0] - 1]
+    bins = [*range(model.state_dict()['emb.weight'].shape[1] + 1)]
+    hist_rng = [0, model.state_dict()['emb.weight'].shape[1] - 1]
     with torch.no_grad():
         for i, (img_readies, img_target, img_paths) in enumerate(data_loader):
             img_readies = img_readies.cuda()
