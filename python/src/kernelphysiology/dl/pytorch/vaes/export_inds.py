@@ -36,7 +36,7 @@ def parse_arguments(args):
     parser.add_argument('--colour_space', type=str, default=None,
                         help='The type of output colour space.')
     parser.add_argument('--manipulation', type=str, nargs='+', default=None,
-                        help='The type of output colour space.')
+                        help='Type and value of manipulation.')
 
     parser.add_argument(
         '--dataset', default=None,
@@ -60,8 +60,6 @@ def parse_arguments(args):
         default=None,
         help='The path to the validation directory (default: None)'
     )
-    parser.add_argument('--colour_space', type=str, default=None,
-                        help='The type of output colour space.')
 
     return parser.parse_args(args)
 
