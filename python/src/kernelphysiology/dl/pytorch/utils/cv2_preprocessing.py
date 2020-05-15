@@ -28,6 +28,9 @@ class ColourTransformation(object):
             elif self.colour_space == 'hsv':
                 img = colour_spaces.rgb2hsv01(img)
                 img = normalisations.uint8im(img)
+            elif self.colour_space == 'lms':
+                img = colour_spaces.rgb2lms01(img)
+                img = normalisations.uint8im(img)
 
             # if colour_inds is None, we consider it as trichromat
             if self.colour_inds is not None:

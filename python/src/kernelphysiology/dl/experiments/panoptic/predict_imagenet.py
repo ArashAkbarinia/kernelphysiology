@@ -196,6 +196,8 @@ def export(data_loader, model, mean, std, imagenet_model,
                     rec_img_tmp = cv2.cvtColor(rec_img_tmp, cv2.COLOR_LAB2RGB)
                 elif args.out_colour_space == 'hsv':
                     rec_img_tmp = colour_spaces.hsv012rgb(rec_img_tmp)
+                elif args.out_colour_space == 'lms':
+                    rec_img_tmp = colour_spaces.lms012rgb(rec_img_tmp)
                 elif args.out_colour_space == 'dkl':
                     rec_img_tmp = colour_spaces.dkl012rgb(rec_img_tmp)
                 else:
