@@ -193,7 +193,8 @@ def main(args):
         model = models[args.dataset][args.model](
             hidden, k=k, kl=args.kl, num_channels=num_channels,
             colour_space=args.colour_space, task=task,
-            out_chns=out_chns, cos_distance=args.cos_dis
+            out_chns=out_chns, cos_distance=args.cos_dis,
+            use_decor_loss=args.decor
         )
     if args.cuda:
         model.cuda()
