@@ -129,7 +129,7 @@ def main(args):
         intransform_funs.append(*manipulation_func)
 
     args.in_colour_space = args.colour_space[:3]
-    args.out_colour_space = args.colour_space[4:]
+    args.out_colour_space = args.colour_space[4:7]
 
     if args.in_colour_space != ' rgb':
         intransform_funs.append(
