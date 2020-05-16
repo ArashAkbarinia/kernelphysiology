@@ -234,6 +234,10 @@ def export(data_loader, model, mean, std, imagenet_model,
                 top1.update(acc1[0], img_imagenet.size(0))
                 top5.update(acc5[0], img_imagenet.size(0))
             print(i, top1.avg, top5.avg)
+
+            if np.mod(i, 100) == 0:
+                output_file = '%s/%s.csv' % (args.out_dir, args.colour_space)
+                np.savetxt(output_file, all_predictions, delimiter=',', fmt='%i')
         if len(all_predictions) == 1:
             prediction_output = np.concatenate(all_predictions[0])
         else:
