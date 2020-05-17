@@ -413,7 +413,7 @@ class ResNet_VQ_CVAE(nn.Module):
 class VQ_CVAE(nn.Module):
     def __init__(self, d, k=10, kl=None, bn=True, vq_coef=1, commit_coef=0.5,
                  in_chns=3, colour_space='rgb', out_chns=None, task=None,
-                 cos_distance=False, use_decor_loss=False, **kwargs):
+                 cos_distance=False, use_decor_loss=0, **kwargs):
         super(VQ_CVAE, self).__init__()
 
         if out_chns is None:
@@ -422,7 +422,7 @@ class VQ_CVAE(nn.Module):
         if task == 'segmentation':
             out_chns = d
         self.use_decor_loss = use_decor_loss
-        if self.use_decor_loss:
+        if self.use_decor_loss != 0:
             self.decor_loss = torch.zeros(1)
 
         self.d = d
@@ -542,7 +542,7 @@ class VQ_CVAE(nn.Module):
         self.commit_loss = torch.mean(
             torch.norm((emb.detach() - z_e) ** 2, 2, 1))
 
-        if self.use_decor_loss:
+        if self.use_decor_loss != 0:
             emb_weights = self.emb.weight.detach()
             mean_mat = emb_weights.mean(dim=0)
             emb_weights = emb_weights.sub(mean_mat)
@@ -557,6 +557,8 @@ class VQ_CVAE(nn.Module):
                     corr[i, j] = current_corr
                     corr[j, i] = current_corr
             self.decor_loss = abs(corr).mean()
+            if self.use_decor_loss < 0:
+                self.decor_loss = 1 - self.decor_loss
             return self.mse + self.vq_coef * self.vq_loss + self.commit_coef * self.commit_loss + self.decor_loss
 
         return self.mse + self.vq_coef * self.vq_loss + self.commit_coef * self.commit_loss

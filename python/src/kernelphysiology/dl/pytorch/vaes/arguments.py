@@ -35,8 +35,7 @@ def parse_arguments(args):
     model_parser.add_argument('--cos_dis', action='store_true',
                               default=False,
                               help='cosine distance')
-    model_parser.add_argument('--decor', action='store_true',
-                              default=False,
+    model_parser.add_argument('--decor', type=int, default=0,
                               help='decor loss')
     model_parser.add_argument('--lr', type=float, default=None,
                               help='learning rate')
