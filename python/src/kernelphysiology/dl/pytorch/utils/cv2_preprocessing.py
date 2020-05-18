@@ -22,6 +22,11 @@ class ColourTransformation(object):
             img = np.asarray(img).copy()
             if self.colour_space == 'lab':
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+            elif self.colour_space == 'labhue':
+                img_hue = colour_spaces.rgb2hsv01(img.copy())
+                img_hue = normalisations.uint8im(img_hue)
+                img_lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+                img = np.concatenate([img_lab, img_hue[:, :, 0:1]], axis=2)
             elif self.colour_space == 'dkl':
                 img = colour_spaces.rgb2dkl01(img)
                 img = normalisations.uint8im(img)

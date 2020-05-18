@@ -151,6 +151,32 @@ def grid_save_reconstructed_images(data, outputs, mean, std, epoch, save_path,
     )
 
 
+def grid_save_reconstructed_labhue(data, outputs, mean, std, epoch, save_path,
+                                   name, inv_func=None):
+    # FIXME this is not a solution!!
+    original = inv_normalise_tensor(data, mean, std).detach()
+    original_lab = tensor_tosave(original[:, :3], inv_func)
+    original_hue = tensor_tosave(original[:, 3:], inv_func)
+    reconstructed = inv_normalise_tensor(outputs[0], mean, std).detach()
+    reconstructed_lab = tensor_tosave(reconstructed[:, :3], inv_func)
+    reconstructed_hue = tensor_tosave(reconstructed[:, 3:], inv_func)
+
+    original_lab = np.concatenate(original_lab, axis=1)
+    reconstructed_lab = np.concatenate(reconstructed_lab, axis=1)
+    original_hue = np.concatenate(original_hue, axis=1)
+    original_hue = np.repeat(original_hue, 3, axis=2)
+    reconstructed_hue = np.concatenate(reconstructed_hue, axis=1)
+    reconstructed_hue = np.repeat(reconstructed_hue, 3, axis=2)
+    both_together = np.concatenate([
+        original_lab, reconstructed_lab,
+        original_hue, reconstructed_hue
+    ], axis=0)
+    io.imsave(
+        os.path.join(save_path, name + '_' + str(epoch) + '.png'),
+        both_together
+    )
+
+
 def grid_save_reconstructed_bsds(data, outputs, mean, std, epoch, save_path,
                                  name, inv_func=None):
     original = []

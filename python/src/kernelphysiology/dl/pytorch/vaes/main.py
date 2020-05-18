@@ -107,6 +107,9 @@ def main(args):
 
     args.mean = (0.5, 0.5, 0.5)
     args.std = (0.5, 0.5, 0.5)
+    if 'labhue' in args.colour_space:
+        args.mean = (0.5, 0.5, 0.5, 0.5)
+        args.std = (0.5, 0.5, 0.5, 0.5)
     normalise = transforms.Normalize(args.mean, args.std)
 
     lr = args.lr or default_hyperparams[args.dataset]['lr']
@@ -190,6 +193,8 @@ def main(args):
         elif 'bsds' in args.dataset:
             task = 'segmentation'
             out_chns = 1
+        elif args.colour_space == 'labhue':
+            out_chns = 4
         model = models[args.dataset][args.model](
             hidden, k=k, kl=args.kl, num_channels=num_channels,
             colour_space=args.colour_space, task=task,
@@ -259,6 +264,8 @@ def main(args):
     kwargs = {'num_workers': args.workers,
               'pin_memory': True} if args.cuda else {}
     args.vis_func = vae_util.grid_save_reconstructed_images
+    if args.colour_space == 'labhue':
+        args.vis_func = vae_util.grid_save_reconstructed_labhue
     if args.dataset == 'coco':
         train_loader = panoptic_utils.get_coco_train(
             args.batch_size, args.opts, args.cfg_file
