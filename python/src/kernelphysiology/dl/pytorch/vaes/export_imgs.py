@@ -179,6 +179,8 @@ def export(data_loader, model, mean, std, args):
                     rec_img_tmp = colour_spaces.hsv012rgb(rec_img_tmp)
                 elif args.out_colour_space == 'lms':
                     rec_img_tmp = colour_spaces.lms012rgb(rec_img_tmp)
+                elif args.out_colour_space == 'yog':
+                    rec_img_tmp = colour_spaces.yog012rgb(rec_img_tmp)
                 elif args.out_colour_space == 'dkl':
                     rec_img_tmp = colour_spaces.dkl012rgb(rec_img_tmp)
                 else:
