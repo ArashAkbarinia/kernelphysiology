@@ -37,13 +37,13 @@ xyz_from_lms = np.array(
     [[+1.99831835e+00, -1.18730329e+00, +1.88189487e-01],
      [+7.07957782e-01, -2.92384281e-01, +5.61719491e-09],
      [-2.22739159e-08, -1.46290052e-08, +9.98233271e-01]]
-)
+).T
 
 lms_from_xyz = np.array(
     [[-1.1408616727, +4.6327689355, +0.2150781317],
      [-2.7623985003, +7.7972892807, +0.5207743801],
      [-0.0000000659, +0.0000002176, +1.0017698683]]
-)
+).T
 
 rgb_from_xyz = np.array(
     [[+3.2404542, -0.9692660, +0.0556434],
@@ -103,15 +103,15 @@ def lms012rgb(x):
 
 
 def lms2xyz(x):
-    return np.dot(x, lms_from_xyz)
-
-
-def xyz2lms(x):
     return np.dot(x, xyz_from_lms)
 
 
+def xyz2lms(x):
+    return np.dot(x, lms_from_xyz)
+
+
 def rgb012xyz(x):
-    return np.dot(x, rgb_from_xyz)
+    return np.dot(x, xyz_from_rgb)
 
 
 def rgb2xyz(x):
@@ -123,7 +123,7 @@ def xyz2rgb(x):
 
 
 def xyz2rgb01(x):
-    return np.dot(x, xyz_from_rgb)
+    return np.dot(x, rgb_from_xyz)
 
 
 def rgb012dkl(x):
