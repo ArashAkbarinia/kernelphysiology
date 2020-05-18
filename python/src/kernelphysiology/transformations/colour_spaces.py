@@ -9,6 +9,18 @@ import cv2
 
 from kernelphysiology.transformations import normalisations
 
+yog_from_rgb = np.array(
+    [[+0.25, +0.50, +0.25],
+     [+0.50, +0.00, -0.50],
+     [-0.25, +0.50, -0.25]]
+)
+
+rgb_from_yog = np.array(
+    [[+1.0, +1.0, -1.0],
+     [+1.0, +0.0, +1.0],
+     [+1.0, -1.0, -1.0]]
+)
+
 dkl_from_rgb = np.array(
     [[+0.49995000, +0.50001495, +0.49999914],
      [+0.99998394, -0.29898596, +0.01714922],
@@ -148,6 +160,48 @@ def dkl012rgb01(x):
     x[:, :, 2] -= 0.5
     x *= 2
     return dkl2rgb01(x)
+
+
+def rgb012yog(x):
+    out = np.zeros(x.shape)
+    for i in range(3):
+        for j in range(3):
+            out[:, :, i] += (yog_from_rgb[i][j] * x[:, :, j])
+    return out
+
+
+def rgb2yog(x):
+    return rgb012yog(normalisations.rgb2double(x))
+
+
+def rgb2yog01(x):
+    x = rgb2yog(x)
+    x[:, :, 1] += 0.5
+    x[:, :, 2] += 0.5
+    return x
+
+
+def yog2rgb(x):
+    return normalisations.uint8im(yog2rgb01(x))
+
+
+def yog2rgb01(x):
+    out = np.zeros(x.shape)
+    for i in range(3):
+        for j in range(3):
+            out[:, :, i] += (rgb_from_yog[i][j] * x[:, :, j])
+    return out
+
+
+def yog012rgb(x):
+    return normalisations.uint8im(yog012rgb01(x))
+
+
+def yog012rgb01(x):
+    x = x.copy()
+    x[:, :, 1] -= 0.5
+    x[:, :, 2] -= 0.5
+    return yog2rgb01(x)
 
 
 def rgb2hsv01(x):
