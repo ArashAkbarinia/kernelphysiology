@@ -13,13 +13,13 @@ yog_from_rgb = np.array(
     [[+0.25, +0.50, +0.25],
      [+0.50, +0.00, -0.50],
      [-0.25, +0.50, -0.25]]
-)
+).T
 
 rgb_from_yog = np.array(
     [[+1.0, +1.0, -1.0],
      [+1.0, +0.0, +1.0],
      [+1.0, -1.0, -1.0]]
-)
+).T
 
 dkl_from_rgb = np.array(
     [[+0.49995000, +0.50001495, +0.49999914],
@@ -163,11 +163,7 @@ def dkl012rgb01(x):
 
 
 def rgb012yog(x):
-    out = np.zeros(x.shape)
-    for i in range(3):
-        for j in range(3):
-            out[:, :, i] += (yog_from_rgb[i][j] * x[:, :, j])
-    return out
+    return np.dot(x, yog_from_rgb)
 
 
 def rgb2yog(x):
@@ -186,11 +182,7 @@ def yog2rgb(x):
 
 
 def yog2rgb01(x):
-    out = np.zeros(x.shape)
-    for i in range(3):
-        for j in range(3):
-            out[:, :, i] += (rgb_from_yog[i][j] * x[:, :, j])
-    return out
+    return np.dot(x, rgb_from_yog)
 
 
 def yog012rgb(x):
