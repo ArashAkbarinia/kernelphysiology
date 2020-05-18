@@ -21,13 +21,13 @@ rgb_from_yog = np.array(
      [+1.0, -1.0, -1.0]]
 ).T
 
-dkl_from_rgb = np.array(
+rgb_from_dkl = np.array(
     [[+0.49995000, +0.50001495, +0.49999914],
      [+0.99998394, -0.29898596, +0.01714922],
      [-0.17577361, +0.15319546, -0.99994349]]
 )
 
-rgb_from_dkl = np.array(
+dkl_from_rgb = np.array(
     [[0.4251999971, +0.8273000025, +0.2267999991],
      [1.4303999955, -0.5912000011, +0.7050999939],
      [0.1444000069, -0.2360000005, -0.9318999983]]
@@ -127,7 +127,7 @@ def xyz2rgb01(x):
 
 
 def rgb012dkl(x):
-    return np.dot(x, rgb_from_dkl)
+    return np.dot(x, dkl_from_rgb)
 
 
 def rgb2dkl(x):
@@ -147,7 +147,7 @@ def dkl2rgb(x):
 
 
 def dkl2rgb01(x):
-    return np.dot(x, dkl_from_rgb)
+    return np.dot(x, rgb_from_dkl)
 
 
 def dkl012rgb(x):
