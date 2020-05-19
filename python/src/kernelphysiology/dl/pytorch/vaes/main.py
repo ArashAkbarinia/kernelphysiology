@@ -13,6 +13,7 @@ from torchvision import datasets, transforms
 
 from kernelphysiology.dl.pytorch.vaes import util as vae_util
 from kernelphysiology.dl.pytorch.vaes import model as vae_model
+from kernelphysiology.dl.pytorch.vaes import vanilla_vae
 from kernelphysiology.dl.pytorch.vaes import wavenet_vae
 from kernelphysiology.dl.pytorch.vaes import data_loaders
 from kernelphysiology.dl.pytorch.vaes.arguments import parse_arguments
@@ -25,7 +26,7 @@ import cv2
 
 models = {
     'custom': {'vqvae': vae_model.VQ_CVAE},
-    'imagenet': {'vqvae': vae_model.VQ_CVAE},
+    'imagenet': {'vqvae': vae_model.VQ_CVAE, 'vae': vanilla_vae.VanillaVAE},
     'bsds': {'vqvae': vae_model.VQ_CVAE},
     'voc': {'vqvae': vae_model.VQ_CVAE},
     'coco': {'vqvae': vae_model.VQ_CVAE},
@@ -184,6 +185,8 @@ def main(args):
             colour_space=args.colour_space, task=task,
             out_chns=out_chns
         )
+    elif args.model == 'vae':
+        model = vanilla_vae.VanillaVAE(3, args.k)
     else:
         task = None
         out_chns = 3
