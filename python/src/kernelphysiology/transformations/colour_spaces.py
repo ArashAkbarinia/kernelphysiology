@@ -211,6 +211,45 @@ def hsv012rgb(x):
     return cv2.cvtColor(x, cv2.COLOR_HSV2RGB)
 
 
+def lab2lch01(x):
+    lch = lab2lch(x)
+    lch[:, :, 0] /= 100
+    lch[:, :, 1] /= 134
+    lch[:, :, 2] /= 360
+    return lch
+
+
+def lch012lab(x):
+    lch = x.copy()
+    lch[:, :, 0] *= 100
+    lch[:, :, 1] *= 134
+    lch[:, :, 2] *= 360
+    return lch2lab(lch)
+
+
+def lab2lch(x):
+    out = x.copy()
+    lch_c = np.sqrt(x[:, :, 1] ** 2 + x[:, :, 2] ** 2)
+
+    lch_h = np.arctan2(x[:, :, 2], x[:, :, 1])
+    condition = lch_h > 0
+    lch_h[condition] = (lch_h[condition] / np.pi) * 180
+    lch_h[~condition] = 360 - (np.fabs(lch_h[~condition]) / np.pi) * 180
+
+    out[:, :, 1] = lch_c
+    out[:, :, 2] = lch_h
+    return out
+
+
+def lch2lab(x):
+    out = x.copy()
+    lab_a = np.cos(np.radians(x[:, :, 2])) * x[:, :, 1]
+    lab_b = np.sin(np.radians(x[:, :, 2])) * x[:, :, 1]
+    out[:, :, 1] = lab_a
+    out[:, :, 2] = lab_b
+    return out
+
+
 def rgb2opponency(image_rgb, opponent_space='lab'):
     image_rgb = normalisations.rgb2double(image_rgb)
     if opponent_space is None:
