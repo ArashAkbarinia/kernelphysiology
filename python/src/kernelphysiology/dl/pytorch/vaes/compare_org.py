@@ -4,6 +4,7 @@ import glob
 import numpy as np
 from skimage import io
 from skimage import color
+import cv2
 
 
 def parse_arguments(args):
@@ -44,9 +45,14 @@ def main(args):
 
     all_des = []
     for i in range(len(org_img_paths)):
+        print(i, org_img_paths[i])
         img_org = io.imread(org_img_paths[i])
-        img_org = color.rgb2lab(img_org)
         img_res = io.imread(res_img_paths[i])
+
+        if img_org.shape != img_res.shape:
+            img_org = cv2.resize(img_org, [img_res.shape[1], img_res.shape[0]])
+
+        img_org = color.rgb2lab(img_org)
         img_res = color.rgb2lab(img_res)
         de = color.deltaE_ciede2000(img_org, img_res)
         all_des.append([np.mean(de), np.median(de), np.max(de)])
