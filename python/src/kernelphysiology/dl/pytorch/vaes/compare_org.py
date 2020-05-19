@@ -47,6 +47,8 @@ def main(args):
     for i in range(len(org_img_paths)):
         print(i, org_img_paths[i])
         img_org = io.imread(org_img_paths[i])
+        if len(img_org.shape) == 2:
+            img_org = np.repeat(img_org[:, :, np.newaxis], 3, axis=2)
         img_res = io.imread(res_img_paths[i])
 
         if img_org.shape != img_res.shape:
