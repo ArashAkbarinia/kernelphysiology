@@ -50,7 +50,7 @@ def main(args):
         img_res = io.imread(res_img_paths[i])
 
         if img_org.shape != img_res.shape:
-            img_org = cv2.resize(img_org, [img_res.shape[1], img_res.shape[0]])
+            img_org = cv2.resize(img_org, (img_res.shape[1], img_res.shape[0]))
 
         img_org = color.rgb2lab(img_org)
         img_res = color.rgb2lab(img_res)
