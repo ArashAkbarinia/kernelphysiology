@@ -295,6 +295,9 @@ def grayscale_contrast(image, amount, mask_radius=None):
 
 
 def adjust_gamma(image, amount, pixel_variatoin=0, mask_type=None, **kwargs):
+    # TODO: for all other manipulations
+    if isinstance(amount, list):
+        amount = random.uniform(*amount)
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)

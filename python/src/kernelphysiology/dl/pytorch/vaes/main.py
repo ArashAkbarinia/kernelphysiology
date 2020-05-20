@@ -21,6 +21,7 @@ from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.transformations import colour_spaces
 from kernelphysiology.transformations import normalisations
+from kernelphysiology.utils import imutils
 
 import cv2
 
@@ -239,6 +240,16 @@ def main(args):
         model.cuda()
 
     intransform_funs = []
+    if args.gamma is not None:
+        kwargs = {'amount': args.gamma}
+        augmentation_settings = [
+            {'function': imutils.adjust_gamma, 'kwargs': kwargs}
+        ]
+        intransform_funs.append(
+            cv2_preprocessing.RandomAugmentationTransformation(
+                augmentation_settings, num_augmentations=1
+            )
+        )
     if args.mosaic_pattern is not None:
         intransform_funs.append(
             cv2_preprocessing.MosaicTransformation(args.mosaic_pattern)

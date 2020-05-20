@@ -37,6 +37,8 @@ def parse_arguments(args):
                               help='cosine distance')
     model_parser.add_argument('--decor', type=int, default=0,
                               help='decor loss')
+    model_parser.add_argument('--gamma', type=float, default=None, nargs='+',
+                              help='decor loss')
     model_parser.add_argument('--lr', type=float, default=None,
                               help='learning rate')
     model_parser.add_argument('--vq_coef', type=float, default=None,

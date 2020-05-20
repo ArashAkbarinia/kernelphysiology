@@ -3,6 +3,7 @@ Preparing the input image to be inputted to a network.
 """
 
 import numpy as np
+import random
 
 import cv2
 
@@ -89,4 +90,39 @@ class UniqueTransformation(object):
 
     def __call__(self, x):
         x = self.manipulation_function(x, **self.kwargs)
+        return x
+
+
+class RandomAugmentationTransformation(object):
+
+    def __init__(self, augmentation_settings, num_augmentations=None):
+        self.augmentation_settings = augmentation_settings
+        self.num_augmentations = num_augmentations
+        self.all_inds = [*range(len(self.augmentation_settings))]
+
+    def __call__(self, x):
+        # finding the manipulations to be applied
+        if self.num_augmentations is None:
+            augmentation_inds = self.all_inds
+        else:
+            augmentation_inds = random.sample(
+                self.all_inds, self.num_augmentations
+            )
+            # sorting it according to the order provided by user
+            augmentation_inds.sort()
+
+        for i in augmentation_inds:
+            current_augmentation = self.augmentation_settings[i].copy()
+            manipulation_function = current_augmentation['function']
+            kwargs = current_augmentation['kwargs']
+
+            # if the value is in the form of a list, we select a random value
+            # in between those numbers
+            # for key, val in kwargs.items():
+            #     if isinstance(val, list):
+            #         kwargs[key] = random.uniform(*val)
+
+            x = manipulation_function(x, **kwargs)
+            # FIXME
+            x = x.astype('uint8')
         return x
