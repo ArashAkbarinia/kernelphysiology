@@ -294,12 +294,19 @@ def grayscale_contrast(image, amount, mask_radius=None):
                            mask_radius=mask_radius)
 
 
-def adjust_gamma(image, amount, mask_type=None, **kwargs):
+def adjust_gamma(image, amount, pixel_variatoin=0, mask_type=None, **kwargs):
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)
 
-    image_gamma = image ** amount
+    min_gamma = amount - pixel_variatoin
+    max_gamma = amount + pixel_variatoin
+
+    gamma_mat = np.random.uniform(
+        low=min_gamma, high=max_gamma, size=image.shape
+    )
+
+    image_gamma = image ** gamma_mat
     output = image_org * image_mask + image_gamma * (1 - image_mask)
     output *= max_pixel
     return output
