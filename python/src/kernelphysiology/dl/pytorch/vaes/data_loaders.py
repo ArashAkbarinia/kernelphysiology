@@ -152,6 +152,56 @@ class VOCSegmentation(tdatasets.VOCSegmentation):
         return len(self.images)
 
 
+class CelebA(tdatasets.CelebA):
+    def __init__(self, intransform=None, outtransform=None, **kwargs):
+        super(CelebA, self).__init__(**kwargs)
+        self.loader = tdatasets.folder.pil_loader
+        self.intransform = intransform
+        self.outtransform = outtransform
+
+    def __getitem__(self, index):
+        path = os.path.join(
+            self.root, self.base_folder, "img_align_celeba",
+            self.filename[index]
+        )
+        imgin = self.loader(path)
+        imgin = np.asarray(imgin).copy()
+        imgout = imgin.copy()
+
+        target = []
+        for t in self.target_type:
+            if t == "attr":
+                target.append(self.attr[index, :])
+            elif t == "identity":
+                target.append(self.identity[index, 0])
+            elif t == "bbox":
+                target.append(self.bbox[index, :])
+            elif t == "landmarks":
+                target.append(self.landmarks_align[index, :])
+            else:
+                # TODO: refactor with utils.verify_str_arg
+                raise ValueError(
+                    "Target type \"{}\" is not recognized.".format(t)
+                )
+        if target:
+            target = tuple(target) if len(target) > 1 else target[0]
+
+            if self.target_transform is not None:
+                target = self.target_transform(target)
+        else:
+            target = None
+
+        if self.intransform is not None:
+            imgin = self.intransform(imgin)
+        if self.outtransform is not None:
+            imgout = self.outtransform(imgout)
+
+        if self.transform is not None:
+            imgin, imgout = self.transform([imgin, imgout])
+
+        return imgin, imgout, path
+
+
 class BSDSEdges(tdatasets.VisionDataset):
     def __init__(self, img_list='all_imgs.txt', intransform=None,
                  outtransform=None, **kwargs):

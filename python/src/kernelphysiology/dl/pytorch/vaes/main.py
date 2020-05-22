@@ -28,6 +28,7 @@ import cv2
 models = {
     'custom': {'vqvae': vae_model.VQ_CVAE},
     'imagenet': {'vqvae': vae_model.VQ_CVAE, 'vae': vanilla_vae.VanillaVAE},
+    'celeba': {'vqvae': vae_model.VQ_CVAE, 'vae': vanilla_vae.VanillaVAE},
     'bsds': {'vqvae': vae_model.VQ_CVAE},
     'voc': {'vqvae': vae_model.VQ_CVAE},
     'coco': {'vqvae': vae_model.VQ_CVAE},
@@ -38,6 +39,7 @@ datasets_classes = {
     'custom': datasets.ImageFolder,
     'imagenet': data_loaders.ImageFolder,
     'bsds': data_loaders.BSDSEdges,
+    'celeba': data_loaders.CelebA,
     'coco': torch.utils.data.DataLoader,
     'cifar10': datasets.CIFAR10,
     'mnist': datasets.MNIST
@@ -46,6 +48,7 @@ dataset_train_args = {
     'custom': {},
     'imagenet': {},
     'bsds': {},
+    'celeba': {},
     'voc': {},
     'coco': {},
     'cifar10': {'train': True, 'download': True},
@@ -55,6 +58,7 @@ dataset_test_args = {
     'custom': {},
     'imagenet': {},
     'bsds': {},
+    'celeba': {},
     'voc': {},
     'coco': {},
     'cifar10': {'train': False, 'download': True},
@@ -64,6 +68,7 @@ dataset_n_channels = {
     'custom': 3,
     'imagenet': 3,
     'bsds': 3,
+    'celeba': 3,
     'voc': 3,
     'coco': 3,
     'cifar10': 3,
@@ -71,10 +76,12 @@ dataset_n_channels = {
 }
 dataset_target_size = {
     'imagenet': 224,
+    'celeba': 64,
 }
 default_hyperparams = {
     'custom': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'imagenet': {'lr': 2e-4, 'k': 512, 'hidden': 128},
+    'celeba': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'bsds': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'voc': {'lr': 2e-4, 'k': 512, 'hidden': 128},
     'coco': {'lr': 2e-4, 'k': 512, 'hidden': 128},
@@ -136,6 +143,11 @@ def main(args):
              cv2_transforms.ToTensorSegmentation(),
              cv2_transforms.NormalizeSegmentation(args.mean, args.std)]),
         'imagenet': transforms.Compose(
+            [cv2_transforms.Resize(target_size + 32),
+             cv2_transforms.CenterCrop(target_size),
+             cv2_transforms.ToTensor(),
+             cv2_transforms.Normalize(args.mean, args.std)]),
+        'celeba': transforms.Compose(
             [cv2_transforms.Resize(target_size + 32),
              cv2_transforms.CenterCrop(target_size),
              cv2_transforms.ToTensor(),
@@ -351,6 +363,29 @@ def main(args):
                 intransform=intransform,
                 outtransform=outtransform,
                 transform=dataset_transforms[args.dataset],
+                **dataset_test_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=False, **kwargs
+        )
+    elif args.dataset == 'celeba':
+        train_loader = torch.utils.data.DataLoader(
+            datasets_classes[args.dataset](
+                root=args.data_dir,
+                intransform=intransform,
+                outtransform=outtransform,
+                transform=dataset_transforms[args.dataset],
+                split='train',
+                **dataset_train_args[args.dataset]
+            ),
+            batch_size=args.batch_size, shuffle=True, **kwargs
+        )
+        test_loader = torch.utils.data.DataLoader(
+            datasets_classes[args.dataset](
+                root=args.data_dir,
+                intransform=intransform,
+                outtransform=outtransform,
+                transform=dataset_transforms[args.dataset],
+                split='test',
                 **dataset_test_args[args.dataset]
             ),
             batch_size=args.batch_size, shuffle=False, **kwargs
