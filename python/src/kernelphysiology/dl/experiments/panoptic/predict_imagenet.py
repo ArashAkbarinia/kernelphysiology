@@ -116,7 +116,7 @@ def main(args):
         os.mkdir(args.out_dir)
 
     args.in_colour_space = args.colour_space[:3]
-    args.out_colour_space = args.colour_space[4:]
+    args.out_colour_space = args.colour_space[4:7]
 
     (imagenet_model, target_size) = model_utils.which_network(
         args.imagenet_model, 'classification', num_classes=1000,
