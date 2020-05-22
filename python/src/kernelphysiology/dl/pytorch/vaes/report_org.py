@@ -153,24 +153,14 @@ def export(data_loader, model, mean, std, args):
 
             for img_ind in range(out_rgb.shape[0]):
                 img_path = img_paths[img_ind]
+                print(img_path)
                 img_ready = img_readies[img_ind].unsqueeze(0)
-
-                cat_in_dir = os.path.dirname(img_path) + '/'
-
-                cat_out_dir = cat_in_dir.replace(args.validation_dir,
-                                                 args.out_dir)
-                if not os.path.exists(cat_out_dir):
-                    os.mkdir(cat_out_dir)
 
                 org_img_tmp = inv_normalise_tensor(img_ready, mean, std)
                 org_img_tmp = org_img_tmp.numpy().squeeze().transpose(1, 2, 0)
                 org_img_tmp = org_img_tmp * 255
                 org_img_tmp = org_img_tmp.astype('uint8')
                 # org_img.append(org_img_tmp)
-
-                rec_dir = cat_out_dir + '/' + args.colour_space + '/'
-                if not os.path.exists(rec_dir):
-                    os.mkdir(rec_dir)
 
                 # if os.path.exists(img_path.replace(cat_in_dir, rgb_dir)):
                 #     rec_rgb_tmp = cv2.imread(
@@ -203,8 +193,6 @@ def export(data_loader, model, mean, std, args):
                 de = color.deltaE_ciede2000(img_org, img_res)
                 diffs.append([np.mean(de), np.median(de), np.max(de)])
 
-                # if not os.path.exists(img_path.replace(cat_in_dir, rec_dir)):
-                print(img_path.replace(cat_in_dir, rec_dir))
             np.savetxt(args.out_dir + '/' + args.colour_space + '.txt',
                        np.array(diffs))
 
