@@ -161,9 +161,23 @@ def export(data_loader, model, mean, std, args):
 
                 org_img_tmp = inv_normalise_tensor(img_ready, mean, std)
                 org_img_tmp = org_img_tmp.numpy().squeeze().transpose(1, 2, 0)
-                org_img_tmp = org_img_tmp * 255
-                org_img_tmp = org_img_tmp.astype('uint8')
                 # org_img.append(org_img_tmp)
+
+                if args.in_colour_space == 'lab':
+                    org_img_tmp = org_img_tmp * 255
+                    org_img_tmp = org_img_tmp.astype('uint8')
+                    org_img_tmp = cv2.cvtColor(org_img_tmp, cv2.COLOR_LAB2RGB)
+                elif args.in_colour_space == 'hsv':
+                    org_img_tmp = colour_spaces.hsv012rgb(org_img_tmp)
+                elif args.in_colour_space == 'lms':
+                    org_img_tmp = colour_spaces.lms012rgb(org_img_tmp)
+                elif args.in_colour_space == 'yog':
+                    org_img_tmp = colour_spaces.yog012rgb(org_img_tmp)
+                elif args.in_colour_space == 'dkl':
+                    org_img_tmp = colour_spaces.dkl012rgb(org_img_tmp)
+                else:
+                    org_img_tmp = normalisations.uint8im(org_img_tmp)
+
 
                 # if os.path.exists(img_path.replace(cat_in_dir, rgb_dir)):
                 #     rec_rgb_tmp = cv2.imread(
