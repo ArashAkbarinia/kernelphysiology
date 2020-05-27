@@ -40,6 +40,8 @@ def parse_arguments(args):
                         help='number of atoms in dictionary')
     parser.add_argument('--colour_space', type=str, default=None,
                         help='The type of output colour space.')
+    parser.add_argument('--target_size', type=224, dest='target_size',
+                        help='target_size of image')
 
     parser.add_argument(
         '--dataset', default=None,
@@ -94,7 +96,8 @@ def main(args):
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
     transform_funcs = transforms.Compose([
-        # cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
+        cv2_transforms.Resize(args.target_size+32),
+        cv2_transforms.CenterCrop(args.target_size),
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std)
     ])
