@@ -152,6 +152,17 @@ def main(args):
             ),
             batch_size=args.batch_size, shuffle=False
         )
+    elif args.dataset == 'celeba':
+        test_loader = torch.utils.data.DataLoader(
+            data_loaders.CelebA(
+                root=args.validation_dir,
+                intransform=intransform,
+                outtransform=None,
+                transform=transform_funcs,
+                split='test'
+            ),
+            batch_size=args.batch_size, shuffle=False
+        )
     else:
         test_loader = torch.utils.data.DataLoader(
             data_loaders.CategoryImages(
