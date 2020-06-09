@@ -61,6 +61,16 @@ lms_max = [3.78259774, 5.73874728, 1.09075725]
 lms_min = [0., 0., 0.]
 
 
+def rgb012lms01(x):
+    x = xyz2lms(rgb012xyz(x.copy()))
+    for i in range(3):
+        x[:, :, i] /= (lms_max[i] - lms_min[i])
+        x[:, :, i] += (abs(lms_min[i]) / (lms_max[i] - lms_min[i]))
+    x = np.maximum(x, 0)
+    x = np.minimum(x, 1)
+    return x
+
+
 def rgb012lms(x):
     return xyz2lms(rgb012xyz(x.copy()))
 
