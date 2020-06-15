@@ -139,7 +139,7 @@ def get_validation_dataset(dataset_name, valdir, colour_vision, colour_space,
         data_loader_validation = lambda x: npy_data_loader(x)
 
         validation_dataset = datasets.DatasetFolder(
-            valdir, data_loader_validation, ['.npy'], transformations
+            valdir, data_loader_validation, ('.npy',), transformations
         )
     elif 'wcs_jpg' in dataset_name:
         validation_dataset = datasets.ImageFolder(
