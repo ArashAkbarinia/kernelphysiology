@@ -195,6 +195,7 @@ def get_train_dataset(dataset_name, traindir, colour_vision, colour_space,
 
 def npy_data_loader(input_path):
     lms_image = np.load(input_path).astype(np.float32)
+    lms_image /= lms_image.max()
     return lms_image
 
 
