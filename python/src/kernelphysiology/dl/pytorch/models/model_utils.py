@@ -128,10 +128,12 @@ class NewClassificationModel(nn.Module):
 
         org_classes = original_model.fc.in_features
         self.features = nn.Sequential(*list(original_model.children())[:layer])
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(org_classes, num_classes)
 
     def forward(self, x):
         x = self.features(x)
+        x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
