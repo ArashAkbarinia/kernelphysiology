@@ -125,8 +125,10 @@ class NewClassificationModel(nn.Module):
                 layer = 6
             elif layer == 'layer3':
                 layer = 7
-
-        org_classes = original_model.fc.in_features
+            org_classes = list(original_model.children())[layer][
+                0].conv1.in_channels
+        else:
+            org_classes = original_model.fc.in_features
         self.features = nn.Sequential(*list(original_model.children())[:layer])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(org_classes, num_classes)
