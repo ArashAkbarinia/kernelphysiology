@@ -113,9 +113,15 @@ def main_worker(ngpus_per_node, args):
     if args.transfer_weights is not None:
         print('Transferred model!')
         (model, _) = model_utils.which_network(
-            args.transfer_weights, args.task_type, num_classes=args.old_classes
+            args.transfer_weights[0], args.task_type,
+            num_classes=args.old_classes
         )
-        model = model_utils.NewClassificationModel(model, args.num_classes)
+        which_layer = -1
+        if len(args.transfer_weights) == 2:
+            which_layer = args.transfer_weights[1]
+        model = model_utils.NewClassificationModel(
+            model, which_layer, args.num_classes
+        )
     elif args.custom_arch:
         print('Custom model!')
         supported_customs = ['resnet_basic_custom', 'resnet_bottleneck_custom']
@@ -173,10 +179,21 @@ def main_worker(ngpus_per_node, args):
     criterion = nn.CrossEntropyLoss().cuda(args.gpus)
 
     # optimiser
-    optimizer = torch.optim.SGD(
-        model.parameters(), args.lr,
-        momentum=args.momentum, weight_decay=args.weight_decay
-    )
+    if args.transfer_weights is None:
+        optimizer = torch.optim.SGD(
+            model.parameters(), args.lr,
+            momentum=args.momentum, weight_decay=args.weight_decay
+        )
+    else:
+        for p in model.features.parameters():
+            p.requires_grad = False
+        params_to_optimize = [
+            {'params': [p for p in model.fc.parameters()]},
+        ]
+        optimizer = torch.optim.SGD(
+            params_to_optimize, lr=args.lr,
+            momentum=args.momentum, weight_decay=args.weight_decay
+        )
 
     model_progress = []
     model_progress_path = os.path.join(args.out_dir, 'model_progress.csv')

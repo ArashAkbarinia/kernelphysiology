@@ -114,11 +114,20 @@ class IntermediateModel(nn.Module):
 
 
 class NewClassificationModel(nn.Module):
-    def __init__(self, original_model, num_classes):
+    def __init__(self, original_model, layer, num_classes):
         super(NewClassificationModel, self).__init__()
 
+        # FIXME: this only works for custom ResNets
+        if type(layer) is str:
+            if layer == 'layer1':
+                layer = 5
+            elif layer == 'layer2':
+                layer = 6
+            elif layer == 'layer3':
+                layer = 7
+
         org_classes = original_model.fc.in_features
-        self.features = nn.Sequential(*list(original_model.children())[:-1])
+        self.features = nn.Sequential(*list(original_model.children())[:layer])
         self.fc = nn.Linear(org_classes, num_classes)
 
     def forward(self, x):

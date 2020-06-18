@@ -198,6 +198,7 @@ def get_network_group(parser):
 
     network_group.add_argument(
         '--transfer_weights',
+        nargs='+',
         type=str,
         default=None,
         help='Whether transferring weights from a model (default: None)'
