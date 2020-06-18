@@ -181,7 +181,7 @@ def get_train_dataset(dataset_name, traindir, colour_vision, colour_space,
         data_loader_train = lambda x: npy_data_loader(x)
 
         train_dataset = datasets.DatasetFolder(
-            traindir, data_loader_train, ['.npy'], transformations
+            traindir, data_loader_train, ('.npy',), transformations
         )
     elif 'wcs_jpg' in dataset_name:
         train_dataset = datasets.ImageFolder(
