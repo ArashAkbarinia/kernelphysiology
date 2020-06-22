@@ -708,8 +708,8 @@ def main_worker(ngpus_per_node, args):
 
     other_transformations = []
     if args.num_augmentations != 0:
-        augmentations = preprocessing.RandomAugmentationTransformation(
-            args.augmentation_settings, args.num_augmentations, is_pill_img
+        augmentations = preprocessing.random_augmentation(
+            args.augmentation_settings, args.num_augmentations
         )
         other_transformations.append(augmentations)
 
@@ -733,9 +733,9 @@ def main_worker(ngpus_per_node, args):
 
         for j, manipulation_value in enumerate(manipulation_values):
             args.parameters['kwargs'][args.manipulation] = manipulation_value
-            prediction_transformation = preprocessing.PredictionTransformation(
-                args.parameters, is_pill_img,
-                args.colour_space, tmp_c_space(manipulation_name)
+            prediction_transformation = preprocessing.prediction_transformation(
+                args.parameters, args.colour_space,
+                tmp_c_space(manipulation_name)
             )
             other_transformations = [prediction_transformation]
             _, validation_dataset = get_train_val_dataset(

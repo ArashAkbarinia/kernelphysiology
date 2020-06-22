@@ -231,13 +231,12 @@ def main_worker(ngpus_per_node, args):
     valid_trans = []
     both_trans = []
     if args.mosaic_pattern is not None:
-        mosaic_trans = preprocessing.MosaicTransformation(args.mosaic_pattern)
+        mosaic_trans = preprocessing.mosaic_transformation(args.mosaic_pattern)
         both_trans.append(mosaic_trans)
 
     if args.num_augmentations != 0:
-        augmentations = preprocessing.RandomAugmentationTransformation(
-            args.augmentation_settings, args.num_augmentations,
-            utils_db.is_dataset_pil_image(args.dataset)
+        augmentations = preprocessing.random_augmentation(
+            args.augmentation_settings, args.num_augmentations
         )
         train_trans.append(augmentations)
 

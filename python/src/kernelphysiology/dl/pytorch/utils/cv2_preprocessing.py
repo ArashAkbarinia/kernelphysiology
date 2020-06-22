@@ -19,7 +19,7 @@ class ColourTransformation(object):
         self.colour_space = colour_space
 
     def __call__(self, img):
-        if self.colour_space != 'rgb' or self.colour_inds is not None:
+        if self.colour_space != 'rgb':
             img = np.asarray(img).copy()
             if self.colour_space == 'lab':
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
@@ -41,6 +41,23 @@ class ColourTransformation(object):
                 img = normalisations.uint8im(img)
             elif self.colour_space == 'yog':
                 img = colour_spaces.rgb2yog01(img)
+                img = normalisations.uint8im(img)
+        return img
+
+
+class VisionTypeTransformation(object):
+
+    def __init__(self, colour_inds, colour_space='rgb'):
+        self.colour_inds = colour_inds
+        self.colour_space = colour_space
+
+    def __call__(self, img):
+        if self.colour_space != 'rgb' or self.colour_inds is not None:
+            img = np.asarray(img).copy()
+            if self.colour_space == 'lab':
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+            elif self.colour_space == 'dkl':
+                img = colour_spaces.rgb2dkl01(img)
                 img = normalisations.uint8im(img)
 
             # if colour_inds is None, we consider it as trichromat
@@ -118,11 +135,27 @@ class RandomAugmentationTransformation(object):
 
             # if the value is in the form of a list, we select a random value
             # in between those numbers
-            # for key, val in kwargs.items():
-            #     if isinstance(val, list):
-            #         kwargs[key] = random.uniform(*val)
+            for key, val in kwargs.items():
+                if isinstance(val, list):
+                    kwargs[key] = random.uniform(*val)
 
             x = manipulation_function(x, **kwargs)
-            # FIXME
-            x = x.astype('uint8')
+        return x
+
+
+class PredictionTransformation(object):
+
+    def __init__(self, parameters, colour_space='rgb', tmp_c=False):
+        # FIXME: tmp_c
+        self.parameters = parameters
+        self.colour_space = colour_space.upper()
+        self.tmpc = tmp_c
+
+    def __call__(self, x):
+        manipulation_function = self.parameters['function']
+        kwargs = self.parameters['kwargs']
+        if self.colour_space.lower() != 'rgb' and self.tmpc:
+            kwargs['colour_space'] = None
+
+        x = manipulation_function(x, **kwargs)
         return x

@@ -7,9 +7,10 @@ import random
 import sys
 
 import torch
-import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+import torchvision.transforms as torch_transforms
 
+from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import segmentation_utils
 
@@ -20,29 +21,29 @@ def prepare_transformations_train(dataset_name, colour_transformations,
     if 'cifar' in dataset_name or dataset_name in ['imagenet', 'fruits',
                                                    'leaves']:
         if 'cifar' in dataset_name:
-            size_transform = transforms.RandomCrop(target_size, padding=4)
+            size_transform = cv2_transforms.RandomCrop(target_size, padding=4)
         elif 'imagenet' in dataset_name:
             scale = (0.08, 1.0)
-            size_transform = transforms.RandomResizedCrop(
+            size_transform = cv2_transforms.RandomResizedCrop(
                 target_size, scale=scale
             )
         else:
             scale = (0.50, 1.0)
-            size_transform = transforms.RandomResizedCrop(
+            size_transform = cv2_transforms.RandomResizedCrop(
                 target_size, scale=scale
             )
-        transformations = transforms.Compose([
+        transformations = torch_transforms.Compose([
             size_transform,
             *colour_transformations,
             *other_transformations,
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
+            cv2_transforms.RandomHorizontalFlip(),
+            cv2_transforms.ToTensor(),
             *chns_transformation,
             normalize,
         ])
     elif 'wcs_lms' in dataset_name:
         # FIXME: colour transformation in lms is different from rgb or lab
-        transformations = transforms.Compose([
+        transformations = torch_transforms.Compose([
             *other_transformations,
             RandomHorizontalFlip(),
             Numpy2Tensor(),
@@ -50,11 +51,11 @@ def prepare_transformations_train(dataset_name, colour_transformations,
             normalize,
         ])
     elif 'wcs_jpg' in dataset_name:
-        transformations = transforms.Compose([
+        transformations = torch_transforms.Compose([
             *colour_transformations,
             *other_transformations,
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
+            cv2_transforms.RandomHorizontalFlip(),
+            cv2_transforms.ToTensor(),
             *chns_transformation,
             normalize,
         ])
@@ -70,28 +71,28 @@ def prepare_transformations_test(dataset_name, colour_transformations,
                                  normalize, target_size, task=None):
     if 'cifar' in dataset_name or dataset_name in ['imagenet', 'fruits',
                                                    'leaves']:
-        transformations = transforms.Compose([
-            transforms.Resize(target_size),
-            transforms.CenterCrop(target_size),
+        transformations = torch_transforms.Compose([
+            cv2_transforms.Resize(target_size),
+            cv2_transforms.CenterCrop(target_size),
             *colour_transformations,
             *other_transformations,
-            transforms.ToTensor(),
+            cv2_transforms.ToTensor(),
             *chns_transformation,
             normalize,
         ])
     elif 'wcs_lms' in dataset_name:
         # FIXME: colour transformation in lms is different from rgb or lab
-        transformations = transforms.Compose([
+        transformations = torch_transforms.Compose([
             *other_transformations,
             Numpy2Tensor(),
             *chns_transformation,
             normalize,
         ])
     elif 'wcs_jpg' in dataset_name:
-        transformations = transforms.Compose([
+        transformations = torch_transforms.Compose([
             *colour_transformations,
             *other_transformations,
-            transforms.ToTensor(),
+            cv2_transforms.ToTensor(),
             *chns_transformation,
             normalize,
         ])
@@ -104,14 +105,14 @@ def prepare_transformations_test(dataset_name, colour_transformations,
     return transformations
 
 
-def get_validation_dataset(dataset_name, valdir, colour_vision, colour_space,
+def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
                            other_transformations, normalize, target_size,
                            task=None):
     colour_transformations = preprocessing.colour_transformation(
-        colour_vision, colour_space
+        vision_type, colour_space
     )
     chns_transformation = preprocessing.channel_transformation(
-        colour_vision, colour_space
+        vision_type, colour_space
     )
 
     transformations = prepare_transformations_test(
@@ -123,7 +124,7 @@ def get_validation_dataset(dataset_name, valdir, colour_vision, colour_space,
         # TODO: dataset shouldn't return num classes
         data_reading_kwargs = {
             'target_size': target_size,
-            'colour_vision': colour_vision,
+            'colour_vision': vision_type,
             'colour_space': colour_space
         }
         validation_dataset, _ = segmentation_utils.get_dataset(
@@ -158,13 +159,13 @@ def get_validation_dataset(dataset_name, valdir, colour_vision, colour_space,
 
 
 # TODO: train and validation merge together
-def get_train_dataset(dataset_name, traindir, colour_vision, colour_space,
+def get_train_dataset(dataset_name, traindir, vision_type, colour_space,
                       other_transformations, normalize, target_size):
     colour_transformations = preprocessing.colour_transformation(
-        colour_vision, colour_space
+        vision_type, colour_space
     )
     chns_transformation = preprocessing.channel_transformation(
-        colour_vision, colour_space
+        vision_type, colour_space
     )
 
     transformations = prepare_transformations_train(

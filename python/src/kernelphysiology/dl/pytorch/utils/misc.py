@@ -247,9 +247,9 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
 
         for i, manipulation_value in enumerate(manipulation_values):
             args.parameters['kwargs'][args.manipulation] = manipulation_value
-            prediction_transformation = preprocessing.PredictionTransformation(
-                args.parameters, is_dataset_pil_image(args.dataset),
-                args.colour_space, tmp_c_space(manipulation_name)
+            prediction_transformation = preprocessing.prediction_transformation(
+                args.parameters, args.colour_space,
+                tmp_c_space(manipulation_name)
             )
             colour_vision = 'trichromat'
             if _requires_colour_transform(
@@ -260,7 +260,7 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
             other_transformations = []
             if args.mosaic_pattern is not None:
                 other_transformations.append(
-                    preprocessing.MosaicTransformation(args.mosaic_pattern)
+                    preprocessing.mosaic_transformation(args.mosaic_pattern)
                 )
             other_transformations.append(prediction_transformation)
 
