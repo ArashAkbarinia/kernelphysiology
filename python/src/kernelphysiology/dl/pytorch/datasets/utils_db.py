@@ -17,11 +17,17 @@ from kernelphysiology.dl.pytorch.utils import segmentation_utils
 def prepare_transformations_train(dataset_name, colour_transformations,
                                   other_transformations, chns_transformation,
                                   normalize, target_size):
-    if 'cifar' in dataset_name or dataset_name == 'imagenet':
+    if 'cifar' in dataset_name or dataset_name in ['imagenet', 'fruits',
+                                                   'leaves']:
         if 'cifar' in dataset_name:
             size_transform = transforms.RandomCrop(target_size, padding=4)
-        else:
+        elif 'imagenet' in dataset_name:
             scale = (0.08, 1.0)
+            size_transform = transforms.RandomResizedCrop(
+                target_size, scale=scale
+            )
+        else:
+            scale = (0.50, 1.0)
             size_transform = transforms.RandomResizedCrop(
                 target_size, scale=scale
             )
@@ -62,7 +68,8 @@ def prepare_transformations_train(dataset_name, colour_transformations,
 def prepare_transformations_test(dataset_name, colour_transformations,
                                  other_transformations, chns_transformation,
                                  normalize, target_size, task=None):
-    if 'cifar' in dataset_name or dataset_name == 'imagenet':
+    if 'cifar' in dataset_name or dataset_name in ['imagenet', 'fruits',
+                                                   'leaves']:
         transformations = transforms.Compose([
             transforms.Resize(target_size),
             transforms.CenterCrop(target_size),
