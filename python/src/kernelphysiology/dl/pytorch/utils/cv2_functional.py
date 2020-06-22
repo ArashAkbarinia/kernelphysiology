@@ -150,8 +150,10 @@ def crop(img, top, left, height, width):
     """
     assert _is_numpy_image(img), 'img should be CV Image. Got {}'.format(
         type(img))
-    assert height > 0 and width > 0, 'h={} and w={} should greater than 0'.format(
-        height, width)
+    assert (
+        height > 0 and width > 0, 'h={} and w={} should greater than 0'.format(
+            height, width)
+    )
 
     x1, y1, x2, y2 = round(top), round(left), round(top + height), round(
         left + width)
@@ -177,6 +179,80 @@ def crop(img, top, left, height, width):
 
     finally:
         return img[x1:x2, y1:y2, ...].copy()
+
+
+def pad(img, padding, fill=(0, 0, 0), padding_mode='constant'):
+    """Pad the given CV Image on all sides with speficified padding mode.
+    Args:
+        img (np.ndarray): Image to be padded.
+        padding (int or tuple): Padding on each border.
+            If a single int is provided this is used to pad all borders.
+            If tuple of length 2 is provided this is the padding on left/right
+            and top/bottom respectively. If a tuple of length 4 is provided
+            this is the padding for the left, top, right and bottom borders
+            respectively.
+        fill (int, tuple): Pixel fill value for constant fill. Default is 0.
+            If a tuple of
+            length 3, it is used to fill R, G, B channels respectively.
+            This value is only used when the padding_mode is constant
+        padding_mode: Type of padding: constant, edge, reflect or symmetric.
+            constant: pads with a constant value that is specified with fill
+            edge: pads with the last value on the edge of the image
+            reflect: pads with reflection of image (without repeating the last
+                value on the edge) padding [1, 2, 3, 4] with 2 elements on both
+                sides in reflect mode will result in [3, 2, 1, 2, 3, 4, 3, 2]
+            symmetric: pads with reflection of image (repeating the last value
+                on the edge) padding [1, 2, 3, 4] with 2 elements on both sides
+                in symmetric mode will result in [2, 1, 1, 2, 3, 4, 4, 3]
+    Returns:
+        CV Image: Padded image.
+    """
+    if not _is_numpy_image(img):
+        raise TypeError('img should be CV Image. Got {}'.format(type(img)))
+
+    if not isinstance(padding, (numbers.Number, tuple)):
+        raise TypeError('Got inappropriate padding arg')
+    if not isinstance(fill, (numbers.Number, str, tuple)):
+        raise TypeError('Got inappropriate fill arg')
+    if not isinstance(padding_mode, str):
+        raise TypeError('Got inappropriate padding_mode arg')
+
+    if isinstance(padding, collections.Sequence) and len(padding) not in [2, 4]:
+        raise ValueError(
+            "Padding must be an int or a 2, or 4 element tuple, not a " +
+            "{} element tuple".format(len(padding)))
+
+    assert (
+        padding_mode in ['constant', 'edge', 'reflect', 'symmetric'],
+        'Padding mode should be either constant, edge, reflect or symmetric'
+    )
+
+    pad_left = pad_right = pad_top = pad_bottom = 0
+    if isinstance(padding, int):
+        pad_left = pad_right = pad_top = pad_bottom = padding
+    if isinstance(padding, collections.Sequence) and len(padding) == 2:
+        pad_left = pad_right = padding[0]
+        pad_top = pad_bottom = padding[1]
+    if isinstance(padding, collections.Sequence) and len(padding) == 4:
+        pad_left, pad_top, pad_right, pad_bottom = padding
+
+    if isinstance(fill, numbers.Number):
+        fill = (fill,) * (2 * len(img.shape) - 3)
+
+    if padding_mode == 'constant':
+        assert (
+            ((len(fill) == 3 and len(img.shape) == 3) or
+             (len(fill) == 1 and len(img.shape) == 2)),
+            'channel of image is {} but length of fill is {}'.format(
+                img.shape[-1], len(fill)
+            )
+        )
+
+    img = cv2.copyMakeBorder(
+        src=img, top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right,
+        borderType=PAD_MOD[padding_mode], value=fill
+    )
+    return img
 
 
 def center_crop(img, output_size):
