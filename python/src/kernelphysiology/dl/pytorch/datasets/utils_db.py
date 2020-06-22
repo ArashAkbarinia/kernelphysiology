@@ -129,7 +129,7 @@ def get_validation_dataset(dataset_name, valdir, colour_vision, colour_space,
         validation_dataset, _ = segmentation_utils.get_dataset(
             dataset_name, valdir, 'val', **data_reading_kwargs
         )
-    elif dataset_name == 'imagenet':
+    elif dataset_name in ['imagenet', 'fruits', 'leaves']:
         validation_dataset = datasets.ImageFolder(
             valdir, transformations
         )
@@ -172,7 +172,7 @@ def get_train_dataset(dataset_name, traindir, colour_vision, colour_space,
         other_transformations, chns_transformation,
         normalize, target_size
     )
-    if dataset_name == 'imagenet':
+    if dataset_name in ['imagenet', 'fruits', 'leaves']:
         train_dataset = datasets.ImageFolder(
             traindir, transformations
         )
