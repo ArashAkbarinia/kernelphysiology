@@ -40,7 +40,7 @@ def get_default_target_size(dataset_name, target_size=None):
     # default target size for a set of commonly used datasets
     if 'voc' in dataset_name:
         target_size = 480
-    elif dataset_name in ['imagenet', 'leaf', 'fruits']:
+    elif dataset_name in ['imagenet', 'leaves', 'fruits']:
         target_size = 224
     elif 'wcs_lms' in dataset_name:
         target_size = 128
@@ -90,7 +90,7 @@ def get_default_dataset_paths(dataset_name, train_dir=None, validation_dir=None,
             data_dir = os.path.join(
                 commons.python_root, 'data/datasets/stl/stl10/'
             )
-    elif dataset_name == 'leaf' or dataset_name == 'fruits':
+    elif dataset_name in ['fruits', 'leaves']:
         db_path = '%sdatasets/misc/%s' % (pre_path, dataset_name)
         if train_dir is None:
             train_dir = '%s/train' % db_path

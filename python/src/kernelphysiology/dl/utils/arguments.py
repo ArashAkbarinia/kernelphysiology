@@ -276,7 +276,7 @@ def parse_image_modifications(str_command, supported_functions):
 
 def check_task_type(dataset, task_type=None):
     if ('cifar' in dataset or 'stl' in dataset or 'wcs' in dataset or
-            dataset in ['imagenet', 'leaf', 'fruits']):
+            dataset in ['imagenet', 'leaves', 'fruits']):
         if task_type is not None and task_type != 'classification':
             warnings.warn(
                 'Invalid task_type %s: %s only supports classification' %
