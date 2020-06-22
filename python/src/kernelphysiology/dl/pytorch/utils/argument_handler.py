@@ -60,7 +60,7 @@ def parse_predict_segmentation_arguments(argv):
     (args.network_files,
      args.network_names,
      args.network_chromaticities) = prepapre_testing.prepare_networks_testting(
-        args.network_name, args.colour_transformation
+        args.network_name, args.vision_type
     )
 
     return args

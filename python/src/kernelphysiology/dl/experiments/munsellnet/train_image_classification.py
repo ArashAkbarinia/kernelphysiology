@@ -320,7 +320,7 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
     model.train()
 
     mean, std = model_utils.get_preprocessing_function(
-        args.colour_space, args.colour_transformation
+        args.colour_space, args.vision_type
     )
     normalise_inverse = transformations.NormalizeInverse(mean, std)
     normalise_back = transforms.Normalize(mean=mean, std=std)
@@ -558,7 +558,7 @@ def main_worker(ngpus_per_node, args):
     is_pill_img = 'wcs_xyz_png_1600' in args.data_dir
 
     mean, std = model_utils.get_preprocessing_function(
-        args.colour_space, args.colour_transformation
+        args.colour_space, args.vision_type
     )
 
     # preparing the output folder

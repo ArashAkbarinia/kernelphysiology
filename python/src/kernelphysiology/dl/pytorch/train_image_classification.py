@@ -86,7 +86,7 @@ def main(argv):
 
 def main_worker(ngpus_per_node, args):
     mean, std = model_utils.get_preprocessing_function(
-        args.colour_space, args.colour_transformation
+        args.colour_space, args.vision_type
     )
 
     # preparing the output folder
@@ -247,7 +247,7 @@ def main_worker(ngpus_per_node, args):
     # loading the training set
     train_trans = [*both_trans, *train_trans]
     train_dataset = utils_db.get_train_dataset(
-        args.dataset, args.train_dir, args.colour_transformation,
+        args.dataset, args.train_dir, args.vision_type,
         args.colour_space, train_trans, normalize, target_size
     )
 
@@ -268,7 +268,7 @@ def main_worker(ngpus_per_node, args):
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
     validation_dataset = utils_db.get_validation_dataset(
-        args.dataset, args.validation_dir, args.colour_transformation,
+        args.dataset, args.validation_dir, args.vision_type,
         args.colour_space, valid_trans, normalize, target_size,
     )
 

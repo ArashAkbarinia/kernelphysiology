@@ -71,7 +71,7 @@ def get_input_group(parser):
     )
 
     input_group.add_argument(
-        '--colour_transformation',
+        '--vision_type',
         type=str,
         default='trichromat',
         # TODO: add luminance blindness
@@ -84,7 +84,7 @@ def get_input_group(parser):
             'deuteranopia',
             'tritanopia'
         ],
-        help='The preprocessing colour transformation (default: trichromat)'
+        help='The vision type of the network (default: trichromat)'
     )
 
     input_group.add_argument(
