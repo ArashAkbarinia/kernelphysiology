@@ -123,6 +123,22 @@ def get_default_dataset_paths(dataset_name, train_dir=None, validation_dir=None,
     return train_dir, validation_dir, data_dir
 
 
+def optimisation_params(task_type, args=None):
+    if args is None:
+        args = {}
+    # TODO: other tasks
+    if task_type == 'classification':
+        if 'lr' not in args or args.lr is None:
+            lr = 0.1
+        else:
+            lr = args.lr
+        if 'weight_decay' not in args or args.weight_decay is None:
+            weight_decay = 1e-4
+        else:
+            weight_decay = args.weight_decay
+        return lr, weight_decay
+
+
 def _is_server_known():
     hostname = socket.gethostname()
     if hostname in ['awesome', 'nickel', 'nyanza']:

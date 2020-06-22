@@ -26,17 +26,16 @@ from kernelphysiology.dl.pytorch.utils import argument_handler
 from kernelphysiology.dl.pytorch.utils import misc as misc_utils
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.datasets import utils_db
-from kernelphysiology.dl.utils.default_configs import get_default_target_size
+from kernelphysiology.dl.utils import default_configs
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.utils.path_utils import create_dir
 
 
 def main(argv):
     args = argument_handler.train_arg_parser(argv)
-    if args.lr is None:
-        args.lr = 0.1
-    if args.weight_decay is None:
-        args.weight_decay = 1e-4
+    args.lr, args.weight_decay = default_configs.optimisation_params(
+        'classification', args
+    )
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]
 
@@ -242,7 +241,7 @@ def main_worker(ngpus_per_node, args):
         )
         train_trans.append(augmentations)
 
-    target_size = get_default_target_size(args.dataset)
+    target_size = default_configs.get_default_target_size(args.dataset)
 
     # loading the training set
     train_trans = [*both_trans, *train_trans]
@@ -315,6 +314,7 @@ def main_worker(ngpus_per_node, args):
                         'blocks': args.blocks,
                         'num_kernels': args.num_kernels
                     },
+                    'preprocessing': {'mean': mean, 'std': std},
                     'state_dict': model.state_dict(),
                     'best_acc1': best_acc1,
                     'optimizer': optimizer.state_dict(),
