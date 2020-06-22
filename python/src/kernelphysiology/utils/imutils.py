@@ -459,22 +459,22 @@ def local_std(image, window_size=(5, 5)):
     return std_image, avg_image
 
 
-def get_colour_inds(chromaticity_type):
+def get_colour_inds(vision_type):
     # FIXME: according to colour space
     colour_inds = None
-    if chromaticity_type == 'dichromat_rg':
+    if vision_type == 'dichromat_rg':
         colour_inds = [1]
-    elif chromaticity_type == 'dichromat_yb':
+    elif vision_type == 'dichromat_yb':
         colour_inds = [2]
-    elif chromaticity_type == 'monochromat':
+    elif vision_type == 'monochromat':
         colour_inds = [1, 2]
-    elif chromaticity_type == 'lightness':
+    elif vision_type == 'lightness':
         colour_inds = [0]
-    elif chromaticity_type == 'protanopia':
+    elif vision_type == 'protanopia':
         colour_inds = [0]
-    elif chromaticity_type == 'deuteranopia':
+    elif vision_type == 'deuteranopia':
         colour_inds = [1]
-    elif chromaticity_type == 'tritanopia':
+    elif vision_type == 'tritanopia':
         colour_inds = [2]
     return colour_inds
 

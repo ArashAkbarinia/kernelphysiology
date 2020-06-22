@@ -45,10 +45,10 @@ class ColourTransformation(object):
         return img
 
 
-def colour_transformation(transformation_type, colour_space='rgb'):
+def colour_transformation(vision_type, colour_space='rgb'):
     ct = []
     if colour_space != 'lms':
-        colour_inds = imutils.get_colour_inds(transformation_type)
+        colour_inds = imutils.get_colour_inds(vision_type)
         ct.append(ColourTransformation(colour_inds, colour_space))
     return ct
 
@@ -80,10 +80,10 @@ class MosaicTransformation(object):
         return img
 
 
-def channel_transformation(transformation_type, colour_space='rgb'):
+def channel_transformation(vision_type, colour_space='rgb'):
     ct = []
-    if transformation_type != 'trichromat':
-        colour_inds = imutils.get_colour_inds(transformation_type)
+    if vision_type != 'trichromat':
+        colour_inds = imutils.get_colour_inds(vision_type)
         # check if it's a valid colour index
         if colour_inds is not None:
             ct.append(ChannelTransformation(colour_inds, colour_space))
