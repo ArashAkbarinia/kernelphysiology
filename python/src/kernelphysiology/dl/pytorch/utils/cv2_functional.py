@@ -151,9 +151,8 @@ def crop(img, top, left, height, width):
     assert _is_numpy_image(img), 'img should be CV Image. Got {}'.format(
         type(img))
     assert (
-        height > 0 and width > 0, 'h={} and w={} should greater than 0'.format(
-            height, width)
-    )
+            height > 0 and width > 0
+    ), 'h={} and w={} should greater than 0'.format(height, width)
 
     x1, y1, x2, y2 = round(top), round(left), round(top + height), round(
         left + width)
@@ -223,9 +222,8 @@ def pad(img, padding, fill=(0, 0, 0), padding_mode='constant'):
             "{} element tuple".format(len(padding)))
 
     assert (
-        padding_mode in ['constant', 'edge', 'reflect', 'symmetric'],
-        'Padding mode should be either constant, edge, reflect or symmetric'
-    )
+            padding_mode in ['constant', 'edge', 'reflect', 'symmetric']
+    ), 'Padding mode should be either constant, edge, reflect or symmetric'
 
     pad_left = pad_right = pad_top = pad_bottom = 0
     if isinstance(padding, int):
@@ -242,10 +240,9 @@ def pad(img, padding, fill=(0, 0, 0), padding_mode='constant'):
     if padding_mode == 'constant':
         assert (
             ((len(fill) == 3 and len(img.shape) == 3) or
-             (len(fill) == 1 and len(img.shape) == 2)),
-            'channel of image is {} but length of fill is {}'.format(
-                img.shape[-1], len(fill)
-            )
+             (len(fill) == 1 and len(img.shape) == 2))
+        ), 'channel of image is {} but length of fill is {}'.format(
+            img.shape[-1], len(fill)
         )
 
     img = cv2.copyMakeBorder(
@@ -255,7 +252,7 @@ def pad(img, padding, fill=(0, 0, 0), padding_mode='constant'):
     return img
 
 
-def center_crop(img, output_size):
+def center_crop(img, output_size: int):
     if isinstance(output_size, numbers.Number):
         output_size = (int(output_size), int(output_size))
     h, w, _ = img.shape
