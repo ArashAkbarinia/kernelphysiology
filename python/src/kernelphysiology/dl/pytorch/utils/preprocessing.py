@@ -12,7 +12,7 @@ def colour_transformation(vision_type, colour_space='rgb'):
     ct = []
     if colour_space != 'lms':
         colour_inds = imutils.get_colour_inds(vision_type)
-        ct.append(cv2_preprocessing.ColourTransformation(
+        ct.append(cv2_preprocessing.VisionTypeTransformation(
             colour_inds, colour_space
         ))
     return ct

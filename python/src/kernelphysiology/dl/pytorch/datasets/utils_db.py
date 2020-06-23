@@ -132,7 +132,7 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
         )
     elif dataset_name in ['imagenet', 'fruits', 'leaves']:
         validation_dataset = datasets.ImageFolder(
-            valdir, transformations
+            valdir, transformations, loader=pil2numpy_loader
         )
     elif dataset_name == 'cifar10':
         validation_dataset = datasets.CIFAR10(
@@ -151,7 +151,7 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
         )
     elif 'wcs_jpg' in dataset_name:
         validation_dataset = datasets.ImageFolder(
-            valdir, transformations
+            valdir, transformations, loader=pil2numpy_loader
         )
     else:
         sys.exit('Dataset %s is not supported.' % dataset_name)
@@ -175,7 +175,7 @@ def get_train_dataset(dataset_name, traindir, vision_type, colour_space,
     )
     if dataset_name in ['imagenet', 'fruits', 'leaves']:
         train_dataset = datasets.ImageFolder(
-            traindir, transformations
+            traindir, transformations, loader=pil2numpy_loader
         )
     elif dataset_name == 'cifar10':
         train_dataset = datasets.CIFAR10(
@@ -193,7 +193,7 @@ def get_train_dataset(dataset_name, traindir, vision_type, colour_space,
         )
     elif 'wcs_jpg' in dataset_name:
         train_dataset = datasets.ImageFolder(
-            traindir, transformations
+            traindir, transformations, loader=pil2numpy_loader
         )
     else:
         sys.exit('Dataset %s is not supported.' % dataset_name)
@@ -285,3 +285,8 @@ class RandomVerticalFlip(object):
 
     def __repr__(self):
         return self.__class__.__name__ + '(p={})'.format(self.p)
+
+
+def pil2numpy_loader(path):
+    img = datasets.folder.pil_loader(path)
+    return np.asarray(img)

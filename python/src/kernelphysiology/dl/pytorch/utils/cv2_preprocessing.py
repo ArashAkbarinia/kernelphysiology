@@ -54,11 +54,7 @@ class VisionTypeTransformation(object):
     def __call__(self, img):
         if self.colour_space != 'rgb' or self.colour_inds is not None:
             img = np.asarray(img).copy()
-            if self.colour_space == 'lab':
-                img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
-            elif self.colour_space == 'dkl':
-                img = colour_spaces.rgb2dkl01(img)
-                img = normalisations.uint8im(img)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
 
             # if colour_inds is None, we consider it as trichromat
             if self.colour_inds is not None:
@@ -66,7 +62,7 @@ class VisionTypeTransformation(object):
                 if self.colour_inds == 0:
                     img[:, :, self.colour_inds] = 50
                 else:
-                    img[:, :, self.colour_inds] = 0
+                    img[:, :, self.colour_inds] = 128
             # FIXME: right now it's only for lab
             if self.colour_space == 'rgb':
                 img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)

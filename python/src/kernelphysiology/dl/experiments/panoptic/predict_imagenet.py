@@ -142,7 +142,9 @@ def main(args):
     intransform_funs = []
     if args.in_colour_space != ' rgb':
         intransform_funs.append(
-            cv2_preprocessing.ColourTransformation(None, args.in_colour_space)
+            cv2_preprocessing.VisionTypeTransformation(
+                None, args.in_colour_space
+            )
         )
     intransform = transforms.Compose(intransform_funs)
 
@@ -213,7 +215,7 @@ def export(data_loader, model, mean, std, imagenet_model,
 
                 # measure accuracy and record loss
                 ((acc1, acc5), (corrects1, corrects5)) = accuracy_preds(
-                    output, targets[img_ind:img_ind+1], topk=(1, 5)
+                    output, targets[img_ind:img_ind + 1], topk=(1, 5)
                 )
                 corrects1 = corrects1.cpu().numpy()
                 corrects5 = corrects5.cpu().numpy().sum(axis=0)
@@ -242,9 +244,11 @@ def export(data_loader, model, mean, std, imagenet_model,
                 if len(all_predictions) == 1:
                     prediction_output = np.concatenate(all_predictions[0])
                 else:
-                    prediction_output = [np.concatenate(out) for out in all_predictions]
+                    prediction_output = [np.concatenate(out) for out in
+                                         all_predictions]
                 output_file = '%s/%s.csv' % (args.out_dir, args.colour_space)
-                np.savetxt(output_file, prediction_output, delimiter=',', fmt='%i')
+                np.savetxt(output_file, prediction_output, delimiter=',',
+                           fmt='%i')
         if len(all_predictions) == 1:
             prediction_output = np.concatenate(all_predictions[0])
         else:
