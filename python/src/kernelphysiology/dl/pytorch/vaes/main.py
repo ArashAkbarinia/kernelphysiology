@@ -14,13 +14,11 @@ from torchvision import datasets, transforms
 from kernelphysiology.dl.pytorch.vaes import util as vae_util
 from kernelphysiology.dl.pytorch.vaes import model as vae_model
 from kernelphysiology.dl.pytorch.vaes import vanilla_vae
-from kernelphysiology.dl.pytorch.vaes import wavenet_vae
-from kernelphysiology.dl.pytorch.vaes import data_loaders
+from kernelphysiology.dl.pytorch.datasets import data_loaders
 from kernelphysiology.dl.pytorch.vaes.arguments import parse_arguments
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.transformations import colour_spaces
-from kernelphysiology.transformations import normalisations
 from kernelphysiology.utils import imutils
 
 import cv2
@@ -181,8 +179,6 @@ def main(args):
         if 'voc' in args.dataset:
             task = 'segmentation'
             out_chns = 21
-        from kernelphysiology.dl.pytorch.models import \
-            model_utils as model_utils
         from torchvision.models import resnet
         backbone = resnet.__dict__['resnet50'](
             pretrained=True,

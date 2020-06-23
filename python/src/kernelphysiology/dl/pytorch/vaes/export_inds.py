@@ -6,7 +6,7 @@ import argparse
 import torch
 from torchvision import transforms
 
-from kernelphysiology.dl.pytorch.vaes import data_loaders
+from kernelphysiology.dl.pytorch.datasets import data_loaders
 
 from kernelphysiology.dl.pytorch.vaes import model as vqmodel
 

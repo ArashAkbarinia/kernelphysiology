@@ -7,7 +7,7 @@ from torchvision import transforms
 
 from skimage import io
 import cv2
-from kernelphysiology.dl.pytorch.vaes import data_loaders
+from kernelphysiology.dl.pytorch.datasets import data_loaders
 
 from kernelphysiology.dl.pytorch.vaes import model as vqmodel
 from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor

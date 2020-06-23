@@ -5,7 +5,7 @@ import torch
 from torchvision import transforms
 
 from skimage import io
-from kernelphysiology.dl.pytorch.vaes import data_loaders
+from kernelphysiology.dl.pytorch.datasets import data_loaders
 
 from kernelphysiology.dl.pytorch.vaes import model as vqmodel
 
