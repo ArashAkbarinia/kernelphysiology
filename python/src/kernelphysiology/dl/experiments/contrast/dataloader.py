@@ -9,10 +9,42 @@ from kernelphysiology.utils import imutils
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
 
+def two_pairs_stimuli(img0, img1, transform, p=0.5, contrasts=None):
+    if contrasts is None:
+        contrast0 = random.uniform(0, 1)
+        contrast1 = random.uniform(0, 1)
+    else:
+        contrast0, contrast1 = contrasts
+
+    img0 = imutils.adjust_contrast(img0, contrast0)
+    img1 = imutils.adjust_contrast(img1, contrast1)
+
+    if transform is not None:
+        img0, img1 = transform([img0, img1])
+
+    imgs_cat = [img0, img1]
+    max_contrast = np.argmax([contrast0, contrast1])
+    if random.random() < p:
+        contrast_target = 0
+    else:
+        contrast_target = 1
+    if max_contrast != contrast_target:
+        imgs_cat = imgs_cat[::-1]
+    dim = 2
+    grey_cols = torch.zeros((3, img0.shape[1], 40)).type(img0.type())
+    imgs_cat = [grey_cols, imgs_cat[0], grey_cols, imgs_cat[1], grey_cols]
+    img_out = torch.cat(imgs_cat, dim)
+    dim = 1
+    grey_rows = torch.zeros((3, 40, img_out.shape[2])).type(img0.type())
+    return torch.cat([grey_rows, img_out, grey_rows], dim), contrast_target
+
+
 class ImageFolder(tdatasets.ImageFolder):
-    def __init__(self, **kwargs):
+    def __init__(self, p=0.5, contrasts=None, **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
+        self.p = p
+        self.contrasts = contrasts
 
     def __getitem__(self, index):
         """
@@ -24,28 +56,14 @@ class ImageFolder(tdatasets.ImageFolder):
              original image after applied manipulations.
         """
         path, class_target = self.samples[index]
-        img_l = self.loader(path)
-        img_l = np.asarray(img_l).copy()
-        img_r = img_l.copy()
+        img0 = self.loader(path)
+        img0 = np.asarray(img0).copy()
+        img1 = img0.copy()
 
-        contrast_l = random.uniform(0, 1)
-        contrast_r = random.uniform(0, 1)
-
-        img_l = imutils.adjust_contrast(img_l, contrast_l)
-        img_r = imutils.adjust_contrast(img_r, contrast_r)
-
-        if self.transform is not None:
-            img_l, img_r = self.transform([img_l, img_r])
-
-        dim = 2
-        if random.randint(0, 1):
-            img_out = torch.cat([img_l, img_r], dim)
-            contrast_target = np.argmax([contrast_l, contrast_r])
-            # print('LR', contrast_l, contrast_r)
-        else:
-            img_out = torch.cat([img_r, img_l], dim)
-            contrast_target = np.argmax([contrast_r, contrast_l])
-            # print('RL', contrast_r, contrast_l)
+        img_out, contrast_target = two_pairs_stimuli(
+            img0, img1, self.transform, self.p, self.contrasts
+        )
+        # print([contrast0, contrast1], max_contrast, contrast_target)
 
         # right now we're not using the class target, but perhaps in the future
         if self.target_transform is not None:
