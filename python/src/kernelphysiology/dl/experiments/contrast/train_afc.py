@@ -37,6 +37,7 @@ def main(argv):
     args.lr, args.weight_decay = default_configs.optimisation_params(
         'classification', args
     )
+    args.num_classes = 2
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]
 
@@ -128,7 +129,7 @@ def main_worker(ngpus_per_node, args):
         if args.network_name in supported_customs:
             model = custom_models.__dict__[args.network_name](
                 args.blocks, pooling_type=args.pooling_type,
-                in_chns=len(mean), num_classes=2,
+                in_chns=len(mean), num_classes=args.num_classes,
                 inplanes=args.num_kernels
             )
     elif args.pretrained:
