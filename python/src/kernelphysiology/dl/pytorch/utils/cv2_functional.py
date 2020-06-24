@@ -46,7 +46,7 @@ def to_tensor(pic):
     if _is_numpy_image(pic):
         if len(pic.shape) == 2:
             pic = cv2.cvtColor(pic, cv2.COLOR_GRAY2RGB)
-        img = torch.from_numpy(pic.transpose((2, 0, 1)))
+        img = torch.from_numpy(pic.transpose((2, 0, 1))).type(torch.FloatTensor)
         # backward compatibility
         if isinstance(img, torch.ByteTensor) or img.max() > 1:
             return img.float().div(255)
