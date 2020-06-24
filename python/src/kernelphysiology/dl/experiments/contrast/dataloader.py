@@ -2,6 +2,7 @@ import numpy as np
 import random
 
 import torch
+from torch.utils import data as torch_data
 from torchvision import datasets as tdatasets
 import torchvision.transforms as torch_transforms
 
@@ -74,7 +75,7 @@ class ImageFolder(tdatasets.ImageFolder):
         return img_out, contrast_target, path
 
 
-class GratingImages(torch.utils.data.Dataset):
+class GratingImages(torch_data.Dataset):
     def __init__(self, samples, p=0.5, contrasts=None, transform=None):
         super(GratingImages, self).__init__()
         self.samples = samples
@@ -126,7 +127,8 @@ class GratingImages(torch.utils.data.Dataset):
         return self.samples
 
 
-def train_set(train_dir, target_size, mean, std):
+def train_set(db, train_dir, target_size, mean, std):
+    all_dbs = []
     scale = (0.08, 1.0)
     size_transform = cv2_transforms.RandomResizedCrop(
         target_size, scale=scale
@@ -137,14 +139,23 @@ def train_set(train_dir, target_size, mean, std):
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std),
     ])
-    return ImageFolder(root=train_dir, transform=transforms)
+    if db is None or db == 'both':
+        all_dbs.append(ImageFolder(root=train_dir, transform=transforms))
+    if db in ['both', 'gratings']:
+        all_dbs.append(GratingImages(samples=10000, transform=transforms))
+    return torch_data.ConcatDataset(all_dbs)
 
 
-def validation_set(validation_dir, target_size, mean, std):
+def validation_set(db, validation_dir, target_size, mean, std):
+    all_dbs = []
     transforms = torch_transforms.Compose([
         cv2_transforms.Resize(target_size),
         cv2_transforms.CenterCrop(target_size),
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std),
     ])
-    return ImageFolder(root=validation_dir, transform=transforms)
+    if db is None or db == 'both':
+        all_dbs.append(ImageFolder(root=validation_dir, transform=transforms))
+    if db in ['both', 'gratings']:
+        all_dbs.append(GratingImages(samples=1000, transform=transforms))
+    return torch_data.ConcatDataset(all_dbs)

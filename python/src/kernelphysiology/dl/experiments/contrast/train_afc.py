@@ -33,7 +33,7 @@ from kernelphysiology.dl.experiments.contrast import dataloader
 
 
 def main(argv):
-    args = argument_handler.train_arg_parser(argv)
+    args = argument_handler.train_arg_parser(argv, extra_args_fun)
     args.lr, args.weight_decay = default_configs.optimisation_params(
         'classification', args
     )
@@ -240,7 +240,9 @@ def main_worker(ngpus_per_node, args):
     # loading the training set
     train_trans = [*both_trans, *train_trans]
 
-    train_dataset = dataloader.train_set(args.train_dir, target_size, mean, std)
+    train_dataset = dataloader.train_set(
+        args.db, args.train_dir, target_size, mean, std
+    )
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
@@ -259,7 +261,7 @@ def main_worker(ngpus_per_node, args):
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
     validation_dataset = dataloader.train_set(
-        args.validation_dir, target_size, mean, std
+        args.db, args.validation_dir, target_size, mean, std
     )
 
     val_loader = torch.utils.data.DataLoader(
@@ -427,6 +429,14 @@ def validate_on_data(val_loader, model, criterion, args):
         )
 
     return [batch_time.avg, losses.avg, top1.avg, top5.avg]
+
+
+def extra_args_fun(parser):
+    specific_group = parser.add_argument_group('Contrast specific')
+
+    specific_group.add_argument(
+        '-db', '--db', default=None, type=str
+    )
 
 
 if __name__ == '__main__':
