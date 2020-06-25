@@ -2,6 +2,7 @@
 Preparing the input image to be inputted to a network.
 """
 
+import sys
 import numpy as np
 import random
 
@@ -12,13 +13,14 @@ from kernelphysiology.transformations import colour_spaces
 from kernelphysiology.transformations import normalisations
 
 
-class ColourTransformation(object):
+class ColourSpaceTransformation(object):
 
     def __init__(self, colour_inds, colour_space='rgb'):
         self.colour_inds = colour_inds
         self.colour_space = colour_space
 
     def __call__(self, img):
+        # TODO: move the if statmenets to a separate function to speed up.
         if self.colour_space != 'rgb':
             img = np.asarray(img).copy()
             if self.colour_space == 'lab':
@@ -42,6 +44,15 @@ class ColourTransformation(object):
             elif self.colour_space == 'yog':
                 img = colour_spaces.rgb2yog01(img)
                 img = normalisations.uint8im(img)
+            elif self.colour_space == 'gry':
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+                # For convenience we represent a grey-scale image in 3 channels.
+                img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
+            else:
+                sys.exit(
+                    'ColourSpaceTransformation does not support %s.' %
+                    self.colour_space
+                )
         return img
 
 

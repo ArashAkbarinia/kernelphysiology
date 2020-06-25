@@ -264,14 +264,14 @@ def main(args):
         )
     if in_colour_space != ' rgb':
         intransform_funs.append(
-            cv2_preprocessing.ColourTransformation(None, in_colour_space)
+            cv2_preprocessing.ColourSpaceTransformation(None, in_colour_space)
         )
     intransform = transforms.Compose(intransform_funs)
     outtransform_funs = []
     args.inv_func = None
     if args.colour_space is not None:
         outtransform_funs.append(
-            cv2_preprocessing.ColourTransformation(None, args.colour_space)
+            cv2_preprocessing.ColourSpaceTransformation(None, args.colour_space)
         )
         if args.vis_rgb:
             args.inv_func = lambda x: generic_inv_fun(x, args.colour_space)
