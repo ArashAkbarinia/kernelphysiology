@@ -144,7 +144,7 @@ class GratingImages(torch_data.Dataset):
             img0, img1, contrast0, contrast1, self.p
         )
 
-        path = None
+        path = []
         return img_out, contrast_target, path
 
     def __len__(self):
