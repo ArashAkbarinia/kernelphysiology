@@ -76,14 +76,17 @@ class ImageFolder(tdatasets.ImageFolder):
 
 
 class GratingImages(torch_data.Dataset):
-    def __init__(self, samples, target_size=(224, 224), p=0.5, contrasts=None,
-                 transform=None):
+    def __init__(self, samples, target_size=(224, 224), p=0.5, transform=None,
+                 contrasts=None, theta=None, rho=None, lambda_wave=None):
         super(GratingImages, self).__init__()
         self.samples = samples
         self.target_size = target_size
         self.p = p
-        self.contrasts = contrasts
         self.transform = transform
+        self.contrasts = contrasts
+        self.theta = theta
+        self.rho = rho
+        self.lambda_wave = lambda_wave
 
     def __getitem__(self, index):
         """
@@ -101,11 +104,21 @@ class GratingImages(torch_data.Dataset):
             contrast0, contrast1 = self.contrasts
 
         # randomising the parameters
-        theta = random.uniform(0, np.pi)
+        if self.theta is None:
+            theta = random.uniform(0, np.pi)
+        else:
+            theta = self.theta
         omega = [np.cos(theta), np.sin(theta)]
-        rho = random.uniform(0, np.pi)
-        lambda_wave = random.uniform(np.pi / 4, np.pi * 16)
+        if self.rho is None:
+            rho = random.uniform(0, np.pi)
+        else:
+            rho = self.rho
+        if self.lambda_wave is None:
+            lambda_wave = random.uniform(np.pi / 4, np.pi * 16)
+        else:
+            lambda_wave = self.lambda_wave
 
+        # generating the gratings
         sinusoid_param = {
             'amp': contrast0, 'omega': omega, 'rho': rho,
             'img_size': self.target_size, 'lambda_wave': lambda_wave
@@ -116,6 +129,7 @@ class GratingImages(torch_data.Dataset):
         img1 = (gratings.sinusoid(**sinusoid_param) + 1) / 2
         img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
 
+        # if target size is even, the generated stimuli is 1 pixel larger.
         if np.mod(self.target_size[0], 2) == 0:
             img0 = img0[:-1]
             img1 = img1[:-1]
@@ -130,13 +144,14 @@ class GratingImages(torch_data.Dataset):
             img0, img1, contrast0, contrast1, self.p
         )
 
-        return img_out, contrast_target, "path"
+        path = None
+        return img_out, contrast_target, path
 
     def __len__(self):
         return self.samples
 
 
-def train_set(db, train_dir, target_size, mean, std, samples=10000):
+def train_set(db, train_dir, target_size, mean, std, **kwargs):
     all_dbs = []
     shared_transforms = [
         cv2_transforms.RandomHorizontalFlip(),
@@ -154,11 +169,11 @@ def train_set(db, train_dir, target_size, mean, std, samples=10000):
         all_dbs.append(ImageFolder(root=train_dir, transform=transforms))
     if db in ['both', 'gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
-        all_dbs.append(GratingImages(samples=samples, transform=transforms))
+        all_dbs.append(GratingImages(transform=transforms, **kwargs))
     return torch_data.ConcatDataset(all_dbs)
 
 
-def validation_set(db, validation_dir, target_size, mean, std, samples=1000):
+def validation_set(db, validation_dir, target_size, mean, std, **kwargs):
     all_dbs = []
     shared_transforms = [
         cv2_transforms.CenterCrop(target_size),
@@ -173,7 +188,5 @@ def validation_set(db, validation_dir, target_size, mean, std, samples=1000):
         all_dbs.append(ImageFolder(root=validation_dir, transform=transforms))
     if db in ['both', 'gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
-        all_dbs.append(GratingImages(
-            samples=samples, transform=transforms
-        ))
+        all_dbs.append(GratingImages(transform=transforms, **kwargs))
     return torch_data.ConcatDataset(all_dbs)

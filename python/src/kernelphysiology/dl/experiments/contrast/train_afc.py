@@ -240,8 +240,9 @@ def main_worker(ngpus_per_node, args):
     # loading the training set
     train_trans = [*both_trans, *train_trans]
 
+    grating_params = {'samples': args.train_samples}
     train_dataset = dataloader.train_set(
-        args.db, args.train_dir, target_size, mean, std, args.train_samples
+        args.db, args.train_dir, target_size, mean, std, **grating_params
     )
 
     if args.distributed:
@@ -260,8 +261,9 @@ def main_worker(ngpus_per_node, args):
 
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
+    grating_params = {'samples': args.val_samples}
     validation_dataset = dataloader.train_set(
-        args.db, args.validation_dir, target_size, mean, std, args.val_samples
+        args.db, args.validation_dir, target_size, mean, std, **grating_params
     )
 
     val_loader = torch.utils.data.DataLoader(
