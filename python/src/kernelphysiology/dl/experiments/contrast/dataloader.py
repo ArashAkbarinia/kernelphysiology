@@ -57,8 +57,9 @@ class ImageFolder(tdatasets.ImageFolder):
         else:
             contrast0, contrast1 = self.contrasts
 
-        img0 = imutils.adjust_contrast(img0, contrast0)
-        img1 = imutils.adjust_contrast(img1, contrast1)
+        # TODO: move it to imutils functions
+        img0 = imutils.adjust_contrast(img0, contrast0).astype('uint8')
+        img1 = imutils.adjust_contrast(img1, contrast1).astype('uint8')
 
         if self.transform is not None:
             img0, img1 = self.transform([img0, img1])
