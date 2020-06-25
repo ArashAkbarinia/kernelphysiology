@@ -241,7 +241,7 @@ def main_worker(ngpus_per_node, args):
     train_trans = [*both_trans, *train_trans]
 
     train_dataset = dataloader.train_set(
-        args.db, args.train_dir, target_size, mean, std
+        args.db, args.train_dir, target_size, mean, std, args.train_samples
     )
 
     if args.distributed:
@@ -261,7 +261,7 @@ def main_worker(ngpus_per_node, args):
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
     validation_dataset = dataloader.train_set(
-        args.db, args.validation_dir, target_size, mean, std
+        args.db, args.validation_dir, target_size, mean, std, args.val_samples
     )
 
     val_loader = torch.utils.data.DataLoader(
@@ -375,6 +375,8 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
                     data_time=data_time, loss=losses, top1=top1, top5=top5
                 )
             )
+        if i * len(input_image) > args.train_samples:
+            break
     return [epoch, batch_time.avg, losses.avg, top1.avg, top5.avg]
 
 
@@ -421,6 +423,8 @@ def validate_on_data(val_loader, model, criterion, args):
                         top1=top1, top5=top5
                     )
                 )
+            if i * len(input_image) > args.val_samples:
+                break
         # printing the accuracy of the epoch
         print(
             ' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(
@@ -434,9 +438,9 @@ def validate_on_data(val_loader, model, criterion, args):
 def extra_args_fun(parser):
     specific_group = parser.add_argument_group('Contrast specific')
 
-    specific_group.add_argument(
-        '-db', '--db', default=None, type=str
-    )
+    specific_group.add_argument('-db', '--db', default=None, type=str)
+    specific_group.add_argument('--train_samples', default=10000, type=int)
+    specific_group.add_argument('--val_samples', default=1000, type=int)
 
 
 if __name__ == '__main__':

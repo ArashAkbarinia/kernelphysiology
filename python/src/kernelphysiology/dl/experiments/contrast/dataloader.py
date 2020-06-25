@@ -76,9 +76,11 @@ class ImageFolder(tdatasets.ImageFolder):
 
 
 class GratingImages(torch_data.Dataset):
-    def __init__(self, samples, p=0.5, contrasts=None, transform=None):
+    def __init__(self, samples, target_size=(224, 224), p=0.5, contrasts=None,
+                 transform=None):
         super(GratingImages, self).__init__()
         self.samples = samples
+        self.target_size = target_size
         self.p = p
         self.contrasts = contrasts
         self.transform = transform
@@ -102,17 +104,24 @@ class GratingImages(torch_data.Dataset):
         theta = random.uniform(0, np.pi)
         omega = [np.cos(theta), np.sin(theta)]
         rho = random.uniform(0, np.pi)
-        lambda_wave = random.uniform(np.pi / 8, np.pi * 8)
+        lambda_wave = random.uniform(np.pi / 4, np.pi * 16)
 
         sinusoid_param = {
             'amp': contrast0, 'omega': omega, 'rho': rho,
-            'img_size': (512, 512), 'lambda_wave': lambda_wave
+            'img_size': self.target_size, 'lambda_wave': lambda_wave
         }
         img0 = (gratings.sinusoid(**sinusoid_param) + 1) / 2
         img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
         sinusoid_param['amp'] = contrast1
         img1 = (gratings.sinusoid(**sinusoid_param) + 1) / 2
         img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
+
+        if np.mod(self.target_size[0], 2) == 0:
+            img0 = img0[:-1]
+            img1 = img1[:-1]
+        if np.mod(self.target_size[1], 2) == 0:
+            img0 = img0[:, :-1]
+            img1 = img1[:, :-1]
 
         if self.transform is not None:
             img0, img1 = self.transform([img0, img1])
@@ -127,35 +136,44 @@ class GratingImages(torch_data.Dataset):
         return self.samples
 
 
-def train_set(db, train_dir, target_size, mean, std):
+def train_set(db, train_dir, target_size, mean, std, samples=10000):
     all_dbs = []
-    scale = (0.08, 1.0)
-    size_transform = cv2_transforms.RandomResizedCrop(
-        target_size, scale=scale
-    )
-    transforms = torch_transforms.Compose([
-        size_transform,
+    shared_transforms = [
         cv2_transforms.RandomHorizontalFlip(),
         cv2_transforms.ToTensor(),
-        cv2_transforms.Normalize(mean, std),
-    ])
+        cv2_transforms.Normalize(mean, std)
+    ]
     if db is None or db == 'both':
+        scale = (0.08, 1.0)
+        size_transform = cv2_transforms.RandomResizedCrop(
+            target_size, scale=scale
+        )
+        transforms = torch_transforms.Compose([
+            size_transform, *shared_transforms
+        ])
         all_dbs.append(ImageFolder(root=train_dir, transform=transforms))
     if db in ['both', 'gratings']:
-        all_dbs.append(GratingImages(samples=10000, transform=transforms))
+        transforms = torch_transforms.Compose(shared_transforms)
+        all_dbs.append(GratingImages(samples=samples, transform=transforms))
     return torch_data.ConcatDataset(all_dbs)
 
 
-def validation_set(db, validation_dir, target_size, mean, std):
+def validation_set(db, validation_dir, target_size, mean, std, samples=1000):
     all_dbs = []
-    transforms = torch_transforms.Compose([
-        cv2_transforms.Resize(target_size),
+    shared_transforms = [
         cv2_transforms.CenterCrop(target_size),
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std),
-    ])
+    ]
     if db is None or db == 'both':
+        transforms = torch_transforms.Compose([
+            cv2_transforms.Resize(target_size),
+            *shared_transforms
+        ])
         all_dbs.append(ImageFolder(root=validation_dir, transform=transforms))
     if db in ['both', 'gratings']:
-        all_dbs.append(GratingImages(samples=1000, transform=transforms))
+        transforms = torch_transforms.Compose(shared_transforms)
+        all_dbs.append(GratingImages(
+            samples=samples, transform=transforms
+        ))
     return torch_data.ConcatDataset(all_dbs)
