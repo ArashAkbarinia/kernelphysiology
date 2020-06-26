@@ -33,7 +33,7 @@ def run_gratings(db, model, out_file):
         test_rhos) * len(test_ps)
     test_num = 0
     all_results = []
-    header = 'SpatialFrequency,Contrast,Theta,Rho,Side,Prediction'
+    header = 'Contrast,SpatialFrequency,Theta,Rho,Side,Prediction'
     for tcon in test_contrasts:
         db.datasets[grating_db].contrasts = [tcon, 0.00]
         for tsf in test_sfs:
