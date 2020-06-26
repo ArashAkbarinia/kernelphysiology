@@ -6,6 +6,8 @@ import torch
 
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.experiments.contrast import dataloader
+from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
+from kernelphysiology.utils import imutils
 
 
 def parse_arguments(args):
@@ -16,15 +18,20 @@ def parse_arguments(args):
     model_parser.add_argument('--out_file', type=str)
     model_parser.add_argument('--imagenet_dir', type=str, default=None)
     model_parser.add_argument('--batch_size', type=int, default=1)
+    model_parser.add_argument('--noise', nargs='+', type=str, default=None)
+    model_parser.add_argument('--contrasts', nargs='+', type=str, default=None)
     return parser.parse_args(args)
 
 
-def run_gratings(db, model, out_file):
+def run_gratings(db, model, out_file, contrasts):
     grating_db = 0
     grating_ind = 1
 
     test_sfs = np.linspace(np.pi / 4, np.pi * 16, 32)
-    test_contrasts = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.50, 1.00]
+    if contrasts is None:
+        test_contrasts = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.50, 1.00]
+    else:
+        test_contrasts = contrasts
     test_thetas = np.linspace(0, np.pi, 7)
     test_rhos = np.linspace(0, np.pi, 3)
     test_ps = [0.0, 1.0]
@@ -72,8 +79,17 @@ def main(args):
         colour_space, vision_type
     )
     gratings_args = {'samples': 1000}
+    noise_transformation = []
+    if args.noise is not None:
+        noise_kwargs = {'amount': float(args.noise[1])}
+        noise_transformation.append(
+            cv2_preprocessing.UniqueTransformation(
+                imutils.gaussian_noise, **noise_kwargs
+            )
+        )
     db = dataloader.validation_set(
-        args.db, args.imagenet_dir, target_size, mean, std, **gratings_args
+        args.db, args.imagenet_dir, target_size, mean, std,
+        noise_transformation, **gratings_args
     )
 
     model, _ = model_utils.which_network_classification(args.model_path, 2)
@@ -81,7 +97,7 @@ def main(args):
     model.cuda()
 
     if args.db == 'gratings':
-        run_gratings(db, model, args.out_file)
+        run_gratings(db, model, args.out_file, args.contrasts)
 
 
 if __name__ == "__main__":

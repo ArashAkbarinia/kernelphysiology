@@ -8,6 +8,7 @@ import random
 
 import cv2
 
+from kernelphysiology.dl.pytorch.utils.cv2_transforms import _call_recursive
 from kernelphysiology.utils import imutils
 from kernelphysiology.transformations import colour_spaces
 from kernelphysiology.transformations import normalisations
@@ -113,6 +114,8 @@ class UniqueTransformation(object):
         self.kwargs = kwargs
 
     def __call__(self, x):
+        if type(x) is list:
+            return _call_recursive(x, self.manipulation_function, **self.kwargs)
         x = self.manipulation_function(x, **self.kwargs)
         return x
 

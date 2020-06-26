@@ -125,10 +125,8 @@ class GratingImages(torch_data.Dataset):
             'img_size': self.target_size, 'lambda_wave': lambda_wave
         }
         img0 = (gratings.sinusoid(**sinusoid_param) + 1) / 2
-        img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
         sinusoid_param['amp'] = contrast1
         img1 = (gratings.sinusoid(**sinusoid_param) + 1) / 2
-        img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
 
         # if target size is even, the generated stimuli is 1 pixel larger.
         if np.mod(self.target_size[0], 2) == 0:
@@ -174,15 +172,19 @@ def train_set(db, train_dir, target_size, mean, std, **kwargs):
     return torch_data.ConcatDataset(all_dbs)
 
 
-def validation_set(db, validation_dir, target_size, mean, std, **kwargs):
+def validation_set(db, validation_dir, target_size, mean, std,
+                   extra_transformation=None, **kwargs):
+    if extra_transformation is None:
+        extra_transformation = []
     all_dbs = []
     shared_transforms = [
-        cv2_transforms.CenterCrop(target_size),
+        *extra_transformation,
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std),
     ]
     if db is None or db == 'both':
         transforms = torch_transforms.Compose([
+            cv2_transforms.CenterCrop(target_size),
             cv2_transforms.Resize(target_size),
             *shared_transforms
         ])
