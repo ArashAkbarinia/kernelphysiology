@@ -19,7 +19,7 @@ def parse_arguments(args):
     model_parser.add_argument('--imagenet_dir', type=str, default=None)
     model_parser.add_argument('--batch_size', type=int, default=1)
     model_parser.add_argument('--noise', nargs='+', type=str, default=None)
-    model_parser.add_argument('--contrasts', nargs='+', type=str, default=None)
+    model_parser.add_argument('--contrasts', nargs='+', type=float, default=None)
     return parser.parse_args(args)
 
 
