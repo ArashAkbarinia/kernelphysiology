@@ -13,13 +13,13 @@ def parse_arguments(args):
     model_parser = parser.add_argument_group('Model Parameters')
     model_parser.add_argument('--model_path', type=str)
     model_parser.add_argument('--db', type=str)
-    model_parser.add_argument('--out_dir', type=str)
+    model_parser.add_argument('--out_file', type=str)
     model_parser.add_argument('--imagenet_dir', type=str, default=None)
-    model_parser.add_argument('--batch-size', type=int, default=1)
+    model_parser.add_argument('--batch_size', type=int, default=1)
     return parser.parse_args(args)
 
 
-def run_gratings(db, model, out_dir):
+def run_gratings(db, model, out_file):
     grating_db = 0
     grating_ind = 1
 
@@ -34,14 +34,14 @@ def run_gratings(db, model, out_dir):
     test_num = 0
     all_results = []
     header = 'SpatialFrequency,Contrast,Theta,Rho,Side,Prediction'
-    for tsf in test_sfs:
-        db.datasets[grating_db].lambda_wave = tsf
-        for tcon in test_contrasts:
-            db.datasets[grating_db].contrast = [tcon, 0.00]
+    for tcon in test_contrasts:
+        db.datasets[grating_db].contrasts = [tcon, 0.00]
+        for tsf in test_sfs:
+            db.datasets[grating_db].lambda_wave = tsf
             for ttheta in test_thetas:
                 db.datasets[grating_db].theta = ttheta
                 for trho in test_rhos:
-                    db.datasets[grating_db].trho = trho
+                    db.datasets[grating_db].rho = trho
                     for tp in test_ps:
                         db.datasets[grating_db].p = tp
                         test_img, target, _ = db.__getitem__(grating_ind)
@@ -50,13 +50,13 @@ def run_gratings(db, model, out_dir):
                             out = model(test_img.unsqueeze(0))
                             pred = out.cpu().argmax().numpy() == target
 
-                        params = [tsf, tcon, ttheta, trho, tp, pred]
+                        params = [tcon, tsf, ttheta, trho, tp, pred]
                         all_results.append(params)
                         percent = float(test_num) / float(num_tests)
                         print('%.2f [%d/%d]' % (percent, test_num, num_tests))
                         test_num += 1
 
-    save_path = out_dir + '/csf_net.csv'
+    save_path = out_file + '.csv'
     np.savetxt(save_path, np.array(all_results), delimiter=',', header=header)
 
 
@@ -81,7 +81,7 @@ def main(args):
     model.cuda()
 
     if args.db == 'gratings':
-        run_gratings(db, model, args.out_dir)
+        run_gratings(db, model, args.out_file)
 
 
 if __name__ == "__main__":
