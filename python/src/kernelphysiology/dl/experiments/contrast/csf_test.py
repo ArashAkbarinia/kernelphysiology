@@ -33,7 +33,10 @@ def run_gratings(db, model, out_file, contrasts, freqs):
     if freqs is None:
         test_sfs = np.linspace(np.pi / 4, np.pi * 16, 32)
     else:
-        test_sfs = freqs
+        if len(freqs) == 3:
+            test_sfs = np.linspace(freqs[0], freqs[1], int(freqs[2]))
+        else:
+            test_sfs = freqs
     if contrasts is None:
         test_contrasts = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.50, 1.00]
     else:
