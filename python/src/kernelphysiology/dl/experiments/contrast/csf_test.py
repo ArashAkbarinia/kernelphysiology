@@ -19,15 +19,21 @@ def parse_arguments(args):
     model_parser.add_argument('--imagenet_dir', type=str, default=None)
     model_parser.add_argument('--batch_size', type=int, default=1)
     model_parser.add_argument('--noise', nargs='+', type=str, default=None)
-    model_parser.add_argument('--contrasts', nargs='+', type=float, default=None)
+    model_parser.add_argument('--contrasts', nargs='+', type=float,
+                              default=None)
+    model_parser.add_argument('--freqs', nargs='+', type=float,
+                              default=None)
     return parser.parse_args(args)
 
 
-def run_gratings(db, model, out_file, contrasts):
+def run_gratings(db, model, out_file, contrasts, freqs):
     grating_db = 0
     grating_ind = 1
 
-    test_sfs = np.linspace(np.pi / 4, np.pi * 16, 32)
+    if freqs is None:
+        test_sfs = np.linspace(np.pi / 4, np.pi * 16, 32)
+    else:
+        test_sfs = freqs
     if contrasts is None:
         test_contrasts = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.50, 1.00]
     else:
@@ -97,7 +103,7 @@ def main(args):
     model.cuda()
 
     if args.db == 'gratings':
-        run_gratings(db, model, args.out_file, args.contrasts)
+        run_gratings(db, model, args.out_file, args.contrasts, args.freqs)
 
 
 if __name__ == "__main__":
