@@ -21,11 +21,12 @@ def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
     if max_contrast != contrast_target:
         imgs_cat = imgs_cat[::-1]
     dim = 2
-    grey_cols = torch.zeros((3, img0.shape[1], 40)).type(img0.type())
+    grey_width = 40
+    grey_cols = torch.zeros((3, img0.shape[1], grey_width)).type(img0.type())
     imgs_cat = [grey_cols, imgs_cat[0], grey_cols, imgs_cat[1], grey_cols]
     img_out = torch.cat(imgs_cat, dim)
     dim = 1
-    grey_rows = torch.zeros((3, 40, img_out.shape[2])).type(img0.type())
+    grey_rows = torch.zeros((3, grey_width, img_out.shape[2])).type(img0.type())
     return torch.cat([grey_rows, img_out, grey_rows], dim), contrast_target
 
 
@@ -81,6 +82,8 @@ class GratingImages(torch_data.Dataset):
                  contrasts=None, theta=None, rho=None, lambda_wave=None):
         super(GratingImages, self).__init__()
         self.samples = samples
+        if type(target_size) not in [list, tuple]:
+            target_size = (target_size, target_size)
         self.target_size = target_size
         self.p = p
         self.transform = transform
@@ -168,7 +171,11 @@ def train_set(db, train_dir, target_size, mean, std, **kwargs):
         all_dbs.append(ImageFolder(root=train_dir, transform=transforms))
     if db in ['both', 'gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
-        all_dbs.append(GratingImages(transform=transforms, **kwargs))
+        all_dbs.append(
+            GratingImages(
+                transform=transforms, target_size=target_size, **kwargs
+            )
+        )
     return torch_data.ConcatDataset(all_dbs)
 
 
@@ -191,5 +198,9 @@ def validation_set(db, validation_dir, target_size, mean, std,
         all_dbs.append(ImageFolder(root=validation_dir, transform=transforms))
     if db in ['both', 'gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
-        all_dbs.append(GratingImages(transform=transforms, **kwargs))
+        all_dbs.append(
+            GratingImages(
+                transform=transforms, target_size=target_size, **kwargs
+            )
+        )
     return torch_data.ConcatDataset(all_dbs)
