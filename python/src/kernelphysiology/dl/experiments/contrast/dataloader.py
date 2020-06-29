@@ -191,8 +191,8 @@ def validation_set(db, validation_dir, target_size, mean, std,
     ]
     if db is None or db == 'both':
         transforms = torch_transforms.Compose([
-            cv2_transforms.CenterCrop(target_size),
             cv2_transforms.Resize(target_size),
+            cv2_transforms.CenterCrop(target_size),
             *shared_transforms
         ])
         all_dbs.append(ImageFolder(root=validation_dir, transform=transforms))
