@@ -262,7 +262,7 @@ def main_worker(ngpus_per_node, args):
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
     grating_params = {'samples': args.val_samples}
-    validation_dataset = dataloader.train_set(
+    validation_dataset = dataloader.validation_set(
         args.db, args.validation_dir, target_size, mean, std, **grating_params
     )
 
