@@ -319,12 +319,12 @@ def main_worker(ngpus_per_node, args):
                 },
                 is_best, out_folder=args.out_dir
             )
-        # TODO: get this header directly as a dictionary keys
-        header = 'epoch,t_time,t_loss,t_top1,t_top5,v_time,v_loss,v_top1,v_top5'
-        np.savetxt(
-            model_progress_path, np.array(model_progress),
-            delimiter=',', header=header
-        )
+            # TODO: get this header directly as a dictionary keys
+            header = 'epoch,t_time,t_loss,t_top1,t_top5,v_time,v_loss,v_top1,v_top5'
+            np.savetxt(
+                model_progress_path, np.array(model_progress),
+                delimiter=',', header=header
+            )
 
 
 def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
