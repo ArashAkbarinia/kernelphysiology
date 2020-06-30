@@ -83,7 +83,7 @@ def main(args):
         args.imagenet_dir = '/home/arash/Software/imagenet/raw-data/validation/'
     vision_type = 'trichromat'
     colour_space = 'rgb'
-    target_size = args.target_soze
+    target_size = args.target_size
 
     mean, std = model_utils.get_preprocessing_function(
         colour_space, vision_type
