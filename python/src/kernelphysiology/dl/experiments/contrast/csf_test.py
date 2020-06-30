@@ -32,14 +32,18 @@ def run_gratings(db, model, out_file, contrasts, freqs):
     grating_ind = 1
 
     if freqs is None:
-        test_sfs = np.linspace(np.pi / 4, np.pi * 16, 32)
+        test_sfs = [*np.linspace(np.pi / 4, np.pi * 1.25, 15),
+                    *np.linspace(np.pi * 1.5, np.pi * 16, 30)]
     else:
         if len(freqs) == 3:
             test_sfs = np.linspace(freqs[0], freqs[1], int(freqs[2]))
         else:
             test_sfs = freqs
     if contrasts is None:
-        test_contrasts = [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.50, 1.00]
+        test_contrasts = [
+            0.001, 0.00393, 0.00397, 0.00400, 0.00420, 0.00440, 0.00460,
+            0.00480, 0.005, 0.007, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1
+        ]
     else:
         test_contrasts = contrasts
     test_thetas = np.linspace(0, np.pi, 7)
