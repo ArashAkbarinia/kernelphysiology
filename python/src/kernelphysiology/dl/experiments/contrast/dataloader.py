@@ -31,11 +31,12 @@ def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
 
 
 class ImageFolder(tdatasets.ImageFolder):
-    def __init__(self, p=0.5, contrasts=None, **kwargs):
+    def __init__(self, p=0.5, contrasts=None, same_transforms=False, **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
         self.p = p
         self.contrasts = contrasts
+        self.same_transforms = same_transforms
 
     def __getitem__(self, index):
         """
@@ -63,7 +64,11 @@ class ImageFolder(tdatasets.ImageFolder):
         img1 = imutils.adjust_contrast(img1, contrast1).astype('uint8')
 
         if self.transform is not None:
-            img0, img1 = self.transform([img0, img1])
+            if self.same_transforms:
+                img0, img1 = self.transform([img0, img1])
+            else:
+                [img0] = self.transform([img0])
+                [img1] = self.transform([img1])
 
         img_out, contrast_target = two_pairs_stimuli(
             img0, img1, contrast0, contrast1, self.p
