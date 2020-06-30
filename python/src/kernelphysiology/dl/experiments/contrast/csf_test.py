@@ -16,6 +16,7 @@ def parse_arguments(args):
     model_parser.add_argument('--model_path', type=str)
     model_parser.add_argument('--db', type=str)
     model_parser.add_argument('--out_file', type=str)
+    model_parser.add_argument('--target_size', type=int)
     model_parser.add_argument('--imagenet_dir', type=str, default=None)
     model_parser.add_argument('--batch_size', type=int, default=1)
     model_parser.add_argument('--noise', nargs='+', type=str, default=None)
@@ -82,7 +83,7 @@ def main(args):
         args.imagenet_dir = '/home/arash/Software/imagenet/raw-data/validation/'
     vision_type = 'trichromat'
     colour_space = 'rgb'
-    target_size = 224
+    target_size = args.target_soze
 
     mean, std = model_utils.get_preprocessing_function(
         colour_space, vision_type
