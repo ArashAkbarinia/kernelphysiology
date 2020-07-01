@@ -23,7 +23,7 @@ def which_network(network_name, **kwargs):
         mean, std = get_preprocessing_function('rgb')
         mean_std = [mean, std]
     elif kwargs['in_chns'] == 1:
-        mean, std = get_preprocessing_function('greyscale')
+        mean, std = get_preprocessing_function('grey')
         mean_std = [mean, std]
     else:
         mean, std = get_preprocessing_function(kwargs['in_chns'])

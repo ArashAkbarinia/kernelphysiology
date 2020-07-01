@@ -285,7 +285,7 @@ def get_preprocessing_function(colour_space, colour_vision=None):
     if colour_space == 'rgb':
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-    elif colour_space == 'greyscale':
+    elif colour_space == 'grey':
         mean = [0.5]
         std = [0.25]
     elif colour_space == 'lab' or colour_space == 'lms':
