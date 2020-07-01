@@ -18,6 +18,7 @@ def parse_arguments(args):
     model_parser.add_argument('--out_file', type=str)
     model_parser.add_argument('--target_size', type=int)
     model_parser.add_argument('--imagenet_dir', type=str, default=None)
+    model_parser.add_argument('--colour_space', type=str, default='grey')
     model_parser.add_argument('--batch_size', type=int, default=1)
     model_parser.add_argument('--noise', nargs='+', type=str, default=None)
     model_parser.add_argument('--contrasts', nargs='+', type=float,
@@ -27,13 +28,16 @@ def parse_arguments(args):
     return parser.parse_args(args)
 
 
-def run_gratings(db, model, out_file, contrasts, freqs):
+def run_gratings(db, model, out_file, contrasts, freqs, target_size):
     grating_db = 0
     grating_ind = 1
 
     if freqs is None:
-        test_sfs = [*np.linspace(np.pi / 4, np.pi * 1.25, 15),
-                    *np.linspace(np.pi * 1.5, np.pi * 16, 30)]
+        sf_base = ((target_size / 4) / np.pi)
+        test_sfs = [
+            sf_base / e for e in
+            [0.05, 0.25, 0.50, 0.75, *np.arange(1, 20), *np.arange(20, 61, 5)]
+        ]
     else:
         if len(freqs) == 3:
             test_sfs = np.linspace(freqs[0], freqs[1], int(freqs[2]))
@@ -41,8 +45,8 @@ def run_gratings(db, model, out_file, contrasts, freqs):
             test_sfs = freqs
     if contrasts is None:
         test_contrasts = [
-            0.001, 0.00393, 0.00397, 0.00400, 0.00420, 0.00440, 0.00460,
-            0.00480, 0.005, 0.007, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1
+            0.001, 0.00394, 0.00396, 0.00398, 0.00400, 0.00420, 0.00440,
+            0.00460, 0.00480, 0.005, 0.007, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1
         ]
     else:
         test_contrasts = contrasts
@@ -86,7 +90,7 @@ def main(args):
     if args.imagenet_dir is None:
         args.imagenet_dir = '/home/arash/Software/imagenet/raw-data/validation/'
     vision_type = 'trichromat'
-    colour_space = 'rgb'
+    colour_space = args.colour_space
     target_size = args.target_size
 
     mean, std = model_utils.get_preprocessing_function(
@@ -102,8 +106,8 @@ def main(args):
             )
         )
     db = dataloader.validation_set(
-        args.db, args.imagenet_dir, target_size, mean, std,
-        noise_transformation, **gratings_args
+        args.db, target_size, mean, std, noise_transformation,
+        gratings_kwargs=gratings_args
     )
 
     model, _ = model_utils.which_network_classification(args.model_path, 2)
@@ -111,7 +115,10 @@ def main(args):
     model.cuda()
 
     if args.db == 'gratings':
-        run_gratings(db, model, args.out_file, args.contrasts, args.freqs)
+        run_gratings(
+            db, model, args.out_file, args.contrasts, args.freqs,
+            args.target_size
+        )
 
 
 if __name__ == "__main__":
