@@ -45,8 +45,7 @@ def to_tensor(pic):
 
     if _is_numpy_image(pic):
         if len(pic.shape) == 2:
-            # FIXME: why not accepting a channel iamges?
-            pic = cv2.cvtColor(pic.astype('float32'), cv2.COLOR_GRAY2RGB)
+            pic = np.expand_dims(pic, axis=2)
         img = torch.from_numpy(pic.transpose((2, 0, 1))).type(torch.FloatTensor)
         # backward compatibility
         if isinstance(img, torch.ByteTensor) or img.max() > 1:
@@ -256,7 +255,7 @@ def pad(img, padding, fill=(0, 0, 0), padding_mode='constant'):
 def center_crop(img, output_size: int):
     if isinstance(output_size, numbers.Number):
         output_size = (int(output_size), int(output_size))
-    h, w, _ = img.shape
+    h, w = img.shape[:2]
     th, tw = output_size
     i = int(round((h - th) * 0.5))
     j = int(round((w - tw) * 0.5))
