@@ -8,6 +8,7 @@ import random
 import warnings
 import numpy as np
 import time
+import json
 
 import torch
 import torch.nn as nn
@@ -69,6 +70,10 @@ def main(argv):
         args.world_size = int(os.environ["WORLD_SIZE"])
 
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+
+    json_file_name = os.path.join(args.out_dir, 'args.json')
+    with open(json_file_name, 'w') as fp:
+        json.dump(dict(args._get_kwargs()), fp, sort_keys=True, indent=4)
 
     ngpus_per_node = torch.cuda.device_count()
     if args.multiprocessing_distributed:
@@ -243,8 +248,10 @@ def main_worker(ngpus_per_node, args):
     train_trans = [*both_trans, *train_trans]
 
     grating_params = {'samples': args.train_samples}
+    natural_params = {'root': args.train_dir}
     train_dataset = dataloader.train_set(
-        args.db, args.train_dir, target_size, mean, std, **grating_params
+        args.db, target_size, mean, std,
+        natural_kwargs=natural_params, gratings_kwargs=grating_params
     )
 
     if args.distributed:
@@ -264,8 +271,10 @@ def main_worker(ngpus_per_node, args):
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
     grating_params = {'samples': args.val_samples}
+    natural_params = {'root': args.validation_dir}
     validation_dataset = dataloader.validation_set(
-        args.db, args.validation_dir, target_size, mean, std, **grating_params
+        args.db, target_size, mean, std,
+        natural_kwargs=natural_params, gratings_kwargs=grating_params
     )
 
     val_loader = torch.utils.data.DataLoader(

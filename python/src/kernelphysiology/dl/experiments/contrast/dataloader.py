@@ -1,6 +1,8 @@
 import numpy as np
 import random
 
+import cv2
+
 import torch
 from torch.utils import data as torch_data
 from torchvision import datasets as tdatasets
@@ -20,23 +22,31 @@ def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
         contrast_target = 1
     if max_contrast != contrast_target:
         imgs_cat = imgs_cat[::-1]
+
     dim = 2
     grey_width = 40
-    grey_cols = torch.zeros((3, img0.shape[1], grey_width)).type(img0.type())
+    grey_cols = torch.zeros(
+        (img0.shape[0], img0.shape[1], grey_width)
+    ).type(img0.type())
     imgs_cat = [grey_cols, imgs_cat[0], grey_cols, imgs_cat[1], grey_cols]
     img_out = torch.cat(imgs_cat, dim)
     dim = 1
-    grey_rows = torch.zeros((3, grey_width, img_out.shape[2])).type(img0.type())
+    grey_rows = torch.zeros(
+        (img0.shape[0], grey_width, img_out.shape[2])
+    ).type(img0.type())
+
     return torch.cat([grey_rows, img_out, grey_rows], dim), contrast_target
 
 
 class ImageFolder(tdatasets.ImageFolder):
-    def __init__(self, p=0.5, contrasts=None, same_transforms=False, **kwargs):
+    def __init__(self, p=0.5, contrasts=None, same_transforms=False,
+                 grey_scale=True, **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
         self.p = p
         self.contrasts = contrasts
         self.same_transforms = same_transforms
+        self.grey_scale = grey_scale
 
     def __getitem__(self, index):
         """
@@ -59,9 +69,19 @@ class ImageFolder(tdatasets.ImageFolder):
         else:
             contrast0, contrast1 = self.contrasts
 
-        # TODO: move it to imutils functions
-        img0 = imutils.adjust_contrast(img0, contrast0).astype('uint8')
-        img1 = imutils.adjust_contrast(img1, contrast1).astype('uint8')
+        # converting to range 0 to 1
+        img0 = img0.astype('float32') / 255
+        img1 = img1.astype('float32') / 255
+
+        if self.grey_scale:
+            img0 = cv2.cvtColor(img0, cv2.COLOR_RGB2GRAY)
+            img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY)
+            img0 = np.expand_dims(img0, axis=2)
+            img1 = np.expand_dims(img1, axis=2)
+
+        # manipulating the contrast
+        img0 = imutils.adjust_contrast(img0, contrast0)
+        img1 = imutils.adjust_contrast(img1, contrast1)
 
         if self.transform is not None:
             if self.same_transforms:
@@ -73,7 +93,6 @@ class ImageFolder(tdatasets.ImageFolder):
         img_out, contrast_target = two_pairs_stimuli(
             img0, img1, contrast0, contrast1, self.p
         )
-        # print([contrast0, contrast1], max_contrast, contrast_target)
 
         # right now we're not using the class target, but perhaps in the future
         if self.target_transform is not None:
@@ -83,7 +102,8 @@ class ImageFolder(tdatasets.ImageFolder):
 
 
 class GratingImages(torch_data.Dataset):
-    def __init__(self, samples, target_size=(224, 224), p=0.5, transform=None,
+    def __init__(self, samples, target_size=(224, 224), p=0.5,
+                 transform=None, grey_scale=True,
                  contrasts=None, theta=None, rho=None, lambda_wave=None):
         super(GratingImages, self).__init__()
         self.samples = samples
@@ -92,6 +112,7 @@ class GratingImages(torch_data.Dataset):
         self.target_size = target_size
         self.p = p
         self.transform = transform
+        self.grey_scale = grey_scale
         self.contrasts = contrasts
         self.theta = theta
         self.rho = rho
@@ -123,7 +144,7 @@ class GratingImages(torch_data.Dataset):
         else:
             rho = self.rho
         if self.lambda_wave is None:
-            lambda_wave = random.uniform(np.pi / 4, np.pi * 16)
+            lambda_wave = random.uniform(np.pi / 2, np.pi * 10)
         else:
             lambda_wave = self.lambda_wave
 
@@ -144,6 +165,10 @@ class GratingImages(torch_data.Dataset):
             img0 = img0[:, :-1]
             img1 = img1[:, :-1]
 
+        if not self.grey_scale:
+            img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
+            img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
+
         if self.transform is not None:
             img0, img1 = self.transform([img0, img1])
 
@@ -158,7 +183,9 @@ class GratingImages(torch_data.Dataset):
         return self.samples
 
 
-def train_set(db, train_dir, target_size, mean, std, **kwargs):
+def train_set(db, target_size, mean, std,
+              natural_kwargs=None, gratings_kwargs=None):
+    grey_scale = len(mean) == 1
     all_dbs = []
     shared_transforms = [
         cv2_transforms.RandomHorizontalFlip(),
@@ -173,21 +200,26 @@ def train_set(db, train_dir, target_size, mean, std, **kwargs):
         transforms = torch_transforms.Compose([
             size_transform, *shared_transforms
         ])
-        all_dbs.append(ImageFolder(root=train_dir, transform=transforms))
+        all_dbs.append(
+            ImageFolder(
+                transform=transforms, grey_scale=grey_scale, **natural_kwargs
+            ))
     if db in ['both', 'gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
         all_dbs.append(
             GratingImages(
-                transform=transforms, target_size=target_size, **kwargs
+                transform=transforms, target_size=target_size,
+                grey_scale=grey_scale, **gratings_kwargs
             )
         )
     return torch_data.ConcatDataset(all_dbs)
 
 
-def validation_set(db, validation_dir, target_size, mean, std,
-                   extra_transformation=None, **kwargs):
+def validation_set(db, target_size, mean, std, extra_transformation=None,
+                   natural_kwargs=None, gratings_kwargs=None):
     if extra_transformation is None:
         extra_transformation = []
+    grey_scale = len(mean) == 1
     all_dbs = []
     shared_transforms = [
         *extra_transformation,
@@ -200,12 +232,16 @@ def validation_set(db, validation_dir, target_size, mean, std,
             cv2_transforms.CenterCrop(target_size),
             *shared_transforms
         ])
-        all_dbs.append(ImageFolder(root=validation_dir, transform=transforms))
+        all_dbs.append(
+            ImageFolder(
+                transform=transforms, grey_scale=grey_scale, **natural_kwargs
+            ))
     if db in ['both', 'gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
         all_dbs.append(
             GratingImages(
-                transform=transforms, target_size=target_size, **kwargs
+                transform=transforms, target_size=target_size,
+                grey_scale=grey_scale, **gratings_kwargs
             )
         )
     return torch_data.ConcatDataset(all_dbs)
