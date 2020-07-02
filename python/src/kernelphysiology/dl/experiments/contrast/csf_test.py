@@ -25,10 +25,12 @@ def parse_arguments(args):
                               default=None)
     model_parser.add_argument('--freqs', nargs='+', type=float,
                               default=None)
+    model_parser.add_argument('--print', action='store_true', default=False)
     return parser.parse_args(args)
 
 
-def run_gratings(db, model, out_file, contrasts, freqs, target_size):
+def run_gratings(db, model, out_file, contrasts, freqs, target_size,
+                 update=False):
     grating_db = 0
     grating_ind = 1
 
@@ -37,7 +39,7 @@ def run_gratings(db, model, out_file, contrasts, freqs, target_size):
         test_sfs = [
             sf_base / e for e in
             [0.05, 0.25, 0.50, 0.75, *np.arange(1, 21), *np.arange(21, 61, 5),
-             *np.arange(61, 256, 25)]
+             *np.arange(61, 256, 25), 256]
         ]
     else:
         if len(freqs) == 3:
@@ -46,8 +48,9 @@ def run_gratings(db, model, out_file, contrasts, freqs, target_size):
             test_sfs = freqs
     if contrasts is None:
         test_contrasts = [
-            0.001, 0.003, 0.005, 0.007, 0.009, 0.01, 0.13, 0.17, 0.02, 0.25,
-            0.03, 0.35, 0.04, 0.05, 0.1, 0.2
+            0.001, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
+            0.010, 0.012, 0.014, 0.016, 0.018, 0.020, 0.023, 0.026, 0.029,
+            0.032, 0.036, 0.040, 0.045, 0.050, 0.100, 0.200
         ]
     else:
         test_contrasts = contrasts
@@ -118,7 +121,7 @@ def main(args):
     if args.db == 'gratings':
         run_gratings(
             db, model, args.out_file, args.contrasts, args.freqs,
-            args.target_size
+            args.target_size, args.print
         )
 
 
