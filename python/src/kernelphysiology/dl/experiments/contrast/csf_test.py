@@ -33,10 +33,11 @@ def run_gratings(db, model, out_file, contrasts, freqs, target_size):
     grating_ind = 1
 
     if freqs is None:
-        sf_base = ((target_size / 4) / np.pi)
+        sf_base = ((target_size / 2) / np.pi)
         test_sfs = [
             sf_base / e for e in
-            [0.05, 0.25, 0.50, 0.75, *np.arange(1, 20), *np.arange(20, 61, 5)]
+            [0.05, 0.25, 0.50, 0.75, *np.arange(1, 21), *np.arange(21, 61, 5),
+             *np.arange(61, 256, 25)]
         ]
     else:
         if len(freqs) == 3:
@@ -45,8 +46,8 @@ def run_gratings(db, model, out_file, contrasts, freqs, target_size):
             test_sfs = freqs
     if contrasts is None:
         test_contrasts = [
-            0.001, 0.00394, 0.00396, 0.00398, 0.00400, 0.00420, 0.00440,
-            0.00460, 0.00480, 0.005, 0.007, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1
+            0.001, 0.003, 0.005, 0.007, 0.009, 0.01, 0.13, 0.17, 0.02, 0.25,
+            0.03, 0.35, 0.04, 0.05, 0.1, 0.2
         ]
     else:
         test_contrasts = contrasts
