@@ -82,7 +82,10 @@ def run_gratings(db, model, out_file, contrasts, freqs, target_size,
                         params = [tcon, tsf, ttheta, trho, tp, pred]
                         all_results.append(params)
                         percent = float(test_num) / float(num_tests)
-                        print('%.2f [%d/%d]' % (percent, test_num, num_tests))
+                        if update:
+                            print(
+                                '%.2f [%d/%d]' % (percent, test_num, num_tests)
+                            )
                         test_num += 1
 
     save_path = out_file + '.csv'
