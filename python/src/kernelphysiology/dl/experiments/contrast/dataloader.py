@@ -184,14 +184,14 @@ class GratingImages(torch_data.Dataset):
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
             img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
             if self.colour_space == 'red':
-                img0[:, :, [1, 2]] = 0
-                img1[:, :, [1, 2]] = 0
+                img0[:, :, [1, 2]] = 0.5
+                img1[:, :, [1, 2]] = 0.5
             elif self.colour_space == 'green':
-                img0[:, :, [0, 2]] = 0
-                img1[:, :, [0, 2]] = 0
+                img0[:, :, [0, 2]] = 0.5
+                img1[:, :, [0, 2]] = 0.5
             elif self.colour_space == 'blue':
-                img0[:, :, [0, 1]] = 0
-                img1[:, :, [0, 1]] = 0
+                img0[:, :, [0, 1]] = 0.5
+                img1[:, :, [0, 1]] = 0.5
 
         if self.transform is not None:
             img0, img1 = self.transform([img0, img1])
