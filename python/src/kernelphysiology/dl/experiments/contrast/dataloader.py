@@ -103,7 +103,7 @@ class ImageFolder(tdatasets.ImageFolder):
 
 class GratingImages(torch_data.Dataset):
     def __init__(self, samples, target_size=(224, 224), p=0.5,
-                 transform=None, grey_scale=True,
+                 transform=None, colour_space='grey',
                  contrasts=None, theta=None, rho=None, lambda_wave=None):
         super(GratingImages, self).__init__()
         if type(samples) is dict:
@@ -118,7 +118,7 @@ class GratingImages(torch_data.Dataset):
         self.target_size = target_size
         self.p = p
         self.transform = transform
-        self.grey_scale = grey_scale
+        self.colour_space = colour_space
         self.contrasts = contrasts
         self.theta = theta
         self.rho = rho
@@ -180,9 +180,18 @@ class GratingImages(torch_data.Dataset):
             img0 = img0[:, :-1]
             img1 = img1[:, :-1]
 
-        if not self.grey_scale:
+        if self.colour_space != 'grey':
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
             img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
+            if self.colour_space == 'red':
+                img0[:, :, [1, 2]] = 0
+                img1[:, :, [1, 2]] = 0
+            elif self.colour_space == 'green':
+                img0[:, :, [0, 2]] = 0
+                img1[:, :, [0, 2]] = 0
+            elif self.colour_space == 'blue':
+                img0[:, :, [0, 1]] = 0
+                img1[:, :, [0, 1]] = 0
 
         if self.transform is not None:
             img0, img1 = self.transform([img0, img1])
@@ -232,8 +241,7 @@ def train_set(db, target_size, mean, std,
         transforms = torch_transforms.Compose(shared_transforms)
         all_dbs.append(
             GratingImages(
-                transform=transforms, target_size=target_size,
-                grey_scale=grey_scale, **gratings_kwargs
+                transform=transforms, target_size=target_size, **gratings_kwargs
             )
         )
     return torch_data.ConcatDataset(all_dbs)
@@ -264,8 +272,7 @@ def validation_set(db, target_size, mean, std, extra_transformation=None,
         transforms = torch_transforms.Compose(shared_transforms)
         all_dbs.append(
             GratingImages(
-                transform=transforms, target_size=target_size,
-                grey_scale=grey_scale, **gratings_kwargs
+                transform=transforms, target_size=target_size, **gratings_kwargs
             )
         )
     return torch_data.ConcatDataset(all_dbs)

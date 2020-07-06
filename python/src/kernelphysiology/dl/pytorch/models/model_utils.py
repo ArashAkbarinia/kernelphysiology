@@ -282,7 +282,7 @@ def which_architecture(network_name, customs=None):
 def get_preprocessing_function(colour_space, colour_vision=None):
     mean = [0.5, 0.5, 0.5]
     std = [0.25, 0.25, 0.25]
-    if colour_space == 'rgb':
+    if colour_space in ['rgb', 'red', 'green', 'blue']:
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
     elif colour_space == 'grey':

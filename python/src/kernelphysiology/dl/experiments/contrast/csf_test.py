@@ -108,7 +108,7 @@ def main(args):
         'amp': test_contrasts, 'lambda_wave': test_sfs,
         'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
     }
-    gratings_args = {'samples': test_samples}
+    gratings_args = {'samples': test_samples, 'colour_space': colour_space}
 
     db = dataloader.validation_set(
         args.db, target_size, mean, std, noise_transformation,
