@@ -106,7 +106,13 @@ class GratingImages(torch_data.Dataset):
                  transform=None, grey_scale=True,
                  contrasts=None, theta=None, rho=None, lambda_wave=None):
         super(GratingImages, self).__init__()
-        self.samples = samples
+        if type(samples) is dict:
+            # under this condition one contrast will be zero while the other
+            # takes the arguments of samples.
+            self.samples, self.settings = self._create_samples(samples)
+        else:
+            self.samples = samples
+            self.settings = None
         if type(target_size) not in [list, tuple]:
             target_size = (target_size, target_size)
         self.target_size = target_size
@@ -127,26 +133,35 @@ class GratingImages(torch_data.Dataset):
             tuple: (img_l, imgout) where imgout is the same size as
              original image after applied manipulations.
         """
-        if self.contrasts is None:
-            contrast0 = random.uniform(0, 1)
-            contrast1 = random.uniform(0, 1)
-        else:
-            contrast0, contrast1 = self.contrasts
+        if self.settings is None:
+            if self.contrasts is None:
+                contrast0 = random.uniform(0, 1)
+                contrast1 = random.uniform(0, 1)
+            else:
+                contrast0, contrast1 = self.contrasts
 
-        # randomising the parameters
-        if self.theta is None:
-            theta = random.uniform(0, np.pi)
+            # randomising the parameters
+            if self.theta is None:
+                theta = random.uniform(0, np.pi)
+            else:
+                theta = self.theta
+            if self.rho is None:
+                rho = random.uniform(0, np.pi)
+            else:
+                rho = self.rho
+            if self.lambda_wave is None:
+                lambda_wave = random.uniform(np.pi / 2, np.pi * 10)
+            else:
+                lambda_wave = self.lambda_wave
         else:
-            theta = self.theta
+            inds = np.unravel_index(index, self.settings['lenghts'])
+            contrast0 = self.settings['amp'][inds[0]]
+            lambda_wave = self.settings['lambda_wave'][inds[1]]
+            theta = self.settings['theta'][inds[2]]
+            rho = self.settings['rho'][inds[3]]
+            self.p = self.settings['side'][inds[4]]
+            contrast1 = 0
         omega = [np.cos(theta), np.sin(theta)]
-        if self.rho is None:
-            rho = random.uniform(0, np.pi)
-        else:
-            rho = self.rho
-        if self.lambda_wave is None:
-            lambda_wave = random.uniform(np.pi / 2, np.pi * 10)
-        else:
-            lambda_wave = self.lambda_wave
 
         # generating the gratings
         sinusoid_param = {
@@ -181,6 +196,15 @@ class GratingImages(torch_data.Dataset):
 
     def __len__(self):
         return self.samples
+
+    def _create_samples(self, samples):
+        settings = samples
+        settings['lenghts'] = (
+            len(settings['amp']), len(settings['lambda_wave']),
+            len(settings['theta']), len(settings['rho']), len(settings['side'])
+        )
+        num_samples = np.prod(np.array(settings['lenghts']))
+        return num_samples, settings
 
 
 def train_set(db, target_size, mean, std,
