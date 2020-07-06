@@ -191,8 +191,8 @@ class GratingImages(torch_data.Dataset):
             img0, img1, contrast0, contrast1, self.p
         )
 
-        path = []
-        return img_out, contrast_target, path
+        item_settings = np.array([contrast0, lambda_wave, theta, rho, self.p])
+        return img_out, contrast_target, item_settings
 
     def __len__(self):
         return self.samples
