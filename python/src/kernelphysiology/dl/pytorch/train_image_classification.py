@@ -7,6 +7,7 @@ import sys
 import random
 import warnings
 import numpy as np
+import json
 
 import torch
 import torch.nn as nn
@@ -67,6 +68,10 @@ def main(argv):
         args.world_size = int(os.environ["WORLD_SIZE"])
 
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+
+    json_file_name = os.path.join(args.out_dir, 'args.json')
+    with open(json_file_name, 'w') as fp:
+        json.dump(dict(args._get_kwargs()), fp, sort_keys=True, indent=4)
 
     ngpus_per_node = torch.cuda.device_count()
     if args.multiprocessing_distributed:

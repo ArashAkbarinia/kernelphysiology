@@ -125,6 +125,8 @@ class NewClassificationModel(nn.Module):
                 layer = 6
             elif layer == 'layer3':
                 layer = 7
+            elif layer == 'layer4':
+                layer = 8
             org_classes = list(original_model.children())[layer][
                 0].conv1.in_channels
         else:
