@@ -186,9 +186,10 @@ def main_worker(ngpus_per_node, args):
             momentum=args.momentum, weight_decay=args.weight_decay
         )
     else:
-        for p in model.features.parameters():
-            p.requires_grad = False
+        # for p in model.features.parameters():
+        #     p.requires_grad = False
         params_to_optimize = [
+            {'params': [p for p in model.features.parameters()], 'lr': 1e-6},
             {'params': [p for p in model.fc.parameters()]},
         ]
         optimizer = torch.optim.SGD(
