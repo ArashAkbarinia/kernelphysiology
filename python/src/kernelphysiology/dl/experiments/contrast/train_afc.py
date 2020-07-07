@@ -251,7 +251,7 @@ def main_worker(ngpus_per_node, args):
     grating_params = {'samples': args.train_samples}
     natural_params = {'root': args.train_dir}
     train_dataset = dataloader.train_set(
-        args.db, target_size, mean, std,
+        args.db, target_size, mean, std, extra_transformation=train_trans,
         natural_kwargs=natural_params, gratings_kwargs=grating_params
     )
 
@@ -274,7 +274,7 @@ def main_worker(ngpus_per_node, args):
     grating_params = {'samples': args.val_samples}
     natural_params = {'root': args.validation_dir}
     validation_dataset = dataloader.validation_set(
-        args.db, target_size, mean, std,
+        args.db, target_size, mean, std, extra_transformation=valid_trans,
         natural_kwargs=natural_params, gratings_kwargs=grating_params
     )
 

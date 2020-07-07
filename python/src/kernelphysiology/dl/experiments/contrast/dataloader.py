@@ -11,6 +11,7 @@ import torchvision.transforms as torch_transforms
 from kernelphysiology.utils import imutils
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.filterfactory import gratings
+from kernelphysiology.filterfactory import gaussian
 
 
 def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
@@ -103,7 +104,7 @@ class ImageFolder(tdatasets.ImageFolder):
 
 class GratingImages(torch_data.Dataset):
     def __init__(self, samples, target_size=(224, 224), p=0.5,
-                 transform=None, colour_space='grey',
+                 transform=None, colour_space='grey', gabor_like=False,
                  contrasts=None, theta=None, rho=None, lambda_wave=None):
         super(GratingImages, self).__init__()
         if type(samples) is dict:
@@ -123,6 +124,12 @@ class GratingImages(torch_data.Dataset):
         self.theta = theta
         self.rho = rho
         self.lambda_wave = lambda_wave
+        self.gabor_like = gabor_like
+        if self.gabor_like:
+            self.gauss_img = gaussian.gaussian_kernel2(
+                120 / (256 / target_size[0]), max_width=target_size[0]
+            )
+            self.gauss_img /= self.gauss_img.max()
 
     def __getitem__(self, index):
         """
@@ -172,6 +179,11 @@ class GratingImages(torch_data.Dataset):
         sinusoid_param['amp'] = contrast1
         img1 = (gratings.sinusoid(**sinusoid_param) + 1) / 2
 
+        # multiply it by gaussian
+        if self.gabor_like:
+            img0 *= self.gauss_img
+            img1 *= self.gauss_img
+
         # if target size is even, the generated stimuli is 1 pixel larger.
         if np.mod(self.target_size[0], 2) == 0:
             img0 = img0[:-1]
@@ -216,11 +228,14 @@ class GratingImages(torch_data.Dataset):
         return num_samples, settings
 
 
-def train_set(db, target_size, mean, std,
+def train_set(db, target_size, mean, std, extra_transformation=None,
               natural_kwargs=None, gratings_kwargs=None):
+    if extra_transformation is None:
+        extra_transformation = []
     grey_scale = len(mean) == 1
     all_dbs = []
     shared_transforms = [
+        *extra_transformation,
         cv2_transforms.RandomHorizontalFlip(),
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std)
