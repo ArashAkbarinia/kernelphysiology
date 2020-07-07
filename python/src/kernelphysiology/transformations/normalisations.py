@@ -25,6 +25,19 @@ def im2double_max(image):
         return image, max_pixel
 
 
+def img_midval(image):
+    if image.dtype == 'uint8':
+        return 128
+    else:
+        image = image.astype('float32')
+        max_pixel = np.max(image)
+        if max_pixel > 1.0:
+            midval = max_pixel / 2
+        else:
+            midval = 0.5
+        return midval
+
+
 def im2double(image):
     image, _ = im2double_max(image)
     return image
