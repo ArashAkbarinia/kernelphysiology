@@ -81,11 +81,12 @@ def main(args):
     freqs = args.freqs
     if freqs is None:
         t4 = target_size / 4
+        t2 = target_size / 2
         sf_base = ((target_size / 2) / np.pi)
         test_sfs = [
             sf_base / e for e in
             [*np.arange(1, 21), *np.arange(21, 61, 5),
-             *np.arange(61, t4, 25), t4]
+             *np.arange(61, t4, 25), t4, t2]
         ]
     else:
         if len(freqs) == 3:
