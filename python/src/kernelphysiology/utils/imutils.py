@@ -20,6 +20,7 @@ from kernelphysiology.transformations.colour_spaces import opponency2rgb
 from kernelphysiology.transformations.colour_spaces import get_max_lightness
 from kernelphysiology.transformations.normalisations import im2double_max
 from kernelphysiology.transformations.normalisations import im2double
+from kernelphysiology.transformations.normalisations import img_midvals
 
 
 # TODO: merge it with Keras image manipulation class
@@ -407,22 +408,22 @@ def poisson_noise(image, seed=None, clip=True, mask_type=None, **kwargs):
     return output
 
 
-def im2mosaic(image, mosaic_type):
+def im2mosaic(image, mosaic_type=None, masks=None):
     if mosaic_type is None or len(image.shape) == 2:
         return image
     image = image.copy()
-    mask_r = colour_filter_array(image, mosaic_type, colour_channel='red')
-    mask_g = colour_filter_array(image, mosaic_type, colour_channel='green')
-    mask_b = colour_filter_array(image, mosaic_type, colour_channel='blue')
-    img_r = image[:, :, 0]
-    img_g = image[:, :, 1]
-    img_b = image[:, :, 2]
-    img_r[mask_r == 0] = 0
-    img_g[mask_g == 0] = 0
-    img_b[mask_b == 0] = 0
-    image[:, :, 0] = img_r
-    image[:, :, 1] = img_g
-    image[:, :, 2] = img_b
+
+    midvals = img_midvals(image)
+    if masks is None:
+        masks = [
+            colour_filter_array(image, mosaic_type, colour_channel='red'),
+            colour_filter_array(image, mosaic_type, colour_channel='green'),
+            colour_filter_array(image, mosaic_type, colour_channel='blue')
+        ]
+    for i in range(3):
+        img_ch = image[:, :, i]
+        img_ch[masks[i] == 0] = midvals[i]
+        image[:, :, i] = img_ch
     return image
 
 

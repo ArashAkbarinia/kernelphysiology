@@ -101,10 +101,12 @@ class MosaicTransformation(object):
     def __init__(self, mosaic_pattern):
         self.mosaic_pattern = mosaic_pattern
 
-    def __call__(self, img):
-        img = np.asarray(img).copy()
-        img = imutils.im2mosaic(img, self.mosaic_pattern)
-        return img
+    def __call__(self, x):
+        if type(x) is list:
+            kwargs = {'mosaic_type': self.mosaic_pattern}
+            return _call_recursive(x, imutils.im2mosaic, **kwargs)
+        x = imutils.im2mosaic(x, self.mosaic_pattern)
+        return x
 
 
 class UniqueTransformation(object):
