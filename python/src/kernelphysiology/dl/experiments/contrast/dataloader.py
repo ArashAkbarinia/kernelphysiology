@@ -220,12 +220,12 @@ class GratingImages(torch_data.Dataset):
             elif self.contrast_space == 'blue':
                 img0[:, :, [0, 1]] = 0.5
                 img1[:, :, [0, 1]] = 0.5
-            elif self.contrast_space == 'rg':
+            elif self.contrast_space == 'yb':
                 img0[:, :, [0, 1]] = 0.5
                 img0 = colour_spaces.dkl012rgb01(img0)
                 img1[:, :, [0, 1]] = 0.5
                 img1 = colour_spaces.dkl012rgb01(img1)
-            elif self.contrast_space == 'yb':
+            elif self.contrast_space == 'rg':
                 img0[:, :, [0, 2]] = 0.5
                 img0 = colour_spaces.dkl012rgb01(img0)
                 img1[:, :, [0, 2]] = 0.5
