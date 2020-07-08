@@ -27,6 +27,7 @@ def parse_arguments(args):
     model_parser.add_argument('--freqs', nargs='+', type=float,
                               default=None)
     model_parser.add_argument('--print', action='store_true', default=False)
+    model_parser.add_argument('--mosaic_pattern', type=str, default=None)
     return parser.parse_args(args)
 
 
@@ -68,14 +69,19 @@ def main(args):
     mean, std = model_utils.get_preprocessing_function(
         colour_space, vision_type
     )
-    noise_transformation = []
+    extra_transformations = []
     if args.noise is not None:
         noise_kwargs = {'amount': float(args.noise[1])}
-        noise_transformation.append(
+        extra_transformations.append(
             cv2_preprocessing.UniqueTransformation(
                 imutils.gaussian_noise, **noise_kwargs
             )
         )
+    if args.mosaic_pattern is not None:
+        mosaic_trans = cv2_preprocessing.MosaicTransformation(
+            args.mosaic_pattern
+        )
+        extra_transformations.append(mosaic_trans)
 
     # testing setting
     freqs = args.freqs
@@ -112,7 +118,7 @@ def main(args):
     gratings_args = {'samples': test_samples, 'colour_space': colour_space}
 
     db = dataloader.validation_set(
-        args.db, target_size, mean, std, noise_transformation,
+        args.db, target_size, mean, std, extra_transformations,
         gratings_kwargs=gratings_args
     )
     db_loader = torch.utils.data.DataLoader(
