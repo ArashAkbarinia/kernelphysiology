@@ -42,13 +42,14 @@ def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
 
 class ImageFolder(tdatasets.ImageFolder):
     def __init__(self, p=0.5, contrasts=None, same_transforms=False,
-                 colour_space='grey', **kwargs):
+                 colour_space='grey', vision_type='trichromat', **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
         self.p = p
         self.contrasts = contrasts
         self.same_transforms = same_transforms
         self.colour_space = colour_space
+        self.vision_type = vision_type
 
     def __getitem__(self, index):
         """
@@ -62,7 +63,14 @@ class ImageFolder(tdatasets.ImageFolder):
         path, class_target = self.samples[index]
         img0 = self.loader(path)
         img0 = np.asarray(img0).copy()
-        # TODO: just grey scale images
+        if 'grey' not in self.colour_space and self.vision_type != 'trichromat':
+            dkl0 = colour_spaces.rgb2dkl(img0)
+            if self.vision_type == 'dichromat_rg':
+                dkl0[:, :, 1] = 0
+            elif self.vision_type == 'dichromat_yb':
+                dkl0[:, :, 2] = 0
+            img0 = colour_spaces.dkl2rgb(dkl0)
+
         img1 = img0.copy()
 
         if self.contrasts is None:
@@ -110,7 +118,7 @@ class ImageFolder(tdatasets.ImageFolder):
 class GratingImages(torch_data.Dataset):
     def __init__(self, samples, target_size=(224, 224), p=0.5,
                  transform=None, colour_space='grey', contrast_space=None,
-                 gabor_like=False,
+                 vision_type='trichromat', gabor_like=False,
                  contrasts=None, theta=None, rho=None, lambda_wave=None):
         super(GratingImages, self).__init__()
         if type(samples) is dict:
@@ -127,6 +135,7 @@ class GratingImages(torch_data.Dataset):
         self.transform = transform
         self.colour_space = colour_space
         self.contrast_space = contrast_space
+        self.vision_type = vision_type
         self.contrasts = contrasts
         self.theta = theta
         self.rho = rho
@@ -213,14 +222,26 @@ class GratingImages(torch_data.Dataset):
                 img1[:, :, [0, 1]] = 0.5
             elif self.contrast_space == 'rg':
                 img0[:, :, [0, 1]] = 0.5
-                img0 = colour_spaces.yog012rgb01(img0)
+                img0 = colour_spaces.dkl012rgb01(img0)
                 img1[:, :, [0, 1]] = 0.5
-                img1 = colour_spaces.yog012rgb01(img1)
+                img1 = colour_spaces.dkl012rgb01(img1)
             elif self.contrast_space == 'yb':
                 img0[:, :, [0, 2]] = 0.5
-                img0 = colour_spaces.yog012rgb01(img0)
+                img0 = colour_spaces.dkl012rgb01(img0)
                 img1[:, :, [0, 2]] = 0.5
-                img1 = colour_spaces.yog012rgb01(img1)
+                img1 = colour_spaces.dkl012rgb01(img1)
+
+        if 'grey' not in self.colour_space and self.vision_type != 'trichromat':
+            dkl0 = colour_spaces.rgb2dkl(img0)
+            dkl1 = colour_spaces.rgb2dkl(img1)
+            if self.vision_type == 'dichromat_rg':
+                dkl0[:, :, 1] = 0
+                dkl1[:, :, 1] = 0
+            elif self.vision_type == 'dichromat_yb':
+                dkl0[:, :, 2] = 0
+                dkl1[:, :, 2] = 0
+            img0 = colour_spaces.dkl2rgb01(dkl0)
+            img1 = colour_spaces.dkl2rgb01(dkl1)
 
         if self.transform is not None:
             img0, img1 = self.transform([img0, img1])
