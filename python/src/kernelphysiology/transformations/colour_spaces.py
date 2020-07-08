@@ -102,10 +102,7 @@ def lms012rgb01(x):
     for i in range(3):
         x[:, :, i] -= (abs(lms_min[i]) / (lms_max[i] - lms_min[i]))
         x[:, :, i] *= (lms_max[i] - lms_min[i])
-    x = lms2rgb01(x)
-    x = np.maximum(x, 0)
-    x = np.minimum(x, 1)
-    return x
+    return lms2rgb01(x)
 
 
 def lms012rgb(x):
@@ -133,7 +130,8 @@ def xyz2rgb(x):
 
 
 def xyz2rgb01(x):
-    return np.dot(x, rgb_from_xyz)
+    x = np.dot(x, rgb_from_xyz)
+    return normalisations.clip01(x)
 
 
 def rgb012dkl(x):
@@ -157,7 +155,8 @@ def dkl2rgb(x):
 
 
 def dkl2rgb01(x):
-    return np.dot(x, rgb_from_dkl)
+    x = np.dot(x, rgb_from_dkl)
+    return normalisations.clip01(x)
 
 
 def dkl012rgb(x):
@@ -192,7 +191,8 @@ def yog2rgb(x):
 
 
 def yog2rgb01(x):
-    return np.dot(x, rgb_from_yog)
+    x = np.dot(x, rgb_from_yog)
+    return normalisations.clip01(x)
 
 
 def yog012rgb(x):

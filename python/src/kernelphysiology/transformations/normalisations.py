@@ -53,8 +53,13 @@ def rgb2double(x):
     return x
 
 
+def clip01(x):
+    x = np.maximum(x, 0)
+    x = np.minimum(x, 1)
+    return x
+
+
 def uint8im(image):
-    image = np.maximum(image, 0)
-    image = np.minimum(image, 1)
+    image = clip01(image)
     image *= 255
     return image.astype('uint8')
