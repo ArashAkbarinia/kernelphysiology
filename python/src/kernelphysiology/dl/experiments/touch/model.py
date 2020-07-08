@@ -85,7 +85,7 @@ class VQ_CVAE(nn.Module):
         return torch.nn.functional.upsample_bilinear(x, size=insize)
 
     def forward(self, x):
-        insize = x.shape
+        insize = x.shape[2:]
         z_e = self.encode(x)
         self.f = z_e.shape[-1]
         z_q, argmin = self.emb(z_e, weight_sg=True)
