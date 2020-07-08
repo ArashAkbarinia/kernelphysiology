@@ -19,6 +19,7 @@ def parse_arguments(args):
     model_parser.add_argument('--target_size', type=int)
     model_parser.add_argument('--imagenet_dir', type=str, default=None)
     model_parser.add_argument('--colour_space', type=str, default='grey')
+    model_parser.add_argument('--contrast_space', type=str, default=None)
     model_parser.add_argument('--batch_size', type=int, default=16)
     model_parser.add_argument('-j', '--workers', type=int, default=4)
     model_parser.add_argument('--noise', nargs='+', type=str, default=None)
@@ -115,7 +116,10 @@ def main(args):
         'amp': test_contrasts, 'lambda_wave': test_sfs,
         'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
     }
-    gratings_args = {'samples': test_samples, 'colour_space': colour_space}
+    gratings_args = {
+        'samples': test_samples, 'colour_space': colour_space,
+        'contrast_space': args.contrast_space
+    }
 
     db = dataloader.validation_set(
         args.db, target_size, mean, std, extra_transformations,

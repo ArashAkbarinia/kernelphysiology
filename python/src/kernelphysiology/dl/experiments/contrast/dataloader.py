@@ -12,6 +12,8 @@ from kernelphysiology.utils import imutils
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.filterfactory import gratings
 from kernelphysiology.filterfactory import gaussian
+from kernelphysiology.transformations import colour_spaces
+from kernelphysiology.transformations import normalisations
 
 
 def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
@@ -104,7 +106,8 @@ class ImageFolder(tdatasets.ImageFolder):
 
 class GratingImages(torch_data.Dataset):
     def __init__(self, samples, target_size=(224, 224), p=0.5,
-                 transform=None, colour_space='grey', gabor_like=False,
+                 transform=None, colour_space='grey', contrast_space=None,
+                 gabor_like=False,
                  contrasts=None, theta=None, rho=None, lambda_wave=None):
         super(GratingImages, self).__init__()
         if type(samples) is dict:
@@ -120,6 +123,7 @@ class GratingImages(torch_data.Dataset):
         self.p = p
         self.transform = transform
         self.colour_space = colour_space
+        self.contrast_space = contrast_space
         self.contrasts = contrasts
         self.theta = theta
         self.rho = rho
@@ -195,15 +199,25 @@ class GratingImages(torch_data.Dataset):
         if self.colour_space != 'grey':
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
             img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
-            if self.colour_space == 'red':
+            if self.contrast_space == 'red':
                 img0[:, :, [1, 2]] = 0.5
                 img1[:, :, [1, 2]] = 0.5
-            elif self.colour_space == 'green':
+            elif self.contrast_space == 'green':
                 img0[:, :, [0, 2]] = 0.5
                 img1[:, :, [0, 2]] = 0.5
-            elif self.colour_space == 'blue':
+            elif self.contrast_space == 'blue':
                 img0[:, :, [0, 1]] = 0.5
                 img1[:, :, [0, 1]] = 0.5
+            elif self.contrast_space == 'rg':
+                img0[:, :, [0, 1]] = 0.5
+                img0 = colour_spaces.yog012rgb01(img0)
+                img1[:, :, [0, 1]] = 0.5
+                img1 = colour_spaces.yog012rgb01(img1)
+            elif self.contrast_space == 'yb':
+                img0[:, :, [0, 2]] = 0.5
+                img0 = colour_spaces.yog012rgb01(img0)
+                img1[:, :, [0, 2]] = 0.5
+                img1 = colour_spaces.yog012rgb01(img1)
 
         if self.transform is not None:
             img0, img1 = self.transform([img0, img1])
