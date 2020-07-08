@@ -54,7 +54,7 @@ def get_input_group(parser):
             'rgb',
             'lab',
             'lms',
-            'grey'
+            'grey', 'grey3'
         ],
         help='The colour space of network (default: RGB)'
     )
