@@ -13,7 +13,6 @@ from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.filterfactory import gratings
 from kernelphysiology.filterfactory import gaussian
 from kernelphysiology.transformations import colour_spaces
-from kernelphysiology.transformations import normalisations
 
 
 def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
@@ -43,13 +42,13 @@ def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
 
 class ImageFolder(tdatasets.ImageFolder):
     def __init__(self, p=0.5, contrasts=None, same_transforms=False,
-                 grey_scale=True, **kwargs):
+                 colour_space='grey', **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
         self.p = p
         self.contrasts = contrasts
         self.same_transforms = same_transforms
-        self.grey_scale = grey_scale
+        self.colour_space = colour_space
 
     def __getitem__(self, index):
         """
@@ -76,11 +75,15 @@ class ImageFolder(tdatasets.ImageFolder):
         img0 = img0.astype('float32') / 255
         img1 = img1.astype('float32') / 255
 
-        if self.grey_scale:
+        if 'grey' in self.colour_space:
             img0 = cv2.cvtColor(img0, cv2.COLOR_RGB2GRAY)
             img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY)
-            img0 = np.expand_dims(img0, axis=2)
-            img1 = np.expand_dims(img1, axis=2)
+            if self.colour_space == 'grey':
+                img0 = np.expand_dims(img0, axis=2)
+                img1 = np.expand_dims(img1, axis=2)
+            elif self.colour_space == 'grey3':
+                img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
+                img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
 
         # manipulating the contrast
         img0 = imutils.adjust_contrast(img0, contrast0)
@@ -246,7 +249,6 @@ def train_set(db, target_size, mean, std, extra_transformation=None,
               natural_kwargs=None, gratings_kwargs=None):
     if extra_transformation is None:
         extra_transformation = []
-    grey_scale = len(mean) == 1
     all_dbs = []
     shared_transforms = [
         *extra_transformation,
@@ -264,7 +266,7 @@ def train_set(db, target_size, mean, std, extra_transformation=None,
         ])
         all_dbs.append(
             ImageFolder(
-                transform=transforms, grey_scale=grey_scale, **natural_kwargs
+                transform=transforms, **natural_kwargs
             ))
     if db in ['both', 'gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
@@ -280,7 +282,6 @@ def validation_set(db, target_size, mean, std, extra_transformation=None,
                    natural_kwargs=None, gratings_kwargs=None):
     if extra_transformation is None:
         extra_transformation = []
-    grey_scale = len(mean) == 1
     all_dbs = []
     shared_transforms = [
         *extra_transformation,
@@ -295,7 +296,7 @@ def validation_set(db, target_size, mean, std, extra_transformation=None,
         ])
         all_dbs.append(
             ImageFolder(
-                transform=transforms, grey_scale=grey_scale, **natural_kwargs
+                transform=transforms, **natural_kwargs
             ))
     if db in ['both', 'gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
