@@ -148,17 +148,6 @@ def main(args):
     args.mean = [0.5, 0.5, 0.5]
     args.std = [0.5, 0.5, 0.5]
 
-    train_dataset = get_train_dataset(
-        args.data_dir + '/img/', args.data_dir + '/gt/',
-        args.data_dir + '/all_imgs.txt', args.test_inds,
-        trans_funcs, args.mean, args.std, args.target_size
-    )
-
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True,
-        num_workers=args.workers, pin_memory=True, sampler=None
-    )
-
     val_dataset = get_val_dataset(
         args.data_dir + '/img/', args.data_dir + '/gt/',
         args.data_dir + '/all_imgs.txt', args.test_inds,
@@ -177,6 +166,17 @@ def main(args):
         model.cuda()
         predict_net(model, val_loader, save_path, args)
         return
+
+    train_dataset = get_train_dataset(
+        args.data_dir + '/img/', args.data_dir + '/gt/',
+        args.data_dir + '/all_imgs.txt', args.test_inds,
+        trans_funcs, args.mean, args.std, args.target_size
+    )
+
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True,
+        num_workers=args.workers, pin_memory=True, sampler=None
+    )
 
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
