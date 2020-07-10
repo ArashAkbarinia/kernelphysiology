@@ -28,7 +28,9 @@ def parse_arguments(args):
     model_parser.add_argument('--freqs', nargs='+', type=float,
                               default=None)
     model_parser.add_argument('--print', action='store_true', default=False)
+    model_parser.add_argument('--gabor', action='store_true', default=False)
     model_parser.add_argument('--mosaic_pattern', type=str, default=None)
+    model_parser.add_argument('--vision_type', type=str, default='trichromat')
     return parser.parse_args(args)
 
 
@@ -118,7 +120,8 @@ def main(args):
     }
     gratings_args = {
         'samples': test_samples, 'colour_space': colour_space,
-        'contrast_space': args.contrast_space
+        'contrast_space': args.contrast_space, 'vision_type': args.vision_type,
+        'gabor_like': args.gabor
     }
 
     db = dataloader.validation_set(

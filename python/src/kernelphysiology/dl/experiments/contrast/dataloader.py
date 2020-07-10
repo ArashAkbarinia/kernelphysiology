@@ -141,11 +141,6 @@ class GratingImages(torch_data.Dataset):
         self.rho = rho
         self.lambda_wave = lambda_wave
         self.gabor_like = gabor_like
-        if self.gabor_like:
-            self.gauss_img = gaussian.gaussian_kernel2(
-                120 / (256 / target_size[0]), max_width=target_size[0]
-            )
-            self.gauss_img /= self.gauss_img.max()
 
     def __getitem__(self, index):
         """
@@ -191,14 +186,35 @@ class GratingImages(torch_data.Dataset):
             'amp': contrast0, 'omega': omega, 'rho': rho,
             'img_size': self.target_size, 'lambda_wave': lambda_wave
         }
-        img0 = (gratings.sinusoid(**sinusoid_param) + 1) / 2
+        img0 = gratings.sinusoid(**sinusoid_param)
         sinusoid_param['amp'] = contrast1
-        img1 = (gratings.sinusoid(**sinusoid_param) + 1) / 2
+        img1 = gratings.sinusoid(**sinusoid_param)
 
         # multiply it by gaussian
         if self.gabor_like:
-            img0 *= self.gauss_img
-            img1 *= self.gauss_img
+            radius = (
+                int(self.target_size[0] / 2.0), int(self.target_size[1] / 2.0)
+            )
+            [x, y] = np.meshgrid(
+                range(-radius[0], radius[0] + 1),
+                range(-radius[1], radius[1] + 1)
+            )
+            x1 = +x * np.cos(theta) + y * np.sin(theta)
+            y1 = -x * np.sin(theta) + y * np.cos(theta)
+
+            k = 2
+            o1 = 8
+            o2 = o1 / 2
+            omg = (1 / 8) * (np.pi ** 2 / lambda_wave)
+            gauss_img = omg ** 2 / (o2 * np.pi * k ** 2) * np.exp(
+                -omg ** 2 / (o1 * k ** 2) * (1 * x1 ** 2 + y1 ** 2))
+
+            gauss_img = gauss_img / np.max(gauss_img)
+            img0 *= gauss_img
+            img1 *= gauss_img
+
+        img0 = (img0 + 1) / 2
+        img1 = (img1 + 1) / 2
 
         # if target size is even, the generated stimuli is 1 pixel larger.
         if np.mod(self.target_size[0], 2) == 0:
