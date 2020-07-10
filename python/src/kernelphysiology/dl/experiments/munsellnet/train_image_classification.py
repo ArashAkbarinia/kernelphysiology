@@ -24,7 +24,7 @@ import torchvision.models as models
 
 from kernelphysiology.dl.experiments.munsellnet import resnet
 from kernelphysiology.dl.pytorch.utils.misc import accuracy_preds
-from kernelphysiology.dl.pytorch.utils import preprocessing
+from kernelphysiology.dl.pytorch.utils import preprocessing, cv2_transforms
 from kernelphysiology.dl.pytorch.utils import argument_handler
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter, accuracy
 from kernelphysiology.dl.pytorch.utils.misc import adjust_learning_rate
@@ -36,7 +36,6 @@ from kernelphysiology.utils.path_utils import create_dir
 
 from kernelphysiology.dl.experiments.munsellnet.dataset import \
     get_train_val_dataset
-from kernelphysiology.dl.pytorch.utils import transformations
 
 best_acc1 = 0
 
@@ -322,7 +321,7 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
     mean, std = model_utils.get_preprocessing_function(
         args.colour_space, args.vision_type
     )
-    normalise_inverse = transformations.NormalizeInverse(mean, std)
+    normalise_inverse = cv2_transforms.NormalizeInverse(mean, std)
     normalise_back = transforms.Normalize(mean=mean, std=std)
 
     end = time.time()

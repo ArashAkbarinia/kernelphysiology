@@ -10,7 +10,7 @@ from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.experiments.contrast import dataloader
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.utils import imutils
-from kernelphysiology.dl.pytorch.utils.transformations import normalize_inverse
+from kernelphysiology.dl.pytorch.utils.cv2_transforms import normalize_inverse
 
 
 def parse_arguments(args):

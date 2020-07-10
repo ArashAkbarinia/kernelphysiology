@@ -2,16 +2,12 @@
 Transformations on tensors without going to CPU.
 """
 
-import numpy as np
 import warnings
 import sys
 import collections
 from scipy import linalg
 
 import torch
-
-from kernelphysiology.dl.pytorch.utils.cv2_transforms import Normalize
-from kernelphysiology.dl.pytorch.utils.cv2_functional import normalize
 
 if sys.version_info < (3, 3):
     Iterable = collections.Iterable
@@ -132,30 +128,3 @@ def rgb2lab(rgb):
 
 def lab2rgb(lab):
     return xyz2rgb(lab2xyz(lab))
-
-
-def inverse_mean_std(mean, std):
-    mean = np.array(mean)
-    std = np.array(std)
-    std_inv = 1 / (std + 1e-7)
-    mean_inv = -mean * std_inv
-    return mean_inv, std_inv
-
-
-def normalize_inverse(tensor, mean, std):
-    mean_inv, std_inv = inverse_mean_std(mean, std)
-    return normalize(tensor, mean_inv, std_inv)
-
-
-class NormalizeInverse(Normalize):
-    """
-    Undoes the normalization and returns the reconstructed images in the input
-    domain.
-    """
-
-    def __init__(self, mean, std):
-        mean_inv, std_inv = inverse_mean_std(mean, std)
-        super().__init__(mean=mean_inv, std=std_inv)
-
-    def __call__(self, tensor):
-        return super().__call__(tensor.clone())

@@ -18,7 +18,7 @@ from kernelphysiology.dl.pytorch.models.model_utils import get_preprocessing_fun
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import save_checkpoint
 from kernelphysiology.dl.pytorch.utils.misc import prepare_device
-from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
+from kernelphysiology.dl.pytorch.utils.cv2_transforms import NormalizeInverse
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.utils.system_utils import set_visible_gpus
 from kernelphysiology.utils.path_utils import write_pickle

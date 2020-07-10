@@ -13,7 +13,7 @@ from kernelphysiology.dl.pytorch.datasets.utils_db import is_dataset_pil_image
 from kernelphysiology.dl.pytorch.datasets.utils_db import get_validation_dataset
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.utils import preprocessing
-from kernelphysiology.dl.pytorch.utils.transformations import NormalizeInverse
+from kernelphysiology.dl.pytorch.utils.cv2_transforms import NormalizeInverse
 from kernelphysiology.dl.utils import prepapre_testing
 from kernelphysiology.dl.utils.default_configs import get_default_target_size
 
