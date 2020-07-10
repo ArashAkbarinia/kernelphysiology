@@ -9,7 +9,9 @@ import collections
 from scipy import linalg
 
 import torch
-import torchvision
+
+from kernelphysiology.dl.pytorch.utils.cv2_transforms import Normalize
+from kernelphysiology.dl.pytorch.utils.cv2_functional import normalize
 
 if sys.version_info < (3, 3):
     Iterable = collections.Iterable
@@ -140,14 +142,12 @@ def inverse_mean_std(mean, std):
     return mean_inv, std_inv
 
 
-def normalize_inverse(tensor, mean, std, inplace=False):
+def normalize_inverse(tensor, mean, std):
     mean_inv, std_inv = inverse_mean_std(mean, std)
-    return torchvision.transforms.functional.normalize(
-        tensor, mean_inv, std_inv, inplace=inplace
-    )
+    return normalize(tensor, mean_inv, std_inv)
 
 
-class NormalizeInverse(torchvision.transforms.Normalize):
+class NormalizeInverse(Normalize):
     """
     Undoes the normalization and returns the reconstructed images in the input
     domain.
@@ -159,5 +159,3 @@ class NormalizeInverse(torchvision.transforms.Normalize):
 
     def __call__(self, tensor):
         return super().__call__(tensor.clone())
-
-
