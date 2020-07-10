@@ -32,9 +32,16 @@ class ResBlock(nn.Module):
 
 
 class VQ_CVAE(nn.Module):
-    def __init__(self, d, k=10, bn=True, vq_coef=1, commit_coef=0.5,
+    def __init__(self, d, k=10, kl=None, bn=True, vq_coef=1, commit_coef=0.5,
                  num_channels=3, **kwargs):
         super(VQ_CVAE, self).__init__()
+
+        self.d = d
+        self.k = k
+        if kl is None:
+            kl = d
+        self.kl = kl
+        self.emb = NearestEmbed(k, kl)
 
         self.encoder = nn.Sequential(
             nn.Conv2d(num_channels, d, kernel_size=4, stride=2, padding=1),
@@ -45,11 +52,11 @@ class VQ_CVAE(nn.Module):
             nn.ReLU(inplace=True),
             ResBlock(d, d, bn=True),
             nn.BatchNorm2d(d),
-            ResBlock(d, d, bn=True),
-            nn.BatchNorm2d(d),
+            ResBlock(d, kl, bn=True),
+            nn.BatchNorm2d(kl),
         )
         self.decoder = nn.Sequential(
-            ResBlock(d, d),
+            ResBlock(kl, d),
             nn.BatchNorm2d(d),
             ResBlock(d, d),
             nn.ConvTranspose2d(d, d, kernel_size=4, stride=2, padding=1),
@@ -58,8 +65,6 @@ class VQ_CVAE(nn.Module):
             nn.ConvTranspose2d(d, num_channels, kernel_size=4, stride=2,
                                padding=1),
         )
-        self.d = d
-        self.emb = NearestEmbed(k, d)
         self.vq_coef = vq_coef
         self.commit_coef = commit_coef
         self.mse = 0

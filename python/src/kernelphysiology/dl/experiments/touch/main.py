@@ -61,6 +61,8 @@ def main(args):
     model_parser.add_argument('-k', '--dict-size', type=int, dest='k',
                               metavar='K',
                               help='number of atoms in dictionary')
+    model_parser.add_argument('-kl', '--kl', type=int, dest='kl', default=None,
+                              help='length of vectors in embedded space')
     model_parser.add_argument('--lr', type=float, default=None,
                               help='learning rate')
     model_parser.add_argument('--vq_coef', type=float, default=None,
@@ -127,7 +129,7 @@ def main(args):
         cudnn.benchmark = True
         torch.cuda.manual_seed(args.seed)
 
-    model = models[args.dataset][args.model](hidden, k=k,
+    model = models[args.dataset][args.model](hidden, k=k, kl=args.kl,
                                              num_channels=num_channels)
     if args.resume is not None:
         weights = torch.load(args.resume, map_location='cpu')
