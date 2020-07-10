@@ -16,6 +16,8 @@ class ResBlock(nn.Module):
         if mid_channels is None:
             mid_channels = out_channels
 
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         layers = [
             nn.ReLU(),
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, stride=1,
@@ -28,7 +30,10 @@ class ResBlock(nn.Module):
         self.convs = nn.Sequential(*layers)
 
     def forward(self, x):
-        return x + self.convs(x)
+        if self.in_channels == self.out_channels:
+            return x + self.convs(x)
+        else:
+            return self.convs(x)
 
 
 class VQ_CVAE(nn.Module):
