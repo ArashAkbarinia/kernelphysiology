@@ -10,7 +10,7 @@ from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.experiments.contrast import dataloader
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.utils import imutils
-from kernelphysiology.dl.pytorch.utils.cv2_transforms import normalize_inverse
+from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 
 
 def parse_arguments(args):
@@ -52,7 +52,8 @@ def run_gratings(db_loader, model, out_file, update=False, mean_std=None):
             item_settings = item_settings.numpy()
 
             if mean_std is not None:
-                img_inv = normalize_inverse(test_img, mean_std[0], mean_std[1])
+                img_inv = inv_normalise_tensor(test_img, mean_std[0],
+                                               mean_std[1])
                 img_inv = img_inv.detach().cpu().numpy().transpose(0, 2, 3, 1)
                 img_inv = np.concatenate(img_inv, axis=1)
                 save_path = '%s%.5d.png' % (out_file, i)
