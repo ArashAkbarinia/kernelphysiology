@@ -4,10 +4,13 @@ import sys
 
 import torch
 
+from skimage import io
+
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.experiments.contrast import dataloader
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.utils import imutils
+from kernelphysiology.dl.pytorch.utils.transformations import normalize_inverse
 
 
 def parse_arguments(args):
@@ -29,12 +32,13 @@ def parse_arguments(args):
                               default=None)
     model_parser.add_argument('--print', action='store_true', default=False)
     model_parser.add_argument('--gabor', action='store_true', default=False)
+    model_parser.add_argument('--visualise', action='store_true', default=False)
     model_parser.add_argument('--mosaic_pattern', type=str, default=None)
     model_parser.add_argument('--vision_type', type=str, default='trichromat')
     return parser.parse_args(args)
 
 
-def run_gratings(db_loader, model, out_file, update=False):
+def run_gratings(db_loader, model, out_file, update=False, mean_std=None):
     with torch.no_grad():
         header = 'Contrast,SpatialFrequency,Theta,Rho,Side,Prediction'
         all_results = []
@@ -46,6 +50,14 @@ def run_gratings(db_loader, model, out_file, update=False):
             preds = out.cpu().numpy().argmax(axis=1)
             targets = targets.numpy()
             item_settings = item_settings.numpy()
+
+            if mean_std is not None:
+                img_inv = normalize_inverse(test_img, mean_std[0], mean_std[1])
+                img_inv = img_inv.detach().cpu().numpy().transpose(0, 2, 3, 1)
+                img_inv = np.concatenate(img_inv, axis=1)
+                save_path = '%s%.5d.png' % (out_file, i)
+                img_inv = (img_inv * 255).astype('uint8')
+                io.imsave(save_path, img_inv)
 
             for j in range(len(preds)):
                 current_settings = item_settings[j]
@@ -137,9 +149,12 @@ def main(args):
     model.eval()
     model.cuda()
 
+    mean_std = None
+    if args.visualise:
+        mean_std = (mean, std)
     if args.db == 'gratings':
         run_gratings(
-            db_loader, model, args.out_file, args.print
+            db_loader, model, args.out_file, args.print, mean_std=mean_std
         )
 
 
