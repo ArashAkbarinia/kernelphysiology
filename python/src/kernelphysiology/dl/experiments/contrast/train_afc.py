@@ -327,7 +327,8 @@ def main_worker(ngpus_per_node, args):
                         'in_chns': len(mean),
                         'num_classes': args.num_classes,
                         'blocks': args.blocks,
-                        'num_kernels': args.num_kernels
+                        'num_kernels': args.num_kernels,
+                        'kernel_size': args.kernel_size
                     },
                     'preprocessing': {'mean': mean, 'std': std},
                     'state_dict': model.state_dict(),
