@@ -221,7 +221,7 @@ class ResNet(nn.Module):
                  groups=1, width_per_group=64,
                  replace_stride_with_dilation=None,
                  norm_layer=None, pooling_type='max', in_chns=3,
-                 inplanes=64):
+                 inplanes=64, kernel_size=7):
         # TODO: pass pooling_type as an argument
         super(ResNet, self).__init__()
         if norm_layer is None:
@@ -253,8 +253,8 @@ class ResNet(nn.Module):
             pooling_type = 'none'
         else:
             self.conv1 = nn.Conv2d(
-                self.in_chns, self.inplanes, kernel_size=7, stride=2, padding=3,
-                bias=False
+                self.in_chns, self.inplanes, kernel_size=kernel_size, stride=2,
+                padding=int(kernel_size / 2), bias=False
             )
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)

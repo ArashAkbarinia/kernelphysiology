@@ -149,6 +149,12 @@ def get_network_group(parser):
         help='The number of convolutional kernels (default: 64)'
     )
     network_group.add_argument(
+        '--kernel_size',
+        type=int,
+        default=7,
+        help='The spatial size of kernels (default: 7)'
+    )
+    network_group.add_argument(
         '-ca', '--custom_arch',
         dest='custom_arch',
         action='store_true',

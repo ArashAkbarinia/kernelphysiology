@@ -135,7 +135,7 @@ def main_worker(ngpus_per_node, args):
             model = custom_models.__dict__[args.network_name](
                 args.blocks, pooling_type=args.pooling_type,
                 in_chns=len(mean), num_classes=args.num_classes,
-                inplanes=args.num_kernels
+                inplanes=args.num_kernels, kernel_size=args.kernel_size
             )
     elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.network_name))
