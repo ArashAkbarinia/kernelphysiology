@@ -11,7 +11,6 @@ import torchvision.transforms as torch_transforms
 from kernelphysiology.utils import imutils
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.filterfactory import gratings
-from kernelphysiology.filterfactory import gaussian
 from kernelphysiology.transformations import colour_spaces
 
 
@@ -42,7 +41,8 @@ def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
 
 class ImageFolder(tdatasets.ImageFolder):
     def __init__(self, p=0.5, contrasts=None, same_transforms=False,
-                 colour_space='grey', vision_type='trichromat', **kwargs):
+                 colour_space='grey', vision_type='trichromat',
+                 mask_image=True, **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
         self.p = p
@@ -50,6 +50,7 @@ class ImageFolder(tdatasets.ImageFolder):
         self.same_transforms = same_transforms
         self.colour_space = colour_space
         self.vision_type = vision_type
+        self.mask_image = mask_image
 
     def __getitem__(self, index):
         """
@@ -97,6 +98,10 @@ class ImageFolder(tdatasets.ImageFolder):
         img0 = imutils.adjust_contrast(img0, contrast0)
         img1 = imutils.adjust_contrast(img1, contrast1)
 
+        if self.mask_image:
+            img0 = imutils.mask_image(img0, 0.5, **self._random_mask_params())
+            img1 = imutils.mask_image(img1, 0.5, **self._random_mask_params())
+
         if self.transform is not None:
             if self.same_transforms:
                 img0, img1 = self.transform([img0, img1])
@@ -113,6 +118,12 @@ class ImageFolder(tdatasets.ImageFolder):
             class_target = self.target_transform(class_target)
 
         return img_out, contrast_target, path
+
+    def _random_mask_params(self):
+        mask_params = dict()
+        mask_params['mask_type'] = random.choice(['circle', 'square'])
+        mask_params['mask_length'] = random.random()
+        return mask_params
 
 
 class GratingImages(torch_data.Dataset):

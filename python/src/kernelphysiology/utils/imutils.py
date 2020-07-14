@@ -536,3 +536,18 @@ def roll_image(img, rows, cols):
     img = np.roll(img, rows, axis=0)
     img = np.roll(img, cols, axis=1)
     return img
+
+
+def mask_image(img, mask_val, **kwargs):
+    """Sets certain pixels (according to the mask) to a specific value.
+
+    :param img: numpy array image.
+    :param mask_val: the value of masked pixels.
+    :param kwargs: refer to :meth:`filterfactory.mask.create_mask_image`.
+    :return: an image with the same shape as img where masked pixels are set to
+    mask_val.
+    """
+    masked_img = img.copy()
+    mask_filter = create_mask_image(masked_img, **kwargs)
+    masked_img[mask_filter == 1] = mask_val
+    return masked_img
