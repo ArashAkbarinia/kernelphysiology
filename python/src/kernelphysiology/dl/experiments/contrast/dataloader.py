@@ -42,7 +42,7 @@ def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
 class ImageFolder(tdatasets.ImageFolder):
     def __init__(self, p=0.5, contrasts=None, same_transforms=False,
                  colour_space='grey', vision_type='trichromat',
-                 mask_image=True, **kwargs):
+                 mask_image=False, **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
         self.p = p
