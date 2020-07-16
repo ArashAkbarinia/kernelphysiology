@@ -376,6 +376,9 @@ def train_set(db, target_size, mean, std, extra_transformation=None,
             size_transform, *shared_transforms
         ])
         if db == 'imagenet':
+            natural_kwargs['root'] = os.path.join(
+                natural_kwargs['root'], 'train'
+            )
             current_db = ImageFolder(
                 transform=transforms, **natural_kwargs
             )
@@ -411,6 +414,9 @@ def validation_set(db, target_size, mean, std, extra_transformation=None,
             *shared_transforms
         ])
         if db == 'imagenet':
+            natural_kwargs['root'] = os.path.join(
+                natural_kwargs['root'], 'validation'
+            )
             current_db = ImageFolder(
                 transform=transforms, **natural_kwargs
             )

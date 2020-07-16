@@ -251,7 +251,7 @@ def main_worker(ngpus_per_node, args):
     grating_params = {'samples': args.train_samples,
                       'colour_space': args.colour_space,
                       'vision_type': args.vision_type}
-    natural_params = {'root': args.train_dir,
+    natural_params = {'root': args.data_dir,
                       'colour_space': args.colour_space,
                       'vision_type': args.vision_type}
     train_dataset = dataloader.train_set(
@@ -278,7 +278,7 @@ def main_worker(ngpus_per_node, args):
     grating_params = {'samples': args.val_samples,
                       'colour_space': args.colour_space,
                       'vision_type': args.vision_type}
-    natural_params = {'root': args.validation_dir,
+    natural_params = {'root': args.data_dir,
                       'colour_space': args.colour_space,
                       'vision_type': args.vision_type}
     validation_dataset = dataloader.validation_set(
