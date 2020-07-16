@@ -381,7 +381,7 @@ def train_set(db, target_size, mean, std, extra_transformation=None,
             )
         elif db == 'celeba':
             current_db = CelebA(
-                transform=transforms, **natural_kwargs
+                transform=transforms, split='train', **natural_kwargs
             )
         all_dbs.append(current_db)
     if db in ['gratings']:
@@ -416,7 +416,7 @@ def validation_set(db, target_size, mean, std, extra_transformation=None,
             )
         elif db == 'celeba':
             current_db = CelebA(
-                transform=transforms, **natural_kwargs
+                transform=transforms, split='test', **natural_kwargs
             )
         all_dbs.append(current_db)
     if db in ['gratings']:
