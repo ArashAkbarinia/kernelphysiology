@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import os
 
 import cv2
 
@@ -14,7 +15,7 @@ from kernelphysiology.filterfactory import gratings
 from kernelphysiology.transformations import colour_spaces
 
 
-def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
+def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
     imgs_cat = [img0, img1]
     max_contrast = np.argmax([contrast0, contrast1])
     if random.random() < p:
@@ -37,6 +38,118 @@ def two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
     ).type(img0.type())
 
     return torch.cat([grey_rows, img_out, grey_rows], dim), contrast_target
+
+
+def _random_mask_params():
+    mask_params = dict()
+    mask_params['mask_type'] = random.choice(['circle', 'square'])
+    mask_params['mask_length'] = random.random()
+    return mask_params
+
+
+def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
+                     transform, same_transforms, p):
+    if 'grey' not in colour_space and vision_type != 'trichromat':
+        dkl0 = colour_spaces.rgb2dkl(img0)
+        if vision_type == 'dichromat_rg':
+            dkl0[:, :, 1] = 0
+        elif vision_type == 'dichromat_yb':
+            dkl0[:, :, 2] = 0
+        img0 = colour_spaces.dkl2rgb(dkl0)
+
+    img1 = img0.copy()
+
+    if contrasts is None:
+        contrast0 = random.uniform(0, 1)
+        contrast1 = random.uniform(0, 1)
+    else:
+        contrast0, contrast1 = contrasts
+
+    # converting to range 0 to 1
+    img0 = img0.astype('float32') / 255
+    img1 = img1.astype('float32') / 255
+
+    if 'grey' in colour_space:
+        img0 = cv2.cvtColor(img0, cv2.COLOR_RGB2GRAY)
+        img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY)
+        if colour_space == 'grey':
+            img0 = np.expand_dims(img0, axis=2)
+            img1 = np.expand_dims(img1, axis=2)
+        elif colour_space == 'grey3':
+            img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
+            img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
+
+    # manipulating the contrast
+    img0 = imutils.adjust_contrast(img0, contrast0)
+    img1 = imutils.adjust_contrast(img1, contrast1)
+
+    if mask_image:
+        img0 = imutils.mask_image(img0, 0.5, **_random_mask_params())
+        img1 = imutils.mask_image(img1, 0.5, **_random_mask_params())
+
+    if transform is not None:
+        if same_transforms:
+            img0, img1 = transform([img0, img1])
+        else:
+            [img0] = transform([img0])
+            [img1] = transform([img1])
+
+    img_out, contrast_target = _two_pairs_stimuli(
+        img0, img1, contrast0, contrast1, p
+    )
+    return img_out, contrast_target
+
+
+class CelebA(tdatasets.CelebA):
+    def __init__(self, p=0.5, contrasts=None, same_transforms=False,
+                 colour_space='grey', vision_type='trichromat',
+                 mask_image=False, **kwargs):
+        super(CelebA, self).__init__(**kwargs)
+        self.loader = tdatasets.folder.pil_loader
+        self.p = p
+        self.contrasts = contrasts
+        self.same_transforms = same_transforms
+        self.colour_space = colour_space
+        self.vision_type = vision_type
+        self.mask_image = mask_image
+
+    def __getitem__(self, index):
+        path = os.path.join(
+            self.root, self.base_folder, "img_align_celeba",
+            self.filename[index]
+        )
+        img0 = self.loader(path)
+        img0 = np.asarray(img0).copy()
+
+        target = []
+        for t in self.target_type:
+            if t == "attr":
+                target.append(self.attr[index, :])
+            elif t == "identity":
+                target.append(self.identity[index, 0])
+            elif t == "bbox":
+                target.append(self.bbox[index, :])
+            elif t == "landmarks":
+                target.append(self.landmarks_align[index, :])
+            else:
+                # TODO: refactor with utils.verify_str_arg
+                raise ValueError(
+                    "Target type \"{}\" is not recognized.".format(t)
+                )
+        if target:
+            target = tuple(target) if len(target) > 1 else target[0]
+
+            if self.target_transform is not None:
+                target = self.target_transform(target)
+        else:
+            target = None
+
+        img_out, contrast_target = _prepare_stimuli(
+            img0, self.colour_space, self.vision_type, self.contrasts,
+            self.mask_image, self.transform, self.same_transforms, self.p
+        )
+
+        return img_out, contrast_target, path
 
 
 class ImageFolder(tdatasets.ImageFolder):
@@ -64,53 +177,9 @@ class ImageFolder(tdatasets.ImageFolder):
         path, class_target = self.samples[index]
         img0 = self.loader(path)
         img0 = np.asarray(img0).copy()
-        if 'grey' not in self.colour_space and self.vision_type != 'trichromat':
-            dkl0 = colour_spaces.rgb2dkl(img0)
-            if self.vision_type == 'dichromat_rg':
-                dkl0[:, :, 1] = 0
-            elif self.vision_type == 'dichromat_yb':
-                dkl0[:, :, 2] = 0
-            img0 = colour_spaces.dkl2rgb(dkl0)
-
-        img1 = img0.copy()
-
-        if self.contrasts is None:
-            contrast0 = random.uniform(0, 1)
-            contrast1 = random.uniform(0, 1)
-        else:
-            contrast0, contrast1 = self.contrasts
-
-        # converting to range 0 to 1
-        img0 = img0.astype('float32') / 255
-        img1 = img1.astype('float32') / 255
-
-        if 'grey' in self.colour_space:
-            img0 = cv2.cvtColor(img0, cv2.COLOR_RGB2GRAY)
-            img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY)
-            if self.colour_space == 'grey':
-                img0 = np.expand_dims(img0, axis=2)
-                img1 = np.expand_dims(img1, axis=2)
-            elif self.colour_space == 'grey3':
-                img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
-                img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
-
-        # manipulating the contrast
-        img0 = imutils.adjust_contrast(img0, contrast0)
-        img1 = imutils.adjust_contrast(img1, contrast1)
-
-        if self.mask_image:
-            img0 = imutils.mask_image(img0, 0.5, **self._random_mask_params())
-            img1 = imutils.mask_image(img1, 0.5, **self._random_mask_params())
-
-        if self.transform is not None:
-            if self.same_transforms:
-                img0, img1 = self.transform([img0, img1])
-            else:
-                [img0] = self.transform([img0])
-                [img1] = self.transform([img1])
-
-        img_out, contrast_target = two_pairs_stimuli(
-            img0, img1, contrast0, contrast1, self.p
+        img_out, contrast_target = _prepare_stimuli(
+            img0, self.colour_space, self.vision_type, self.contrasts,
+            self.mask_image, self.transform, self.same_transforms, self.p
         )
 
         # right now we're not using the class target, but perhaps in the future
@@ -118,12 +187,6 @@ class ImageFolder(tdatasets.ImageFolder):
             class_target = self.target_transform(class_target)
 
         return img_out, contrast_target, path
-
-    def _random_mask_params(self):
-        mask_params = dict()
-        mask_params['mask_type'] = random.choice(['circle', 'square'])
-        mask_params['mask_length'] = random.random()
-        return mask_params
 
 
 class GratingImages(torch_data.Dataset):
@@ -273,7 +336,7 @@ class GratingImages(torch_data.Dataset):
         if self.transform is not None:
             img0, img1 = self.transform([img0, img1])
 
-        img_out, contrast_target = two_pairs_stimuli(
+        img_out, contrast_target = _two_pairs_stimuli(
             img0, img1, contrast0, contrast1, self.p
         )
 
@@ -304,7 +367,7 @@ def train_set(db, target_size, mean, std, extra_transformation=None,
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std)
     ]
-    if db is None or db == 'both':
+    if db in ['imagenet', 'celeba']:
         scale = (0.08, 1.0)
         size_transform = cv2_transforms.RandomResizedCrop(
             target_size, scale=scale
@@ -312,11 +375,16 @@ def train_set(db, target_size, mean, std, extra_transformation=None,
         transforms = torch_transforms.Compose([
             size_transform, *shared_transforms
         ])
-        all_dbs.append(
-            ImageFolder(
+        if db == 'imagenet':
+            current_db = ImageFolder(
                 transform=transforms, **natural_kwargs
-            ))
-    if db in ['both', 'gratings']:
+            )
+        elif db == 'celeba':
+            current_db = CelebA(
+                transform=transforms, **natural_kwargs
+            )
+        all_dbs.append(current_db)
+    if db in ['gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
         all_dbs.append(
             GratingImages(
@@ -336,17 +404,22 @@ def validation_set(db, target_size, mean, std, extra_transformation=None,
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std),
     ]
-    if db is None or db == 'both':
+    if db in ['imagenet', 'celeba']:
         transforms = torch_transforms.Compose([
             cv2_transforms.Resize(target_size),
             cv2_transforms.CenterCrop(target_size),
             *shared_transforms
         ])
-        all_dbs.append(
-            ImageFolder(
+        if db == 'imagenet':
+            current_db = ImageFolder(
                 transform=transforms, **natural_kwargs
-            ))
-    if db in ['both', 'gratings']:
+            )
+        elif db == 'celeba':
+            current_db = CelebA(
+                transform=transforms, **natural_kwargs
+            )
+        all_dbs.append(current_db)
+    if db in ['gratings']:
         transforms = torch_transforms.Compose(shared_transforms)
         all_dbs.append(
             GratingImages(

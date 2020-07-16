@@ -255,7 +255,7 @@ def main_worker(ngpus_per_node, args):
                       'colour_space': args.colour_space,
                       'vision_type': args.vision_type}
     train_dataset = dataloader.train_set(
-        args.db, target_size, mean, std, extra_transformation=train_trans,
+        args.dataset, target_size, mean, std, extra_transformation=train_trans,
         natural_kwargs=natural_params, gratings_kwargs=grating_params
     )
 
@@ -282,7 +282,7 @@ def main_worker(ngpus_per_node, args):
                       'colour_space': args.colour_space,
                       'vision_type': args.vision_type}
     validation_dataset = dataloader.validation_set(
-        args.db, target_size, mean, std, extra_transformation=valid_trans,
+        args.dataset, target_size, mean, std, extra_transformation=valid_trans,
         natural_kwargs=natural_params, gratings_kwargs=grating_params
     )
 
@@ -461,7 +461,7 @@ def validate_on_data(val_loader, model, criterion, args):
 def extra_args_fun(parser):
     specific_group = parser.add_argument_group('Contrast specific')
 
-    specific_group.add_argument('-db', '--db', default=None, type=str)
+    # specific_group.add_argument('-db', '--db', default=None, type=str)
     specific_group.add_argument('--train_samples', default=10000, type=int)
     specific_group.add_argument('--val_samples', default=1000, type=int)
 
