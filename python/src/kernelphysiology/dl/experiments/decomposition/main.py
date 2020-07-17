@@ -1,0 +1,281 @@
+"""
+The main script to decompose an image into several meaningful entities.
+"""
+
+import numpy as np
+import os
+import sys
+import time
+import logging
+
+from torch import optim
+import torch.backends.cudnn as cudnn
+import torch.utils.data
+from torch.utils.tensorboard import SummaryWriter
+from torchvision import transforms
+
+from kernelphysiology.dl.experiments.decomposition import util as vae_util
+from kernelphysiology.dl.experiments.decomposition import model as vae_model
+from kernelphysiology.dl.experiments.decomposition import arguments
+from kernelphysiology.dl.experiments.decomposition import data_loaders
+from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
+from kernelphysiology.dl.pytorch.utils import cv2_transforms
+
+datasets_classes = {
+    'imagenet': data_loaders.ImageFolder,
+    'celeba': data_loaders.CelebA,
+}
+dataset_target_size = {
+    'imagenet': 256,
+    'celeba': 64,
+}
+
+
+def main(args):
+    args = arguments.parse_arguments(args)
+
+    # determining the number of input channels
+    if args.in_space == 'grey':
+        args.in_chns = 1
+    else:
+        args.in_chns = 3
+
+    args.mean = tuple([0.5 for _ in range(args.in_chns)])
+    args.std = tuple([0.5 for _ in range(args.in_chns)])
+    target_size = args.target_size or dataset_target_size[args.dataset]
+
+    shared_transforms = [
+        cv2_transforms.Resize(target_size + 32),
+        cv2_transforms.CenterCrop(target_size),
+        cv2_transforms.ToTensor(),
+        cv2_transforms.Normalize(args.mean, args.std)
+    ]
+
+    dataset_transforms = {
+        'imagenet': transforms.Compose(shared_transforms),
+        'celeba': transforms.Compose(shared_transforms),
+    }
+
+    save_path = vae_util.setup_logging_from_args(args)
+    writer = SummaryWriter(save_path)
+
+    torch.manual_seed(args.seed)
+    args.gpus = [int(i) for i in args.gpus.split(',')]
+    torch.cuda.set_device(args.gpus[0])
+    cudnn.benchmark = True
+    torch.cuda.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+
+    model = vae_model.DecomposeNet(
+        hidden=args.hidden, k=args.k, d=args.args.d, in_chns=args.in_chns,
+        outs_dict=args.outs_dict
+    )
+    model.cuda()
+
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, int(args.epochs / 3), 0.5)
+
+    if args.resume is not None:
+        checkpoint = torch.load(args.resume, map_location='cpu')
+        model.load_state_dict(checkpoint['state_dict'])
+        model.cuda()
+        args.start_epoch = checkpoint['epoch'] + 1
+        scheduler.load_state_dict(checkpoint['scheduler'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+    elif args.fine_tune is not None:
+        weights = torch.load(args.fine_tune, map_location='cpu')
+        model.load_state_dict(weights, strict=False)
+        model.cuda()
+
+    intransform_funs = []
+    if args.in_space.lower() != 'rgb':
+        intransform_funs.append(
+            cv2_preprocessing.ColourSpaceTransformation(args.in_space.lower())
+        )
+    intransform = transforms.Compose(intransform_funs)
+
+    outtransform_funs = [
+        cv2_preprocessing.MultipleOutputTransformation(args.outputs)
+    ]
+    outtransform = transforms.Compose(outtransform_funs)
+
+    # FIXME
+    # preparing the output dictionary
+    args.outs_dict = dict()
+    for out_type in args.outputs:
+        if out_type == 'input':
+            args.outs_dict[out_type] = args.in_chns
+        elif out_type == 'grey':
+            args.outs_dict[out_type] = 1
+        else:
+            args.outs_dict[out_type] = 3
+
+    # FIXME
+    args.vis_func = vae_util.grid_save_reconstructed_images
+
+    # preparing the dataset
+    transforms_kwargs = {
+        'intransform': intransform,
+        'outtransform': outtransform,
+        'transform': dataset_transforms[args.dataset]
+    }
+    if args.dataset == 'celeba':
+        train_dataset = datasets_classes[args.dataset](
+            root=args.data_dir, split='train', **transforms_kwargs
+        )
+        test_dataset = datasets_classes[args.dataset](
+            root=args.data_dir, split='test', **transforms_kwargs
+        )
+    else:
+        train_dataset = datasets_classes[args.dataset](
+            root=os.path.join(args.data_dir, 'train'), **transforms_kwargs
+        )
+        test_dataset = datasets_classes[args.dataset](
+            root=os.path.join(args.data_dir, 'validation'), **transforms_kwargs
+        )
+
+    loader_kwargs = {
+        'batch_size': args.batch_size, 'num_workers': args.workers,
+        'pin_memory': True
+    }
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, shuffle=True, **loader_kwargs
+    )
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset, shuffle=False, **loader_kwargs
+    )
+
+    # starting to train
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger('').addHandler(console)
+    for epoch in range(args.start_epoch, args.epochs):
+        train_losses = train(
+            epoch, model, train_loader, optimizer, save_path, args
+        )
+        test_losses = test_net(
+            epoch, model, test_loader, save_path, args
+        )
+        for k in train_losses.keys():
+            name = k.replace('_train', '')
+            train_name = k
+            test_name = k.replace('train', 'test')
+            writer.add_scalars(
+                name, {
+                    'train': train_losses[train_name],
+                    'test': test_losses[test_name]
+                }, epoch
+            )
+        scheduler.step()
+        vae_util.save_checkpoint(
+            {
+                'epoch': epoch,
+                'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'scheduler': scheduler.state_dict(),
+                'arch': {
+                    'k': args.k, 'd': args.d, 'hidden': args.hidden,
+                    'in_chns': args.in_chns, 'outs_dict': args.outs_dict
+                }
+            },
+            save_path
+        )
+
+
+def train(epoch, model, train_loader, optimizer, save_path, args):
+    model.train()
+    loss_dict = model.latest_losses()
+    losses = {k + '_train': 0 for k, v in loss_dict.items()}
+    epoch_losses = {k + '_train': 0 for k, v in loss_dict.items()}
+    num_batches = len(train_loader)
+    start_time = time.time()
+    for bidx, loader_data in enumerate(train_loader):
+        data = loader_data[0]
+        target = loader_data[1]
+        target = target.cuda()
+
+        data = data.cuda()
+        optimizer.zero_grad()
+        outputs = model(data)
+
+        loss = model.loss_function(target, *outputs)
+        loss.backward()
+        optimizer.step()
+        latest_losses = model.latest_losses()
+        for key in latest_losses:
+            losses[key + '_train'] += float(latest_losses[key])
+            epoch_losses[key + '_train'] += float(latest_losses[key])
+
+        if bidx % args.log_interval == 0:
+            for key in latest_losses:
+                losses[key + '_train'] /= args.log_interval
+            loss_string = ' '.join(
+                ['{}: {:.6f}'.format(k, v) for k, v in losses.items()]
+            )
+            logging.info(
+                'Train Epoch: {epoch} [{batch:5d}/{total_batch} '
+                '({percent:2d}%)]   time: {time:3.2f}   {loss}'.format(
+                    epoch=epoch, batch=bidx * len(data),
+                    total_batch=num_batches * len(data),
+                    percent=int(100. * bidx / num_batches),
+                    time=time.time() - start_time, loss=loss_string
+                )
+            )
+            start_time = time.time()
+            for key in latest_losses:
+                losses[key + '_train'] = 0
+        if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
+            args.vis_func(
+                target, outputs, args.mean, args.std, epoch, save_path,
+                'reconstruction_train%.5d' % bidx, args.inv_func
+            )
+
+        if bidx * len(data) > args.train_samples:
+            break
+
+    for key in epoch_losses:
+        epoch_losses[key] /= (
+                len(train_loader.dataset) / train_loader.batch_size
+        )
+    loss_string = '\t'.join(
+        ['{}: {:.6f}'.format(k, v) for k, v in epoch_losses.items()]
+    )
+    logging.info('====> Epoch: {} {}'.format(epoch, loss_string))
+    return epoch_losses
+
+
+def test_net(epoch, model, test_loader, save_path, args):
+    model.eval()
+    loss_dict = model.latest_losses()
+    losses = {k + '_test': 0 for k, v in loss_dict.items()}
+    num_batches = len(test_loader)
+    with torch.no_grad():
+        for bidx, loader_data in enumerate(test_loader):
+            data = loader_data[0]
+            target = loader_data[1]
+            target = target.cuda()
+            data = data.cuda()
+            outputs = model(data)
+            model.loss_function(target, *outputs)
+            latest_losses = model.latest_losses()
+            for key in latest_losses:
+                losses[key + '_test'] += float(latest_losses[key])
+            if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
+                args.vis_func(
+                    target, outputs, args.mean, args.std, epoch, save_path,
+                    'reconstruction_test%.5d' % bidx, args.inv_func
+                )
+            if bidx * len(data) > args.test_samples:
+                break
+
+    for key in losses:
+        losses[key] /= (len(test_loader.dataset) / test_loader.batch_size)
+    loss_string = ' '.join(
+        ['{}: {:.6f}'.format(k, v) for k, v in losses.items()]
+    )
+    logging.info('====> Test set losses: {}'.format(loss_string))
+    return losses
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
