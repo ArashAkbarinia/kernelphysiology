@@ -460,6 +460,11 @@ def _call_recursive(imgs, fun, **kwargs):
         for img in imgs:
             inner_list.append(_call_recursive(img, fun, **kwargs))
         return inner_list
+    elif type(imgs) is dict:
+        inner_dict = dict()
+        for key, val in imgs.items():
+            inner_dict[key] = _call_recursive(val, fun, **kwargs)
+        return inner_dict
     else:
         return fun(imgs, **kwargs)
 
@@ -467,6 +472,9 @@ def _call_recursive(imgs, fun, **kwargs):
 def _find_first_image_recursive(imgs):
     if type(imgs) is list:
         return _find_first_image_recursive(imgs[0])
+    elif type(imgs) is dict:
+        key = list(imgs.keys())[0]
+        return _find_first_image_recursive(imgs[key])
     else:
         return imgs
 
@@ -481,7 +489,7 @@ def inverse_mean_std(mean, std):
 
 def normalize_inverse(tensor, mean, std):
     mean_inv, std_inv = inverse_mean_std(mean, std)
-    return tfunctional.normalize(tensor, mean_inv, std_inv)
+    return tfunctional.normalize(tensor.clone(), mean_inv, std_inv)
 
 
 class NormalizeInverse(Normalize):

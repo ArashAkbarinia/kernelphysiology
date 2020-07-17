@@ -13,6 +13,34 @@ from kernelphysiology.utils import imutils
 from kernelphysiology.transformations import colour_spaces
 from kernelphysiology.transformations import normalisations
 
+colour_conversions = [
+    'dkl', 'lab', 'lch', 'lms', 'hsv',
+]
+
+
+class MultipleOutputTransformation(object):
+
+    def __init__(self, outputs):
+        self.out_funs = dict()
+        for out_type in outputs:
+            if out_type == 'input':
+                self.out_funs[out_type] = None
+            elif out_type in colour_conversions:
+                self.out_funs[out_type] = {
+                    'fun': ColourSpaceTransformation(out_type),
+                    'kwargs': dict()
+                }
+
+    def __call__(self, imgs):
+        org_img, processed_img = imgs
+        output_imgs = dict()
+        for key, val in self.out_funs.items():
+            if key == 'input':
+                output_imgs[key] = processed_img
+            else:
+                output_imgs[key] = val['fun'](org_img, **val['kwargs'])
+        return output_imgs
+
 
 class ColourSpaceTransformation(object):
 
