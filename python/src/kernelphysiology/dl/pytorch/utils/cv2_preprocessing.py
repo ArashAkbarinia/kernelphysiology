@@ -16,8 +16,7 @@ from kernelphysiology.transformations import normalisations
 
 class ColourSpaceTransformation(object):
 
-    def __init__(self, colour_inds, colour_space='rgb'):
-        self.colour_inds = colour_inds
+    def __init__(self, colour_space='rgb'):
         self.colour_space = colour_space
 
     def __call__(self, img):

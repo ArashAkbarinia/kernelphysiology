@@ -133,7 +133,7 @@ def main(args):
 
     if args.in_colour_space != ' rgb':
         intransform_funs.append(
-            cv2_preprocessing.ColourSpaceTransformation(None, args.in_colour_space)
+            cv2_preprocessing.ColourSpaceTransformation(args.in_colour_space)
         )
     intransform = transforms.Compose(intransform_funs)
     transform_funcs = transforms.Compose([
