@@ -40,6 +40,17 @@ def main(args):
     else:
         args.in_chns = 3
 
+    # FIXME
+    # preparing the output dictionary
+    args.outs_dict = dict()
+    for out_type in args.outputs:
+        if out_type == 'input':
+            args.outs_dict[out_type] = args.in_chns
+        elif out_type == 'grey':
+            args.outs_dict[out_type] = 1
+        else:
+            args.outs_dict[out_type] = 3
+
     args.mean = tuple([0.5 for _ in range(args.in_chns)])
     args.std = tuple([0.5 for _ in range(args.in_chns)])
     target_size = args.target_size or dataset_target_size[args.dataset]
@@ -60,17 +71,15 @@ def main(args):
     writer = SummaryWriter(save_path)
 
     torch.manual_seed(args.seed)
-    args.gpus = [int(i) for i in args.gpus.split(',')]
-    torch.cuda.set_device(args.gpus[0])
     cudnn.benchmark = True
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
     model = vae_model.DecomposeNet(
-        hidden=args.hidden, k=args.k, d=args.args.d, in_chns=args.in_chns,
+        hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
         outs_dict=args.outs_dict
     )
-    model.cuda()
+    model = model.cuda()
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = optim.lr_scheduler.StepLR(optimizer, int(args.epochs / 3), 0.5)
@@ -78,14 +87,14 @@ def main(args):
     if args.resume is not None:
         checkpoint = torch.load(args.resume, map_location='cpu')
         model.load_state_dict(checkpoint['state_dict'])
-        model.cuda()
+        model = model.cuda()
         args.start_epoch = checkpoint['epoch'] + 1
         scheduler.load_state_dict(checkpoint['scheduler'])
         optimizer.load_state_dict(checkpoint['optimizer'])
     elif args.fine_tune is not None:
         weights = torch.load(args.fine_tune, map_location='cpu')
         model.load_state_dict(weights, strict=False)
-        model.cuda()
+        model = model.cuda()
 
     intransform_funs = []
     if args.in_space.lower() != 'rgb':
@@ -98,17 +107,6 @@ def main(args):
         cv2_preprocessing.MultipleOutputTransformation(args.outputs)
     ]
     outtransform = transforms.Compose(outtransform_funs)
-
-    # FIXME
-    # preparing the output dictionary
-    args.outs_dict = dict()
-    for out_type in args.outputs:
-        if out_type == 'input':
-            args.outs_dict[out_type] = args.in_chns
-        elif out_type == 'grey':
-            args.outs_dict[out_type] = 1
-        else:
-            args.outs_dict[out_type] = 3
 
     # FIXME
     args.vis_func = vae_util.grid_save_reconstructed_images
@@ -191,10 +189,11 @@ def train(epoch, model, train_loader, optimizer, save_path, args):
     start_time = time.time()
     for bidx, loader_data in enumerate(train_loader):
         data = loader_data[0]
-        target = loader_data[1]
-        target = target.cuda()
-
         data = data.cuda()
+        target = loader_data[1]
+        for key in target.keys():
+            target[key] = target[key].cuda()
+
         optimizer.zero_grad()
         outputs = model(data)
 
@@ -226,8 +225,8 @@ def train(epoch, model, train_loader, optimizer, save_path, args):
                 losses[key + '_train'] = 0
         if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
             args.vis_func(
-                target, outputs, args.mean, args.std, epoch, save_path,
-                'reconstruction_train%.5d' % bidx, args.inv_func
+                target, outputs[0], args.mean, args.std, epoch, save_path,
+                'reconstruction_train%.5d' % bidx
             )
 
         if bidx * len(data) > args.train_samples:
@@ -252,9 +251,11 @@ def test_net(epoch, model, test_loader, save_path, args):
     with torch.no_grad():
         for bidx, loader_data in enumerate(test_loader):
             data = loader_data[0]
-            target = loader_data[1]
-            target = target.cuda()
             data = data.cuda()
+            target = loader_data[1]
+            for key in target.keys():
+                target[key] = target[key].cuda()
+
             outputs = model(data)
             model.loss_function(target, *outputs)
             latest_losses = model.latest_losses()
@@ -263,7 +264,7 @@ def test_net(epoch, model, test_loader, save_path, args):
             if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
                 args.vis_func(
                     target, outputs, args.mean, args.std, epoch, save_path,
-                    'reconstruction_test%.5d' % bidx, args.inv_func
+                    'reconstruction_test%.5d' % bidx
                 )
             if bidx * len(data) > args.test_samples:
                 break

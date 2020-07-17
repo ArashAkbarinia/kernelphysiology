@@ -180,15 +180,14 @@ class DecomposeNet(AbstractAutoEncoder):
         return self.decode(emb).cpu()
 
     def loss_function(self, x, recon_x, z_e, emb, argmin):
-        if self.colour_space == 'hsv':
-            self.mse = F.mse_loss(recon_x[:, 1:], x[:, 1:])
-            self.mse += self.hue_loss(recon_x[:, 0], x[:, 0])
-        else:
-            self.mse = F.mse_loss(recon_x, x)
+        self.mse = 0
+        for key in x.keys():
+            self.mse += F.mse_loss(recon_x[key], x[key])
 
         self.vq_loss = torch.mean(torch.norm((emb - z_e.detach()) ** 2, 2, 1))
         self.commit_loss = torch.mean(
-            torch.norm((emb.detach() - z_e) ** 2, 2, 1))
+            torch.norm((emb.detach() - z_e) ** 2, 2, 1)
+        )
 
         return (
                 self.mse +
@@ -206,6 +205,11 @@ class DecomposeNet(AbstractAutoEncoder):
         unique, counts = np.unique(argmin, return_counts=True)
         logging.info(counts)
         logging.info(unique)
+
+    def cuda(self, device=None):
+        for key in self.out_layers.keys():
+            self.out_layers[key] = self.out_layers[key].cuda()
+        return super().cuda(device=device)
 
 
 class HueLoss(torch.nn.Module):

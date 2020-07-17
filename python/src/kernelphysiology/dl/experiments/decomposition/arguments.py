@@ -9,8 +9,8 @@ def parse_arguments(args):
     parser = argparse.ArgumentParser(description='Image Decomposition')
     model_parser = parser.add_argument_group('Model Parameters')
     model_parser.add_argument(
-        '--target_size', type=int,
-        help='input target size'
+        '--target_size', type=int, default=256,
+        help='input target size (default 256)'
     )
     parser.add_argument(
         '--outputs', type=str, nargs='+', default=['input'],
@@ -89,10 +89,6 @@ def parse_arguments(args):
     pipe_parser.add_argument(
         '--seed', type=int, default=1,
         help='random seed (default: 1)'
-    )
-    pipe_parser.add_argument(
-        '--gpus', default='0',
-        help='gpus used for training - e.g 0,1,3'
     )
 
     logging_parser = parser.add_argument_group('Logging Parameters')

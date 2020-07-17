@@ -132,15 +132,17 @@ def tensor_colourlabel(tensor, do_argmax=False):
 
 def grid_save_reconstructed_images(data, outputs, mean, std, epoch, save_path,
                                    name, inv_func=None):
+    outputs = outputs['input']
+    data = data['input']
     # FIXME this is not a solution!!
-    if outputs[0].shape[1] < 4:
+    if outputs.shape[1] < 4:
         original = inv_normalise_tensor(data, mean, std).detach()
         original = tensor_tosave(original, inv_func)
-        reconstructed = inv_normalise_tensor(outputs[0], mean, std).detach()
+        reconstructed = inv_normalise_tensor(outputs, mean, std).detach()
         reconstructed = tensor_tosave(reconstructed, inv_func)
     else:
         original = tensor_colourlabel(data)
-        reconstructed = tensor_colourlabel(outputs[0], True)
+        reconstructed = tensor_colourlabel(outputs, True)
 
     original = np.concatenate(original, axis=1)
     reconstructed = np.concatenate(reconstructed, axis=1)
