@@ -116,7 +116,7 @@ def _get_gauss(img_size):
 
     gauss_img = gauss_img / np.max(gauss_img)
     if len(img_size) > 2:
-        gauss_img = np.repeat(gauss_img[:, :, np.newaxis], 3, axis=2)
+        gauss_img = np.repeat(gauss_img[:, :, np.newaxis], img_size[2], axis=2)
     return gauss_img
 
 
