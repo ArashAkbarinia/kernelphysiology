@@ -83,7 +83,10 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     img0 = imutils.adjust_contrast(img0, contrast0)
     img1 = imutils.adjust_contrast(img1, contrast1)
 
-    if mask_image:
+    if mask_image == 'gaussian':
+        img0 = img0 * _get_gauss(img0.shape)
+        img1 = img1 * _get_gauss(img1.shape)
+    elif mask_image == 'shapes':
         img0 = imutils.mask_image(img0, 0.5, **_random_mask_params())
         img1 = imutils.mask_image(img1, 0.5, **_random_mask_params())
 
@@ -100,10 +103,27 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     return img_out, contrast_target
 
 
+def _get_gauss(img_size):
+    midx = np.floor(img_size[1] / 2) + 1
+    midy = np.floor(img_size[0] / 2) + 1
+    y = np.linspace(img_size[0], 0, img_size[0]) - midy
+    x = np.linspace(0, img_size[1], img_size[1]) - midx
+    [x, y] = np.meshgrid(x, y)
+    sigma = min(img_size[0], img_size[1]) / 4
+    gauss_img = np.exp(
+        -(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2))
+    )
+
+    gauss_img = gauss_img / np.max(gauss_img)
+    if len(img_size) > 2:
+        gauss_img = np.repeat(gauss_img[:, :, np.newaxis], 3, axis=2)
+    return gauss_img
+
+
 class CelebA(tdatasets.CelebA):
     def __init__(self, p=0.5, contrasts=None, same_transforms=False,
                  colour_space='grey', vision_type='trichromat',
-                 mask_image=False, **kwargs):
+                 mask_image=None, **kwargs):
         super(CelebA, self).__init__(**kwargs)
         self.loader = tdatasets.folder.pil_loader
         self.p = p
@@ -155,7 +175,7 @@ class CelebA(tdatasets.CelebA):
 class ImageFolder(tdatasets.ImageFolder):
     def __init__(self, p=0.5, contrasts=None, same_transforms=False,
                  colour_space='grey', vision_type='trichromat',
-                 mask_image=False, **kwargs):
+                 mask_image=None, **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
         self.p = p
