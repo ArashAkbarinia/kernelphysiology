@@ -189,10 +189,31 @@ class ImageFolder(tdatasets.ImageFolder):
         return img_out, contrast_target, path
 
 
+def _model_fest_stimuli(target_size, contrast, theta, rho, lambda_wave):
+    midn = np.floor(target_size[0] / 2) + 1
+    y = np.linspace(target_size[0], 0, target_size[0]) - midn
+    x = np.linspace(0, target_size[0], target_size[0]) - midn
+    [x, y] = np.meshgrid(x, y)
+    grating = contrast * np.sin(
+        2 * np.pi * (
+                (x * np.cos(theta) + y * np.sin(theta)) / lambda_wave
+        ) - rho
+    )
+
+    sigma = 60.1264858771449
+    gauss_img = np.exp(
+        -(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2))
+    )
+
+    gauss_img = gauss_img / np.max(gauss_img)
+    img = gauss_img * grating
+    return img
+
+
 class GratingImages(torch_data.Dataset):
     def __init__(self, samples, target_size=(224, 224), p=0.5,
                  transform=None, colour_space='grey', contrast_space=None,
-                 vision_type='trichromat', gabor_like=False,
+                 vision_type='trichromat', gabor_like='fixed_size',
                  contrasts=None, theta=None, rho=None, lambda_wave=None):
         super(GratingImages, self).__init__()
         if type(samples) is dict:
@@ -255,37 +276,46 @@ class GratingImages(torch_data.Dataset):
             contrast1 = 0
         omega = [np.cos(theta), np.sin(theta)]
 
-        # generating the gratings
-        sinusoid_param = {
-            'amp': contrast0, 'omega': omega, 'rho': rho,
-            'img_size': self.target_size, 'lambda_wave': lambda_wave
-        }
-        img0 = gratings.sinusoid(**sinusoid_param)
-        sinusoid_param['amp'] = contrast1
-        img1 = gratings.sinusoid(**sinusoid_param)
-
-        # multiply it by gaussian
-        if self.gabor_like:
-            radius = (
-                int(self.target_size[0] / 2.0), int(self.target_size[1] / 2.0)
+        if self.gabor_like == 'model_fest':
+            img0 = _model_fest_stimuli(
+                self.target_size, contrast0, theta, rho, lambda_wave
             )
-            [x, y] = np.meshgrid(
-                range(-radius[0], radius[0] + 1),
-                range(-radius[1], radius[1] + 1)
+            img1 = _model_fest_stimuli(
+                self.target_size, contrast1, theta, rho, lambda_wave
             )
-            x1 = +x * np.cos(theta) + y * np.sin(theta)
-            y1 = -x * np.sin(theta) + y * np.cos(theta)
+        else:
+            # generating the gratings
+            sinusoid_param = {
+                'amp': contrast0, 'omega': omega, 'rho': rho,
+                'img_size': self.target_size, 'lambda_wave': lambda_wave
+            }
+            img0 = gratings.sinusoid(**sinusoid_param)
+            sinusoid_param['amp'] = contrast1
+            img1 = gratings.sinusoid(**sinusoid_param)
 
-            k = 2
-            o1 = 8
-            o2 = o1 / 2
-            omg = (1 / 8) * (np.pi ** 2 / lambda_wave)
-            gauss_img = omg ** 2 / (o2 * np.pi * k ** 2) * np.exp(
-                -omg ** 2 / (o1 * k ** 2) * (1 * x1 ** 2 + y1 ** 2))
+            # multiply it by gaussian
+            if self.gabor_like == 'fixed_size':
+                radius = (
+                    int(self.target_size[0] / 2.0),
+                    int(self.target_size[1] / 2.0)
+                )
+                [x, y] = np.meshgrid(
+                    range(-radius[0], radius[0] + 1),
+                    range(-radius[1], radius[1] + 1)
+                )
+                x1 = +x * np.cos(theta) + y * np.sin(theta)
+                y1 = -x * np.sin(theta) + y * np.cos(theta)
 
-            gauss_img = gauss_img / np.max(gauss_img)
-            img0 *= gauss_img
-            img1 *= gauss_img
+                k = 2
+                o1 = 8
+                o2 = o1 / 2
+                omg = (1 / 8) * (np.pi ** 2 / lambda_wave)
+                gauss_img = omg ** 2 / (o2 * np.pi * k ** 2) * np.exp(
+                    -omg ** 2 / (o1 * k ** 2) * (1 * x1 ** 2 + y1 ** 2))
+
+                gauss_img = gauss_img / np.max(gauss_img)
+                img0 *= gauss_img
+                img1 *= gauss_img
 
         img0 = (img0 + 1) / 2
         img1 = (img1 + 1) / 2

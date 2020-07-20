@@ -31,8 +31,10 @@ def parse_arguments(args):
     model_parser.add_argument('--freqs', nargs='+', type=float,
                               default=None)
     model_parser.add_argument('--print', action='store_true', default=False)
-    model_parser.add_argument('--gabor', action='store_true', default=False)
+    model_parser.add_argument('--gabor', type='str', default=None)
     model_parser.add_argument('--visualise', action='store_true', default=False)
+    model_parser.add_argument('--model_fest', action='store_true',
+                              default=False)
     model_parser.add_argument('--mosaic_pattern', type=str, default=None)
     model_parser.add_argument('--vision_type', type=str, default='trichromat')
     return parser.parse_args(args)
@@ -102,14 +104,23 @@ def main(args):
     # testing setting
     freqs = args.freqs
     if freqs is None:
-        t4 = target_size / 4
-        t2 = target_size / 2
-        sf_base = ((target_size / 2) / np.pi)
-        test_sfs = [
-            sf_base / e for e in
-            [*np.arange(1, 21), *np.arange(21, 61, 5),
-             *np.arange(61, t4, 25), t4, t2]
-        ]
+        if args.model_fest:
+            test_sfs = [
+                107.558006181068, 60.2277887428434, 42.5666842683747,
+                30.1176548488805, 21.2841900445655, 15.0589946730047,
+                10.6611094334144, 7.5293662203794, 5.33055586478039,
+                4.01568430264343
+            ]
+            args.gabor = 'model_fest'
+        else:
+            t4 = target_size / 4
+            t2 = target_size / 2
+            sf_base = ((target_size / 2) / np.pi)
+            test_sfs = [
+                sf_base / e for e in
+                [*np.arange(1, 21), *np.arange(21, 61, 5),
+                 *np.arange(61, t4, 25), t4, t2]
+            ]
     else:
         if len(freqs) == 3:
             test_sfs = np.linspace(freqs[0], freqs[1], int(freqs[2]))
@@ -125,7 +136,7 @@ def main(args):
     else:
         test_contrasts = contrasts
     test_thetas = np.linspace(0, np.pi, 7)
-    test_rhos = np.linspace(0, np.pi, 3)
+    test_rhos = np.linspace(0, np.pi, 4)
     test_ps = [0.0, 1.0]
     test_samples = {
         'amp': test_contrasts, 'lambda_wave': test_sfs,
