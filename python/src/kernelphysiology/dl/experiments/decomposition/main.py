@@ -263,7 +263,7 @@ def test_net(epoch, model, test_loader, save_path, args):
                 losses[key + '_test'] += float(latest_losses[key])
             if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
                 args.vis_func(
-                    target, outputs, args.mean, args.std, epoch, save_path,
+                    target, outputs[0], args.mean, args.std, epoch, save_path,
                     'reconstruction_test%.5d' % bidx
                 )
             if bidx * len(data) > args.test_samples:
