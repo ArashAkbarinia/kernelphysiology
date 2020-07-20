@@ -60,6 +60,10 @@ xyz_from_rgb = np.array(
 lms_max = [3.78259774, 5.73874728, 1.09075725]
 lms_min = [0., 0., 0.]
 
+SUPPORTED_COLOUR_SPACES = [
+    'rgb', 'lab', 'lch', 'dkl', 'yog', 'hsv', 'xyz', 'lms'
+]
+
 
 def rgb012lms01(x):
     x = xyz2lms(rgb012xyz(x.copy()))
@@ -299,3 +303,42 @@ def get_max_lightness(opponent_space='lab'):
     else:
         sys.exit('Not supported colour space %s' % opponent_space)
     return max_lightness
+
+
+def rgb2all(img, dest_space):
+    """Converting an RGB to image to the specified destination colour space.
+
+    :param img: the input image in RGB colour space,
+    :param dest_space: the destination colour space.
+    :return: an img of the same spatial size with three dimenstions.
+    """
+    img = img.copy()
+    img = normalisations.rgb2double(img)
+    if 'rgb' in dest_space:
+        if dest_space == 'rgb-r':
+            img = img[:, :, 0]
+        elif dest_space == 'rgb-g':
+            img = img[:, :, 1]
+        elif dest_space == 'rgb-b':
+            img = img[:, :, 2]
+    elif dest_space == 'lab':
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+    elif dest_space == 'dkl':
+        img = rgb2dkl01(img)
+    elif dest_space == 'hsv':
+        img = rgb2hsv01(img)
+    elif dest_space == 'lms':
+        img = rgb2lms01(img)
+    elif dest_space == 'yog':
+        img = rgb2yog01(img)
+    elif dest_space == 'gry':
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    else:
+        sys.exit(
+            'ColourSpaceTransformation does not support %s.' %
+            dest_space
+        )
+    # all matrices are of three dimensions
+    if len(img.shape) == 2:
+        img = np.repeat(img[:, :, np.newaxis], 1, axis=2)
+    return img
