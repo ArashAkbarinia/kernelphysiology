@@ -334,10 +334,7 @@ def rgb2all(img, dest_space):
     elif dest_space == 'gry':
         img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     else:
-        sys.exit(
-            'ColourSpaceTransformation does not support %s.' %
-            dest_space
-        )
+        sys.exit('colour_spaces.rgb2all does not support %s.' % dest_space)
     # all matrices are of three dimensions
     if len(img.shape) == 2:
         img = np.repeat(img[:, :, np.newaxis], 1, axis=2)
