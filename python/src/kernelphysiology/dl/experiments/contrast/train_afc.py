@@ -253,7 +253,8 @@ def main_worker(ngpus_per_node, args):
                       'vision_type': args.vision_type}
     natural_params = {'root': args.data_dir,
                       'colour_space': args.colour_space,
-                      'vision_type': args.vision_type}
+                      'vision_type': args.vision_type,
+                      'mask_image': args.mask_image}
     train_dataset = dataloader.train_set(
         args.dataset, target_size, mean, std, extra_transformation=train_trans,
         natural_kwargs=natural_params, gratings_kwargs=grating_params
@@ -280,7 +281,8 @@ def main_worker(ngpus_per_node, args):
                       'vision_type': args.vision_type}
     natural_params = {'root': args.data_dir,
                       'colour_space': args.colour_space,
-                      'vision_type': args.vision_type}
+                      'vision_type': args.vision_type,
+                      'mask_image': args.mask_image}
     validation_dataset = dataloader.validation_set(
         args.dataset, target_size, mean, std, extra_transformation=valid_trans,
         natural_kwargs=natural_params, gratings_kwargs=grating_params
@@ -464,6 +466,7 @@ def extra_args_fun(parser):
     # specific_group.add_argument('-db', '--db', default=None, type=str)
     specific_group.add_argument('--train_samples', default=10000, type=int)
     specific_group.add_argument('--val_samples', default=1000, type=int)
+    specific_group.add_argument('--mask_image', default=None, type=str)
 
 
 if __name__ == '__main__':
