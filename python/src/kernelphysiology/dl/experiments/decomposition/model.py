@@ -134,12 +134,12 @@ class DecomposeNet(AbstractAutoEncoder):
         return self.encoder(x)
 
     def decode(self, x, insize=None):
-        x = torch.tanh(self.decoder(x))
+        x = self.decoder(x)
         out_imgs = dict()
         for key, val in self.out_layers.items():
-            out_imgs[key] = torch.nn.functional.upsample_bilinear(
+            out_imgs[key] = torch.tanh(torch.nn.functional.upsample_bilinear(
                 val(x), size=insize
-            )
+            ))
         return out_imgs
 
     def forward(self, x):
