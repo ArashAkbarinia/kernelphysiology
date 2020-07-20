@@ -31,7 +31,7 @@ def parse_arguments(args):
     model_parser.add_argument('--freqs', nargs='+', type=float,
                               default=None)
     model_parser.add_argument('--print', action='store_true', default=False)
-    model_parser.add_argument('--gabor', type='str', default=None)
+    model_parser.add_argument('--gabor', type=str, default=None)
     model_parser.add_argument('--visualise', action='store_true', default=False)
     model_parser.add_argument('--model_fest', action='store_true',
                               default=False)
