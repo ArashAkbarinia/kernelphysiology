@@ -311,16 +311,11 @@ class Normalize(object):
     Args:
         mean (sequence): Sequence of means for each channel.
         std (sequence): Sequence of standard deviations for each channel.
-        inplace(bool,optional): Bool to make this operation in-place.
     """
 
-    def __init__(self, mean, std, inplace=False):
+    def __init__(self, mean, std):
         self.mean = mean
         self.std = std
-        self.inplace = inplace
-        self.kwargs = {
-            'mean': self.mean, 'std': self.std,  # FIXME'inplace': self.inplace
-        }
 
     def __call__(self, tensors):
         """
@@ -332,7 +327,15 @@ class Normalize(object):
             Tensor: Normalized Tensor image.
         """
         fun = tfunctional.normalize
-        kwargs = self.kwargs
+        if type(self.mean) not in [tuple, list]:
+            mean = tuple([self.mean for _ in range(tensors.shape[0])])
+        else:
+            mean = self.mean
+        if type(self.std) not in [tuple, list]:
+            std = tuple([self.std for _ in range(tensors.shape[0])])
+        else:
+            std = self.std
+        kwargs = {'mean': mean, 'std': std}
         return _call_recursive(tensors, fun, **kwargs)
 
     def __repr__(self):

@@ -83,8 +83,9 @@ def normalize(tensor, mean, std):
             t.sub_(m).div_(s)
         return tensor
     elif _is_numpy_image(tensor):
-        return (tensor.astype(np.float32) - 255.0 * np.array(mean)
-                ) / np.array(std)
+        return (
+                       tensor.astype(np.float32) - 255.0 * np.array(mean)
+               ) / np.array(std)
     else:
         raise RuntimeError('Undefined type')
 
