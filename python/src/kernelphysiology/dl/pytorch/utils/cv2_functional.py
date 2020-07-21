@@ -78,6 +78,10 @@ def normalize(tensor, mean, std):
     Returns:
         Tensor: Normalized Tensor image.
     """
+    if type(mean) not in [tuple, list]:
+        mean = tuple([mean for _ in range(tensor.shape[0])])
+    if type(std) not in [tuple, list]:
+        std = tuple([std for _ in range(tensor.shape[0])])
     if _is_tensor_image(tensor):
         for t, m, s in zip(tensor, mean, std):
             t.sub_(m).div_(s)

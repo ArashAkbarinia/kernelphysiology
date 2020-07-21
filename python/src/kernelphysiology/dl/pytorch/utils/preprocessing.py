@@ -34,6 +34,10 @@ def channel_transformation(vision_type, colour_space='rgb'):
 
 def inv_normalise_tensor(tensor, mean, std):
     tensor = tensor.clone()
+    if type(mean) not in [tuple, list]:
+        mean = tuple([mean for _ in range(tensor.shape[1])])
+    if type(std) not in [tuple, list]:
+        std = tuple([std for _ in range(tensor.shape[1])])
     # inverting the normalisation for each channel
     for i in range(tensor.shape[1]):
         tensor[:, i, ] = (tensor[:, i, ] * std[i]) + mean[i]
@@ -43,6 +47,10 @@ def inv_normalise_tensor(tensor, mean, std):
 
 def normalise_tensor(tensor, mean, std):
     tensor = tensor.clone()
+    if type(mean) not in [tuple, list]:
+        mean = tuple([mean for _ in range(tensor.shape[1])])
+    if type(std) not in [tuple, list]:
+        std = tuple([std for _ in range(tensor.shape[1])])
     # normalising the channels
     for i in range(tensor.shape[1]):
         tensor[:, i, ] = (tensor[:, i, ] - mean[i]) / std[i]

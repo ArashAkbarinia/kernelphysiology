@@ -327,15 +327,7 @@ class Normalize(object):
             Tensor: Normalized Tensor image.
         """
         fun = tfunctional.normalize
-        if type(self.mean) not in [tuple, list]:
-            mean = tuple([self.mean for _ in range(tensors.shape[0])])
-        else:
-            mean = self.mean
-        if type(self.std) not in [tuple, list]:
-            std = tuple([self.std for _ in range(tensors.shape[0])])
-        else:
-            std = self.std
-        kwargs = {'mean': mean, 'std': std}
+        kwargs = {'mean': self.mean, 'std': self.std}
         return _call_recursive(tensors, fun, **kwargs)
 
     def __repr__(self):
@@ -490,9 +482,9 @@ def inverse_mean_std(mean, std):
     return mean_inv, std_inv
 
 
-def normalize_inverse(tensor, mean, std):
+def normalize_inverse(imgs, mean, std):
     mean_inv, std_inv = inverse_mean_std(mean, std)
-    return tfunctional.normalize(tensor.clone(), mean_inv, std_inv)
+    return tfunctional.normalize(imgs.clone(), mean_inv, std_inv)
 
 
 class NormalizeInverse(Normalize):

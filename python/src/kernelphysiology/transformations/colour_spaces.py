@@ -61,7 +61,7 @@ lms_max = [3.78259774, 5.73874728, 1.09075725]
 lms_min = [0., 0., 0.]
 
 SUPPORTED_COLOUR_SPACES = [
-    'rgb', 'lab', 'lch', 'dkl', 'yog', 'hsv', 'xyz', 'lms'
+    'rgb', 'lab', 'lch', 'dkl', 'yog', 'hsv', 'xyz', 'lms', 'gry'
 ]
 
 
