@@ -59,16 +59,22 @@ def main(args):
     args.std = 0.5
     target_size = args.target_size or dataset_target_size[args.dataset]
 
-    shared_transforms = [
+    pre_shared_transforms = [
         cv2_transforms.Resize(target_size + 32),
         cv2_transforms.CenterCrop(target_size),
+    ]
+    post_shared_transforms = [
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(args.mean, args.std)
     ]
 
-    dataset_transforms = {
-        'imagenet': transforms.Compose(shared_transforms),
-        'celeba': transforms.Compose(shared_transforms),
+    pre_dataset_transforms = {
+        'imagenet': transforms.Compose(pre_shared_transforms),
+        'celeba': transforms.Compose(pre_shared_transforms),
+    }
+    post_dataset_transforms = {
+        'imagenet': transforms.Compose(post_shared_transforms),
+        'celeba': transforms.Compose(post_shared_transforms),
     }
 
     save_path = vae_util.setup_logging_from_args(args)
@@ -113,13 +119,23 @@ def main(args):
     outtransform = transforms.Compose(outtransform_funs)
 
     # FIXME
-    args.vis_func = vae_util.grid_save_reconstructed_images
+    for out_type in args.outputs:
+        if out_type == 'input':
+            vis_fun = None
+        elif out_type == 'gry':
+            vis_fun = None
+        elif out_type == 'db1':
+            vis_fun = vae_util.wavelet_visualise
+        else:
+            vis_fun = None
+        args.outs_dict[out_type]['vis_fun'] = vis_fun
 
     # preparing the dataset
     transforms_kwargs = {
         'intransform': intransform,
         'outtransform': outtransform,
-        'transform': dataset_transforms[args.dataset]
+        'pre_transform': pre_dataset_transforms[args.dataset],
+        'post_transform': post_dataset_transforms[args.dataset]
     }
     if args.dataset == 'celeba':
         train_dataset = datasets_classes[args.dataset](
@@ -228,10 +244,9 @@ def train(epoch, model, train_loader, optimizer, save_path, args):
             for key in latest_losses:
                 losses[key + '_train'] = 0
         if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
-            # FIXME
-            args.vis_func(
-                target, outputs[0], args.mean, args.std, epoch, save_path,
-                'reconstruction_train%.5d' % bidx
+            vae_util.grid_save_reconstructions(
+                args.outs_dict, target, outputs[0], args.mean, args.std, epoch,
+                save_path, 'reconstruction_train%.5d' % bidx
             )
 
         if bidx * len(data) > args.train_samples:
@@ -267,10 +282,9 @@ def test_net(epoch, model, test_loader, save_path, args):
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
             if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
-                # FIXME
-                args.vis_func(
-                    target, outputs[0], args.mean, args.std, epoch, save_path,
-                    'reconstruction_test%.5d' % bidx
+                vae_util.grid_save_reconstructions(
+                    args.outs_dict, target, outputs[0], args.mean, args.std,
+                    epoch, save_path, 'reconstruction_test%.5d' % bidx
                 )
             if bidx * len(data) > args.test_samples:
                 break

@@ -82,19 +82,6 @@ def export_args(args, save_path):
         json.dump(dict(args._get_kwargs()), fp, sort_keys=True, indent=4)
 
 
-def write_images(data, outputs, writer, suffix, mean, std, inv_func=None):
-    original = inv_normalise_tensor(data, mean, std)
-    if inv_func is not None:
-        original = inv_func(original)
-    original_grid = make_grid(original[:6])
-    writer.add_image(f'original/{suffix}', original_grid)
-    reconstructed = inv_normalise_tensor(outputs[0], mean, std)
-    if inv_func is not None:
-        reconstructed = inv_func(reconstructed)
-    reconstructed_grid = make_grid(reconstructed[:6])
-    writer.add_image(f'reconstructed/{suffix}', reconstructed_grid)
-
-
 def save_checkpoint(model, save_path):
     epoch = model['epoch']
     os.makedirs(os.path.join(save_path, 'checkpoints'), exist_ok=True)
@@ -112,101 +99,39 @@ def tensor_tosave(tensor, inv_func=None):
             img = inv_func(img)
         else:
             img *= 255
-            img = img.astype('uint8')
+            img = img.astype('uint8').squeeze()
         imgs.append(img)
     return imgs
 
 
-def tensor_colourlabel(tensor, do_argmax=False):
-    imgs = []
-    for i in range(tensor.shape[0]):
-        img = tensor[i].detach().cpu().numpy()
-        if do_argmax:
-            img = img.argmax(axis=0)
-        img = img.astype('uint8')
-        # FIXME: hardcoded dataset
-        img = labels.colour_label(img, dataset='voc')
-        imgs.append(img)
-    return imgs
+def grid_save_reconstructions(out_dicts, ground_truths, model_outs, mean,
+                              std, epoch, save_path, name):
+    for key in out_dicts.keys():
+        current_out = model_outs[key]
+        current_gt = ground_truths[key]
+
+        original = inv_normalise_tensor(current_gt, mean, std).detach()
+        original = tensor_tosave(original, out_dicts[key]['vis_fun'])
+        reconstructed = inv_normalise_tensor(current_out, mean, std).detach()
+        reconstructed = tensor_tosave(reconstructed, out_dicts[key]['vis_fun'])
+
+        original = np.concatenate(original, axis=1)
+        reconstructed = np.concatenate(reconstructed, axis=1)
+        both_together = np.concatenate([original, reconstructed], axis=0)
+        io.imsave(
+            '%s/%s_%.3d_%s.png' % (save_path, name, epoch, key),
+            both_together
+        )
 
 
-def grid_save_reconstructed_images(data, outputs, mean, std, epoch, save_path,
-                                   name, inv_func=None):
-    outputs = outputs['input']
-    data = data['input']
-    # FIXME this is not a solution!!
-    if outputs.shape[1] < 4:
-        original = inv_normalise_tensor(data, mean, std).detach()
-        original = tensor_tosave(original, inv_func)
-        reconstructed = inv_normalise_tensor(outputs, mean, std).detach()
-        reconstructed = tensor_tosave(reconstructed, inv_func)
-    else:
-        original = tensor_colourlabel(data)
-        reconstructed = tensor_colourlabel(outputs, True)
-
-    original = np.concatenate(original, axis=1)
-    reconstructed = np.concatenate(reconstructed, axis=1)
-    both_together = np.concatenate([original, reconstructed], axis=0)
-    io.imsave(
-        os.path.join(save_path, name + '_' + str(epoch) + '.png'),
-        both_together
-    )
-
-
-def grid_save_reconstructed_labhue(data, outputs, mean, std, epoch, save_path,
-                                   name, inv_func=None):
-    # FIXME this is not a solution!!
-    original = inv_normalise_tensor(data, mean, std).detach()
-    original_lab = tensor_tosave(original[:, :3], inv_func)
-    original_hue = tensor_tosave(original[:, 3:], inv_func)
-    reconstructed = inv_normalise_tensor(outputs[0], mean, std).detach()
-    reconstructed_lab = tensor_tosave(reconstructed[:, :3], inv_func)
-    reconstructed_hue = tensor_tosave(reconstructed[:, 3:], inv_func)
-
-    original_lab = np.concatenate(original_lab, axis=1)
-    reconstructed_lab = np.concatenate(reconstructed_lab, axis=1)
-    original_hue = np.concatenate(original_hue, axis=1)
-    original_hue = np.repeat(original_hue, 3, axis=2)
-    reconstructed_hue = np.concatenate(reconstructed_hue, axis=1)
-    reconstructed_hue = np.repeat(reconstructed_hue, 3, axis=2)
-    both_together = np.concatenate([
-        original_lab, reconstructed_lab,
-        original_hue, reconstructed_hue
-    ], axis=0)
-    io.imsave(
-        os.path.join(save_path, name + '_' + str(epoch) + '.png'),
-        both_together
-    )
-
-
-def grid_save_reconstructed_bsds(data, outputs, mean, std, epoch, save_path,
-                                 name, inv_func=None):
-    original = []
-    data = data.detach().cpu().numpy()
-    reconstructed = []
-    outputs = F.sigmoid(outputs[0]).detach().cpu().numpy().squeeze()
-    for i in range(data.shape[0]):
-        original.append(data[i])
-        reconstructed.append(outputs[i])
-
-    original = np.concatenate(original, axis=1)
-    reconstructed = np.concatenate(reconstructed, axis=1)
-    both_together = np.concatenate([original, reconstructed], axis=0)
-    io.imsave(
-        os.path.join(save_path, name + '_' + str(epoch) + '.png'),
-        both_together
-    )
-
-
-def save_reconstructed_images(data, epoch, outputs, save_path, name):
-    size = data.size()
-    n = min(data.size(0), 8)
-    batch_size = data.size(0)
-    comparison = torch.cat(
-        [data[:n], outputs.view(batch_size, size[1], size[2], size[3])[:n]]
-    )
-    save_image(
-        comparison.cpu(),
-        os.path.join(save_path, name + '_' + str(epoch) + '.png'), nrow=n,
-        normalize=True
-    )
+def wavelet_visualise(tensor):
+    rows = tensor.shape[0]
+    cols = tensor.shape[1]
+    img = np.zeros((rows * 2, cols * 2))
+    img[:rows, :cols] = tensor[:, :, 0]
+    img[rows:, :cols] = tensor[:, :, 1]
+    img[:rows, cols:] = tensor[:, :, 2]
+    img[rows:, cols:] = tensor[:, :, 3]
+    img *= 255
+    img = img.astype('uint8').squeeze()
+    return img

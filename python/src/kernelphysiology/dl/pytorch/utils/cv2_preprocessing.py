@@ -26,9 +26,9 @@ class MultipleOutputTransformation(object):
         for out_type in outputs:
             if out_type == 'input':
                 self.out_funs[out_type] = None
-            elif out_type in colour_conversions:
+            else:
                 self.out_funs[out_type] = {
-                    'fun': ColourSpaceTransformation(out_type),
+                    'fun': DecompositionTransformation(out_type),
                     'kwargs': dict()
                 }
 

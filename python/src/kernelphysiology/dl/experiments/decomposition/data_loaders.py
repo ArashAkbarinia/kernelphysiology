@@ -10,31 +10,39 @@ from torchvision import datasets as tdatasets
 from kernelphysiology.utils import path_utils
 
 
-def _apply_transforms(imgin, intransform, outtransform, transform):
+def _apply_transforms(imgin, intransform, outtransform, pre_transform,
+                      post_transform):
     imgout = imgin.copy()
+    if pre_transform is not None:
+        imgin, imgout = pre_transform([imgin, imgout])
+
     if intransform is not None:
         imgin = intransform(imgin)
     if outtransform is not None:
         imgout = outtransform([imgout, imgin.copy()])
 
-    if transform is not None:
-        imgin, imgout = transform([imgin, imgout])
+    if post_transform is not None:
+        imgin, imgout = post_transform([imgin, imgout])
     return imgin, imgout
 
 
 class ImageFolder(tdatasets.ImageFolder):
-    def __init__(self, intransform=None, outtransform=None, **kwargs):
+    def __init__(self, intransform=None, outtransform=None,
+                 pre_transform=None, post_transform=None, **kwargs):
         super(ImageFolder, self).__init__(**kwargs)
         self.imgs = self.samples
         self.intransform = intransform
         self.outtransform = outtransform
+        self.pre_transform = pre_transform
+        self.post_transform = post_transform
 
     def __getitem__(self, index):
         path, class_target = self.samples[index]
         imgin = self.loader(path)
         imgin = np.asarray(imgin).copy()
         imgin, imgout = _apply_transforms(
-            imgin, self.intransform, self.outtransform, self.transform
+            imgin, self.intransform, self.outtransform,
+            self.pre_transform, self.post_transform
         )
 
         # right now we're not using the class target, but perhaps in the future
@@ -45,20 +53,24 @@ class ImageFolder(tdatasets.ImageFolder):
 
 
 class OneFolder(tdatasets.VisionDataset):
-    def __init__(self, intransform=None, outtransform=None, **kwargs):
+    def __init__(self, intransform=None, outtransform=None,
+                 pre_transform=None, post_transform=None, **kwargs):
         super(OneFolder, self).__init__(**kwargs)
         self.samples = path_utils.image_in_folder(self.root)
         print('Read %d images.' % len(self.samples))
         self.loader = tdatasets.folder.pil_loader
         self.intransform = intransform
         self.outtransform = outtransform
+        self.pre_transform = pre_transform
+        self.post_transform = post_transform
 
     def __getitem__(self, index):
         path = self.samples[index]
         imgin = self.loader(path)
         imgin = np.asarray(imgin).copy()
         imgin, imgout = _apply_transforms(
-            imgin, self.intransform, self.outtransform, self.transform
+            imgin, self.intransform, self.outtransform,
+            self.pre_transform, self.post_transform
         )
 
         return imgin, imgout, path
@@ -74,11 +86,14 @@ class CategoryImages(OneFolder):
 
 
 class CelebA(tdatasets.CelebA):
-    def __init__(self, intransform=None, outtransform=None, **kwargs):
+    def __init__(self, intransform=None, outtransform=None,
+                 pre_transform=None, post_transform=None, **kwargs):
         super(CelebA, self).__init__(**kwargs)
         self.loader = tdatasets.folder.pil_loader
         self.intransform = intransform
         self.outtransform = outtransform
+        self.pre_transform = pre_transform
+        self.post_transform = post_transform
 
     def __getitem__(self, index):
         path = os.path.join(
@@ -88,7 +103,8 @@ class CelebA(tdatasets.CelebA):
         imgin = self.loader(path)
         imgin = np.asarray(imgin).copy()
         imgin, imgout = _apply_transforms(
-            imgin, self.intransform, self.outtransform, self.transform
+            imgin, self.intransform, self.outtransform,
+            self.pre_transform, self.post_transform
         )
 
         target = []
