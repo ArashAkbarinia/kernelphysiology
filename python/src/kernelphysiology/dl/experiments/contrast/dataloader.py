@@ -79,16 +79,20 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
             img0 = np.repeat(img0[:, :, np.newaxis], 3, axis=2)
             img1 = np.repeat(img1[:, :, np.newaxis], 3, axis=2)
 
-    if mask_image == 'gaussian':
-        img0 = img0 * _get_gauss(img0.shape)
-        img1 = img1 * _get_gauss(img1.shape)
-    elif mask_image == 'shapes':
-        img0 = imutils.mask_image(img0, 0.5, **_random_mask_params())
-        img1 = imutils.mask_image(img1, 0.5, **_random_mask_params())
-
     # manipulating the contrast
     img0 = imutils.adjust_contrast(img0, contrast0)
     img1 = imutils.adjust_contrast(img1, contrast1)
+
+    if mask_image == 'gaussian':
+        img0 -= 0.5
+        img0 = img0 * _get_gauss(img0.shape)
+        img0 += 0.5
+        img1 -= 0.5
+        img1 = img1 * _get_gauss(img1.shape)
+        img1 += 0.5
+    elif mask_image == 'shapes':
+        img0 = imutils.mask_image(img0, 0.5, **_random_mask_params())
+        img1 = imutils.mask_image(img1, 0.5, **_random_mask_params())
 
     if transform is not None:
         if same_transforms:
