@@ -28,11 +28,11 @@ def setup_logging_from_args(args):
             return value
 
     # Set default args in case they don't exist in args
-    resume = set_args_default('resume', False)
-    save_name = set_args_default('save_name', '')
+    resume = set_args_default('resume', None)
+    save_name = set_args_default('experiment_name', None)
     results_dir = set_args_default('results_dir', './results')
 
-    if save_name is '':
+    if save_name is None:
         save_name = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     save_path = os.path.join(results_dir, save_name)
     if os.path.exists(save_path):
@@ -45,11 +45,11 @@ def setup_logging_from_args(args):
     return save_path
 
 
-def setup_logging(log_file='log.txt', resume=False):
+def setup_logging(log_file='log.txt', resume=None):
     """
     Setup logging configuration
     """
-    if os.path.isfile(log_file) and resume:
+    if os.path.isfile(log_file) and resume is not None:
         file_mode = 'a'
     else:
         file_mode = 'w'
@@ -57,11 +57,13 @@ def setup_logging(log_file='log.txt', resume=False):
     root_logger = logging.getLogger()
     if root_logger.handlers:
         root_logger.removeHandler(root_logger.handlers[0])
-    logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s - %(levelname)s - %(message)s",
-                        datefmt="%Y-%m-%d %H:%M:%S",
-                        filename=log_file,
-                        filemode=file_mode)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        filename=log_file,
+        filemode=file_mode
+    )
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     formatter = logging.Formatter('%(message)s')
