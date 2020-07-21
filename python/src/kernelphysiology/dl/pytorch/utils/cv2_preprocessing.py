@@ -11,6 +11,7 @@ import cv2
 from kernelphysiology.dl.pytorch.utils.cv2_transforms import _call_recursive
 from kernelphysiology.utils import imutils
 from kernelphysiology.transformations import colour_spaces
+from kernelphysiology.transformations import frequency_domains
 from kernelphysiology.transformations import normalisations
 
 colour_conversions = [
@@ -42,6 +43,27 @@ class MultipleOutputTransformation(object):
         return output_imgs
 
 
+class DecompositionTransformation(object):
+    def __init__(self, deompose_type):
+        self.decompose_type = deompose_type.lower()
+        self.decompose_fun = None
+        for tmp in colour_spaces.SUPPORTED_COLOUR_SPACES:
+            if tmp in self.decompose_type:
+                self.decompose_fun = colour_spaces.rgb2all
+                break
+        if self.decompose_fun is None:
+            for tmp in frequency_domains.SUPPORTED_WAVELETS:
+                if tmp in self.decompose_type:
+                    self.decompose_fun = frequency_domains.rgb2all
+                    break
+        if self.decompose_fun is None:
+            sys.exit('Unsupported decomposition %s.' % self.decompose_type)
+
+    def __call__(self, img):
+        img = self.decompose_fun(img, self.decompose_type)
+        return img
+
+
 class ColourSpaceTransformation(object):
 
     def __init__(self, colour_space='rgb'):
@@ -53,13 +75,6 @@ class ColourSpaceTransformation(object):
             img = np.asarray(img).copy()
             if self.colour_space == 'lab':
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
-            elif self.colour_space == 'labhue':
-                img_hue = colour_spaces.lab2lch01(
-                    colour_spaces.rgb2opponency(img.copy(), 'lab')
-                )
-                img_hue = normalisations.uint8im(img_hue)
-                img_lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
-                img = np.concatenate([img_lab, img_hue[:, :, 2:3]], axis=2)
             elif self.colour_space == 'dkl':
                 img = colour_spaces.rgb2dkl01(img)
                 img = normalisations.uint8im(img)

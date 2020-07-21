@@ -45,14 +45,18 @@ def main(args):
     args.outs_dict = dict()
     for out_type in args.outputs:
         if out_type == 'input':
-            args.outs_dict[out_type] = args.in_chns
-        elif out_type == 'grey':
-            args.outs_dict[out_type] = 1
+            out_shape = [1, 1, args.in_chns]
+        elif out_type == 'gry':
+            out_shape = [1, 1, 1]
+        elif out_type == 'db1':
+            # TODO: just assuming numbers of square 2
+            out_shape = [0.5, 0.5, 4]
         else:
-            args.outs_dict[out_type] = 3
+            out_shape = [1, 1, args.in_chns]
+        args.outs_dict[out_type] = {'shape': out_shape}
 
-    args.mean = tuple([0.5 for _ in range(args.in_chns)])
-    args.std = tuple([0.5 for _ in range(args.in_chns)])
+    args.mean = 0.5
+    args.std = 0.5
     target_size = args.target_size or dataset_target_size[args.dataset]
 
     shared_transforms = [
@@ -224,6 +228,7 @@ def train(epoch, model, train_loader, optimizer, save_path, args):
             for key in latest_losses:
                 losses[key + '_train'] = 0
         if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
+            # FIXME
             args.vis_func(
                 target, outputs[0], args.mean, args.std, epoch, save_path,
                 'reconstruction_train%.5d' % bidx
@@ -262,6 +267,7 @@ def test_net(epoch, model, test_loader, save_path, args):
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
             if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
+                # FIXME
                 args.vis_func(
                     target, outputs[0], args.mean, args.std, epoch, save_path,
                     'reconstruction_test%.5d' % bidx

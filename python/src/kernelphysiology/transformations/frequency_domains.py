@@ -2,6 +2,7 @@
 A collection of frequency related transformations e.g. Fourier and Wavelengths.
 """
 
+import numpy as np
 import sys
 
 import pywt
@@ -23,7 +24,14 @@ def rgb2all(img, freq_type):
     img = normalisations.rgb2double(img)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     if freq_type in SUPPORTED_WAVELETS:
-        img = pywt.dwt2(img, freq_type)
+        ll, (lh, hl, hh) = pywt.dwt2(img, freq_type)
+        # NOTE: we convert them to a range of 0 to 1
+        img = np.zeros((*ll.shape, 4))
+        img[:, :, 0] = ll
+        img[:, :, 1] = (lh + 1)
+        img[:, :, 2] = (hl + 1)
+        img[:, :, 3] = (hh + 1)
+        img /= 2
     else:
         sys.exit('frequency_domain.rgb2all does not support %s.' % freq_type)
     return img

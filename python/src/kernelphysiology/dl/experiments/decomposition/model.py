@@ -79,7 +79,8 @@ class DecomposeNet(AbstractAutoEncoder):
         super(DecomposeNet, self).__init__()
 
         if outs_dict is None:
-            outs_dict = in_chns
+            # if nothing specified like a normal VAE, input is the output
+            outs_dict = {'input': {'shape': (None, None, in_chns)}}
         self.outs_dict = outs_dict
 
         self.hidden = hidden
@@ -99,10 +100,12 @@ class DecomposeNet(AbstractAutoEncoder):
             ResBlock(hidden, d, bn=True),
             nn.BatchNorm2d(d),
         )
-        self.decoder = nn.Sequential(
+        self.decoder_a = nn.Sequential(
             ResBlock(d, hidden),
             nn.BatchNorm2d(hidden),
             ResBlock(hidden, hidden),
+        )
+        self.decoder_b = nn.Sequential(
             nn.ConvTranspose2d(hidden, hidden, kernel_size=4, stride=2,
                                padding=1),
             nn.BatchNorm2d(hidden),
@@ -111,7 +114,7 @@ class DecomposeNet(AbstractAutoEncoder):
         self.out_layers = dict()
         for key, val in outs_dict.items():
             self.out_layers[key] = nn.ConvTranspose2d(
-                hidden, val, kernel_size=4, stride=2, padding=1
+                hidden, val['shape'][-1], kernel_size=4, stride=2, padding=1
             )
         self.vq_coef = vq_coef
         self.commit_coef = commit_coef
@@ -134,11 +137,24 @@ class DecomposeNet(AbstractAutoEncoder):
         return self.encoder(x)
 
     def decode(self, x, insize=None):
-        x = self.decoder(x)
+        x_a = self.decoder_a(x)
+        x_b = self.decoder_b(x_a)
         out_imgs = dict()
         for key, val in self.out_layers.items():
+            target_size = [insize[0], insize[1]]
+            for i in range(2):
+                if self.outs_dict[key]['shape'][i] is not None:
+                    # we pass the output as a scale of input
+                    target_size[i] *= self.outs_dict[key]['shape'][i]
+                    # in case the scale has caused a floating point
+                    target_size[i] = int(target_size[i])
+                    if self.outs_dict[key]['shape'][i] == 0.5:
+                        x = x_a
+                    else:
+                        x = x_b
+
             out_imgs[key] = torch.tanh(torch.nn.functional.upsample_bilinear(
-                val(x), size=insize
+                val(x), size=target_size
             ))
         return out_imgs
 
