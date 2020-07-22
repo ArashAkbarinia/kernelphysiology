@@ -21,7 +21,10 @@ def im2double_max(image):
     else:
         image = image.astype('float32')
         max_pixel = np.max(image)
-        image /= max_pixel
+        if max_pixel > 1.0:
+            image /= max_pixel
+        else:
+            max_pixel = 1.0
         return image, max_pixel
 
 
