@@ -247,17 +247,18 @@ def main_worker(ngpus_per_node, args):
 
     # loading the training set
     train_trans = [*both_trans, *train_trans]
-
-    grating_params = {'samples': args.train_samples,
-                      'colour_space': args.colour_space,
-                      'vision_type': args.vision_type}
-    natural_params = {'root': args.data_dir,
-                      'colour_space': args.colour_space,
-                      'vision_type': args.vision_type,
-                      'mask_image': args.mask_image}
+    db_params = {
+        'colour_space': args.colour_space,
+        'vision_type': args.vision_type,
+        'mask_image': args.mask_image
+    }
+    if args.dataset in ['imagenet', 'celeba']:
+        path_or_sample = args.data_dir
+    else:
+        path_or_sample = args.train_samples
     train_dataset = dataloader.train_set(
         args.dataset, target_size, mean, std, extra_transformation=train_trans,
-        natural_kwargs=natural_params, gratings_kwargs=grating_params
+        data_dir=path_or_sample, **db_params
     )
 
     if args.distributed:
@@ -276,16 +277,9 @@ def main_worker(ngpus_per_node, args):
 
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
-    grating_params = {'samples': args.val_samples,
-                      'colour_space': args.colour_space,
-                      'vision_type': args.vision_type}
-    natural_params = {'root': args.data_dir,
-                      'colour_space': args.colour_space,
-                      'vision_type': args.vision_type,
-                      'mask_image': args.mask_image}
     validation_dataset = dataloader.validation_set(
         args.dataset, target_size, mean, std, extra_transformation=valid_trans,
-        natural_kwargs=natural_params, gratings_kwargs=grating_params
+        data_dir=path_or_sample, **db_params
     )
 
     val_loader = torch.utils.data.DataLoader(

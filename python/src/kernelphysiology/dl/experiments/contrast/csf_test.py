@@ -142,16 +142,16 @@ def main(args):
         'amp': test_contrasts, 'lambda_wave': test_sfs,
         'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
     }
-    gratings_args = {
-        'samples': test_samples, 'colour_space': colour_space,
-        'contrast_space': args.contrast_space, 'vision_type': args.vision_type,
-        'gabor_like': args.gabor
+    db_params = {
+        'colour_space': colour_space, 'vision_type': args.vision_type,
+        'mask_image': args.gabor
     }
 
     db = dataloader.validation_set(
         args.db, target_size, mean, std, extra_transformations,
-        gratings_kwargs=gratings_args
+        data_dir=test_samples, **db_params
     )
+    db.contrast_space = args.contrast_space
     db_loader = torch.utils.data.DataLoader(
         db, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True

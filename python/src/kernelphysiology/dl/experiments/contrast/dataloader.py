@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import os
+import sys
 
 import cv2
 
@@ -48,7 +49,7 @@ def _random_mask_params():
 
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
-                     transform, same_transforms, p):
+                     pre_transform, post_transform, same_transforms, p):
     if 'grey' not in colour_space and vision_type != 'trichromat':
         dkl0 = colour_spaces.rgb2dkl(img0)
         if vision_type == 'dichromat_rg':
@@ -58,6 +59,13 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         img0 = colour_spaces.dkl2rgb(dkl0)
 
     img1 = img0.copy()
+
+    if pre_transform is not None:
+        if same_transforms:
+            img0, img1 = pre_transform([img0, img1])
+        else:
+            [img0] = pre_transform([img0])
+            [img1] = pre_transform([img1])
 
     if contrasts is None:
         contrast0 = random.uniform(0, 1)
@@ -94,12 +102,8 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         img0 = imutils.mask_image(img0, 0.5, **_random_mask_params())
         img1 = imutils.mask_image(img1, 0.5, **_random_mask_params())
 
-    if transform is not None:
-        if same_transforms:
-            img0, img1 = transform([img0, img1])
-        else:
-            [img0] = transform([img0])
-            [img1] = transform([img1])
+    if post_transform is not None:
+        img0, img1 = post_transform([img0, img1])
 
     img_out, contrast_target = _two_pairs_stimuli(
         img0, img1, contrast0, contrast1, p
@@ -124,18 +128,46 @@ def _get_gauss(img_size):
     return gauss_img
 
 
-class CelebA(tdatasets.CelebA):
-    def __init__(self, p=0.5, contrasts=None, same_transforms=False,
-                 colour_space='grey', vision_type='trichromat',
-                 mask_image=None, **kwargs):
-        super(CelebA, self).__init__(**kwargs)
-        self.loader = tdatasets.folder.pil_loader
+def _model_fest_stimuli(target_size, contrast, theta, rho, lambda_wave):
+    midn = np.floor(target_size[0] / 2) + 1
+    y = np.linspace(target_size[0], 0, target_size[0]) - midn
+    x = np.linspace(0, target_size[0], target_size[0]) - midn
+    [x, y] = np.meshgrid(x, y)
+    grating = contrast * np.sin(
+        2 * np.pi * (
+                (x * np.cos(theta) + y * np.sin(theta)) / lambda_wave
+        ) - rho
+    )
+
+    sigma = 60.1264858771449
+    gauss_img = np.exp(
+        -(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2))
+    )
+
+    gauss_img = gauss_img / np.max(gauss_img)
+    img = gauss_img * grating
+    return img
+
+
+class AfcDataset(object):
+    def __init__(self, post_transform=None, pre_transform=None, p=0.5,
+                 contrasts=None, same_transforms=False, colour_space='grey',
+                 vision_type='trichromat', mask_image=None):
         self.p = p
         self.contrasts = contrasts
         self.same_transforms = same_transforms
         self.colour_space = colour_space
         self.vision_type = vision_type
         self.mask_image = mask_image
+        self.post_transform = post_transform
+        self.pre_transform = pre_transform
+
+
+class CelebA(AfcDataset, tdatasets.CelebA):
+    def __init__(self, afc_kwargs, celeba_kwargs):
+        AfcDataset.__init__(self, **afc_kwargs)
+        tdatasets.CelebA.__init__(self, **celeba_kwargs)
+        self.loader = tdatasets.folder.pil_loader
 
     def __getitem__(self, index):
         path = os.path.join(
@@ -170,40 +202,26 @@ class CelebA(tdatasets.CelebA):
 
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
-            self.mask_image, self.transform, self.same_transforms, self.p
+            self.mask_image, self.pre_transform, self.post_transform,
+            self.same_transforms, self.p
         )
 
         return img_out, contrast_target, path
 
 
-class ImageFolder(tdatasets.ImageFolder):
-    def __init__(self, p=0.5, contrasts=None, same_transforms=False,
-                 colour_space='grey', vision_type='trichromat',
-                 mask_image=None, **kwargs):
-        super(ImageFolder, self).__init__(**kwargs)
-        self.imgs = self.samples
-        self.p = p
-        self.contrasts = contrasts
-        self.same_transforms = same_transforms
-        self.colour_space = colour_space
-        self.vision_type = vision_type
-        self.mask_image = mask_image
+class ImageFolder(AfcDataset, tdatasets.ImageFolder):
+    def __init__(self, afc_kwargs, folder_kwargs):
+        AfcDataset.__init__(self, **afc_kwargs)
+        tdatasets.ImageFolder.__init__(self, **folder_kwargs)
 
     def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
-
-        Returns:
-            tuple: (img_l, imgout) where imgout is the same size as
-             original image after applied manipulations.
-        """
         path, class_target = self.samples[index]
         img0 = self.loader(path)
         img0 = np.asarray(img0).copy()
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
-            self.mask_image, self.transform, self.same_transforms, self.p
+            self.mask_image, self.pre_transform, self.post_transform,
+            self.same_transforms, self.p
         )
 
         # right now we're not using the class target, but perhaps in the future
@@ -213,33 +231,11 @@ class ImageFolder(tdatasets.ImageFolder):
         return img_out, contrast_target, path
 
 
-def _model_fest_stimuli(target_size, contrast, theta, rho, lambda_wave):
-    midn = np.floor(target_size[0] / 2) + 1
-    y = np.linspace(target_size[0], 0, target_size[0]) - midn
-    x = np.linspace(0, target_size[0], target_size[0]) - midn
-    [x, y] = np.meshgrid(x, y)
-    grating = contrast * np.sin(
-        2 * np.pi * (
-                (x * np.cos(theta) + y * np.sin(theta)) / lambda_wave
-        ) - rho
-    )
-
-    sigma = 60.1264858771449
-    gauss_img = np.exp(
-        -(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2))
-    )
-
-    gauss_img = gauss_img / np.max(gauss_img)
-    img = gauss_img * grating
-    return img
-
-
-class GratingImages(torch_data.Dataset):
-    def __init__(self, samples, target_size=(224, 224), p=0.5,
-                 transform=None, colour_space='grey', contrast_space=None,
-                 vision_type='trichromat', gabor_like='fixed_size',
-                 contrasts=None, theta=None, rho=None, lambda_wave=None):
-        super(GratingImages, self).__init__()
+class GratingImages(AfcDataset, torch_data.Dataset):
+    def __init__(self, samples, afc_kwargs, target_size=(224, 224),
+                 contrast_space=None, theta=None, rho=None, lambda_wave=None):
+        AfcDataset.__init__(self, **afc_kwargs)
+        torch_data.Dataset.__init__(self)
         if type(samples) is dict:
             # under this condition one contrast will be zero while the other
             # takes the arguments of samples.
@@ -250,16 +246,10 @@ class GratingImages(torch_data.Dataset):
         if type(target_size) not in [list, tuple]:
             target_size = (target_size, target_size)
         self.target_size = target_size
-        self.p = p
-        self.transform = transform
-        self.colour_space = colour_space
         self.contrast_space = contrast_space
-        self.vision_type = vision_type
-        self.contrasts = contrasts
         self.theta = theta
         self.rho = rho
         self.lambda_wave = lambda_wave
-        self.gabor_like = gabor_like
 
     def __getitem__(self, index):
         """
@@ -300,7 +290,7 @@ class GratingImages(torch_data.Dataset):
             contrast1 = 0
         omega = [np.cos(theta), np.sin(theta)]
 
-        if self.gabor_like == 'model_fest':
+        if self.mask_image == 'model_fest':
             img0 = _model_fest_stimuli(
                 self.target_size, contrast0, theta, rho, lambda_wave
             )
@@ -318,7 +308,7 @@ class GratingImages(torch_data.Dataset):
             img1 = gratings.sinusoid(**sinusoid_param)
 
             # multiply it by gaussian
-            if self.gabor_like == 'fixed_size':
+            if self.mask_image == 'fixed_size':
                 radius = (
                     int(self.target_size[0] / 2.0),
                     int(self.target_size[1] / 2.0)
@@ -340,7 +330,7 @@ class GratingImages(torch_data.Dataset):
                 gauss_img = gauss_img / np.max(gauss_img)
                 img0 *= gauss_img
                 img1 *= gauss_img
-            elif self.gabor_like == 'fixed_cycle':
+            elif self.mask_image == 'fixed_cycle':
                 radius = (
                     int(self.target_size[0] / 2.0),
                     int(self.target_size[1] / 2.0)
@@ -353,7 +343,7 @@ class GratingImages(torch_data.Dataset):
                 sigma = self.target_size[0] / 4.25
                 gauss_img = np.exp(
                     -(np.power(x, 2) + np.power(y, 2)) / (
-                                2 * np.power(sigma, 2))
+                            2 * np.power(sigma, 2))
                 )
 
                 gauss_img = gauss_img / np.max(gauss_img)
@@ -406,8 +396,8 @@ class GratingImages(torch_data.Dataset):
             img0 = colour_spaces.dkl2rgb01(dkl0)
             img1 = colour_spaces.dkl2rgb01(dkl1)
 
-        if self.transform is not None:
-            img0, img1 = self.transform([img0, img1])
+        if self.post_transform is not None:
+            img0, img1 = self.post_transform([img0, img1])
 
         img_out, contrast_target = _two_pairs_stimuli(
             img0, img1, contrast0, contrast1, self.p
@@ -429,80 +419,93 @@ class GratingImages(torch_data.Dataset):
         return num_samples, settings
 
 
-def train_set(db, target_size, mean, std, extra_transformation=None,
-              natural_kwargs=None, gratings_kwargs=None):
+def train_set(db, target_size, mean, std, extra_transformation=None, **kwargs):
     if extra_transformation is None:
         extra_transformation = []
-    all_dbs = []
-    shared_transforms = [
+    shared_pre_transforms = [
         *extra_transformation,
         cv2_transforms.RandomHorizontalFlip(),
-        cv2_transforms.ToTensor(),
-        cv2_transforms.Normalize(mean, std)
     ]
+    shared_post_transforms = _get_shared_post_transforms(mean, std)
     if db in ['imagenet', 'celeba']:
         scale = (0.08, 1.0)
         size_transform = cv2_transforms.RandomResizedCrop(
             target_size, scale=scale
         )
-        transforms = torch_transforms.Compose([
-            size_transform, *shared_transforms
-        ])
-        if db == 'imagenet':
-            natural_kwargs['root'] = os.path.join(
-                natural_kwargs['root'], 'train'
-            )
-            current_db = ImageFolder(
-                transform=transforms, **natural_kwargs
-            )
-        elif db == 'celeba':
-            current_db = CelebA(
-                transform=transforms, split='train', **natural_kwargs
-            )
-        all_dbs.append(current_db)
-    if db in ['gratings']:
-        transforms = torch_transforms.Compose(shared_transforms)
-        all_dbs.append(
-            GratingImages(
-                transform=transforms, target_size=target_size, **gratings_kwargs
-            )
+        pre_transforms = [size_transform, *shared_pre_transforms]
+        post_transforms = [*shared_post_transforms]
+        return _natural_dataset(
+            db, 'train', pre_transforms, post_transforms, **kwargs
         )
-    return torch_data.ConcatDataset(all_dbs)
+    elif db in ['gratings']:
+        return _get_grating_dataset(
+            shared_pre_transforms, shared_post_transforms, target_size,
+            **kwargs
+        )
+    return None
 
 
 def validation_set(db, target_size, mean, std, extra_transformation=None,
-                   natural_kwargs=None, gratings_kwargs=None):
+                   **kwargs):
     if extra_transformation is None:
         extra_transformation = []
-    all_dbs = []
-    shared_transforms = [
-        *extra_transformation,
+    shared_pre_transforms = [*extra_transformation]
+    shared_post_transforms = _get_shared_post_transforms(mean, std)
+    if db in ['imagenet', 'celeba']:
+        pre_transforms = [
+            cv2_transforms.Resize(target_size),
+            cv2_transforms.CenterCrop(target_size),
+            *shared_pre_transforms
+        ]
+        post_transforms = [*shared_post_transforms]
+        return _natural_dataset(
+            db, 'validation', pre_transforms, post_transforms, **kwargs
+        )
+    elif db in ['gratings']:
+        return _get_grating_dataset(
+            shared_pre_transforms, shared_post_transforms, target_size,
+            **kwargs
+        )
+    return None
+
+
+def _natural_dataset(db, which_set, pre_transforms, post_transforms,
+                     data_dir, **kwargs):
+    torch_pre_transforms = torch_transforms.Compose(pre_transforms)
+    torch_post_transforms = torch_transforms.Compose(post_transforms)
+    afc_kwargs = {
+        'pre_transform': torch_pre_transforms,
+        'post_transform': torch_post_transforms,
+        **kwargs
+    }
+    if db == 'imagenet':
+        natural_kwargs = {'root': os.path.join(data_dir, which_set)}
+        current_db = ImageFolder(afc_kwargs, natural_kwargs)
+    elif db == 'celeba':
+        split = 'test' if which_set == 'validation' else 'train'
+        natural_kwargs = {'root': data_dir, 'split': split}
+        current_db = CelebA(afc_kwargs, natural_kwargs)
+    else:
+        sys.exit('Dataset %s is not supported!' % db)
+    return current_db
+
+
+def _get_grating_dataset(pre_transforms, post_transforms, target_size,
+                         data_dir, **kwargs):
+    torch_pre_transforms = torch_transforms.Compose(pre_transforms)
+    torch_post_transforms = torch_transforms.Compose(post_transforms)
+    afc_kwargs = {
+        'pre_transform': torch_pre_transforms,
+        'post_transform': torch_post_transforms,
+        **kwargs
+    }
+    return GratingImages(
+        samples=data_dir, afc_kwargs=afc_kwargs, target_size=target_size
+    )
+
+
+def _get_shared_post_transforms(mean, std):
+    return [
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std),
     ]
-    if db in ['imagenet', 'celeba']:
-        transforms = torch_transforms.Compose([
-            cv2_transforms.Resize(target_size),
-            cv2_transforms.CenterCrop(target_size),
-            *shared_transforms
-        ])
-        if db == 'imagenet':
-            natural_kwargs['root'] = os.path.join(
-                natural_kwargs['root'], 'validation'
-            )
-            current_db = ImageFolder(
-                transform=transforms, **natural_kwargs
-            )
-        elif db == 'celeba':
-            current_db = CelebA(
-                transform=transforms, split='test', **natural_kwargs
-            )
-        all_dbs.append(current_db)
-    if db in ['gratings']:
-        transforms = torch_transforms.Compose(shared_transforms)
-        all_dbs.append(
-            GratingImages(
-                transform=transforms, target_size=target_size, **gratings_kwargs
-            )
-        )
-    return torch_data.ConcatDataset(all_dbs)
