@@ -9,8 +9,12 @@ def parse_arguments(args):
     parser = argparse.ArgumentParser(description='Image Decomposition')
     model_parser = parser.add_argument_group('Model Parameters')
     model_parser.add_argument(
+        '--model', type=str, default='single', choices=['sginle', 'multi'],
+        help='type of model (default: single)'
+    )
+    model_parser.add_argument(
         '--target_size', type=int, default=256,
-        help='input target size (default 256)'
+        help='input target size (default: 256)'
     )
     parser.add_argument(
         '--outputs', type=str, nargs='+', default=['input'],

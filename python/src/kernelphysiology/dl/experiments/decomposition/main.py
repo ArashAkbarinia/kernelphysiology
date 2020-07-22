@@ -15,7 +15,8 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
 from kernelphysiology.dl.experiments.decomposition import util as vae_util
-from kernelphysiology.dl.experiments.decomposition import model as vae_model
+from kernelphysiology.dl.experiments.decomposition import model_single
+from kernelphysiology.dl.experiments.decomposition import model_multi
 from kernelphysiology.dl.experiments.decomposition import arguments
 from kernelphysiology.dl.experiments.decomposition import data_loaders
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
@@ -85,6 +86,7 @@ def main(args):
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
+    vae_model = model_single if args.model == 'single' else model_multi
     model = vae_model.DecomposeNet(
         hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
         outs_dict=args.outs_dict
