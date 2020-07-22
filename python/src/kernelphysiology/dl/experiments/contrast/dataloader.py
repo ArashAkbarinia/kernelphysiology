@@ -60,6 +60,10 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
 
     img1 = img0.copy()
 
+    # converting to range 0 to 1
+    img0 = img0.astype('float32') / 255
+    img1 = img1.astype('float32') / 255
+
     if pre_transform is not None:
         if same_transforms:
             img0, img1 = pre_transform([img0, img1])
@@ -72,10 +76,6 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         contrast1 = random.uniform(0, 1)
     else:
         contrast0, contrast1 = contrasts
-
-    # converting to range 0 to 1
-    img0 = img0.astype('float32') / 255
-    img1 = img1.astype('float32') / 255
 
     if 'grey' in colour_space:
         img0 = cv2.cvtColor(img0, cv2.COLOR_RGB2GRAY)
