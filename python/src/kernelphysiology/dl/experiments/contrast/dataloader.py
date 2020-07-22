@@ -340,6 +340,25 @@ class GratingImages(torch_data.Dataset):
                 gauss_img = gauss_img / np.max(gauss_img)
                 img0 *= gauss_img
                 img1 *= gauss_img
+            elif self.gabor_like == 'fixed_cycle':
+                radius = (
+                    int(self.target_size[0] / 2.0),
+                    int(self.target_size[1] / 2.0)
+                )
+                [x, y] = np.meshgrid(
+                    range(-radius[0], radius[0] + 1),
+                    range(-radius[1], radius[1] + 1)
+                )
+
+                sigma = self.target_size[0] / 4.25
+                gauss_img = np.exp(
+                    -(np.power(x, 2) + np.power(y, 2)) / (
+                                2 * np.power(sigma, 2))
+                )
+
+                gauss_img = gauss_img / np.max(gauss_img)
+                img0 *= gauss_img
+                img1 *= gauss_img
 
         img0 = (img0 + 1) / 2
         img1 = (img1 + 1) / 2
