@@ -73,7 +73,7 @@ def evaluate_coco(model, dataset, coco, eval_type=['bbox', 'segm'], limit=None, 
         image_results = build_coco_results(dataset, coco_image_ids[i:i + 1],
                                            r['rois'], r['class_ids'],
                                            r['scores'],
-                                           r['masks'].astype(np.uint8))
+                                           np.uint8(r['masks']))
         results.extend(image_results)
 
     # Load results. This modifies results with additional attributes.

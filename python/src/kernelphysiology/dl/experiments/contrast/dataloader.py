@@ -64,8 +64,8 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     img1 = img0.copy()
 
     # converting to range 0 to 1
-    img0 = img0.astype('float32') / 255
-    img1 = img1.astype('float32') / 255
+    img0 = np.float32(img0) / 255
+    img1 = np.float32(img1) / 255
 
     if pre_transform is not None:
         if same_transforms:
@@ -230,7 +230,7 @@ class OneFolder(AfcDataset, tdatasets.VisionDataset):
     def __getitem__(self, index):
         path = self.samples[index]
         img0 = self.loader(path)
-        img0 = img0.astype('float') / self.max_val
+        img0 = np.float32(img0) / self.max_val
         img0 = np.minimum(img0, 1)
         img0 *= 255
 

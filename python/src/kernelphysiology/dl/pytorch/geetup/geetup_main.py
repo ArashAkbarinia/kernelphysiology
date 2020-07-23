@@ -310,7 +310,7 @@ def process_random_image(model, validation_loader, normalize_inverse, args):
                         x_input[b, -1].squeeze()
                     ).numpy()
                     current_image = np.transpose(current_image, (1, 2, 0))
-                    current_image = (current_image * 255).astype('uint8')
+                    current_image = np.uint8(current_image * 255)
                     file_name = '%s/image_%d_%d.jpg' % (args.out_dir, step, b)
                     _ = geetup_visualise.draw_circle_results(
                         current_image, gt, pred, file_name

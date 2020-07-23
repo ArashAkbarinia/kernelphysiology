@@ -23,7 +23,7 @@ from kernelphysiology.dl.keras.models.utils import get_preprocessing_function
 
 
 def convert_to_uni8(img):
-    return img.astype('uint8')
+    return np.uint8(img)
 
 
 def augmented_preprocessing(img, augmentation_types=None, num_augmentation=0,

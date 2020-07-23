@@ -102,7 +102,7 @@ def tensor_tosave(tensor):
     imgs = []
     for i in range(tensor.shape[0]):
         img = tensor[i].cpu().numpy().transpose((1, 2, 0)) * 255
-        img = img.astype('uint8')
+        img = np.uint8(img)
         imgs.append(img)
     return imgs
 

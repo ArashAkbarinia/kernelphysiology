@@ -245,7 +245,7 @@ def train(epoch, model, train_loader, optimizer, save_path, args):
             start_time = time.time()
             for key in latest_losses:
                 losses[key + '_train'] = 0
-        if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
+        if bidx in list(np.int(np.linspace(0, num_batches - 1, 4))):
             vae_util.grid_save_reconstructions(
                 args.outs_dict, target, outputs[0], args.mean, args.std, epoch,
                 save_path, 'reconstruction_train%.5d' % bidx
@@ -283,7 +283,7 @@ def test_net(epoch, model, test_loader, save_path, args):
             latest_losses = model.latest_losses()
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
-            if bidx in list(np.linspace(0, num_batches - 1, 4).astype(int)):
+            if bidx in list(np.int(np.linspace(0, num_batches - 1, 4))):
                 vae_util.grid_save_reconstructions(
                     args.outs_dict, target, outputs[0], args.mean, args.std,
                     epoch, save_path, 'reconstruction_test%.5d' % bidx

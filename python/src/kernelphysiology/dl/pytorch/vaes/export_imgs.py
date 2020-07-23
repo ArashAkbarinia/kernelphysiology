@@ -152,8 +152,7 @@ def export(data_loader, model, mean, std, args):
 
                 org_img_tmp = inv_normalise_tensor(img_ready, mean, std)
                 org_img_tmp = org_img_tmp.numpy().squeeze().transpose(1, 2, 0)
-                org_img_tmp = org_img_tmp * 255
-                org_img_tmp = org_img_tmp.astype('uint8')
+                org_img_tmp = np.uint8(org_img_tmp * 255)
                 # org_img.append(org_img_tmp)
 
                 rec_dir = cat_out_dir + '/' + args.colour_space + '/'
@@ -172,8 +171,7 @@ def export(data_loader, model, mean, std, args):
                     rec_img_tmp, (org_img_tmp.shape[1], org_img_tmp.shape[0])
                 )
                 if args.out_colour_space == 'lab':
-                    rec_img_tmp = rec_img_tmp * 255
-                    rec_img_tmp = rec_img_tmp.astype('uint8')
+                    rec_img_tmp = np.uint8(rec_img_tmp * 255)
                     rec_img_tmp = cv2.cvtColor(rec_img_tmp, cv2.COLOR_LAB2RGB)
                 elif args.out_colour_space == 'hsv':
                     rec_img_tmp = colour_spaces.hsv012rgb(rec_img_tmp)
@@ -186,8 +184,8 @@ def export(data_loader, model, mean, std, args):
                 else:
                     rec_img_tmp = normalisations.uint8im(rec_img_tmp)
 
-                tmp_org = org_img_tmp.astype('float') / 255
-                tmp_rgb = rec_img_tmp.astype('float') / 255
+                tmp_org = np.float32(org_img_tmp) / 255
+                tmp_rgb = np.float32(rec_img_tmp) / 255
                 diffs.append(np.array((tmp_org - tmp_rgb) ** 2).mean())
 
                 # if not os.path.exists(img_path.replace(cat_in_dir, rec_dir)):

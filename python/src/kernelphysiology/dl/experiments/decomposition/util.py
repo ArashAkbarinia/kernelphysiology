@@ -101,7 +101,7 @@ def tensor_tosave(tensor, inv_func=None):
             img = inv_func(img)
         else:
             img *= 255
-            img = img.astype('uint8').squeeze()
+            img = np.uint8(img).squeeze()
         imgs.append(img)
     return imgs
 
@@ -135,5 +135,5 @@ def wavelet_visualise(tensor):
     img[:rows, cols:] = tensor[:, :, 2]
     img[rows:, cols:] = tensor[:, :, 3]
     img *= 255
-    img = img.astype('uint8').squeeze()
+    img = np.uint8(img).squeeze()
     return img

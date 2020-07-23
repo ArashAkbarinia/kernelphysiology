@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import argparse
+import numpy as np
 
 import torch.utils.data
 from torch import optim
@@ -323,7 +324,7 @@ def predict_net(model, test_loader, save_path, args):
                 cur_out_ready = out_ready[img_ind]
                 cur_out_ready = cur_out_ready.cpu().numpy().squeeze()
                 cur_out_ready *= 255
-                cur_out_ready = cur_out_ready.astype('uint8')
+                cur_out_ready = np.uint8(cur_out_ready)
                 fname = os.path.join(save_path, 'pred_%.5d.png' % j)
                 io.imsave(fname, cur_out_ready)
                 j += 1

@@ -112,7 +112,7 @@ def tensor_tosave(tensor, inv_func=None):
             img = inv_func(img)
         else:
             img *= 255
-            img = img.astype('uint8')
+            img = np.uint8(img)
         imgs.append(img)
     return imgs
 
@@ -123,7 +123,7 @@ def tensor_colourlabel(tensor, do_argmax=False):
         img = tensor[i].detach().cpu().numpy()
         if do_argmax:
             img = img.argmax(axis=0)
-        img = img.astype('uint8')
+        img = np.uint8(img)
         # FIXME: hardcoded dataset
         img = labels.colour_label(img, dataset='voc')
         imgs.append(img)

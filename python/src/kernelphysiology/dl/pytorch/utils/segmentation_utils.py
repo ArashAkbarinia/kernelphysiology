@@ -382,7 +382,7 @@ def predict_segmentation(val_loader, model, device, num_classes,
                     output = output.argmax(1)
                 output = output.clone().detach().cpu().squeeze().numpy()
                 if output.max() <= 1:
-                    output = (output * 255).astype('uint8')
+                    output = np.uint8(output * 255)
                 io.imsave('/home/arash/Desktop/tmp_imgs/%.4d.jpg' % i, output)
                 i += 1
 

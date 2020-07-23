@@ -153,7 +153,7 @@ def preprocess_input(x, **kwargs):
     """
     x /= 128.
     x -= 1.
-    return x.astype(np.float32)
+    return np.float32(x)
 
 
 # This function is taken from the original tf repo.

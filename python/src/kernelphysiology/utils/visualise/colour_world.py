@@ -39,7 +39,7 @@ def create_pascal_label_colourmap():
             colourmap[:, channel] |= _bit_get(ind, channel) << shift
         ind >>= 3
 
-    colourmap = list(colourmap.astype('float') / 255)
+    colourmap = list(np.float32(colourmap) / 255)
     return colourmap
 
 

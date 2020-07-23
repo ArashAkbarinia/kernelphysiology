@@ -438,7 +438,7 @@ def random_occlusion(image, object_instances=1, object_ratio=0.05):
         start = (rand_row, rand_col)
         # FIXME: if backend shape is different
         (rr, cc) = rectangle(start, extent=extent, shape=output.shape[0:2])
-        output[rr.astype('int64'), cc.astype('int64'), :] = 1
+        output[np.int64(rr), np.int64(cc), :] = 1
     output *= max_pixel
     return output
 

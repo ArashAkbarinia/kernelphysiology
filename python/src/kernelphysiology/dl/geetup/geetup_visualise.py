@@ -27,7 +27,7 @@ def draw_circle_clips(preds, geetup_info, beg_ind, end_ind, out_dir):
             img_in, (f_gt[1], f_gt[0]), 5, (0, 255, 0), thickness=9
         )
         # draw the prediction
-        pred = f_pred.astype('int')
+        pred = np.int(f_pred)
         # TODO: support other image sizes
         pred = map_point_to_image_size(pred, (360, 640), (180, 320))
         pred[0] = int(pred[0])
@@ -90,4 +90,4 @@ def save_heatmap(heatmap, out_file):
     heatmap = heatmap.copy()
     heatmap /= heatmap.max()
     heatmap *= 255
-    cv2.imwrite(out_file, heatmap.astype('uint8'))
+    cv2.imwrite(out_file, np.uint8(heatmap))

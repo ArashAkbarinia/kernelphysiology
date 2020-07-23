@@ -21,7 +21,7 @@ from kernelphysiology.filterfactory.gaussian import gauss
 
 
 def preprocess_input(img):
-    img = img.astype('float32')
+    img = np.float32(img)
     img = (img - 127.5) / 127.5
     return img
 

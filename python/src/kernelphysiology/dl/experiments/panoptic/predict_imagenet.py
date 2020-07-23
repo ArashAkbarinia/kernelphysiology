@@ -184,7 +184,7 @@ def export(data_loader, model, mean, std, imagenet_model,
                 org_img_tmp = inv_normalise_tensor(img_ready, mean, std)
                 org_img_tmp = org_img_tmp.numpy().squeeze().transpose(1, 2, 0)
                 org_img_tmp = org_img_tmp * 255
-                org_img_tmp = org_img_tmp.astype('uint8')
+                org_img_tmp = np.uint8(org_img_tmp)
                 # org_img.append(org_img_tmp)
 
                 rec_img_tmp = inv_normalise_tensor(
@@ -195,7 +195,7 @@ def export(data_loader, model, mean, std, imagenet_model,
                 )
                 if args.out_colour_space == 'lab':
                     rec_img_tmp = rec_img_tmp * 255
-                    rec_img_tmp = rec_img_tmp.astype('uint8')
+                    rec_img_tmp = np.uint8(rec_img_tmp)
                     rec_img_tmp = cv2.cvtColor(rec_img_tmp, cv2.COLOR_LAB2RGB)
                 elif args.out_colour_space == 'hsv':
                     rec_img_tmp = colour_spaces.hsv012rgb(rec_img_tmp)

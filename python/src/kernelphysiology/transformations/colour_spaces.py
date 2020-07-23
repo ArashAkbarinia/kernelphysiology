@@ -212,8 +212,7 @@ def yog012rgb01(x):
 
 def rgb2hsv01(x):
     assert x.dtype == 'uint8'
-    x = cv2.cvtColor(x, cv2.COLOR_RGB2HSV)
-    x = x.astype('float')
+    x = np.float32(cv2.cvtColor(x, cv2.COLOR_RGB2HSV))
     x[:, :, 0] /= 180
     x[:, :, 1:] /= 255
     return x

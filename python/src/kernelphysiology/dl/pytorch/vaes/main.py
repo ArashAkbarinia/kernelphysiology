@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import logging
+import numpy as np
 
 from torch import optim
 from torch import nn
@@ -95,7 +96,7 @@ def generic_inv_fun(x, colour_space):
         x = colour_spaces.dkl012rgb(x)
     elif colour_space == 'lab':
         x *= 255
-        x = x.astype('uint8')
+        x = np.uint8(x)
         x = cv2.cvtColor(x, cv2.COLOR_LAB2RGB)
     return x
 

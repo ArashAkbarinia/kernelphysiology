@@ -88,7 +88,7 @@ class PredictionTransformation(object):
 
         # converting it back to pil image
         if self.is_pill_img:
-            x = PilImage.fromarray(x.astype('uint8'), self.colour_space)
+            x = PilImage.fromarray(np.uint8(x), self.colour_space)
         return x
 
 
@@ -130,5 +130,5 @@ class RandomAugmentationTransformation(object):
 
         # converting it back to pil image
         if self.is_pill_img:
-            x = PilImage.fromarray(x.astype('uint8'), 'RGB')
+            x = PilImage.fromarray(np.uint8(x), 'RGB')
         return x

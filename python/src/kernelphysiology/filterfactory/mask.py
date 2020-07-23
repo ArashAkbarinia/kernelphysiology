@@ -48,7 +48,7 @@ def create_mask_image_canny(image, sigma=1.0, low_threshold=0.9,
             image_mask = np.expand_dims(image_mask, axis=2)
             image_mask = np.repeat(image_mask, chns, axis=2)
 
-        image_mask = image_mask.astype('uint8')
+        image_mask = np.uint8(image_mask)
         if sigma_sign == 1:
             image_mask = 1 - image_mask
     return image_mask
@@ -90,7 +90,7 @@ def create_mask_image_texture(image, texture_type, inverse=False):
             image_mask.shape[1] != image.shape[1]):
         image_mask = resize(image_mask, (image.shape[0], image.shape[1]))
         image_mask = image_mask > 0
-    image_mask = image_mask.astype('uint8')
+    image_mask = np.uint8(image_mask)
     if inverse:
         image_mask = 1 - image_mask
     if len(image.shape) > 2:

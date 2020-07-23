@@ -16,10 +16,10 @@ def min_max_normalise(x, low=0, high=1, minv=None, maxv=None):
 
 def im2double_max(image):
     if image.dtype == 'uint8':
-        image = image.astype('float32')
+        image = np.float32(image)
         return image / 255, 255
     else:
-        image = image.astype('float32')
+        image = np.float32(image)
         max_pixel = np.max(image)
         if max_pixel > 1.0:
             image /= max_pixel
@@ -32,7 +32,7 @@ def img_midvals(image):
     if image.dtype == 'uint8':
         return (128, 128, 128)
     else:
-        image = image.astype('float32')
+        image = np.float32(image)
         max_pixel = np.max(image)
         if max_pixel > 1.0:
             # TODO: maybe considering channelwise maxs
@@ -65,4 +65,4 @@ def clip01(x):
 def uint8im(image):
     image = clip01(image)
     image *= 255
-    return image.astype('uint8')
+    return np.uint8(image)

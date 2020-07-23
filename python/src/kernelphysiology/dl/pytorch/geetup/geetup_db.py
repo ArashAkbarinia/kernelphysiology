@@ -95,7 +95,7 @@ def _init_videos(video_list):
 
 
 def _npy_loader(input_path):
-    img = np.load(input_path).astype(np.float32).squeeze()
+    img = np.float32(np.load(input_path)).squeeze()
     img = Image.fromarray(img, mode='F')
     # FIXME: this is not a proper solution
     img = img.resize((360, 640)[::-1])
@@ -126,15 +126,14 @@ def _combine_multi_sensors(all_sensors):
             current_img = all_sensors[j][i]
             if current_img.mode == 'RGB':
                 current_img = current_img.convert('L')
-                current_img = np.asarray(current_img).copy()
-                current_img = current_img.astype('uint8')
+                current_img = np.uint8(np.asarray(current_img).copy())
             else:
-                current_img = np.asarray(current_img).copy().astype('float')
+                current_img = np.float32(np.asarray(current_img).copy())
                 # FIXME: this is not a proper solution
                 max_depth = 10
                 current_img /= max_depth
                 current_img *= 255
-                current_img = current_img.astype('uint8')
+                current_img = np.uint8(current_img)
             frame_item.append(current_img)
         x_item.append(np.stack(frame_item, axis=2))
     return x_item

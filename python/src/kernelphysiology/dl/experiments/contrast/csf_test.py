@@ -59,7 +59,7 @@ def run_gratings(db_loader, model, out_file, update=False, mean_std=None):
                 img_inv = img_inv.detach().cpu().numpy().transpose(0, 2, 3, 1)
                 img_inv = np.concatenate(img_inv, axis=1)
                 save_path = '%s%.5d.png' % (out_file, i)
-                img_inv = (img_inv.squeeze() * 255).astype('uint8')
+                img_inv = np.uint8((img_inv.squeeze() * 255))
                 io.imsave(save_path, img_inv)
 
             for j in range(len(preds)):

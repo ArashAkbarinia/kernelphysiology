@@ -21,10 +21,10 @@ def plot_results(networks, original_networks, experiment_name, category_name,
             original_res = value_original.top1_accuracy
         else:
             non_original_res = value.classes_top1_accuracy[
-                               cat_inds.astype('uint'), :].mean(axis=0)
+                               np.uint(cat_inds), :].mean(axis=0)
             non_original_res = np.expand_dims(non_original_res, 0)
             original_res = value_original.classes_top1_accuracy[
-                           cat_inds.astype('uint'), :].mean(axis=0)
+                           np.uint(cat_inds), :].mean(axis=0)
             original_res = np.expand_dims(original_res, 0)
         ys = np.concatenate((non_original_res, original_res), axis=1)
         sorted_inds = np.argsort(xs)

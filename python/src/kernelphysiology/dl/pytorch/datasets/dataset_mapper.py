@@ -49,8 +49,7 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
                 amount = random.uniform(contrast, 1)
             else:
                 amount = contrast
-            image = imutils.adjust_contrast(image, amount)
-            image = image.astype('uint8')
+            image = np.uint8(imutils.adjust_contrast(image, amount))
 
         if vision_type != 'trichromat':
             if vision_type == 'monochromat':
@@ -63,8 +62,7 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
                 sys.exit('Not supported vision type %s' % vision_type)
 
         if mosaic_pattern != "" and mosaic_pattern is not None:
-            image = imutils.im2mosaic(image, mosaic_pattern)
-            image = image.astype('uint8')
+            image = np.uint8(imutils.im2mosaic(image, mosaic_pattern))
 
         image = Image.fromarray(image)
 
@@ -254,6 +252,6 @@ class DatasetMapper:
                 sem_seg_gt = Image.open(f)
                 sem_seg_gt = np.asarray(sem_seg_gt, dtype="uint8")
             sem_seg_gt = transforms.apply_segmentation(sem_seg_gt)
-            sem_seg_gt = torch.as_tensor(sem_seg_gt.astype("long"))
+            sem_seg_gt = torch.as_tensor(np.long(sem_seg_gt))
             dataset_dict["sem_seg"] = sem_seg_gt
         return dataset_dict

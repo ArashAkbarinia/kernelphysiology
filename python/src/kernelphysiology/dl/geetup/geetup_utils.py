@@ -116,7 +116,7 @@ def cleanup_subject(subject_dir):
 
             # ignoring all fixation points that are around corner
             conds = create_gt_conds(gts, margin, rows, cols)
-            gts = np.round(gts).astype('int')
+            gts = np.int(np.round(gts))
 
             selected_imgs = []
             discarded_imgs = []

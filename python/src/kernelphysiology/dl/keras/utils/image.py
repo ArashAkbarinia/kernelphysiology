@@ -394,13 +394,13 @@ def array_to_img(x, data_format='channels_last', scale=True, dtype='float32'):
         x *= 255
     if x.shape[2] == 4:
         # RGBA
-        return pil_image.fromarray(x.astype('uint8'), 'RGBA')
+        return pil_image.fromarray(np.uint8(x), 'RGBA')
     elif x.shape[2] == 3:
         # RGB
-        return pil_image.fromarray(x.astype('uint8'), 'RGB')
+        return pil_image.fromarray(np.uint8(x), 'RGB')
     elif x.shape[2] == 1:
         # grayscale
-        return pil_image.fromarray(x[:, :, 0].astype('uint8'), 'L')
+        return pil_image.fromarray(np.uint8(x[:, :, 0]), 'L')
     else:
         raise ValueError('Unsupported channel number: %s' % (x.shape[2],))
 

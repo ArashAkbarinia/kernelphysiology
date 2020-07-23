@@ -48,7 +48,7 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
             else:
                 amount = contrast
             image = imutils.adjust_contrast(image, amount)
-            image = Image.fromarray(image.astype('uint8'))
+            image = Image.fromarray(np.uint8(image))
 
         if vision_type != 'trichromat':
             image = np.asarray(image).copy()
@@ -65,7 +65,7 @@ def _read_image(file_name, format=None, vision_type='trichromat', contrast=None,
         if mosaic_pattern != "" and mosaic_pattern is not None:
             image = np.asarray(image).copy()
             image = imutils.im2mosaic(image, mosaic_pattern)
-            image = Image.fromarray(image.astype('uint8'))
+            image = Image.fromarray(np.uint8(image))
 
         # capture and ignore this bug:
         # https://github.com/python-pillow/Pillow/issues/3973

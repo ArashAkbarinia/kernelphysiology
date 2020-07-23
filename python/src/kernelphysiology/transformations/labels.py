@@ -16,7 +16,7 @@ def colour_label(label_mat, colours=None, num_labels=None, dataset=None):
         else:
             colours = colour_world.dataset_colourmaps(dataset)
     elif not max(max(colours)) <= 1:
-        colours = list(np.asarray(colours).astype('float') / 255)
+        colours = list(np.float32(np.asarray(colours)) / 255)
 
     colour_img = np.zeros((*label_mat.shape, 3))
     nlabels = len(colours)

@@ -190,7 +190,7 @@ def visualise_input(val_loader, out_folder, normalize_inverse,
                 current_im = normalize_inverse(input_imgs[b])
                 for c in range(current_im.shape[0]):
                     current_channel = current_im[c].squeeze().numpy()
-                    current_channel = (current_channel * 255).astype('uint8')
+                    current_channel = np.uint8(current_channel * 255)
                     file_name = '%s/image_%s_%d_%d.jpg' % (
                         out_folder, str(manipulation_value), b, c
                     )

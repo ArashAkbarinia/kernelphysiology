@@ -8,7 +8,7 @@ import math
 
 def gaussian_width(sigma, max_width=100, threshold=1e-4):
     filter_width = 1
-    for pw in range(np.floor(max_width / 2).astype('int'), -1, -1):
+    for pw in range(np.int(np.floor(max_width / 2)), -1, -1):
         if np.exp(-(pw ** 2) / (2 * sigma ** 2)) > threshold:
             filter_width = pw
             break
@@ -69,8 +69,8 @@ def gaussian2_gradient1(sigma, theta, seta=0.5, width=None, threshold=1e-4):
 
     kernel = np.zeros((width, width))
     half_width = width / 2
-    fw = np.floor(half_width).astype('int')
-    cw = np.ceil(half_width).astype('int')
+    fw = np.int(np.floor(half_width))
+    cw = np.int(np.ceil(half_width))
     for row, i in enumerate(range(-fw, cw)):
         for col, j in enumerate(range(-fw, cw)):
             x = i * costh + j * sinth

@@ -163,8 +163,7 @@ def export(data_loader, model, mean, std, args):
                 # org_img.append(org_img_tmp)
 
                 if args.in_colour_space == 'lab':
-                    org_img_tmp = org_img_tmp * 255
-                    org_img_tmp = org_img_tmp.astype('uint8')
+                    org_img_tmp = np.uint8(org_img_tmp * 255)
                     org_img_tmp = cv2.cvtColor(org_img_tmp, cv2.COLOR_LAB2RGB)
                 elif args.in_colour_space == 'hsv':
                     org_img_tmp = colour_spaces.hsv012rgb(org_img_tmp)
@@ -190,8 +189,7 @@ def export(data_loader, model, mean, std, args):
                     rec_img_tmp, (org_img_tmp.shape[1], org_img_tmp.shape[0])
                 )
                 if args.out_colour_space == 'lab':
-                    rec_img_tmp = rec_img_tmp * 255
-                    rec_img_tmp = rec_img_tmp.astype('uint8')
+                    rec_img_tmp = np.uint8(rec_img_tmp * 255)
                     rec_img_tmp = cv2.cvtColor(rec_img_tmp, cv2.COLOR_LAB2RGB)
                 elif args.out_colour_space == 'hsv':
                     rec_img_tmp = colour_spaces.hsv012rgb(rec_img_tmp)
