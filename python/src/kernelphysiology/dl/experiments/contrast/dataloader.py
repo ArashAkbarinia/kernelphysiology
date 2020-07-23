@@ -218,13 +218,14 @@ class CelebA(AfcDataset, tdatasets.CelebA):
 
 
 class OneFolder(AfcDataset, tdatasets.VisionDataset):
-    def __init__(self, root, afc_kwargs, max_val=255):
+    def __init__(self, root, afc_kwargs, num_crops=1, max_val=255):
         AfcDataset.__init__(self, **afc_kwargs)
         tdatasets.VisionDataset.__init__(self, root=root)
         self.samples = path_utils.image_in_folder(self.root)
         print('Read %d images.' % len(self.samples))
         self.loader = cv2_loader
         self.max_val = max_val
+        self.num_crops = num_crops
 
     def __getitem__(self, index):
         path = self.samples[index]
@@ -233,11 +234,18 @@ class OneFolder(AfcDataset, tdatasets.VisionDataset):
         img0 = np.minimum(img0, 1)
         img0 *= 255
 
-        img_out, contrast_target = _prepare_stimuli(
-            img0, self.colour_space, self.vision_type, self.contrasts,
-            self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p
-        )
+        imgs_stack = []
+        targets_stack = []
+        for i in range(self.num_crops):
+            current_crop, current_target = _prepare_stimuli(
+                img0.copy(), self.colour_space, self.vision_type,
+                self.contrasts, self.mask_image, self.pre_transform,
+                self.post_transform, self.same_transforms, self.p
+            )
+            imgs_stack.append(current_crop)
+            targets_stack.append(current_target)
+        img_out = torch.stack(imgs_stack)
+        contrast_target = torch.LongTensor(targets_stack)
 
         return img_out, contrast_target, path
 

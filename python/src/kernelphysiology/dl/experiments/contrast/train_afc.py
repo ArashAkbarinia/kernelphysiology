@@ -260,6 +260,9 @@ def main_worker(ngpus_per_node, args):
         args.dataset, target_size, mean, std, extra_transformation=train_trans,
         data_dir=path_or_sample, **db_params
     )
+    if args.dataset == 'natural':
+        train_dataset.num_crops = args.batch_size
+        args.batch_size = 1
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
@@ -281,6 +284,9 @@ def main_worker(ngpus_per_node, args):
         args.dataset, target_size, mean, std, extra_transformation=valid_trans,
         data_dir=path_or_sample, **db_params
     )
+    if args.dataset == 'natural':
+        validation_dataset.num_crops = train_dataset.num_crops
+        args.batch_size = 1
 
     val_loader = torch.utils.data.DataLoader(
         validation_dataset,
@@ -356,6 +362,9 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
     for i, (input_image, target, _) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
+        if args.dataset == 'natural':
+            input_image = input_image[0]
+            target = target[0]
 
         if args.gpus is not None:
             input_image = input_image.cuda(args.gpus, non_blocking=True)
@@ -411,6 +420,9 @@ def validate_on_data(val_loader, model, criterion, args):
     with torch.no_grad():
         end = time.time()
         for i, (input_image, target, _) in enumerate(val_loader):
+            if args.dataset == 'natural':
+                input_image = input_image[0]
+                target = target[0]
             if args.gpus is not None:
                 input_image = input_image.cuda(args.gpus, non_blocking=True)
             target = target.cuda(args.gpus, non_blocking=True)
