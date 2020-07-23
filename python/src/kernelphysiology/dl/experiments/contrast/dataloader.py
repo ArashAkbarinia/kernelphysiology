@@ -15,6 +15,8 @@ from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.filterfactory import gratings
 from kernelphysiology.transformations import colour_spaces
 
+from kernelphysiology.utils import path_utils
+
 
 def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
     imgs_cat = [img0, img1]
@@ -50,6 +52,7 @@ def _random_mask_params():
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p):
+    # FIXME: this might not work with the .ppm files, change it to 01 version
     if 'grey' not in colour_space and vision_type != 'trichromat':
         dkl0 = colour_spaces.rgb2dkl(img0)
         if vision_type == 'dichromat_rg':
@@ -149,6 +152,12 @@ def _model_fest_stimuli(target_size, contrast, theta, rho, lambda_wave):
     return img
 
 
+def cv2_loader(path):
+    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return img
+
+
 class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5,
                  contrasts=None, same_transforms=False, colour_space='grey',
@@ -167,7 +176,7 @@ class CelebA(AfcDataset, tdatasets.CelebA):
     def __init__(self, afc_kwargs, celeba_kwargs):
         AfcDataset.__init__(self, **afc_kwargs)
         tdatasets.CelebA.__init__(self, **celeba_kwargs)
-        self.loader = tdatasets.folder.pil_loader
+        self.loader = cv2_loader
 
     def __getitem__(self, index):
         path = os.path.join(
@@ -175,7 +184,6 @@ class CelebA(AfcDataset, tdatasets.CelebA):
             self.filename[index]
         )
         img0 = self.loader(path)
-        img0 = np.asarray(img0).copy()
 
         target = []
         for t in self.target_type:
@@ -209,15 +217,43 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         return img_out, contrast_target, path
 
 
+class OneFolder(AfcDataset, tdatasets.VisionDataset):
+    def __init__(self, root, afc_kwargs, max_val=255):
+        AfcDataset.__init__(self, **afc_kwargs)
+        tdatasets.VisionDataset.__init__(self, root=root)
+        self.samples = path_utils.image_in_folder(self.root)
+        print('Read %d images.' % len(self.samples))
+        self.loader = cv2_loader
+        self.max_val = max_val
+
+    def __getitem__(self, index):
+        path = self.samples[index]
+        img0 = self.loader(path)
+        img0 = img0.astype('float') / self.max_val
+        img0 = np.minimum(img0, 1)
+        img0 *= 255
+
+        img_out, contrast_target = _prepare_stimuli(
+            img0, self.colour_space, self.vision_type, self.contrasts,
+            self.mask_image, self.pre_transform, self.post_transform,
+            self.same_transforms, self.p
+        )
+
+        return img_out, contrast_target, path
+
+    def __len__(self):
+        return len(self.samples)
+
+
 class ImageFolder(AfcDataset, tdatasets.ImageFolder):
     def __init__(self, afc_kwargs, folder_kwargs):
         AfcDataset.__init__(self, **afc_kwargs)
         tdatasets.ImageFolder.__init__(self, **folder_kwargs)
+        self.loader = cv2_loader
 
     def __getitem__(self, index):
         path, class_target = self.samples[index]
         img0 = self.loader(path)
-        img0 = np.asarray(img0).copy()
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
@@ -427,7 +463,7 @@ def train_set(db, target_size, mean, std, extra_transformation=None, **kwargs):
         cv2_transforms.RandomHorizontalFlip(),
     ]
     shared_post_transforms = _get_shared_post_transforms(mean, std)
-    if db in ['imagenet', 'celeba']:
+    if db in ['imagenet', 'celeba', 'natural']:
         scale = (0.08, 1.0)
         size_transform = cv2_transforms.RandomResizedCrop(
             target_size, scale=scale
@@ -451,7 +487,7 @@ def validation_set(db, target_size, mean, std, extra_transformation=None,
         extra_transformation = []
     shared_pre_transforms = [*extra_transformation]
     shared_post_transforms = _get_shared_post_transforms(mean, std)
-    if db in ['imagenet', 'celeba']:
+    if db in ['imagenet', 'celeba', 'natural']:
         pre_transforms = [
             cv2_transforms.Resize(target_size),
             cv2_transforms.CenterCrop(target_size),
@@ -481,6 +517,8 @@ def _natural_dataset(db, which_set, pre_transforms, post_transforms,
     if db == 'imagenet':
         natural_kwargs = {'root': os.path.join(data_dir, which_set)}
         current_db = ImageFolder(afc_kwargs, natural_kwargs)
+    elif db == 'natural':
+        current_db = OneFolder(data_dir, afc_kwargs, max_val=(2 ** 14) - 1)
     elif db == 'celeba':
         split = 'test' if which_set == 'validation' else 'train'
         natural_kwargs = {'root': data_dir, 'split': split}

@@ -252,7 +252,7 @@ def main_worker(ngpus_per_node, args):
         'vision_type': args.vision_type,
         'mask_image': args.mask_image
     }
-    if args.dataset in ['imagenet', 'celeba']:
+    if args.dataset in ['imagenet', 'celeba', 'natural']:
         path_or_sample = args.data_dir
     else:
         path_or_sample = args.train_samples
