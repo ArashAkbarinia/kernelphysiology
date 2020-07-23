@@ -91,10 +91,11 @@ def main(argv):
 
 
 class RandomNormalize(object):
-    def __init__(self, mean, std, extra_chns):
+    def __init__(self, mean, std, extra_chns, is_val=False):
         self.mean = mean
         self.std = std
         self.extra_chns = extra_chns
+        self.is_val = is_val
 
     def __call__(self, tensors):
         org_chns, rows, cols = tensors.shape
@@ -102,8 +103,12 @@ class RandomNormalize(object):
         augmented_tensors = torch.zeros(chns, rows, cols, dtype=tensors.dtype)
         augmented_tensors[:org_chns] = tensors
         augmented_tensors[org_chns:] = tensors
-        mean = (*self.mean, *np.random.uniform(0.25, 0.5, len(self.mean)))
-        std = (*self.std, *np.random.uniform(0.25, 0.5, len(self.std)))
+        if self.is_val:
+            mean = (*self.mean, *[0.375 for _ in range(org_chns)])
+            std = (*self.std, *[0.375 for _ in range(org_chns)])
+        else:
+            mean = (*self.mean, *np.random.uniform(0.25, 0.5, len(self.mean)))
+            std = (*self.std, *np.random.uniform(0.25, 0.5, len(self.std)))
         return tfunctional.normalize(augmented_tensors, mean, std)
 
     def __repr__(self):
@@ -262,7 +267,9 @@ def main_worker(ngpus_per_node, args):
 
     cudnn.benchmark = True
 
-    normalize = RandomNormalize(mean=mean, std=std, extra_chns=args.extra_chns)
+    normalize_train = RandomNormalize(
+        mean=mean, std=std, extra_chns=args.extra_chns
+    )
 
     train_trans = []
     valid_trans = []
@@ -283,7 +290,7 @@ def main_worker(ngpus_per_node, args):
     train_trans = [*both_trans, *train_trans]
     train_dataset = utils_db.get_train_dataset(
         args.dataset, args.train_dir, args.vision_type,
-        args.colour_space, train_trans, normalize, target_size
+        args.colour_space, train_trans, normalize_train, target_size
     )
 
     if args.distributed:
@@ -300,11 +307,15 @@ def main_worker(ngpus_per_node, args):
         sampler=train_sampler
     )
 
+    normalize_val = RandomNormalize(
+        mean=mean, std=std, extra_chns=args.extra_chns, is_val=True
+    )
+
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
     validation_dataset = utils_db.get_validation_dataset(
         args.dataset, args.validation_dir, args.vision_type,
-        args.colour_space, valid_trans, normalize, target_size,
+        args.colour_space, valid_trans, normalize_val, target_size,
     )
 
     val_loader = torch.utils.data.DataLoader(
