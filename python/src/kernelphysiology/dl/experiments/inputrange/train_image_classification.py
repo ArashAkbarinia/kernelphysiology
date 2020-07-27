@@ -99,7 +99,7 @@ class RandomNormalize(object):
 
     def __call__(self, tensors):
         org_chns, rows, cols = tensors.shape
-        chns = org_chns * 2
+        chns = org_chns * self.extra_chns
         augmented_tensors = torch.zeros(chns, rows, cols, dtype=tensors.dtype)
         augmented_tensors[:org_chns] = tensors
         augmented_tensors[org_chns:] = tensors
@@ -267,7 +267,7 @@ def main_worker(ngpus_per_node, args):
 
     cudnn.benchmark = True
 
-    if args.extra_chns == 1:
+    if args.extra_chns > 1:
         normalize_train = RandomNormalize(
             mean=mean, std=std, extra_chns=args.extra_chns
         )
@@ -310,7 +310,7 @@ def main_worker(ngpus_per_node, args):
         sampler=train_sampler
     )
 
-    if args.extra_chns == 1:
+    if args.extra_chns > 1:
         normalize_val = RandomNormalize(
             mean=mean, std=std, extra_chns=args.extra_chns, is_val=True
         )
