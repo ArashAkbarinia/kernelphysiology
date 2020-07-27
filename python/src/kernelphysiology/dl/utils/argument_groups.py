@@ -94,7 +94,8 @@ def get_input_group(parser):
         default=None,
         choices=[
             'bayer',
-            'retina'
+            'retina',
+            'random'
         ],
         help='Applying a mosaic pattern to input image (default: None)'
     )
