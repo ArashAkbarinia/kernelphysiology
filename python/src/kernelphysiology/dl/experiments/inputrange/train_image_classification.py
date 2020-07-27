@@ -120,7 +120,7 @@ class RandomNormalize(object):
 def extra_args_fun(parser):
     specific_group = parser.add_argument_group('Input range specific')
 
-    specific_group.add_argument('--extra_chns', default=None, type=int)
+    specific_group.add_argument('--extra_chns', default=1, type=int)
 
 
 def main_worker(ngpus_per_node, args):
@@ -267,7 +267,7 @@ def main_worker(ngpus_per_node, args):
 
     cudnn.benchmark = True
 
-    if args.extra_chns is not None:
+    if args.extra_chns == 1:
         normalize_train = RandomNormalize(
             mean=mean, std=std, extra_chns=args.extra_chns
         )
@@ -310,7 +310,7 @@ def main_worker(ngpus_per_node, args):
         sampler=train_sampler
     )
 
-    if args.extra_chns is not None:
+    if args.extra_chns == 1:
         normalize_val = RandomNormalize(
             mean=mean, std=std, extra_chns=args.extra_chns, is_val=True
         )
