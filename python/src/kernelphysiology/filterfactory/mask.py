@@ -128,6 +128,23 @@ def retina_filter_array(image, colour_channel):
     return image_mask
 
 
+def random_filter_array(image):
+    """Create a random filter array. If input image is a MxN matrix, the output
+    pixels are True or False randomly. If input image is a MxNxC, for each pixel
+    one channel is True while the others are False.
+
+    :param image: numpy array matrix.
+    :return: a binary matrix.
+    """
+    if len(image.shape) < 3:
+        return np.random.choice([True, False], size=image.shape)
+    image_mask = np.zeros(image.shape, np.uint8)
+    rand_inds = np.random.randint(image.shape[2], size=image.shape[:2])
+    for i in range(image.shape[2]):
+        image_mask[:, :, i] = rand_inds == i
+    return image_mask
+
+
 def colour_filter_array(image, mosaic_type, **kwargs):
     if mosaic_type == 'bayer':
         image_mask = bayer_filter_array(image, **kwargs)

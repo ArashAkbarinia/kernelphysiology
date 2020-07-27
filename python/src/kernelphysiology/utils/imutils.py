@@ -13,6 +13,7 @@ import math
 import cv2
 
 from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
+from kernelphysiology.filterfactory.mask import random_filter_array
 from kernelphysiology.filterfactory.mask import create_mask_image
 from kernelphysiology.filterfactory.mask import colour_filter_array
 from kernelphysiology.transformations.colour_spaces import rgb2opponency
@@ -415,14 +416,22 @@ def im2mosaic(image, mosaic_type=None, masks=None):
 
     midvals = img_midvals(image)
     if masks is None:
-        masks = [
-            colour_filter_array(image, mosaic_type, colour_channel='red'),
-            colour_filter_array(image, mosaic_type, colour_channel='green'),
-            colour_filter_array(image, mosaic_type, colour_channel='blue')
-        ]
+        if mosaic_type == 'random':
+            masks = random_filter_array(image)
+        else:
+            masks_array = [
+                colour_filter_array(image, mosaic_type, colour_channel='red'),
+                colour_filter_array(image, mosaic_type, colour_channel='green'),
+                colour_filter_array(image, mosaic_type, colour_channel='blue')
+            ]
+            masks = np.zeros(
+                (*masks_array[0].shape, 3), dtype=np.uint8
+            )
+            for i in range(3):
+                masks[:, :, i] = masks_array[i].copy()
     for i in range(3):
         img_ch = image[:, :, i]
-        img_ch[masks[i] == 0] = midvals[i]
+        img_ch[masks[:, :, i] == 0] = midvals[i]
         image[:, :, i] = img_ch
     return image
 
