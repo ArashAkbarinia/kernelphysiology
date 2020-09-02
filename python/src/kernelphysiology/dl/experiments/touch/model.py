@@ -58,7 +58,7 @@ class VAE(nn.Module):
         )
 
     def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, 784))
+        mu, logvar = self.encode(x.view(-1, 512))
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
@@ -70,7 +70,7 @@ class VAE(nn.Module):
         return sample
 
     def loss_function(self, x, recon_x, mu, logvar):
-        self.bce = F.binary_cross_entropy(recon_x, x.view(-1, 784),
+        self.bce = F.binary_cross_entropy(recon_x, x.view(-1, 512),
                                           size_average=False)
         batch_size = x.size(0)
 
