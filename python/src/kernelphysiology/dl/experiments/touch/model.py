@@ -12,7 +12,7 @@ from nearest_embed import NearestEmbed
 class VAE(nn.Module):
     """Vanilla Variational AutoEncoder"""
 
-    def __init__(self, kl_coef=1, d=128):
+    def __init__(self, kl_coef=1, d=128, **kwargs):
         super(VAE, self).__init__()
 
         # FIXME: hardcoded to work with images of 260 by 260
