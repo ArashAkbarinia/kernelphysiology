@@ -9,6 +9,83 @@ import torch.utils.data
 from nearest_embed import NearestEmbed
 
 
+class VAE(nn.Module):
+    """Vanilla Variational AutoEncoder"""
+
+    def __init__(self, kl_coef=1, d=128):
+        super(VAE, self).__init__()
+
+        # FIXME: hardcoded to work with images of 260 by 260
+        self.fc1 = nn.Sequential(
+            nn.Conv2d(1, d, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(d),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(d, d, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(d),
+            nn.ReLU(inplace=True),
+            nn.Linear(65 * 65, 512)
+        )
+        self.fc21 = nn.Linear(512, 20)
+        self.fc22 = nn.Linear(512, 20)
+        self.fc3 = nn.Linear(20, 512)
+        self.fc4 = nn.Sequential(
+            nn.Linear(512, 65 * 65)
+        )
+
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+        self.kl_coef = kl_coef
+        self.bce = 0
+        self.kl = 0
+
+    def encode(self, x):
+        h1 = self.relu(self.fc1(x))
+        return self.fc21(h1), self.fc22(h1)
+
+    def reparameterize(self, mu, logvar):
+        if self.training:
+            std = logvar.mul(0.5).exp_()
+            eps = std.new(std.size()).normal_()
+            return eps.mul(std).add_(mu)
+        else:
+            return mu
+
+    def decode(self, z):
+        h3 = self.relu(self.fc3(z))
+        h4 = self.fc4(h3)
+        return self.tanh(
+            torch.nn.functional.upsample_bilinear(h4, size=65 * 65)
+        )
+
+    def forward(self, x):
+        mu, logvar = self.encode(x.view(-1, 784))
+        z = self.reparameterize(mu, logvar)
+        return self.decode(z), mu, logvar
+
+    def sample(self, size):
+        sample = torch.randn(size, 20)
+        if self.cuda():
+            sample = sample.cuda()
+        sample = self.decode(sample).cpu()
+        return sample
+
+    def loss_function(self, x, recon_x, mu, logvar):
+        self.bce = F.binary_cross_entropy(recon_x, x.view(-1, 784),
+                                          size_average=False)
+        batch_size = x.size(0)
+
+        # see Appendix B from VAE paper:
+        # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+        # https://arxiv.org/abs/1312.6114
+        # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+        self.kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+        return self.bce + self.kl_coef * self.kl
+
+    def latest_losses(self):
+        return {'bce': self.bce, 'kl': self.kl}
+
+
 class ResBlock(nn.Module):
     def __init__(self, in_channels, out_channels, mid_channels=None, bn=False):
         super(ResBlock, self).__init__()
