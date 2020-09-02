@@ -53,12 +53,13 @@ class VAE(nn.Module):
     def decode(self, z):
         h3 = self.relu(self.fc3(z))
         h4 = self.fc4(h3)
-        return self.tanh(
-            torch.nn.functional.upsample_bilinear(h4, size=65 * 65)
+        hout = torch.nn.functional.upsample_bilinear(
+            h4.view(-1, 1, 65, 65), size=260 * 260
         )
+        return self.tanh(hout)
 
     def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, 512))
+        mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
 
