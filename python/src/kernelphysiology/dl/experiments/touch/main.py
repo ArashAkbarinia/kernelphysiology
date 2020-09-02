@@ -17,7 +17,7 @@ from model import *
 from dataset import get_train_dataset, get_val_dataset
 
 models = {
-    'custom': {'vqvae': VQ_CVAE, 'vanila': VAE},
+    'custom': {'vqvae': VQ_CVAE, 'vae': VAE},
 }
 datasets_classes = {
     'custom': datasets.ImageFolder,
