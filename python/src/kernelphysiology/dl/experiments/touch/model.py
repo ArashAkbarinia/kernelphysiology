@@ -10,81 +10,166 @@ from nearest_embed import NearestEmbed
 
 
 class VAE(nn.Module):
-    """Vanilla Variational AutoEncoder"""
 
-    def __init__(self, kl_coef=1, d=128, **kwargs):
+    def __init__(self, latent_dim, in_channels=1, hidden_dims=None, **kwargs) -> None:
         super(VAE, self).__init__()
 
-        # FIXME: hardcoded to work with images of 260 by 260
-        self.fc1 = nn.Sequential(
-            nn.Conv2d(1, d, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(d),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(d, d, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(d),
-            nn.ReLU(inplace=True),
-            nn.Linear(65 * 65, 512)
-        )
-        self.fc21 = nn.Linear(512, 20)
-        self.fc22 = nn.Linear(512, 20)
-        self.fc3 = nn.Linear(20, 512)
-        self.fc4 = nn.Sequential(
-            nn.Linear(512, 65 * 65)
-        )
+        self.latent_dim = latent_dim
 
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
-        self.kl_coef = kl_coef
-        self.bce = 0
-        self.kl = 0
+        self.loss = 0
+        self.recons_loss = 0
+        self.kld_loss = 0
+        self.kld_weight = 0.005
 
-    def encode(self, x):
-        h1 = self.relu(self.fc1(x))
-        return self.fc21(h1), self.fc22(h1)
+        modules = []
+        if hidden_dims is None:
+            hidden_dims = [32, 64, 128, 256, 512]
 
-    def reparameterize(self, mu, logvar):
-        if self.training:
-            std = logvar.mul(0.5).exp_()
-            eps = std.new(std.size()).normal_()
-            return eps.mul(std).add_(mu)
-        else:
-            return mu
+        # Build Encoder
+        for h_dim in hidden_dims:
+            modules.append(
+                nn.Sequential(
+                    nn.Conv2d(in_channels, out_channels=h_dim,
+                              kernel_size=3, stride=2, padding=1),
+                    nn.BatchNorm2d(h_dim),
+                    nn.LeakyReLU())
+            )
+            in_channels = h_dim
+        modules.append(nn.AdaptiveAvgPool2d((1, 1)))
+
+        self.encoder = nn.Sequential(*modules)
+        self.fc_mu = nn.Linear(hidden_dims[-1], latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1], latent_dim)
+
+        # Build Decoder
+        modules = []
+
+        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1])
+
+        hidden_dims = [8, 32, 64, 128, 256]
+
+        for i in range(len(hidden_dims) - 1):
+            modules.append(
+                nn.Sequential(
+                    nn.ConvTranspose2d(hidden_dims[i],
+                                       hidden_dims[i + 1],
+                                       kernel_size=3,
+                                       stride=2,
+                                       padding=1,
+                                       output_padding=1),
+                    nn.BatchNorm2d(hidden_dims[i + 1]),
+                    nn.LeakyReLU())
+            )
+
+        self.decoder = nn.Sequential(*modules)
+
+        self.final_layer = nn.Sequential(
+            nn.ConvTranspose2d(hidden_dims[-1],
+                               hidden_dims[-1],
+                               kernel_size=3,
+                               stride=2,
+                               padding=1,
+                               output_padding=1),
+            nn.BatchNorm2d(hidden_dims[-1]),
+            nn.LeakyReLU(),
+            nn.Conv2d(hidden_dims[-1], out_channels=1,
+                      kernel_size=3, padding=1),
+            nn.Tanh())
+
+    def encode(self, input):
+        """
+        Encodes the input by passing through the encoder network
+        and returns the latent codes.
+        :param input: (Tensor) Input tensor to encoder [N x C x H x W]
+        :return: (Tensor) List of latent codes
+        """
+        result = self.encoder(input)
+        result = result.view(result.size(0), -1)
+
+        # Split the result into mu and var components
+        # of the latent Gaussian distribution
+        mu = self.fc_mu(result)
+        log_var = self.fc_var(result)
+
+        return [mu, log_var]
 
     def decode(self, z):
-        h3 = self.relu(self.fc3(z))
-        h4 = self.fc4(h3)
-        hout = torch.nn.functional.upsample_bilinear(
-            h4.view(-1, 1, 65, 65), size=260 * 260
-        )
-        return self.tanh(hout)
+        """
+        Maps the given latent codes
+        onto the image space.
+        :param z: (Tensor) [B x D]
+        :return: (Tensor) [B x C x H x W]
+        """
+        result = self.decoder_input(z)
+        result = result.view(-1, 8, 8, 8)
+        result = self.decoder(result)
+        result = self.final_layer(result)
+        result = torch.nn.functional.upsample_bilinear(result, size=(260, 260))
+        return result
 
-    def forward(self, x):
-        mu, logvar = self.encode(x)
-        z = self.reparameterize(mu, logvar)
-        return self.decode(z), mu, logvar
+    def reparameterize(self, mu, logvar):
+        """
+        Reparameterization trick to sample from N(mu, var) from
+        N(0,1).
+        :param mu: (Tensor) Mean of the latent Gaussian [B x D]
+        :param logvar: (Tensor) Standard deviation of the latent Gaussian [B x D]
+        :return: (Tensor) [B x D]
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return eps * std + mu
 
-    def sample(self, size):
-        sample = torch.randn(size, 20)
-        if self.cuda():
-            sample = sample.cuda()
-        sample = self.decode(sample).cpu()
-        return sample
+    def forward(self, input, **kwargs):
+        mu, log_var = self.encode(input)
+        z = self.reparameterize(mu, log_var)
+        return self.decode(z), input, mu, log_var
 
-    def loss_function(self, x, recon_x, mu, logvar):
-        self.bce = F.binary_cross_entropy(recon_x, x.view(-1, 512),
-                                          size_average=False)
-        batch_size = x.size(0)
+    def loss_function(self, input, recons, _, mu, log_var, **kwargs):
+        """
+        Computes the VAE loss function.
+        KL(N(\mu, \sigma), N(0, 1)) = \log \frac{1}{\sigma} + \frac{\sigma^2 + \mu^2}{2} - \frac{1}{2}
+        :param args:
+        :param kwargs:
+        :return:
+        """
 
-        # see Appendix B from VAE paper:
-        # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
-        # https://arxiv.org/abs/1312.6114
-        # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-        self.kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        self.recons_loss = F.mse_loss(recons, input)
 
-        return self.bce + self.kl_coef * self.kl
+        self.kld_loss = torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1),
+            dim=0)
+
+        self.loss = self.recons_loss + self.kld_weight * self.kld_loss
+        return self.loss
 
     def latest_losses(self):
-        return {'bce': self.bce, 'kl': self.kl}
+        return {'loss': self.loss, 'Reconstruction_Loss': self.recons_loss,
+                'KLD': -self.kld_loss}
+
+    def sample(self, num_samples: int, current_device: int, **kwargs):
+        """
+        Samples from the latent space and return the corresponding
+        image space map.
+        :param num_samples: (Int) Number of samples
+        :param current_device: (Int) Device to run the model
+        :return: (Tensor)
+        """
+        z = torch.randn(num_samples,
+                        self.latent_dim)
+
+        z = z.to(current_device)
+
+        samples = self.decode(z)
+        return samples
+
+    def generate(self, x, **kwargs):
+        """
+        Given an input image x, returns the reconstructed image
+        :param x: (Tensor) [B x C x H x W]
+        :return: (Tensor) [B x C x H x W]
+        """
+
+        return self.forward(x)[0]
 
 
 class ResBlock(nn.Module):
