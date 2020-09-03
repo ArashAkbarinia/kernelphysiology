@@ -17,14 +17,26 @@ class TouchDataset(Dataset):
         self.all_imgs = np.loadtxt(all_txt, delimiter=',', dtype=int)
         self.inputs = []
         self.targets = []
+
+        specific_test_inds = type(test_inds) == str
+        if specific_test_inds:
+            test_inds = np.loadtxt(test_inds, delimiter=',', dtype=str)
         for img_info in self.all_imgs:
             img_name = str(img_info[0]) + '.png'
-            if img_info[1] in test_inds and image_set == 'test':
-                self.inputs.append(img_name)
-                self.targets.append(img_name)
-            elif img_info[1] not in test_inds and image_set == 'train':
-                self.inputs.append(img_name)
-                self.targets.append(img_name)
+            if specific_test_inds:
+                if img_name in test_inds and image_set == 'test':
+                    self.inputs.append(img_name)
+                    self.targets.append(img_name)
+                elif img_name not in test_inds and image_set == 'train':
+                    self.inputs.append(img_name)
+                    self.targets.append(img_name)
+            else:
+                if img_info[1] in test_inds and image_set == 'test':
+                    self.inputs.append(img_name)
+                    self.targets.append(img_name)
+                elif img_info[1] not in test_inds and image_set == 'train':
+                    self.inputs.append(img_name)
+                    self.targets.append(img_name)
         print('set %s has %d images' % (image_set, len(self.inputs)))
         self.transforms = transforms
         self.data_loader = pil_loader
