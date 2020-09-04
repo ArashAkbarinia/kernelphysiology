@@ -333,7 +333,7 @@ def predict_net(model, test_loader, save_path, args):
             for img_ind in range(out_ready.shape[0]):
                 cur_out_ready = out_ready[img_ind]
                 current_diff = abs(cur_out_ready - target_ready[img_ind])
-                all_ecus.append(current_diff.mean())
+                all_ecus.append(current_diff.mean().cpu().numpy())
                 cur_out_ready = cur_out_ready.cpu().numpy().squeeze()
                 cur_out_ready *= 255
                 cur_out_ready = np.uint8(cur_out_ready)
