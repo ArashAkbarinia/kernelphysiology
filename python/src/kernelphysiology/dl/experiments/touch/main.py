@@ -316,6 +316,7 @@ def predict_net(model, test_loader, save_path, args):
     loss_dict = model.latest_losses()
     losses = {k + '_test': 0 for k, v in loss_dict.items()}
     i, data = None, None
+    all_ecus = []
     with torch.no_grad():
         j = 0
         for i, loader_data in enumerate(test_loader):
@@ -327,14 +328,19 @@ def predict_net(model, test_loader, save_path, args):
             outputs = model(data)
             out_ready = ex_util.inv_normalise_tensor(
                 outputs[0], args.mean, args.std).detach()
+            target_ready = ex_util.inv_normalise_tensor(
+                target, args.mean, args.std).detach()
             for img_ind in range(out_ready.shape[0]):
                 cur_out_ready = out_ready[img_ind]
+                current_diff = abs(cur_out_ready - target_ready[img_ind])
+                all_ecus.append(current_diff.mean())
                 cur_out_ready = cur_out_ready.cpu().numpy().squeeze()
                 cur_out_ready *= 255
                 cur_out_ready = np.uint8(cur_out_ready)
                 fname = os.path.join(save_path, 'pred_%.5d.png' % j)
                 io.imsave(fname, cur_out_ready)
                 j += 1
+    print('Average Euc distance: %.3f' % np.mean(all_ecus))
 
 
 if __name__ == "__main__":
