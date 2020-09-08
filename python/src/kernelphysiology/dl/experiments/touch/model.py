@@ -7,11 +7,13 @@ from torch.nn import functional as F
 import torch.utils.data
 
 from nearest_embed import NearestEmbed
+from gabor_layers import GaborLayer
 
 
 class VAE(nn.Module):
 
-    def __init__(self, latent_dim, in_channels=1, hidden_dims=None, **kwargs) -> None:
+    def __init__(self, latent_dim, in_channels=1, hidden_dims=None,
+                 **kwargs) -> None:
         super(VAE, self).__init__()
 
         self.latent_dim = latent_dim
@@ -201,7 +203,7 @@ class ResBlock(nn.Module):
 
 class VQ_CVAE(nn.Module):
     def __init__(self, d, k=10, kl=None, bn=True, vq_coef=1, commit_coef=0.5,
-                 num_channels=3, **kwargs):
+                 num_channels=3, gabor_layer=False, **kwargs):
         super(VQ_CVAE, self).__init__()
 
         self.d = d
@@ -211,8 +213,14 @@ class VQ_CVAE(nn.Module):
         self.kl = kl
         self.emb = NearestEmbed(k, kl)
 
+        if gabor_layer:
+            first_layer = GaborLayer(num_channels, d, kernel_size=5, stride=2,
+                                     padding=1, kernels=1)
+        else:
+            first_layer = nn.Conv2d(num_channels, d, kernel_size=4, stride=2,
+                                    padding=1)
         self.encoder = nn.Sequential(
-            nn.Conv2d(num_channels, d, kernel_size=4, stride=2, padding=1),
+            first_layer,
             nn.BatchNorm2d(d),
             nn.ReLU(inplace=True),
             nn.Conv2d(d, d, kernel_size=4, stride=2, padding=1),
@@ -243,7 +251,8 @@ class VQ_CVAE(nn.Module):
             if isinstance(l, nn.Linear) or isinstance(l, nn.Conv2d):
                 l.weight.detach().normal_(0, 0.02)
                 torch.fmod(l.weight, 0.04)
-                nn.init.constant_(l.bias, 0)
+                if l.bias is not None:
+                    nn.init.constant_(l.bias, 0)
 
         self.encoder[-1].weight.detach().fill_(1 / 40)
 

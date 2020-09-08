@@ -75,6 +75,8 @@ def main(args):
                               help='commitment coefficient in loss')
     model_parser.add_argument('--kl_coef', type=float, default=None,
                               help='kl-divergence coefficient in loss')
+    model_parser.add_argument('--gabor_layer', action='store_true',
+                              default=False, help='using gabor like layer')
     parser.add_argument('--resume', type=str, default=None,
                         help='The path to resume.')
 
@@ -137,8 +139,10 @@ def main(args):
         cudnn.benchmark = True
         torch.cuda.manual_seed(args.seed)
 
-    model = models[args.dataset][args.model](hidden, k=k, kl=args.kl,
-                                             num_channels=num_channels)
+    model = models[args.dataset][args.model](
+        hidden, k=k, kl=args.kl, num_channels=num_channels,
+        gabor_layer=args.gabor_layer
+    )
     if args.resume is not None:
         weights = torch.load(args.resume, map_location='cpu')
         model.load_state_dict(weights)
