@@ -17,12 +17,14 @@ class TouchDataset(Dataset):
         self.all_imgs = np.loadtxt(all_txt, delimiter=',', dtype=int)
         self.inputs = []
         self.targets = []
+        self.targets_participant = []
 
         specific_test_inds = type(test_inds) == str
         if specific_test_inds:
             test_inds = np.loadtxt(test_inds, delimiter=',', dtype=str)
         for img_info in self.all_imgs:
             img_name = str(img_info[0]) + '.png'
+            self.targets_participant.append(img_info[1])
             if specific_test_inds:
                 if img_name in test_inds and image_set == 'test':
                     self.inputs.append(img_name)
@@ -55,7 +57,9 @@ class TouchDataset(Dataset):
         # if gt.max() > 0:
         #     gt /= gt.max()
 
-        return img, gt
+        participant_number = self.targets_participant[index]
+
+        return img, gt, participant_number
 
     def __len__(self):
         return len(self.inputs)

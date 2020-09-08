@@ -46,7 +46,7 @@ def main(args):
     parser.add_argument(
         '--test_file', type=str, help='path to a file containing test inds'
     )
-    parser.add_argument('--target-size', default=100, type=int)
+    parser.add_argument('--target-size', default=260, type=int)
     parser.add_argument(
         '-j', '--workers', default=4, type=int,
         help='number of data loading workers (default: 4)'
@@ -224,15 +224,17 @@ def train(epoch, model, train_loader, optimizer, cuda, log_interval, save_path,
     for batch_idx, loader_data in enumerate(train_loader):
         data = loader_data[0]
         target = loader_data[1]
+        participant = loader_data[2]
 
         max_len = len(train_loader)
         target = target.cuda()
+        participant = participant.cuda()
 
         data = data.cuda()
         optimizer.zero_grad()
         outputs = model(data)
 
-        loss = model.loss_function(target, *outputs)
+        loss = model.loss_function(target, participant, *outputs)
         loss.backward()
         optimizer.step()
         latest_losses = model.latest_losses()
@@ -288,11 +290,13 @@ def test_net(epoch, model, test_loader, cuda, save_path, args, writer):
         for i, loader_data in enumerate(test_loader):
             data = loader_data[0]
             target = loader_data[1]
+            participant = loader_data[2]
             target = target.cuda()
             data = data.cuda()
+            participant = participant.cuda()
 
             outputs = model(data)
-            model.loss_function(target, *outputs)
+            model.loss_function(target, participant, *outputs)
             latest_losses = model.latest_losses()
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
