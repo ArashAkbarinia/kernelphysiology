@@ -21,15 +21,16 @@ class TouchDataset(Dataset):
 
         specific_test_inds = type(test_inds) == str
         if specific_test_inds:
-            test_inds = np.loadtxt(test_inds, delimiter=',', dtype=str)
+            test_inds = np.loadtxt(test_inds, delimiter=',', dtype=int)
+            test_inds = np.array(test_inds)[:, 0]
         for img_info in self.all_imgs:
             img_name = str(img_info[0]) + '.png'
             self.targets_participant.append(img_info[1])
             if specific_test_inds:
-                if img_name in test_inds and image_set == 'test':
+                if img_info[0] in test_inds and image_set == 'test':
                     self.inputs.append(img_name)
                     self.targets.append(img_name)
-                elif img_name not in test_inds and image_set == 'train':
+                elif img_info[0] not in test_inds and image_set == 'train':
                     self.inputs.append(img_name)
                     self.targets.append(img_name)
             else:
