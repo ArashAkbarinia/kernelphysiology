@@ -23,6 +23,18 @@ def rgb2all(img, freq_type):
     img = img.copy()
     img = normalisations.rgb2double(img)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    return gry2all(img, freq_type)
+
+
+def gry2all(img, freq_type):
+    """Converts applies frequency decomposition to a grey image.
+
+    :param img: input grey-scale image.
+    :param freq_type: type of a wavelength wavelet or fourier decomposition.
+    :return: decomposed image with a size according to the decomposition type.
+    """
+    img = img.copy()
+    img = normalisations.rgb2double(img)
     if freq_type in SUPPORTED_WAVELETS:
         ll, (lh, hl, hh) = pywt.dwt2(img, freq_type)
         # NOTE: we convert them to a range of 0 to 1
@@ -33,5 +45,5 @@ def rgb2all(img, freq_type):
         img[:, :, 3] = (hh + 1)
         img /= 2
     else:
-        sys.exit('frequency_domain.rgb2all does not support %s.' % freq_type)
+        sys.exit('frequency_domain.gry2all does not support %s.' % freq_type)
     return img
