@@ -124,6 +124,7 @@ class Normalize(object):
 
     def __call__(self, image, target):
         image = F.normalize(image, mean=self.mean, std=self.std)
+        target = F.normalize(target, mean=self.mean, std=self.std)
         return image, target
 
 
