@@ -93,11 +93,18 @@ def main(args):
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
-    vae_model = model_single if args.model == 'single' else model_multi
-    model = vae_model.DecomposeNet(
-        hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
-        outs_dict=args.outs_dict
-    )
+    if args.pred is not None:
+        checkpoint = torch.load(args.pred, map_location='cpu')
+        # FIXME: this should be saved in the checkpoint
+        vae_model = model_single if args.model == 'single' else model_multi
+        model = vae_model.DecomposeNet(**checkpoint['arch'])
+        model.load_state_dict(checkpoint['state_dict'])
+    else:
+        vae_model = model_single if args.model == 'single' else model_multi
+        model = vae_model.DecomposeNet(
+            hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
+            outs_dict=args.outs_dict
+        )
     model = model.cuda()
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -171,6 +178,10 @@ def main(args):
     test_loader = torch.utils.data.DataLoader(
         test_dataset, shuffle=False, **loader_kwargs
     )
+
+    if args.pred is not None:
+        predict(model, test_loader, save_path, args)
+        return
 
     # starting to train
     console = logging.StreamHandler()
@@ -297,6 +308,40 @@ def test_net(epoch, model, test_loader, save_path, args):
                 )
             if bidx * len(data) > args.test_samples:
                 break
+
+    for key in losses:
+        losses[key] /= (len(test_loader.dataset) / test_loader.batch_size)
+    loss_string = ' '.join(
+        ['{}: {:.6f}'.format(k, v) for k, v in losses.items()]
+    )
+    logging.info('====> Test set losses: {}'.format(loss_string))
+    return losses
+
+
+def predict(model, test_loader, save_path, args):
+    model.eval()
+    loss_dict = model.latest_losses()
+    losses = {k + '_test': 0 for k, v in loss_dict.items()}
+    with torch.no_grad():
+        img_ind = 0
+        for bidx, loader_data in enumerate(test_loader):
+            data = loader_data[0]
+            data = data.cuda()
+            target = loader_data[1]
+            for key in target.keys():
+                target[key] = target[key].cuda()
+
+            outputs = model(data)
+            model.loss_function(target, *outputs)
+            latest_losses = model.latest_losses()
+            for key in latest_losses:
+                losses[key + '_test'] += float(latest_losses[key])
+
+            vae_util.individual_save_reconstructions(
+                args.outs_dict, target, outputs[0], args.mean, args.std,
+                img_ind, save_path, 'reconstruction_test%.5d' % bidx
+            )
+            img_ind += len(data)
 
     for key in losses:
         losses[key] /= (len(test_loader.dataset) / test_loader.batch_size)

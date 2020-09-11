@@ -95,6 +95,10 @@ def parse_arguments(args):
         '--seed', type=int, default=1,
         help='random seed (default: 1)'
     )
+    pipe_parser.add_argument(
+        '--pred', type=str, default=None,
+        help='Only prediction'
+    )
 
     logging_parser = parser.add_argument_group('Logging Parameters')
     logging_parser.add_argument(

@@ -106,6 +106,27 @@ def tensor_tosave(tensor, inv_func=None):
     return imgs
 
 
+def individual_save_reconstructions(out_dicts, ground_truths, model_outs, mean,
+                                    std, img_ind, save_path, name):
+    for key in out_dicts.keys():
+        current_out = model_outs[key]
+        current_gt = ground_truths[key]
+
+        original = inv_normalise_tensor(current_gt, mean, std).detach()
+        original = tensor_tosave(original, out_dicts[key]['vis_fun'])
+        reconstructed = inv_normalise_tensor(current_out, mean, std).detach()
+        reconstructed = tensor_tosave(reconstructed, out_dicts[key]['vis_fun'])
+
+        for i in range(len(original)):
+            both_together = np.concatenate(
+                [original[i], reconstructed[i]], axis=0
+            )
+            io.imsave(
+                '%s/%s_%.3d_%s.png' % (save_path, name, i + img_ind, key),
+                both_together
+            )
+
+
 def grid_save_reconstructions(out_dicts, ground_truths, model_outs, mean,
                               std, epoch, save_path, name):
     for key in out_dicts.keys():
