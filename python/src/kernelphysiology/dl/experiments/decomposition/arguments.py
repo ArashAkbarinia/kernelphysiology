@@ -67,7 +67,8 @@ def parse_arguments(args):
         help='the path to weights to be fine-tuned (default: None)'
     )
     pipe_parser.add_argument(
-        '--dataset', default='imagenet', choices=('imagenet', 'celeba'),
+        '--dataset', default='imagenet',
+        choices=('imagenet', 'celeba', 'touch'),
         help='dataset for train/validation'
     )
     pipe_parser.add_argument(

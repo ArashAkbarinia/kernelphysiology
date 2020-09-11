@@ -25,10 +25,12 @@ from kernelphysiology.dl.pytorch.utils import cv2_transforms
 datasets_classes = {
     'imagenet': data_loaders.ImageFolder,
     'celeba': data_loaders.CelebA,
+    'touch': data_loaders.TouchRelief,
 }
 dataset_target_size = {
     'imagenet': 256,
     'celeba': 64,
+    'touch': 256,
 }
 
 
@@ -36,8 +38,12 @@ def main(args):
     args = arguments.parse_arguments(args)
 
     # determining the number of input channels
-    if args.in_space == 'grey':
+    in_size = 1
+    if args.in_space == 'gry':
         args.in_chns = 1
+    elif args.in_space == 'db1':
+        args.in_chns = 4
+        in_size = 0.5
     else:
         args.in_chns = 3
 
@@ -46,14 +52,14 @@ def main(args):
     args.outs_dict = dict()
     for out_type in args.outputs:
         if out_type == 'input':
-            out_shape = [1, 1, args.in_chns]
+            out_shape = [1 / in_size, 1 / in_size, args.in_chns]
         elif out_type == 'gry':
-            out_shape = [1, 1, 1]
+            out_shape = [1 / in_size, 1 / in_size, 1]
         elif out_type == 'db1':
             # TODO: just assuming numbers of square 2
-            out_shape = [0.5, 0.5, 4]
+            out_shape = [0.5 / in_size, 0.5 / in_size, 4]
         else:
-            out_shape = [1, 1, args.in_chns]
+            out_shape = [1, 1, 3]
         args.outs_dict[out_type] = {'shape': out_shape}
 
     args.mean = 0.5
@@ -69,14 +75,15 @@ def main(args):
         cv2_transforms.Normalize(args.mean, args.std)
     ]
 
-    pre_dataset_transforms = {
-        'imagenet': transforms.Compose(pre_shared_transforms),
-        'celeba': transforms.Compose(pre_shared_transforms),
-    }
-    post_dataset_transforms = {
-        'imagenet': transforms.Compose(post_shared_transforms),
-        'celeba': transforms.Compose(post_shared_transforms),
-    }
+    pre_dataset_transforms = dict()
+    post_dataset_transforms = dict()
+    for key in datasets_classes.keys():
+        pre_dataset_transforms[key] = transforms.Compose(
+            pre_shared_transforms
+        )
+        post_dataset_transforms[key] = transforms.Compose(
+            post_shared_transforms
+        )
 
     save_path = vae_util.setup_logging_from_args(args)
     writer = SummaryWriter(save_path)
@@ -111,7 +118,7 @@ def main(args):
     intransform_funs = []
     if args.in_space.lower() != 'rgb':
         intransform_funs.append(
-            cv2_preprocessing.ColourSpaceTransformation(args.in_space.lower())
+            cv2_preprocessing.DecompositionTransformation(args.in_space.lower())
         )
     intransform = transforms.Compose(intransform_funs)
 
@@ -139,7 +146,7 @@ def main(args):
         'pre_transform': pre_dataset_transforms[args.dataset],
         'post_transform': post_dataset_transforms[args.dataset]
     }
-    if args.dataset == 'celeba':
+    if args.dataset in ['celeba', 'touch']:
         train_dataset = datasets_classes[args.dataset](
             root=args.data_dir, split='train', **transforms_kwargs
         )
@@ -245,7 +252,7 @@ def train(epoch, model, train_loader, optimizer, save_path, args):
             start_time = time.time()
             for key in latest_losses:
                 losses[key + '_train'] = 0
-        if bidx in list(np.int(np.linspace(0, num_batches - 1, 4))):
+        if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
             vae_util.grid_save_reconstructions(
                 args.outs_dict, target, outputs[0], args.mean, args.std, epoch,
                 save_path, 'reconstruction_train%.5d' % bidx
@@ -283,7 +290,7 @@ def test_net(epoch, model, test_loader, save_path, args):
             latest_losses = model.latest_losses()
             for key in latest_losses:
                 losses[key + '_test'] += float(latest_losses[key])
-            if bidx in list(np.int(np.linspace(0, num_batches - 1, 4))):
+            if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
                 vae_util.grid_save_reconstructions(
                     args.outs_dict, target, outputs[0], args.mean, args.std,
                     epoch, save_path, 'reconstruction_test%.5d' % bidx

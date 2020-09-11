@@ -152,7 +152,7 @@ class DecomposeNet(AbstractAutoEncoder):
                         x = x_a
                     else:
                         x = x_b
-            out_imgs[key] = torch.tanh(torch.nn.functional.upsample_bilinear(
+            out_imgs[key] = torch.tanh(nn.functional.interpolate(
                 val(x), size=target_size
             ))
         return out_imgs

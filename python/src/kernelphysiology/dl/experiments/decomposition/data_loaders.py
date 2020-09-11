@@ -131,3 +131,47 @@ class CelebA(tdatasets.CelebA):
             target = None
 
         return imgin, imgout, path
+
+
+class TouchRelief(tdatasets.VisionDataset):
+    def __init__(self, split, intransform=None, outtransform=None,
+                 pre_transform=None, post_transform=None, **kwargs):
+        super(TouchRelief, self).__init__(**kwargs)
+        all_txt = '%s/imgs_stims.txt' % self.root
+        self.all_imgs = np.loadtxt(all_txt, delimiter=',', dtype=str)
+        self.inputs = self.all_imgs
+        self.targets = self.all_imgs
+        self.img_dir = '%s/img_stims/' % self.root
+        self.gt_dir = '%s/gt_%s_stims/' % (self.root, split)
+
+        print('set %s has %d images' % (split, len(self.inputs)))
+        self.loader = tdatasets.folder.pil_loader
+        self.intransform = intransform
+        self.outtransform = outtransform
+        self.pre_transform = pre_transform
+        self.post_transform = post_transform
+
+    def __getitem__(self, index):
+        img_path = os.path.join(self.img_dir, self.inputs[index])
+        gt_path = os.path.join(self.gt_dir, self.targets[index])
+
+        imgin = self.loader(img_path)
+        imgin = np.asarray(imgin).copy()
+        imgout = self.loader(gt_path)
+        imgout = np.asarray(imgout).copy()
+
+        if self.pre_transform is not None:
+            imgin, imgout = self.pre_transform([imgin, imgout])
+
+        if self.intransform is not None:
+            imgin = self.intransform(imgin)
+        if self.outtransform is not None:
+            imgout = self.outtransform([imgout, imgin.copy()])
+
+        if self.post_transform is not None:
+            imgin, imgout = self.post_transform([imgin, imgout])
+
+        return imgin, imgout, gt_path
+
+    def __len__(self):
+        return len(self.inputs)
