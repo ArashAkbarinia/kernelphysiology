@@ -9,7 +9,8 @@ def parse_arguments(args):
     parser = argparse.ArgumentParser(description='Image Decomposition')
     model_parser = parser.add_argument_group('Model Parameters')
     model_parser.add_argument(
-        '--model', type=str, default='single', choices=['sginle', 'multi'],
+        '--model', type=str, default='single',
+        choices=['sginle', 'multi', 'deeplabv3'],
         help='type of model (default: single)'
     )
     model_parser.add_argument(

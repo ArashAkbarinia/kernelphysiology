@@ -17,6 +17,7 @@ from torchvision import transforms
 from kernelphysiology.dl.experiments.decomposition import util as vae_util
 from kernelphysiology.dl.experiments.decomposition import model_single
 from kernelphysiology.dl.experiments.decomposition import model_multi
+from kernelphysiology.dl.experiments.decomposition import model_segmentation
 from kernelphysiology.dl.experiments.decomposition import arguments
 from kernelphysiology.dl.experiments.decomposition import data_loaders
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
@@ -95,16 +96,36 @@ def main(args):
 
     if args.pred is not None:
         checkpoint = torch.load(args.pred, map_location='cpu')
-        # FIXME: this should be saved in the checkpoint
-        vae_model = model_single if args.model == 'single' else model_multi
-        model = vae_model.DecomposeNet(**checkpoint['arch'])
+        vae_model = (
+            model_single if checkpoint['model'] == 'single' else model_multi
+        )
+        model = vae_model.DecomposeNet(**checkpoint['arch_params'])
         model.load_state_dict(checkpoint['state_dict'])
     else:
-        vae_model = model_single if args.model == 'single' else model_multi
-        model = vae_model.DecomposeNet(
-            hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
-            outs_dict=args.outs_dict
-        )
+        # FIXME: add to prediction, right now it's hard-coded for resnet18
+        if args.model == 'deeplabv3':
+            backbone = {
+                'arch': 'resnet_bottleneck_custom',
+                'customs': {
+                    'pooling_type': 'max',
+                    'in_chns': args.in_chns,
+                    'blocks': [2, 2, 2, 2], 'num_kernels': 64,
+                    'num_classes': 1000
+                }
+            }
+            # FIXME out_shape is defined far above, this is just a hack
+            arch_params = {'backbone': backbone, 'num_classes': out_shape[-1]}
+            model = model_segmentation.deeplabv3_resnet(
+                backbone, num_classes=out_shape[-1], outs_dict=args.outs_dict
+            )
+        else:
+            # FIXME: archs_param should be added to resume and fine_tune
+            arch_params = {'k': args.k, 'd': args.d, 'hidden': args.hidden}
+            vae_model = model_single if args.model == 'single' else model_multi
+            model = vae_model.DecomposeNet(
+                hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
+                outs_dict=args.outs_dict
+            )
     model = model.cuda()
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -211,8 +232,9 @@ def main(args):
                 'state_dict': model.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 'scheduler': scheduler.state_dict(),
-                'arch': {
-                    'k': args.k, 'd': args.d, 'hidden': args.hidden,
+                'arch': args.model,
+                'arch_params': {
+                    **arch_params,
                     'in_chns': args.in_chns, 'outs_dict': args.outs_dict
                 }
             },
