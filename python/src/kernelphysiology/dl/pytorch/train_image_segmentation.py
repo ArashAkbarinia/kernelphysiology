@@ -8,6 +8,7 @@ import sys
 import time
 import numpy as np
 import json
+from collections import OrderedDict
 
 import torch
 from torch.utils import data as torch_data
@@ -138,7 +139,11 @@ def main(args):
         if args.pretrained:
             print('Loading %s' % args.pretrained)
             checkpoint = torch.load(args.pretrained, map_location='cpu')
-            model.load_state_dict(checkpoint['state_dict'], strict=False)
+            pretrained_weights = OrderedDict(
+                (k.replace('segmentation_model.', ''), v) for k, v in
+                checkpoint['state_dict'].items()
+            )
+            model.load_state_dict(pretrained_weights, strict=False)
     else:
         model = seg_models.__dict__[args.network_name](
             num_classes=num_classes,
