@@ -4,6 +4,7 @@ Utility function for the segmentation task.
 
 from __future__ import print_function
 
+import numpy as np
 from collections import defaultdict, deque
 import datetime
 import time
