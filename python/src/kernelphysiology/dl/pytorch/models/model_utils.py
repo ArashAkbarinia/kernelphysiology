@@ -145,6 +145,7 @@ class NewClassificationModel(nn.Module):
 
 def which_network_classification(network_name, num_classes, **kwargs):
     if os.path.isfile(network_name):
+        print('Loading %s' % network_name)
         checkpoint = torch.load(network_name, map_location='cpu')
         customs = None
         if 'customs' in checkpoint:
@@ -233,7 +234,9 @@ def which_network(network_name, task_type, **kwargs):
 def create_custom_resnet(network_name, customs=None):
     # TODO: make this nicer!!!!
     cus_res = ['resnet_basic_custom_', 'resnet_bottleneck_custom_']
-    if cus_res[0] not in network_name and cus_res[1] not in network_name:
+    if os.path.isfile(network_name) or (
+            cus_res[0] not in network_name and cus_res[1] not in network_name
+    ):
         return network_name, customs
     if customs is None:
         customs = dict()
