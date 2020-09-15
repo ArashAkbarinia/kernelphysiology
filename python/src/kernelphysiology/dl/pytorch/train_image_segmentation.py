@@ -139,6 +139,13 @@ def main(args):
         if args.pretrained:
             print('Loading %s' % args.pretrained)
             checkpoint = torch.load(args.pretrained, map_location='cpu')
+            num_all_keys = len(checkpoint['state_dict'].keys())
+            remove_keys = []
+            for key_ind, key in enumerate(checkpoint['state_dict'].keys()):
+                if key_ind > (num_all_keys - 3):
+                    remove_keys.append(key)
+            for key in remove_keys:
+                del checkpoint['state_dict'][key]
             pretrained_weights = OrderedDict(
                 (k.replace('segmentation_model.', ''), v) for k, v in
                 checkpoint['state_dict'].items()
