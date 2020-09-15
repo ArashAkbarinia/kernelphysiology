@@ -130,6 +130,16 @@ def main(args):
         model = segmentation_models.unet.model.Unet(
             encoder_weights=args.backbone, classes=num_classes
         )
+        if args.pretrained:
+            print('Loading %s' % args.pretrained)
+            checkpoint = torch.load(args.pretrained, map_location='cpu')
+            remove_keys = []
+            for key_ind, key in enumerate(checkpoint['state_dict'].keys()):
+                if 'segmentation_head' in key:
+                    remove_keys.append(key)
+            for key in remove_keys:
+                del checkpoint['state_dict'][key]
+            model.load_state_dict(checkpoint['state_dict'], strict=False)
     elif args.custom_arch:
         print('Custom model!')
         backbone_name, customs = model_utils.create_custom_resnet(
