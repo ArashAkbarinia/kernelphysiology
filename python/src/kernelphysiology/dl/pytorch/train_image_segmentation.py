@@ -134,6 +134,11 @@ def main(args):
         model = custom_models.__dict__[args.network_name](
             args.backbone, num_classes=num_classes, aux_loss=args.aux_loss
         )
+
+        if args.pretrained:
+            print('Loading %s' % args.pretrained)
+            checkpoint = torch.load(args.pretrained, map_location='cpu')
+            model.load_state_dict(checkpoint['state_dict'], strict=False)
     else:
         model = seg_models.__dict__[args.network_name](
             num_classes=num_classes,

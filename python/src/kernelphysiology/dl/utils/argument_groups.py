@@ -177,8 +177,8 @@ def get_network_group(parser):
     )
     network_group.add_argument(
         '--pretrained',
-        dest='pretrained',
-        action='store_true',
+        type=str,
+        default=None,
         help='Use pre-trained model'
     )
     network_group.add_argument(
