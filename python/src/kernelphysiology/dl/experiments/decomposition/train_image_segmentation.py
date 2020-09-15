@@ -128,7 +128,7 @@ def main(args):
 
     if args.network_name == 'unet':
         model = segmentation_models.unet.model.Unet(
-            encoder_weights=None, classes=num_classes
+            encoder_weights=args.backbone, classes=num_classes
         )
     elif args.custom_arch:
         print('Custom model!')
@@ -188,9 +188,7 @@ def main(args):
         master_model = model.module
 
     if args.network_name == 'unet':
-        params_to_optimize = model.parameters(
-            encoder_weights=args.backbone
-        )
+        params_to_optimize = model.parameters()
     else:
         params_to_optimize = [
             {'params': [p for p in master_model.backbone.parameters() if
