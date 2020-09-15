@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import numpy as np
+import json
 
 import torch
 from torch.utils import data as torch_data
@@ -94,6 +95,11 @@ def main(args):
     dataset, num_classes = utils.get_dataset(
         args.dataset, args.data_dir, 'train', **data_reading_kwargs
     )
+
+    json_file_name = os.path.join(args.out_dir, 'args.json')
+    with open(json_file_name, 'w') as fp:
+        json.dump(dict(args._get_kwargs()), fp, sort_keys=True, indent=4)
+
     dataset_test, _ = utils.get_dataset(
         args.dataset, args.data_dir, 'val', **data_reading_kwargs
     )

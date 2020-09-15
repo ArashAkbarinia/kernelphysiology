@@ -36,7 +36,7 @@ def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
     aux_classifier = None
     if aux:
         layer3 = list(backbone.layer3)[-1]
-        inplanes = list(layer3.children())[-1].num_features
+        inplanes = list(layer3.children())[-2].num_features
         aux_classifier = FCNHead(inplanes, num_classes)
 
     model_map = {
@@ -44,7 +44,7 @@ def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
         'fcn': (FCNHead, FCN),
     }
     layer4 = list(backbone.layer4)[-1]
-    inplanes = list(layer4.children())[-1].num_features
+    inplanes = list(layer4.children())[-2].num_features
     classifier = model_map[name][0](inplanes, num_classes)
     base_model = model_map[name][1]
 
