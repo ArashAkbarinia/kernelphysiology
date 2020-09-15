@@ -5,7 +5,7 @@ from torch.nn import functional as F
 
 class SegmentationModel(torch.nn.Module):
 
-    def __init__(self, outs_dict):
+    def __init__(self, outs_dict=None):
         super(SegmentationModel, self).__init__()
         self.mse = 0
         self.outs_dict = outs_dict
@@ -23,16 +23,18 @@ class SegmentationModel(torch.nn.Module):
 
         masks = self.segmentation_head(decoder_output)
 
-        # if self.classification_head is not None:
-        #     labels = self.classification_head(features[-1])
-        #     return masks, labels
-        #
-        # return masks
-
-        out_imgs = dict()
-        for key in self.outs_dict.keys():
-            out_imgs[key] = torch.tanh(masks)
-        return out_imgs,
+        if self.outs_dict is not None:
+            out_imgs = dict()
+            for key in self.outs_dict.keys():
+                out_imgs[key] = torch.tanh(masks)
+            return out_imgs,
+        else:
+            out_imgs = {'out': masks}
+            if self.classification_head is not None:
+                labels = self.classification_head(features[-1])
+                out_imgs['aux'] = labels
+                return masks, labels
+            return out_imgs
 
     def predict(self, x):
         """Inference method. Switch model to `eval` mode, call `.forward(x)` with `torch.no_grad()`
