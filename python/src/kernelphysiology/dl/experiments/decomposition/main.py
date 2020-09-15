@@ -122,7 +122,7 @@ def main(args):
             from segmentation_models import unet
             model = unet.model.Unet(
                 in_channels=args.in_chns, encoder_weights=None,
-                outs_dict=args.outs_dict
+                outs_dict=args.outs_dict, classes=out_shape[-1]
             )
             arch_params = {'encoder_name': 'resnet18'}
         else:
