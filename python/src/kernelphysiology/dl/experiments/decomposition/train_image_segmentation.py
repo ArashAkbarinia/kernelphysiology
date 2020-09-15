@@ -188,7 +188,9 @@ def main(args):
         master_model = model.module
 
     if args.network_name == 'unet':
-        params_to_optimize = model.parameters()
+        params_to_optimize = model.parameters(
+            encoder_weights=args.backbone
+        )
     else:
         params_to_optimize = [
             {'params': [p for p in master_model.backbone.parameters() if
