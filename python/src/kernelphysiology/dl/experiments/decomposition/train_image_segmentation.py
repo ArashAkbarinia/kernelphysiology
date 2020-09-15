@@ -187,16 +187,19 @@ def main(args):
         )
         master_model = model.module
 
-    params_to_optimize = [
-        {'params': [p for p in master_model.backbone.parameters() if
-                    p.requires_grad]},
-        {'params': [p for p in master_model.classifier.parameters() if
-                    p.requires_grad]},
-    ]
-    if args.aux_loss:
-        params = [p for p in master_model.aux_classifier.parameters() if
-                  p.requires_grad]
-        params_to_optimize.append({'params': params, 'lr': args.lr * 10})
+    if args.network_name == 'unet':
+        params_to_optimize = model.parameters()
+    else:
+        params_to_optimize = [
+            {'params': [p for p in master_model.backbone.parameters() if
+                        p.requires_grad]},
+            {'params': [p for p in master_model.classifier.parameters() if
+                        p.requires_grad]},
+        ]
+        if args.aux_loss:
+            params = [p for p in master_model.aux_classifier.parameters() if
+                      p.requires_grad]
+            params_to_optimize.append({'params': params, 'lr': args.lr * 10})
     optimizer = torch.optim.SGD(
         params_to_optimize,
         lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay
