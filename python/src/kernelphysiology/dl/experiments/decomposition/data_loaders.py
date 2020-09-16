@@ -10,9 +10,8 @@ from torchvision import datasets as tdatasets
 from kernelphysiology.utils import path_utils
 
 
-def _apply_transforms(imgin, intransform, outtransform, pre_transform,
+def _apply_transforms(imgin, imgout, intransform, outtransform, pre_transform,
                       post_transform):
-    imgout = imgin.copy()
     if pre_transform is not None:
         imgin, imgout = pre_transform([imgin, imgout])
 
@@ -40,8 +39,9 @@ class ImageFolder(tdatasets.ImageFolder):
         path, class_target = self.samples[index]
         imgin = self.loader(path)
         imgin = np.asarray(imgin).copy()
+        imgout = imgin.copy()
         imgin, imgout = _apply_transforms(
-            imgin, self.intransform, self.outtransform,
+            imgin, imgout, self.intransform, self.outtransform,
             self.pre_transform, self.post_transform
         )
 
@@ -68,8 +68,9 @@ class OneFolder(tdatasets.VisionDataset):
         path = self.samples[index]
         imgin = self.loader(path)
         imgin = np.asarray(imgin).copy()
+        imgout = imgin.copy()
         imgin, imgout = _apply_transforms(
-            imgin, self.intransform, self.outtransform,
+            imgin, imgout, self.intransform, self.outtransform,
             self.pre_transform, self.post_transform
         )
 
@@ -102,8 +103,9 @@ class CelebA(tdatasets.CelebA):
         )
         imgin = self.loader(path)
         imgin = np.asarray(imgin).copy()
+        imgout = imgin.copy()
         imgin, imgout = _apply_transforms(
-            imgin, self.intransform, self.outtransform,
+            imgin, imgout, self.intransform, self.outtransform,
             self.pre_transform, self.post_transform
         )
 
@@ -159,17 +161,10 @@ class TouchRelief(tdatasets.VisionDataset):
         imgin = np.asarray(imgin).copy()
         imgout = self.loader(gt_path)
         imgout = np.asarray(imgout).copy()
-
-        if self.pre_transform is not None:
-            imgin, imgout = self.pre_transform([imgin, imgout])
-
-        if self.intransform is not None:
-            imgin = self.intransform(imgin)
-        if self.outtransform is not None:
-            imgout = self.outtransform([imgout, imgin.copy()])
-
-        if self.post_transform is not None:
-            imgin, imgout = self.post_transform([imgin, imgout])
+        imgin, imgout = _apply_transforms(
+            imgin, imgout, self.intransform, self.outtransform,
+            self.pre_transform, self.post_transform
+        )
 
         return imgin, imgout, gt_path
 
