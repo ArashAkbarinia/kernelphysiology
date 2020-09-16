@@ -8,10 +8,10 @@ import logging
 
 import torch
 from torch import nn
-from torch.nn import functional as F
 import torch.utils.data
 
 from kernelphysiology.dl.experiments.decomposition import nearest_embed
+from kernelphysiology.dl.pytorch.optimisations import losses
 
 
 class AbstractAutoEncoder(nn.Module):
@@ -195,9 +195,7 @@ class DecomposeNet(AbstractAutoEncoder):
         return self.decode(emb).cpu()
 
     def loss_function(self, x, recon_x, z_e, emb, argmin):
-        self.mse = 0
-        for key in x.keys():
-            self.mse += F.mse_loss(recon_x[key], x[key])
+        self.mse = losses.decomposition_loss(recon_x, x)
 
         self.vq_loss = torch.mean(torch.norm((emb - z_e.detach()) ** 2, 2, 1))
         self.commit_loss = torch.mean(
@@ -225,12 +223,3 @@ class DecomposeNet(AbstractAutoEncoder):
         for key in self.out_layers.keys():
             self.out_layers[key] = self.out_layers[key].cuda()
         return super().cuda(device=device)
-
-
-class HueLoss(torch.nn.Module):
-    def forward(self, recon_x, x):
-        ret = recon_x - x
-        ret[ret > 1] -= 2
-        ret[ret < -1] += 2
-        ret = ret ** 2
-        return torch.mean(ret)

@@ -1,7 +1,8 @@
 import torch
 from . import initialization as init
-from torch.nn import functional as F
 from torch import nn
+
+from kernelphysiology.dl.pytorch.optimisations import losses
 
 
 class SegmentationModel(torch.nn.Module):
@@ -22,7 +23,7 @@ class SegmentationModel(torch.nn.Module):
         features = self.encoder(x)
         decoder_output = self.decoder(*features)
         decoder_output = nn.functional.interpolate(
-                decoder_output, size=x.shape[2:], mode='bilinear'
+            decoder_output, size=x.shape[2:], mode='bilinear'
         )
 
         masks = self.segmentation_head(decoder_output)
@@ -59,9 +60,7 @@ class SegmentationModel(torch.nn.Module):
         return x
 
     def loss_function(self, x, recon_x):
-        self.mse = 0
-        for key in x.keys():
-            self.mse += F.mse_loss(recon_x[key], x[key])
+        self.mse = losses.decomposition_loss(recon_x, x)
         return self.mse
 
     def latest_losses(self):
