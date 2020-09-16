@@ -211,17 +211,16 @@ def yog012rgb01(x):
 
 
 def rgb2hsv01(x):
-    assert x.dtype == 'uint8'
+    x = normalisations.rgb2double(x)
     x = np.float32(cv2.cvtColor(x, cv2.COLOR_RGB2HSV))
-    x[:, :, 0] /= 180
-    x[:, :, 1:] /= 255
+    x[:, :, 0] /= 360
     return x
 
 
 def hsv012rgb(x):
-    x[:, :, 0] *= (180 / 255)
-    x = normalisations.uint8im(x)
-    return cv2.cvtColor(x, cv2.COLOR_HSV2RGB)
+    x[:, :, 0] *= 360
+    x = cv2.cvtColor(x, cv2.COLOR_HSV2RGB)
+    return normalisations.uint8im(x)
 
 
 def lab2lch01(x):
