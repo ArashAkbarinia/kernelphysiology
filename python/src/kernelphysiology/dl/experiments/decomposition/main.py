@@ -23,6 +23,8 @@ from kernelphysiology.dl.experiments.decomposition import data_loaders
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
+from kernelphysiology.utils import random_imutils
+
 datasets_classes = {
     'imagenet': data_loaders.ImageFolder,
     'celeba': data_loaders.CelebA,
@@ -151,7 +153,23 @@ def main(args):
         model = model.cuda()
 
     intransform_funs = []
-    if args.in_space.lower() != 'rgb':
+    if args.in_space.lower() == 'contrast-gamma':
+        augmentation_settings = [
+            {
+                'function': random_imutils.adjust_contrast,
+                'kwargs': {'amount': np.array([0.2, 1.0]), 'channel_wise': True}
+            },
+            {
+                'function': random_imutils.adjust_gamma,
+                'kwargs': {'amount': np.array([0.2, 5.0]), 'channel_wise': True}
+            }
+        ]
+        intransform_funs.append(
+            cv2_preprocessing.RandomAugmentationTransformation(
+                augmentation_settings, num_augmentations=1
+            )
+        )
+    elif args.in_space.lower() != 'rgb':
         intransform_funs.append(
             cv2_preprocessing.DecompositionTransformation(args.in_space.lower())
         )
