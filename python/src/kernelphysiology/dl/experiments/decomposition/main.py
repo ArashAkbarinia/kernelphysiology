@@ -153,7 +153,7 @@ def main(args):
         model = model.cuda()
 
     intransform_funs = []
-    if args.in_space.lower() == 'contrast-gamma':
+    if args.in_space.lower() == 'cgi':
         augmentation_settings = [
             {
                 'function': random_imutils.adjust_contrast,
@@ -162,6 +162,10 @@ def main(args):
             {
                 'function': random_imutils.adjust_gamma,
                 'kwargs': {'amount': np.array([0.2, 5.0]), 'channel_wise': True}
+            },
+            {
+                'function': random_imutils.adjust_illuminant,
+                'kwargs': {'illuminant': np.array([0.0, 1.0])}
             }
         ]
         intransform_funs.append(
