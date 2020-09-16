@@ -261,11 +261,14 @@ def adjust_contrast(image, amount, pixel_variatoin=0, mask_type=None,
 
     parameters:
     - image: a numpy.ndarray 
-    - contrast_level: a scalar in [0, 1]; with 1 -> full contrast
+    - contrast_level: a scalar or array corresponding to each channel in range
+     [0, 1]; with 1 -> full contrast
     """
 
-    assert (amount >= 0.0), 'contrast_level too low.'
-    assert (amount <= 1.0), 'contrast_level too high.'
+    amount = np.array(amount)
+
+    assert np.all(amount >= 0.0), 'contrast_level too low.'
+    assert np.all(amount <= 1.0), 'contrast_level too high.'
 
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
@@ -297,9 +300,7 @@ def grayscale_contrast(image, amount, mask_radius=None):
 
 
 def adjust_gamma(image, amount, pixel_variatoin=0, mask_type=None, **kwargs):
-    # TODO: for all other manipulations
-    if isinstance(amount, list):
-        amount = random.uniform(*amount)
+    amount = np.array(amount)
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)
