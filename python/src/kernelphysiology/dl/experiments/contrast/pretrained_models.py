@@ -100,6 +100,7 @@ class NewClassificationModel(nn.Module):
         super(NewClassificationModel, self).__init__()
         num_classes = 2
 
+        checkpoint = None
         # assuming network_name is path
         if transfer_weights is None:
             checkpoint = torch.load(network_name, map_location='cpu')
@@ -121,6 +122,9 @@ class NewClassificationModel(nn.Module):
         self.features = features
         # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(org_classes, num_classes)
+
+        if checkpoint is not None:
+            self.load_state_dict(checkpoint['state_dict'])
 
     def forward(self, x):
         x = self.features(x)
