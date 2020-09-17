@@ -44,6 +44,16 @@ def _resnet_features(model, network_name, layer):
     return features, org_classes
 
 
+def _mobilenet_v2_features(model, network_name, layer):
+    layer = int(layer[1:])
+    org_classes = [
+        1698816, 849408, 318528, 318528, 106176, 106176, 106176, 53760, 53760,
+        53760, 53760, 80640, 80640, 80640, 35200, 35200, 35200, 70400, 281600,
+    ]
+    features = nn.Sequential(*list(model.features.children())[:layer + 1])
+    return features, org_classes[layer]
+
+
 class VGG(nn.Module):
 
     def __init__(self, model, network_name, layer):
@@ -130,6 +140,9 @@ class NewClassificationModel(nn.Module):
             features, org_classes = _resnet_features(model, network_name, layer)
         elif 'vgg' in network_name:
             features, org_classes = _vgg_features(model, network_name, layer)
+        elif 'mobilenet_v2' in network_name:
+            features, org_classes = _mobilenet_v2_features(model, network_name,
+                                                           layer)
         self.features = features
         # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(org_classes, num_classes)
