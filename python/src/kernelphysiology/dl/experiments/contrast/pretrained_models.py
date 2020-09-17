@@ -96,13 +96,18 @@ def _vgg_features(model, network_name, layer):
 
 
 class NewClassificationModel(nn.Module):
-    def __init__(self, network_name, transfer_weights):
+    def __init__(self, network_name, transfer_weights=None):
         super(NewClassificationModel, self).__init__()
         num_classes = 2
 
+        # assuming network_name is path
+        if transfer_weights is None:
+            checkpoint = torch.load(network_name, map_location='cpu')
+            network_name = checkpoint['arch']
+            transfer_weights = checkpoint['transfer_weights']
+
         (model, _) = model_utils.which_network(
-            transfer_weights[0], 'classification',
-            num_classes=1000
+            transfer_weights[0], 'classification', num_classes=1000
         )
         # print(model)
         layer = -1

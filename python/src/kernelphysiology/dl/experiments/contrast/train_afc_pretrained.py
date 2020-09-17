@@ -326,6 +326,7 @@ def main_worker(ngpus_per_node, args):
                         'num_kernels': args.num_kernels,
                         'kernel_size': args.kernel_size
                     },
+                    'transfer_weights': args.transfer_weights,
                     'preprocessing': {'mean': mean, 'std': std},
                     'state_dict': model.state_dict(),
                     'best_acc1': best_acc1,

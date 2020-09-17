@@ -12,6 +12,8 @@ from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.utils import imutils
 from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 
+from kernelphysiology.dl.experiments.contrast import pretrained_models
+
 
 def parse_arguments(args):
     parser = argparse.ArgumentParser(description='Variational AutoEncoders')
@@ -37,6 +39,8 @@ def parse_arguments(args):
                               default=False)
     model_parser.add_argument('--mosaic_pattern', type=str, default=None)
     model_parser.add_argument('--vision_type', type=str, default='trichromat')
+    model_parser.add_argument('--pretrained', action='store_true',
+                              default=False)
     return parser.parse_args(args)
 
 
@@ -157,7 +161,10 @@ def main(args):
         num_workers=args.workers, pin_memory=True
     )
 
-    model, _ = model_utils.which_network_classification(args.model_path, 2)
+    if args.pretrained:
+        model = pretrained_models.NewClassificationModel(args.model_path)
+    else:
+        model, _ = model_utils.which_network_classification(args.model_path, 2)
     model.eval()
     model.cuda()
 
