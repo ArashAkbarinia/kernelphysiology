@@ -8,6 +8,8 @@ import torch.nn as nn
 from torchvision.models import segmentation
 
 from kernelphysiology.dl.pytorch.models import model_utils
+from kernelphysiology.dl.experiments.contrast.transparency_model import \
+    get_transparency_model
 
 
 def _resnet_features(model, network_name, layer):
@@ -123,6 +125,8 @@ class NewClassificationModel(nn.Module):
 
         if 'deeplabv3_' in network_name or 'fcn_' in network_name:
             model = segmentation.__dict__[network_name](pretrained=True)
+        elif network_name == 'transparency':
+            model = get_transparency_model()
         else:
             (model, _) = model_utils.which_network(
                 transfer_weights[0], 'classification', num_classes=1000
@@ -135,6 +139,10 @@ class NewClassificationModel(nn.Module):
         if 'deeplabv3_' in network_name:
             features, org_classes = _resnet_features(
                 model.backbone, network_name, layer
+            )
+        elif network_name == 'transparency':
+            features, org_classes = _resnet_features(
+                model.encoder, network_name, layer
             )
         elif 'resnet' in network_name:
             features, org_classes = _resnet_features(model, network_name, layer)
