@@ -5,6 +5,8 @@
 import torch
 import torch.nn as nn
 
+from torchvision.models import segmentation
+
 from kernelphysiology.dl.pytorch.models import model_utils
 
 
@@ -32,6 +34,8 @@ def _resnet_features(model, network_name, layer):
             layer = 7
             if network_name in ['resnet18', 'resnet34']:
                 org_classes = 215040
+            elif 'deeplab' in network_name:
+                org_classes = 3397632
             else:
                 org_classes = 860160
     else:
@@ -107,15 +111,22 @@ class NewClassificationModel(nn.Module):
             network_name = checkpoint['arch']
             transfer_weights = checkpoint['transfer_weights']
 
-        (model, _) = model_utils.which_network(
-            transfer_weights[0], 'classification', num_classes=1000
-        )
+        if 'deeplabv3_' in network_name or 'fcn_' in network_name:
+            model = segmentation.__dict__[network_name](pretrained=True)
+        else:
+            (model, _) = model_utils.which_network(
+                transfer_weights[0], 'classification', num_classes=1000
+            )
         # print(model)
         layer = -1
         if len(transfer_weights) == 2:
             layer = transfer_weights[1]
 
-        if 'resnet' in network_name:
+        if 'deeplabv3_' in network_name:
+            features, org_classes = _resnet_features(
+                model.backbone, network_name, layer
+            )
+        elif 'resnet' in network_name:
             features, org_classes = _resnet_features(model, network_name, layer)
         elif 'vgg' in network_name:
             features, org_classes = _vgg_features(model, network_name, layer)
