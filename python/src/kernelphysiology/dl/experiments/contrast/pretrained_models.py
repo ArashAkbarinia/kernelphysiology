@@ -8,6 +8,7 @@ import torch.nn as nn
 from torchvision.models import segmentation
 
 from kernelphysiology.dl.pytorch.models import model_utils
+from kernelphysiology.dl.pytorch.models import resnet_simclr
 from kernelphysiology.dl.experiments.contrast.transparency_model import \
     get_transparency_model
 
@@ -127,6 +128,11 @@ class NewClassificationModel(nn.Module):
             model = segmentation.__dict__[network_name](pretrained=True)
         elif network_name == 'transparency':
             model = get_transparency_model()
+        elif network_name == 'simclr':
+            model = resnet_simclr.ResNetSimCLR('resnet50', 128)
+            dpath = '/home/arash/Software/repositories/kernelphysiology/data/simclr_resnet50.pth'
+            simclr_pretrained = torch.load(dpath, map_location='cpu')
+            model.load_state_dict(simclr_pretrained)
         else:
             (model, _) = model_utils.which_network(
                 transfer_weights[0], 'classification', num_classes=1000
@@ -143,6 +149,10 @@ class NewClassificationModel(nn.Module):
         elif network_name == 'transparency':
             features, org_classes = _resnet_features(
                 model.encoder, network_name, layer
+            )
+        elif network_name == 'simclr':
+            features, org_classes = _resnet_features(
+                model.features, network_name, layer
             )
         elif 'resnet' in network_name:
             features, org_classes = _resnet_features(model, network_name, layer)
