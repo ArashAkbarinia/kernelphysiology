@@ -37,7 +37,7 @@ def _resnet_features(model, network_name, layer):
             layer = 7
             if network_name in ['resnet18', 'resnet34']:
                 org_classes = 215040
-            elif 'deeplab' in network_name:
+            elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
                 org_classes = 3397632
             else:
                 org_classes = 860160
@@ -142,7 +142,7 @@ class NewClassificationModel(nn.Module):
         if len(transfer_weights) == 2:
             layer = transfer_weights[1]
 
-        if 'deeplabv3_' in network_name:
+        if 'deeplabv3_' in network_name or 'fcn_' in network_name:
             features, org_classes = _resnet_features(
                 model.backbone, network_name, layer
             )
