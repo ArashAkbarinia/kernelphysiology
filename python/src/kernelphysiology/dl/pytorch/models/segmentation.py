@@ -8,7 +8,8 @@ from torchvision.models._utils import IntermediateLayerGetter
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead, DeepLabV3
 from torchvision.models.segmentation.fcn import FCN, FCNHead
 
-from kernelphysiology.dl.pytorch.models import resnet
+from torchvision.models import resnet as presnet
+from kernelphysiology.dl.pytorch.models import resnet as cresnet
 from kernelphysiology.dl.pytorch.models import model_utils as model_utils
 
 __all__ = [
@@ -38,7 +39,7 @@ def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
     if aux:
         layer3 = list(backbone.layer3)[-1]
         # Depending on Bottleneck or basic choose the num_features
-        if isinstance(layer3, resnet.Bottleneck):
+        if isinstance(layer3, (cresnet.Bottleneck, presnet.Bottleneck)):
             inplanes = list(layer3.children())[-2].num_features
         else:
             inplanes = list(layer3.children())[-1].num_features
