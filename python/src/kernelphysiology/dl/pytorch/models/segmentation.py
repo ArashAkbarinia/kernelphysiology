@@ -50,7 +50,7 @@ def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
         'fcn': (FCNHead, FCN),
     }
     layer4 = list(backbone.layer4)[-1]
-    if isinstance(layer4, resnet.Bottleneck):
+    if isinstance(layer4, (cresnet.Bottleneck, presnet.Bottleneck)):
         inplanes = list(layer4.children())[-2].num_features
     else:
         inplanes = list(layer4.children())[-1].num_features
