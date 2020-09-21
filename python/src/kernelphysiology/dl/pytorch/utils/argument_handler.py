@@ -25,9 +25,11 @@ def parse_train_segmentation_arguments(argv):
     args.test_only = False
     args.target_size = args.target_size[0]
     if args.lr is None:
-        args.lr = 0.01
+        args.lr = 0.02
     if args.weight_decay is None:
         args.weight_decay = 1e-4
+    if '-e' not in argv and '--epochs' not in argv:
+        args.epochs = 30
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]
     # TODO: why load weights is False?

@@ -161,19 +161,6 @@ def main(args):
     if args.distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-    best_iou = 0
-    model_progress = []
-    model_progress_path = os.path.join(args.out_dir, 'model_progress.csv')
-    # loading the model if to eb resumed
-    if args.resume is not None:
-        checkpoint = torch.load(args.resume, map_location='cpu')
-        model.load_state_dict(checkpoint['model'])
-        best_iou = checkpoint['best_iou']
-        # if model progress exists, load it
-        if os.path.exists(model_progress_path):
-            model_progress = np.loadtxt(model_progress_path, delimiter=',')
-            model_progress = model_progress.tolist()
-
     master_model = model
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(
@@ -198,6 +185,21 @@ def main(args):
 
     lr_lambda = lambda x: (1 - x / (len(data_loader) * args.epochs)) ** 0.9
     lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+
+    best_iou = 0
+    model_progress = []
+    model_progress_path = os.path.join(args.out_dir, 'model_progress.csv')
+    # loading the model if to eb resumed
+    if args.resume is not None:
+        checkpoint = torch.load(args.resume, map_location='cpu')
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        best_iou = checkpoint['best_iou']
+        # if model progress exists, load it
+        if os.path.exists(model_progress_path):
+            model_progress = np.loadtxt(model_progress_path, delimiter=',')
+            model_progress = model_progress.tolist()
 
     criterion = select_criterion(args.dataset)
 
@@ -226,6 +228,7 @@ def main(args):
                 'backbone': args.backbone
             },
             'state_dict': master_model.state_dict(),
+            'lr_scheduler': lr_scheduler.state_dict(),
             'optimizer': optimizer.state_dict(),
             'target_size': args.target_size,
             'args': args,
