@@ -10,10 +10,7 @@ import torch.utils.data
 from kernelphysiology.dl.pytorch.utils import segmentation_utils as utils
 from kernelphysiology.dl.pytorch.utils import argument_handler
 from kernelphysiology.dl.pytorch.utils.misc import generic_evaluation
-
-
-def print_results(current_results, *_argv):
-    print(current_results)
+from kernelphysiology.dl.utils.prepapre_testing import save_segmentation_results
 
 
 def main(args):
@@ -31,7 +28,7 @@ def main(args):
         'save_pred': args.save_pred,
         'print_freq': args.print_freq
     }
-    save_fn = print_results
+    save_fn = save_segmentation_results
     generic_evaluation(args, fn, save_fn, **kwargs)
 
 

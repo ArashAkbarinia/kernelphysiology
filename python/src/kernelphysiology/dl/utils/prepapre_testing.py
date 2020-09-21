@@ -41,6 +41,26 @@ def save_predictions(predictions, experiment_name, network, dataset,
     np.savetxt(output_file, predictions, delimiter=',', fmt='%i')
 
 
+def save_segmentation_results(predictions, experiment_name, network, dataset,
+                              manipulation_type, manipulation_value):
+    pred_log = predictions.get_log_dict()
+    tobesaved = []
+    header = ''
+    for key, val in pred_log.items():
+        tobesaved.append(str(val))
+        if header != '':
+            header += ','
+        header = header + key
+    output_file = _prepare_saving_file(
+        experiment_name, network, dataset, manipulation_type,
+        manipulation_value, extension='csv'
+    )
+    np.savetxt(
+        output_file, np.array([tobesaved]),
+        delimiter=';', header=header, fmt='%s'
+    )
+
+
 def save_activation(activations, experiment_name, network, dataset,
                     manipulation_type, manipulation_value):
     j = 1

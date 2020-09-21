@@ -9,7 +9,6 @@ import shutil
 import torch
 import torchvision.transforms as transforms
 
-from kernelphysiology.dl.pytorch.datasets.utils_db import is_dataset_pil_image
 from kernelphysiology.dl.pytorch.datasets.utils_db import get_validation_dataset
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.utils import preprocessing
