@@ -84,10 +84,11 @@ def main(args):
     device = torch.device(args.gpus)
 
     in_chns = 3
-    if args.vision_type == 'monochromat':
-        in_chns = 1
-    elif 'dichromat' in args.vision_type:
-        in_chns = 2
+    if args.colour_space in ['lab', 'dkl']:
+        if args.vision_type == 'monochromat':
+            in_chns = 1
+        elif 'dichromat' in args.vision_type:
+            in_chns = 2
     data_reading_kwargs = {
         'target_size': args.target_size,
         'colour_vision': args.vision_type,
