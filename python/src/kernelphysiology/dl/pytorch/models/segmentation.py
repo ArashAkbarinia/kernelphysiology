@@ -8,6 +8,7 @@ from torchvision.models._utils import IntermediateLayerGetter
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead, DeepLabV3
 from torchvision.models.segmentation.fcn import FCN, FCNHead
 
+from kernelphysiology.dl.pytorch.models import resnet
 from kernelphysiology.dl.pytorch.models import model_utils as model_utils
 
 __all__ = [
@@ -36,7 +37,11 @@ def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
     aux_classifier = None
     if aux:
         layer3 = list(backbone.layer3)[-1]
-        inplanes = list(layer3.children())[-2].num_features
+        # Depending on Bottleneck or basic choose the num_features
+        if isinstance(layer3, resnet.Bottleneck):
+            inplanes = list(layer3.children())[-2].num_features
+        else:
+            inplanes = list(layer3.children())[-1].num_features
         aux_classifier = FCNHead(inplanes, num_classes)
 
     model_map = {
@@ -44,7 +49,10 @@ def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
         'fcn': (FCNHead, FCN),
     }
     layer4 = list(backbone.layer4)[-1]
-    inplanes = list(layer4.children())[-2].num_features
+    if isinstance(layer4, resnet.Bottleneck):
+        inplanes = list(layer4.children())[-2].num_features
+    else:
+        inplanes = list(layer4.children())[-1].num_features
     classifier = model_map[name][0](inplanes, num_classes)
     base_model = model_map[name][1]
 
