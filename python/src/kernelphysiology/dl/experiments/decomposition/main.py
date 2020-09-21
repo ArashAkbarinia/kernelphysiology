@@ -62,7 +62,7 @@ def main(args):
             # TODO: just assuming numbers of square 2
             out_shape = [0.5 / in_size, 0.5 / in_size, 4]
         else:
-            out_shape = [1, 1, 3]
+            out_shape = [1 / in_size, 1 / in_size, 3]
         args.outs_dict[out_type] = {'shape': out_shape}
 
     args.mean = 0.5
