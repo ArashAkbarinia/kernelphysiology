@@ -120,7 +120,7 @@ def main_worker(ngpus_per_node, args):
     if args.transfer_weights is not None:
         print('Transferred model!')
         model = pretrained_models.NewClassificationModel(
-            args.network_name, args.transfer_weights
+            args.network_name, args.transfer_weights, args.grey_width
         )
     elif args.custom_arch:
         print('Custom model!')
@@ -244,7 +244,8 @@ def main_worker(ngpus_per_node, args):
     db_params = {
         'colour_space': args.colour_space,
         'vision_type': args.vision_type,
-        'mask_image': args.mask_image
+        'mask_image': args.mask_image,
+        'grey_width': args.grey_width
     }
     if args.dataset in dataloader.NATURAL_DATASETS:
         path_or_sample = args.data_dir
@@ -467,6 +468,8 @@ def extra_args_fun(parser):
     # specific_group.add_argument('-db', '--db', default=None, type=str)
     specific_group.add_argument('--train_samples', default=10000, type=int)
     specific_group.add_argument('--val_samples', default=1000, type=int)
+    specific_group.add_argument('--grey_width', default=40, choices=[0, 40],
+                                type=int)
     specific_group.add_argument('--mask_image', default=None, type=str)
 
 

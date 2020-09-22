@@ -20,7 +20,7 @@ from kernelphysiology.utils import path_utils
 NATURAL_DATASETS = ['imagenet', 'celeba', 'natural', 'land']
 
 
-def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
+def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5, grey_width=40):
     imgs_cat = [img0, img1]
     max_contrast = np.argmax([contrast0, contrast1])
     if random.random() < p:
@@ -31,18 +31,24 @@ def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
         imgs_cat = imgs_cat[::-1]
 
     dim = 2
-    grey_width = 40
-    grey_cols = torch.zeros(
-        (img0.shape[0], img0.shape[1], grey_width)
-    ).type(img0.type())
-    imgs_cat = [grey_cols, imgs_cat[0], grey_cols, imgs_cat[1], grey_cols]
+    if grey_width > 0:
+        grey_cols = torch.zeros(
+            (img0.shape[0], img0.shape[1], grey_width)
+        ).type(img0.type())
+        imgs_cat = [grey_cols, imgs_cat[0], grey_cols, imgs_cat[1], grey_cols]
+    else:
+        imgs_cat = [imgs_cat[0], imgs_cat[1]]
     img_out = torch.cat(imgs_cat, dim)
     dim = 1
-    grey_rows = torch.zeros(
-        (img0.shape[0], grey_width, img_out.shape[2])
-    ).type(img0.type())
+    if grey_width > 0:
+        grey_rows = torch.zeros(
+            (img0.shape[0], grey_width, img_out.shape[2])
+        ).type(img0.type())
+        final_image = torch.cat([grey_rows, img_out, grey_rows], dim)
+    else:
+        final_image = img_out
 
-    return torch.cat([grey_rows, img_out, grey_rows], dim), contrast_target
+    return final_image, contrast_target
 
 
 def _random_mask_params():
@@ -53,7 +59,8 @@ def _random_mask_params():
 
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
-                     pre_transform, post_transform, same_transforms, p):
+                     pre_transform, post_transform, same_transforms, p,
+                     grey_width):
     # FIXME: this might not work with the .ppm files, change it to 01 version
     if 'grey' not in colour_space and vision_type != 'trichromat':
         dkl0 = colour_spaces.rgb2dkl(img0)
@@ -111,7 +118,7 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         img0, img1 = post_transform([img0, img1])
 
     img_out, contrast_target = _two_pairs_stimuli(
-        img0, img1, contrast0, contrast1, p
+        img0, img1, contrast0, contrast1, p, grey_width
     )
     return img_out, contrast_target
 
@@ -163,8 +170,9 @@ def cv2_loader(path):
 class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5,
                  contrasts=None, same_transforms=False, colour_space='grey',
-                 vision_type='trichromat', mask_image=None):
+                 vision_type='trichromat', mask_image=None, grey_width=40):
         self.p = p
+        self.grey_width = grey_width
         self.contrasts = contrasts
         self.same_transforms = same_transforms
         self.colour_space = colour_space
@@ -213,7 +221,7 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p
+            self.same_transforms, self.p, self.grey_width
         )
 
         return img_out, contrast_target, path
@@ -242,7 +250,8 @@ class OneFolder(AfcDataset, tdatasets.VisionDataset):
             current_crop, current_target = _prepare_stimuli(
                 img0.copy(), self.colour_space, self.vision_type,
                 self.contrasts, self.mask_image, self.pre_transform,
-                self.post_transform, self.same_transforms, self.p
+                self.post_transform, self.same_transforms, self.p,
+                self.grey_width
             )
             imgs_stack.append(current_crop)
             targets_stack.append(current_target)
@@ -267,7 +276,7 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p
+            self.same_transforms, self.p, self.grey_width
         )
 
         # right now we're not using the class target, but perhaps in the future
@@ -279,7 +288,8 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
 
 class GratingImages(AfcDataset, torch_data.Dataset):
     def __init__(self, samples, afc_kwargs, target_size=(224, 224),
-                 contrast_space=None, theta=None, rho=None, lambda_wave=None):
+                 contrast_space=None, theta=None, rho=None, lambda_wave=None,
+                 grey_width=40):
         AfcDataset.__init__(self, **afc_kwargs)
         torch_data.Dataset.__init__(self)
         if type(samples) is dict:
@@ -296,6 +306,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         self.theta = theta
         self.rho = rho
         self.lambda_wave = lambda_wave
+        self.grey_width = grey_width
 
     def __getitem__(self, index):
         """
@@ -446,7 +457,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             img0, img1 = self.post_transform([img0, img1])
 
         img_out, contrast_target = _two_pairs_stimuli(
-            img0, img1, contrast0, contrast1, self.p
+            img0, img1, contrast0, contrast1, self.p, self.grey_width
         )
 
         item_settings = np.array([contrast0, lambda_wave, theta, rho, self.p])

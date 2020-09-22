@@ -41,6 +41,8 @@ def parse_arguments(args):
     model_parser.add_argument('--vision_type', type=str, default='trichromat')
     model_parser.add_argument('--pretrained', action='store_true',
                               default=False)
+    model_parser.add_argument('--grey_width', default=40, choices=[0, 40],
+                              type=int)
     return parser.parse_args(args)
 
 
@@ -148,7 +150,7 @@ def main(args):
     }
     db_params = {
         'colour_space': colour_space, 'vision_type': args.vision_type,
-        'mask_image': args.gabor
+        'mask_image': args.gabor, 'grey_width': args.grey_width
     }
 
     db = dataloader.validation_set(

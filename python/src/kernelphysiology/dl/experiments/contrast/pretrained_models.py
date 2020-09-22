@@ -13,41 +13,67 @@ from kernelphysiology.dl.experiments.contrast.transparency_model import \
     get_transparency_model
 
 
-def _resnet_features(model, network_name, layer):
+def _resnet_features(model, network_name, layer, grey_width):
     if type(layer) is str:
         if layer == 'layer1':
             layer = 4
-            if network_name in ['resnet18', 'resnet34']:
-                org_classes = 849408
+            if grey_width:
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 849408
+                else:
+                    org_classes = 849408
             else:
-                org_classes = 849408
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 524288
+                else:
+                    org_classes = 524288
         elif layer == 'layer2':
             layer = 5
-            if network_name in ['resnet18', 'resnet34']:
-                org_classes = 849408
+            if grey_width:
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 849408
+                else:
+                    org_classes = 3397632
             else:
-                org_classes = 3397632
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 524288
+                else:
+                    org_classes = 2097152
         elif layer == 'layer3':
             layer = 6
-            if network_name in ['resnet18', 'resnet34']:
-                org_classes = 424704
+            if grey_width:
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 424704
+                else:
+                    org_classes = 1698816
             else:
-                org_classes = 1698816
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 262144
+                else:
+                    org_classes = 1048576
         elif layer == 'layer4':
             layer = 7
-            if network_name in ['resnet18', 'resnet34']:
-                org_classes = 215040
-            elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
-                org_classes = 3397632
+            if grey_width:
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 215040
+                elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+                    org_classes = 3397632
+                else:
+                    org_classes = 860160
             else:
-                org_classes = 860160
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 131072
+                elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+                    org_classes = 2097152
+                else:
+                    org_classes = 524288
     else:
         org_classes = 512
     features = nn.Sequential(*list(model.children())[:layer])
     return features, org_classes
 
 
-def _mobilenet_v2_features(model, network_name, layer):
+def _mobilenet_v2_features(model, network_name, layer, grey_width):
     layer = int(layer[1:])
     org_classes = [
         1698816, 849408, 318528, 318528, 106176, 106176, 106176, 53760, 53760,
@@ -59,7 +85,7 @@ def _mobilenet_v2_features(model, network_name, layer):
 
 class VGG(nn.Module):
 
-    def __init__(self, model, network_name, layer):
+    def __init__(self, model, network_name, layer, grey_width):
         super(VGG, self).__init__()
         self.classifier = None
         if type(layer) is str:
@@ -106,14 +132,14 @@ class VGG(nn.Module):
         return x
 
 
-def _vgg_features(model, network_name, layer):
+def _vgg_features(model, network_name, layer, grey_width):
     features = VGG(model, network_name, layer)
     org_classes = features.org_classes
     return features, org_classes
 
 
 class NewClassificationModel(nn.Module):
-    def __init__(self, network_name, transfer_weights=None):
+    def __init__(self, network_name, transfer_weights=None, grey_width=True):
         super(NewClassificationModel, self).__init__()
         num_classes = 2
 
@@ -144,23 +170,28 @@ class NewClassificationModel(nn.Module):
 
         if 'deeplabv3_' in network_name or 'fcn_' in network_name:
             features, org_classes = _resnet_features(
-                model.backbone, network_name, layer
+                model.backbone, network_name, layer, grey_width
             )
         elif network_name == 'transparency':
             features, org_classes = _resnet_features(
-                model.encoder, network_name, layer
+                model.encoder, network_name, layer, grey_width
             )
         elif network_name == 'simclr':
             features, org_classes = _resnet_features(
-                model.features, network_name, layer
+                model.features, network_name, layer, grey_width
             )
         elif 'resnet' in network_name:
-            features, org_classes = _resnet_features(model, network_name, layer)
+            features, org_classes = _resnet_features(
+                model, network_name, layer, grey_width
+            )
         elif 'vgg' in network_name:
-            features, org_classes = _vgg_features(model, network_name, layer)
+            features, org_classes = _vgg_features(
+                model, network_name, layer, grey_width
+            )
         elif 'mobilenet_v2' in network_name:
-            features, org_classes = _mobilenet_v2_features(model, network_name,
-                                                           layer)
+            features, org_classes = _mobilenet_v2_features(
+                model, network_name, layer, grey_width
+            )
         self.features = features
         # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(org_classes, num_classes)
