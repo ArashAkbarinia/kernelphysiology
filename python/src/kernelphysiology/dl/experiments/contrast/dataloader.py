@@ -525,6 +525,9 @@ def _natural_dataset(db, which_set, pre_transforms, post_transforms,
     if db == 'imagenet':
         natural_kwargs = {'root': os.path.join(data_dir, which_set)}
         current_db = ImageFolder(afc_kwargs, natural_kwargs)
+    elif db == 'land':
+        natural_kwargs = {'root': os.path.join(data_dir, 'Images')}
+        current_db = ImageFolder(afc_kwargs, natural_kwargs)
     elif db == 'natural':
         current_db = OneFolder(data_dir, afc_kwargs, max_val=(2 ** 14) - 1)
     elif db == 'celeba':
