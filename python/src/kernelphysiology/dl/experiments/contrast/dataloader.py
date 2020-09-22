@@ -17,6 +17,8 @@ from kernelphysiology.transformations import colour_spaces
 
 from kernelphysiology.utils import path_utils
 
+NATURAL_DATASETS = ['imagenet', 'celeba', 'natural', 'land']
+
 
 def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5):
     imgs_cat = [img0, img1]
@@ -471,7 +473,7 @@ def train_set(db, target_size, mean, std, extra_transformation=None, **kwargs):
         cv2_transforms.RandomHorizontalFlip(),
     ]
     shared_post_transforms = _get_shared_post_transforms(mean, std)
-    if db in ['imagenet', 'celeba', 'natural']:
+    if db in NATURAL_DATASETS:
         scale = (0.08, 1.0)
         size_transform = cv2_transforms.RandomResizedCrop(
             target_size, scale=scale
@@ -495,7 +497,7 @@ def validation_set(db, target_size, mean, std, extra_transformation=None,
         extra_transformation = []
     shared_pre_transforms = [*extra_transformation]
     shared_post_transforms = _get_shared_post_transforms(mean, std)
-    if db in ['imagenet', 'celeba', 'natural']:
+    if db in NATURAL_DATASETS:
         pre_transforms = [
             cv2_transforms.Resize(target_size),
             cv2_transforms.CenterCrop(target_size),
