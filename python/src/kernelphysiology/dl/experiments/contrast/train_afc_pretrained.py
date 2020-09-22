@@ -120,7 +120,7 @@ def main_worker(ngpus_per_node, args):
     if args.transfer_weights is not None:
         print('Transferred model!')
         model = pretrained_models.NewClassificationModel(
-            args.network_name, args.transfer_weights, args.grey_width
+            args.network_name, args.transfer_weights, args.grey_width == 40
         )
     elif args.custom_arch:
         print('Custom model!')
