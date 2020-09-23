@@ -288,8 +288,7 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
 
 class GratingImages(AfcDataset, torch_data.Dataset):
     def __init__(self, samples, afc_kwargs, target_size=(224, 224),
-                 contrast_space=None, theta=None, rho=None, lambda_wave=None,
-                 grey_width=40):
+                 contrast_space=None, theta=None, rho=None, lambda_wave=None):
         AfcDataset.__init__(self, **afc_kwargs)
         torch_data.Dataset.__init__(self)
         if type(samples) is dict:
@@ -306,7 +305,6 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         self.theta = theta
         self.rho = rho
         self.lambda_wave = lambda_wave
-        self.grey_width = grey_width
 
     def __getitem__(self, index):
         """
