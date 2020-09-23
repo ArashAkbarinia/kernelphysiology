@@ -7,7 +7,7 @@ from segmentron.config import cfg
 from segmentron.models.model_zoo import get_segmentation_model
 
 
-def get_transparency_model():
+def tranmod():
     config_file = rep_path + '/configs/trans10K/translab.yaml'
 
     model_path = rep_path + '/weights/16.pth'

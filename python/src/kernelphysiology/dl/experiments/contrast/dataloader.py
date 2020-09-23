@@ -129,7 +129,7 @@ def _get_gauss(img_size):
     y = np.linspace(img_size[0], 0, img_size[0]) - midy
     x = np.linspace(0, img_size[1], img_size[1]) - midx
     [x, y] = np.meshgrid(x, y)
-    sigma = min(img_size[0], img_size[1]) / 4
+    sigma = min(img_size[0], img_size[1]) / 6
     gauss_img = np.exp(
         -(np.power(x, 2) + np.power(y, 2)) / (2 * np.power(sigma, 2))
     )
@@ -395,7 +395,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
                     range(-radius[1], radius[1] + 1)
                 )
 
-                sigma = self.target_size[0] / 4.25
+                sigma = self.target_size[0] / 6
                 gauss_img = np.exp(
                     -(np.power(x, 2) + np.power(y, 2)) / (
                             2 * np.power(sigma, 2))

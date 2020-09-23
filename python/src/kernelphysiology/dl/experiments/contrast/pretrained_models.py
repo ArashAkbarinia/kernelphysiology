@@ -9,8 +9,7 @@ from torchvision.models import segmentation
 
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.models import resnet_simclr
-from kernelphysiology.dl.experiments.contrast.transparency_model import \
-    get_transparency_model
+from kernelphysiology.dl.experiments.contrast.models.transparency import tranmod
 
 
 def _resnet_features(model, network_name, layer, grey_width):
@@ -153,7 +152,7 @@ class NewClassificationModel(nn.Module):
         if 'deeplabv3_' in network_name or 'fcn_' in network_name:
             model = segmentation.__dict__[network_name](pretrained=True)
         elif network_name == 'transparency':
-            model = get_transparency_model()
+            model = tranmod()
         elif network_name == 'simclr':
             model = resnet_simclr.ResNetSimCLR('resnet50', 128)
             dpath = '/home/arash/Software/repositories/kernelphysiology/data/simclr_resnet50.pth'
