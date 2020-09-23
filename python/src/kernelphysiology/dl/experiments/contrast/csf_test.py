@@ -164,7 +164,9 @@ def main(args):
     )
 
     if args.pretrained:
-        model = pretrained_models.NewClassificationModel(args.model_path)
+        model = pretrained_models.NewClassificationModel(
+            args.model_path, grey_width=args.grey_width == 40
+        )
     else:
         model, _ = model_utils.which_network_classification(args.model_path, 2)
     model.eval()
