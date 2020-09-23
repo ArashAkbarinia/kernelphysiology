@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 
 from torchvision.models import segmentation
+from torchvision.models import detection
 
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.models import resnet_simclr
@@ -149,7 +150,11 @@ class NewClassificationModel(nn.Module):
             network_name = checkpoint['arch']
             transfer_weights = checkpoint['transfer_weights']
 
-        if 'deeplabv3_' in network_name or 'fcn_' in network_name:
+        if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
+                or 'keypointrcnn_' in network_name
+        ):
+            model = detection.__dict__[network_name](pretrained=True)
+        elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
             model = segmentation.__dict__[network_name](pretrained=True)
         elif network_name == 'transparency':
             model = tranmod()
@@ -167,7 +172,13 @@ class NewClassificationModel(nn.Module):
         if len(transfer_weights) == 2:
             layer = transfer_weights[1]
 
-        if 'deeplabv3_' in network_name or 'fcn_' in network_name:
+        if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
+                or 'keypointrcnn_' in network_name
+        ):
+            features, org_classes = _resnet_features(
+                model.backbone.body, network_name, layer, grey_width
+            )
+        elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
             features, org_classes = _resnet_features(
                 model.backbone, network_name, layer, grey_width
             )
