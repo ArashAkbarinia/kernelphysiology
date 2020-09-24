@@ -11,6 +11,36 @@ from torchvision.models import detection
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.models import resnet_simclr
 from kernelphysiology.dl.experiments.contrast.models.transparency import tranmod
+from kernelphysiology.dl.experiments.contrast.models.cityscape import citymode
+
+
+def _cityscape_features(model, network_name, layer, grey_width):
+    if type(layer) is str:
+        if layer == 'mod1':
+            layer = 1
+            org_classes = 8388608
+        elif layer == 'mod2':
+            layer = 2
+            org_classes = 16777216
+        elif layer == 'mod3':
+            layer = 3
+            org_classes = 33554432
+        elif layer == 'mod4':
+            layer = 4
+            org_classes = 16777216
+        elif layer == 'mod5':
+            layer = 5
+            org_classes = 16777216
+        elif layer == 'mod6':
+            layer = 6
+            org_classes = 16777216
+        elif layer == 'mod7':
+            layer = 7
+            org_classes = 16777216
+    else:
+        org_classes = 512
+    features = nn.Sequential(*list(model.children())[:layer])
+    return features, org_classes
 
 
 def _resnet_features(model, network_name, layer, grey_width):
@@ -158,6 +188,8 @@ class NewClassificationModel(nn.Module):
             model = segmentation.__dict__[network_name](pretrained=True)
         elif network_name == 'transparency':
             model = tranmod()
+        elif network_name == 'cityscape':
+            model = citymode()
         elif network_name == 'simclr':
             model = resnet_simclr.ResNetSimCLR('resnet50', 128)
             dpath = '/home/arash/Software/repositories/kernelphysiology/data/simclr_resnet50.pth'
@@ -185,6 +217,10 @@ class NewClassificationModel(nn.Module):
         elif network_name == 'transparency':
             features, org_classes = _resnet_features(
                 model.encoder, network_name, layer, grey_width
+            )
+        elif network_name == 'cityscape':
+            features, org_classes = _cityscape_features(
+                model, network_name, layer, grey_width
             )
         elif network_name == 'simclr':
             features, org_classes = _resnet_features(
