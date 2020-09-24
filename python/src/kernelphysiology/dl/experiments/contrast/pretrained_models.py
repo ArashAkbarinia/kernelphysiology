@@ -30,13 +30,13 @@ def _cityscape_features(model, network_name, layer, grey_width):
             org_classes = 16777216
         elif layer == 'mod5':
             layer = 5
-            org_classes = 16777216
+            org_classes = 33554432
         elif layer == 'mod6':
             layer = 6
-            org_classes = 16777216
+            org_classes = 67108864
         elif layer == 'mod7':
             layer = 7
-            org_classes = 16777216
+            org_classes = 134217728
     else:
         org_classes = 512
     features = nn.Sequential(*list(model.children())[:layer])
