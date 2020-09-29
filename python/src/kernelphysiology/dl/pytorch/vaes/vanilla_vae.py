@@ -30,11 +30,11 @@ class VanillaVAE(nn.Module):
                     nn.LeakyReLU())
             )
             in_channels = h_dim
-        modules.append(nn.AdaptiveAvgPool2d((1, 1)))
+        # modules.append(nn.AdaptiveAvgPool2d((1, 1)))
 
         self.encoder = nn.Sequential(*modules)
-        self.fc_mu = nn.Linear(hidden_dims[-1], latent_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1], latent_dim)
+        self.fc_mu = nn.Linear(hidden_dims[-1] * 4, latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1] * 4, latent_dim)
 
         # Build Decoder
         modules = []
