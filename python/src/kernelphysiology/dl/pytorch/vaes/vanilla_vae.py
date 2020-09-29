@@ -5,7 +5,8 @@ from torch.nn import functional as F
 
 class VanillaVAE(nn.Module):
 
-    def __init__(self, in_channels, latent_dim, hidden_dims=None, **kwargs) -> None:
+    def __init__(self, latent_dim, in_channels=3, hidden_dims=None,
+                 **kwargs) -> None:
         super(VanillaVAE, self).__init__()
 
         self.latent_dim = latent_dim
@@ -17,7 +18,7 @@ class VanillaVAE(nn.Module):
 
         modules = []
         if hidden_dims is None:
-            hidden_dims = [32, 64, 128, 256, 512]
+            hidden_dims = [16, 32, 64, 128, 256]
 
         # Build Encoder
         for h_dim in hidden_dims:
@@ -29,17 +30,18 @@ class VanillaVAE(nn.Module):
                     nn.LeakyReLU())
             )
             in_channels = h_dim
+        modules.append(nn.AdaptiveAvgPool2d((1, 1)))
 
         self.encoder = nn.Sequential(*modules)
-        self.fc_mu = nn.Linear(hidden_dims[-1] * 4, latent_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1] * 4, latent_dim)
+        self.fc_mu = nn.Linear(hidden_dims[-1], latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1], latent_dim)
 
         # Build Decoder
         modules = []
 
-        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1] * 4)
+        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1])
 
-        hidden_dims.reverse()
+        hidden_dims = [16, 32, 64, 128]
 
         for i in range(len(hidden_dims) - 1):
             modules.append(
@@ -77,7 +79,7 @@ class VanillaVAE(nn.Module):
         :return: (Tensor) List of latent codes
         """
         result = self.encoder(input)
-        result = torch.flatten(result, start_dim=1)
+        result = result.view(result.size(0), -1)
 
         # Split the result into mu and var components
         # of the latent Gaussian distribution
@@ -86,7 +88,7 @@ class VanillaVAE(nn.Module):
 
         return [mu, log_var]
 
-    def decode(self, z):
+    def decode(self, z, insize):
         """
         Maps the given latent codes
         onto the image space.
@@ -94,9 +96,10 @@ class VanillaVAE(nn.Module):
         :return: (Tensor) [B x C x H x W]
         """
         result = self.decoder_input(z)
-        result = result.view(-1, 512, 2, 2)
+        result = result.view(-1, 16, 4, 4)
         result = self.decoder(result)
         result = self.final_layer(result)
+        result = torch.nn.functional.upsample_bilinear(result, size=insize[2:])
         return result
 
     def reparameterize(self, mu, logvar):
@@ -114,7 +117,7 @@ class VanillaVAE(nn.Module):
     def forward(self, input, **kwargs):
         mu, log_var = self.encode(input)
         z = self.reparameterize(mu, log_var)
-        return self.decode(z), input, mu, log_var
+        return self.decode(z, input.shape), input, mu, log_var
 
     def loss_function(self, input, recons, _, mu, log_var, **kwargs):
         """

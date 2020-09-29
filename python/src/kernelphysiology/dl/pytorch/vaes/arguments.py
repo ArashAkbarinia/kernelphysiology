@@ -10,7 +10,7 @@ def parse_arguments(args):
         help='autoencoder variant to use: vae | vqvae'
     )
     model_parser.add_argument(
-        '--batch-size', type=int, default=128, metavar='N',
+        '--batch_size', type=int, default=128, metavar='N',
         help='input batch size for training (default: 128)'
     )
     model_parser.add_argument(

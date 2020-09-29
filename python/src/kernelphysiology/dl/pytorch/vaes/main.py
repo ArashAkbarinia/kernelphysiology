@@ -196,7 +196,7 @@ def main(args):
             out_chns=out_chns
         )
     elif args.model == 'vae':
-        model = vanilla_vae.VanillaVAE(3, args.k)
+        model = vanilla_vae.VanillaVAE(latent_dim=args.k, in_channels=3)
     else:
         task = None
         out_chns = 3
