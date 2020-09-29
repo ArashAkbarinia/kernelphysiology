@@ -18,7 +18,7 @@ class VanillaVAE(nn.Module):
 
         modules = []
         if hidden_dims is None:
-            hidden_dims = [256, 512, 1024, 2048]
+            hidden_dims = [32, 128, 512, 2048]
 
         # Build Encoder
         for h_dim in hidden_dims:
@@ -41,7 +41,7 @@ class VanillaVAE(nn.Module):
 
         self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1])
 
-        hidden_dims = [8, 16, 32, 64, 128]
+        hidden_dims = [8, 32, 128, 512]
 
         for i in range(len(hidden_dims) - 1):
             modules.append(
