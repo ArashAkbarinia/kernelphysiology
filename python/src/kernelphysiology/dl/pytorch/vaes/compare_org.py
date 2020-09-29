@@ -63,7 +63,8 @@ def main(args):
         if img_org.shape != img_res.shape:
             img_org = cv2.resize(img_org, (img_res.shape[1], img_res.shape[0]))
 
-        ssim = metrics.structural_similarity(img_org, img_res)
+        ssim = metrics.structural_similarity(img_org, img_res,
+                                             multichannel=True)
         all_ssim.append(ssim)
         psnr = metrics.peak_signal_noise_ratio(img_org, img_res)
         all_psnr.append(psnr)
