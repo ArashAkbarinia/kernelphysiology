@@ -18,7 +18,7 @@ class VanillaVAE(nn.Module):
 
         modules = []
         if hidden_dims is None:
-            hidden_dims = [32, 128, 512, 2048]
+            hidden_dims = [16, 64, 256, 1024]
 
         # Build Encoder
         for h_dim in hidden_dims:
@@ -41,7 +41,7 @@ class VanillaVAE(nn.Module):
 
         self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1])
 
-        hidden_dims = [8, 32, 128, 512]
+        hidden_dims = [4, 16, 64, 256]
 
         for i in range(len(hidden_dims) - 1):
             modules.append(
@@ -96,7 +96,7 @@ class VanillaVAE(nn.Module):
         :return: (Tensor) [B x C x H x W]
         """
         result = self.decoder_input(z)
-        result = result.view(-1, 8, 16, 16)
+        result = result.view(-1, 4, 16, 16)
         result = self.decoder(result)
         result = self.final_layer(result)
         result = torch.nn.functional.upsample_bilinear(result, size=insize[2:])
