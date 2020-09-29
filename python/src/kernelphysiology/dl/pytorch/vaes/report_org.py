@@ -6,6 +6,7 @@ import torch
 from torchvision import transforms
 
 from skimage import color
+from skimage import metrics
 import cv2
 from kernelphysiology.dl.pytorch.datasets import data_loaders
 
@@ -16,13 +17,15 @@ from kernelphysiology.transformations import colour_spaces
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.transformations import normalisations
+from kernelphysiology.dl.pytorch.vaes import vanilla_vae
 import argparse
 
 
 def parse_arguments(args):
     parser = argparse.ArgumentParser(description='Variational AutoEncoders')
+    parser.add_argument('--model_path')
     parser.add_argument(
-        '--model_path',
+        '--model', default='vqvae',
         help='autoencoder variant to use: vae | vqvae'
     )
     parser.add_argument(
@@ -41,6 +44,12 @@ def parse_arguments(args):
                         help='The type of output colour space.')
     parser.add_argument('--target_size', type=int, default=224,
                         dest='target_size', help='target_size of image')
+    parser.add_argument(
+        '--de',
+        action='store_true',
+        default=False,
+        help='Compute DeltaE (default: False)'
+    )
 
     parser.add_argument(
         '--dataset', default=None,
@@ -70,10 +79,13 @@ def parse_arguments(args):
 
 def main(args):
     args = parse_arguments(args)
-    weights_rgb = torch.load(args.model_path, map_location='cpu')
-    network = vqmodel.VQ_CVAE(128, k=args.k, kl=args.kl, in_chns=3,
-                              cos_distance=args.cos_dis)
-    network.load_state_dict(weights_rgb)
+    weights_net = torch.load(args.model_path, map_location='cpu')
+    if args.model == 'vae':
+        network = vanilla_vae.VanillaVAE(latent_dim=args.k, in_channels=3)
+    else:
+        network = vqmodel.VQ_CVAE(128, k=args.k, kl=args.kl, in_chns=3,
+                                  cos_distance=args.cos_dis)
+    network.load_state_dict(weights_net)
     if args.exclude > 0:
         which_vec = [args.exclude - 1]
         print(which_vec)
@@ -145,7 +157,9 @@ def main(args):
 
 
 def export(data_loader, model, mean, std, args):
-    diffs = []
+    all_des = []
+    all_ssim = []
+    all_psnr = []
     with torch.no_grad():
         for i, (img_readies, img_target, img_paths) in enumerate(data_loader):
             img_readies = img_readies.cuda()
@@ -176,7 +190,6 @@ def export(data_loader, model, mean, std, args):
                 else:
                     org_img_tmp = normalisations.uint8im(org_img_tmp)
 
-
                 # if os.path.exists(img_path.replace(cat_in_dir, rgb_dir)):
                 #     rec_rgb_tmp = cv2.imread(
                 #         img_path.replace(cat_in_dir, rgb_dir))
@@ -202,13 +215,24 @@ def export(data_loader, model, mean, std, args):
                 else:
                     rec_img_tmp = normalisations.uint8im(rec_img_tmp)
 
-                img_org = color.rgb2lab(org_img_tmp)
-                img_res = color.rgb2lab(rec_img_tmp)
-                de = color.deltaE_ciede2000(img_org, img_res)
-                diffs.append([np.mean(de), np.median(de), np.max(de)])
+                ssim = metrics.structural_similarity(img_org, img_res)
+                all_ssim.append(ssim)
+                psnr = metrics.peak_signal_noise_ratio(img_org, img_res)
+                all_psnr.append(psnr)
 
-            np.savetxt(args.out_dir + '/' + args.colour_space + '.txt',
-                       np.array(diffs))
+                if args.de:
+                    img_org = color.rgb2lab(org_img_tmp)
+                    img_res = color.rgb2lab(rec_img_tmp)
+                    de = color.deltaE_ciede2000(img_org, img_res)
+                    all_des.append([np.mean(de), np.median(de), np.max(de)])
+
+            np.savetxt(args.out_dir + '/ssim_' + args.colour_space + '.txt',
+                       np.array(all_ssim))
+            np.savetxt(args.out_dir + '/psnr_' + args.colour_space + '.txt',
+                       np.array(all_psnr))
+            if args.de:
+                np.savetxt(args.out_dir + '/de_' + args.colour_space + '.txt',
+                           np.array(all_des))
 
 
 if __name__ == "__main__":
