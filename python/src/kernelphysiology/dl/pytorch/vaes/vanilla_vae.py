@@ -130,9 +130,10 @@ class VanillaVAE(nn.Module):
 
         self.recons_loss = F.mse_loss(recons, input)
 
-        self.kld_loss = torch.mean(
-            -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1),
-            dim=0)
+        # self.kld_loss = torch.mean(
+        #     -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1),
+        #     dim=0)
+        self.kld_loss = torch.mean((mu ** 2 + log_var.exp() - 1 - log_var) / 2)
 
         self.loss = self.recons_loss + self.kld_weight * self.kld_loss
         return self.loss
