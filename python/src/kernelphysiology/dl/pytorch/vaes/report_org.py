@@ -215,10 +215,10 @@ def export(data_loader, model, mean, std, args):
                 else:
                     rec_img_tmp = normalisations.uint8im(rec_img_tmp)
 
-                ssim = metrics.structural_similarity(img_org, img_res,
+                ssim = metrics.structural_similarity(org_img_tmp, rec_img_tmp,
                                                      multichannel=True)
                 all_ssim.append(ssim)
-                psnr = metrics.peak_signal_noise_ratio(img_org, img_res)
+                psnr = metrics.peak_signal_noise_ratio(org_img_tmp, rec_img_tmp)
                 all_psnr.append(psnr)
 
                 if args.de:
