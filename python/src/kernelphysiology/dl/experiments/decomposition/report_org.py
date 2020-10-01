@@ -89,7 +89,7 @@ def main(args):
     args.outs_dict[args.out_colour_space] = {'shape': [1, 1, 3]}
     from segmentation_models import unet
     network = unet.model.Unet(
-        in_channels=args.in_chns, encoder_weights=None,
+        in_channels=3, encoder_weights=None,
         outs_dict=args.outs_dict, classes=3
     )
 
