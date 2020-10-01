@@ -81,6 +81,12 @@ def parse_arguments(args):
 def main(args):
     args = parse_arguments(args)
     weights_net = torch.load(args.model_path, map_location='cpu')
+
+    args.in_colour_space = args.colour_space[:3]
+    args.out_colour_space = args.colour_space[4:]
+
+    args.outs_dict = dict()
+    args.outs_dict[args.out_colour_space] = {'shape': [1, 1, 3]}
     from segmentation_models import unet
     network = unet.model.Unet(
         in_channels=args.in_chns, encoder_weights=None,
@@ -102,9 +108,6 @@ def main(args):
 
     if not os.path.exists(args.out_dir):
         os.mkdir(args.out_dir)
-
-    args.in_colour_space = args.colour_space[:3]
-    args.out_colour_space = args.colour_space[4:]
 
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
