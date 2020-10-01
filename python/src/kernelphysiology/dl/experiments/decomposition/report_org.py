@@ -169,7 +169,8 @@ def export(data_loader, model, mean, std, args):
         for i, (img_readies, img_target, img_paths) in enumerate(data_loader):
             img_readies = img_readies.cuda()
             out_rgb = model(img_readies)
-            out_rgb = out_rgb[0].detach().cpu()
+            out_rgb = out_rgb[0]
+            out_rgb = out_rgb[args.out_colour_space].detach().cpu()
             img_readies = img_readies.detach().cpu()
 
             for img_ind in range(out_rgb.shape[0]):
