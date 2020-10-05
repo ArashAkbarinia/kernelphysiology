@@ -484,7 +484,7 @@ def inverse_mean_std(mean, std):
 
 def normalize_inverse(imgs, mean, std):
     mean_inv, std_inv = inverse_mean_std(mean, std)
-    return tfunctional.normalize(imgs.clone(), mean_inv, std_inv)
+    return tfunctional.normalize(imgs, mean_inv, std_inv)
 
 
 class NormalizeInverse(Normalize):
@@ -498,4 +498,4 @@ class NormalizeInverse(Normalize):
         super().__init__(mean=mean_inv, std=std_inv)
 
     def __call__(self, tensor):
-        return super().__call__(tensor.clone())
+        return super().__call__(tensor)

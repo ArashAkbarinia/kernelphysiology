@@ -65,7 +65,7 @@ def to_tensor_classes(pic):
     return torch.as_tensor(np.asarray(pic), dtype=torch.int64)
 
 
-def normalize(tensor, mean, std):
+def normalize(tensor, mean, std, inplace=False):
     """Normalize a tensor image with mean and standard deviation.
 
     See ``Normalize`` for more details.
@@ -82,12 +82,20 @@ def normalize(tensor, mean, std):
         mean = tuple([mean for _ in range(tensor.shape[0])])
     if type(std) not in [tuple, list]:
         std = tuple([std for _ in range(tensor.shape[0])])
+
     if _is_tensor_image(tensor):
+        if not inplace:
+            tensor = tensor.clone()
+        dtype = tensor.dtype
+        mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
+        std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
         for t, m, s in zip(tensor, mean, std):
             t.sub_(m).div_(s)
         return tensor
     elif _is_numpy_image(tensor):
-        return (np.float32(tensor) - 255.0 * np.array(mean)) / np.array(std)
+        if not inplace:
+            tensor = tensor.copy()
+        return (tensor - np.array(mean)) / np.array(std)
     else:
         raise RuntimeError('Undefined type')
 
