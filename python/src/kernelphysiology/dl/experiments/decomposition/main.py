@@ -16,6 +16,7 @@ from torchvision import transforms
 
 from kernelphysiology.dl.experiments.decomposition import util as vae_util
 from kernelphysiology.dl.experiments.decomposition import model_single
+from kernelphysiology.dl.experiments.decomposition import model_category
 from kernelphysiology.dl.experiments.decomposition import model_multi
 from kernelphysiology.dl.experiments.decomposition import model_segmentation
 from kernelphysiology.dl.experiments.decomposition import arguments
@@ -127,6 +128,14 @@ def main(args):
                 outs_dict=args.outs_dict, classes=out_shape[-1]
             )
             arch_params = {'encoder_name': 'resnet18'}
+        elif args.model == 'category':
+            # FIXME: archs_param should be added to resume and fine_tune
+            arch_params = {'k': args.k, 'd': args.d, 'hidden': args.hidden}
+            vae_model = model_category
+            model = vae_model.DecomposeNet(
+                hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
+                outs_dict=args.outs_dict
+            )
         else:
             # FIXME: archs_param should be added to resume and fine_tune
             arch_params = {'k': args.k, 'd': args.d, 'hidden': args.hidden}
@@ -319,6 +328,12 @@ def train(epoch, model, train_loader, optimizer, save_path, args):
                 args.outs_dict, target, outputs[0], args.mean, args.std, epoch,
                 save_path, 'reconstruction_train%.5d' % bidx
             )
+            if args.model == 'category':
+                vae_util.grid_save_reconstructions(
+                    args.outs_dict, target, outputs[4], args.mean, args.std,
+                    epoch,
+                    save_path, 'category_train%.5d' % bidx
+                )
 
         if bidx * len(data) > args.train_samples:
             break
@@ -357,6 +372,12 @@ def test_net(epoch, model, test_loader, save_path, args):
                     args.outs_dict, target, outputs[0], args.mean, args.std,
                     epoch, save_path, 'reconstruction_test%.5d' % bidx
                 )
+                if args.model == 'category':
+                    vae_util.grid_save_reconstructions(
+                        args.outs_dict, target, outputs[4], args.mean, args.std,
+                        epoch,
+                        save_path, 'category_test%.5d' % bidx
+                    )
             if bidx * len(data) > args.test_samples:
                 break
 
