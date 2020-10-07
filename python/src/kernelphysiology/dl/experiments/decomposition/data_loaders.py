@@ -170,3 +170,34 @@ class TouchRelief(tdatasets.VisionDataset):
 
     def __len__(self):
         return len(self.inputs)
+
+
+class VOCSegmentation(tdatasets.VOCSegmentation):
+    def __init__(self, intransform=None, outtransform=None,
+                 pre_transform=None, post_transform=None, **kwargs):
+        super(VOCSegmentation, self).__init__(**kwargs)
+        self.loader = tdatasets.folder.pil_loader
+        self.intransform = intransform
+        self.outtransform = outtransform
+        self.pre_transform = pre_transform
+        self.post_transform = post_transform
+
+    def __getitem__(self, index):
+        path = self.images[index]
+        imgin = self.loader(path)
+        imgin = np.asarray(imgin).copy()
+        imgout = self.loader(self.masks[index])
+        imgout = np.asarray(imgout).copy()
+
+        imgin, imgout = _apply_transforms(
+            imgin, imgout, self.intransform, self.outtransform,
+            self.pre_transform, self.post_transform
+        )
+
+        if self.transform is not None:
+            imgin, imgout = self.transform([imgin, imgout])
+
+        return imgin, imgout, path
+
+    def __len__(self):
+        return len(self.images)
