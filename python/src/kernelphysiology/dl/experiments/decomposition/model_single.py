@@ -111,11 +111,10 @@ class DecomposeNet(AbstractAutoEncoder):
             nn.BatchNorm2d(hidden),
             nn.ReLU(inplace=True),
         )
-        self.out_layers = dict()
         for key, val in outs_dict.items():
-            self.out_layers[key] = nn.ConvTranspose2d(
+            setattr(self, 'out_%s' % key, nn.ConvTranspose2d(
                 hidden, val['shape'][-1], kernel_size=4, stride=2, padding=1
-            )
+            ))
         self.vq_coef = vq_coef
         self.commit_coef = commit_coef
         self.mse = 0
@@ -140,20 +139,21 @@ class DecomposeNet(AbstractAutoEncoder):
         x_a = self.decoder_a(x)
         x_b = self.decoder_b(x_a)
         out_imgs = dict()
-        for key, val in self.out_layers.items():
+        for key, val in self.outs_dict.items():
             target_size = [insize[0], insize[1]]
             for i in range(2):
-                if self.outs_dict[key]['shape'][i] is not None:
+                if val['shape'][i] is not None:
                     # we pass the output as a scale of input
-                    target_size[i] *= self.outs_dict[key]['shape'][i]
+                    target_size[i] *= val['shape'][i]
                     # in case the scale has caused a floating point
                     target_size[i] = int(target_size[i])
-                    if self.outs_dict[key]['shape'][i] == 0.5:
+                    if val['shape'][i] == 0.5:
                         x = x_a
                     else:
                         x = x_b
+            current_out = getattr(self, 'out_%s' % key)
             out_imgs[key] = torch.tanh(nn.functional.interpolate(
-                val(x), size=target_size
+                current_out(x), size=target_size
             ))
         return out_imgs
 
@@ -218,8 +218,3 @@ class DecomposeNet(AbstractAutoEncoder):
         unique, counts = np.unique(argmin, return_counts=True)
         logging.info(counts)
         logging.info(unique)
-
-    def cuda(self, device=None):
-        for key in self.out_layers.keys():
-            self.out_layers[key] = self.out_layers[key].cuda()
-        return super().cuda(device=device)
