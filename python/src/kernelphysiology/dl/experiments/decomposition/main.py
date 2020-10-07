@@ -226,7 +226,7 @@ def main(args):
             root=args.data_dir, image_set='train', **transforms_kwargs
         )
         test_dataset = datasets_classes[args.dataset](
-            root=args.data_dir, image_set='test', **transforms_kwargs
+            root=args.data_dir, image_set='val', **transforms_kwargs
         )
     else:
         train_dataset = datasets_classes[args.dataset](
