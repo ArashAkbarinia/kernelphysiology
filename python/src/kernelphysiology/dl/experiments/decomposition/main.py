@@ -386,9 +386,13 @@ def test_net(epoch, model, test_loader, save_path, args):
                     epoch, save_path, 'reconstruction_test%.5d' % bidx
                 )
                 if args.model == 'category':
+                    target_ab = target['lab']
+                    target_ab[:, 0] = 0
+                    cat_out = target_ab.clone()
+                    cat_out[:, 1:3] = outputs[4]['lab'].detach()
                     vae_util.grid_save_reconstructions(
-                        args.outs_dict, target, outputs[4], args.mean, args.std,
-                        epoch,
+                        args.outs_dict, {'lab': target_ab}, {'lab': cat_out},
+                        args.mean, args.std, epoch,
                         save_path, 'category_test%.5d' % bidx
                     )
             if bidx * len(data) > args.test_samples:
