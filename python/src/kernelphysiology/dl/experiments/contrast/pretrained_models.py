@@ -97,6 +97,22 @@ def _resnet_features(model, network_name, layer, grey_width):
                     org_classes = 2097152
                 else:
                     org_classes = 524288
+        elif layer == 'layer5':
+            layer = 8
+            if grey_width:
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 215040
+                elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+                    org_classes = 3397632
+                else:
+                    org_classes = 860160
+            else:
+                if network_name in ['resnet18', 'resnet34']:
+                    org_classes = 65536
+                elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+                    org_classes = 4194304
+                else:
+                    org_classes = 262144
     else:
         org_classes = 512
     features = nn.Sequential(*list(model.children())[:layer])
