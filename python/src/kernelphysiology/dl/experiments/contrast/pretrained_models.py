@@ -45,7 +45,7 @@ def _cityscape_features(model, network_name, layer, grey_width):
 
 def _resnet_features(model, network_name, layer, grey_width):
     if type(layer) is str:
-        if layer == 'layer1':
+        if layer == 'layer0':
             layer = 4
             if grey_width:
                 if network_name in ['resnet18', 'resnet34']:
@@ -57,7 +57,7 @@ def _resnet_features(model, network_name, layer, grey_width):
                     org_classes = 524288
                 else:
                     org_classes = 524288
-        elif layer == 'layer2':
+        elif layer == 'layer1':
             layer = 5
             if grey_width:
                 if network_name in ['resnet18', 'resnet34']:
@@ -69,7 +69,7 @@ def _resnet_features(model, network_name, layer, grey_width):
                     org_classes = 524288
                 else:
                     org_classes = 2097152
-        elif layer == 'layer3':
+        elif layer == 'layer2':
             layer = 6
             if grey_width:
                 if network_name in ['resnet18', 'resnet34']:
@@ -81,7 +81,7 @@ def _resnet_features(model, network_name, layer, grey_width):
                     org_classes = 262144
                 else:
                     org_classes = 1048576
-        elif layer == 'layer4':
+        elif layer == 'layer3':
             layer = 7
             if grey_width:
                 if network_name in ['resnet18', 'resnet34']:
@@ -97,7 +97,7 @@ def _resnet_features(model, network_name, layer, grey_width):
                     org_classes = 2097152
                 else:
                     org_classes = 524288
-        elif layer == 'layer5':
+        elif layer == 'layer4':
             layer = 8
             if grey_width:
                 if network_name in ['resnet18', 'resnet34']:
