@@ -169,9 +169,10 @@ class DecomposeNet(AbstractAutoEncoder):
         # assuming single output
         category_img = dict()
         for key in self.outs_dict.keys():
-            category_img[key] = nn.functional.interpolate(
-                z_q, size=insize, mode='nearest'
+            embed_imgsize = nn.functional.interpolate(
+                z_q[:, 0:2], size=insize, mode='nearest'
             )
+            category_img[key] = embed_imgsize
 
         return self.decode(z_q, insize=insize), z_e, emb, argmin, category_img
 
@@ -206,7 +207,9 @@ class DecomposeNet(AbstractAutoEncoder):
 
     def loss_function(self, x, recon_x, z_e, emb, argmin, category_img):
         self.mse = losses.decomposition_loss(recon_x, x)
-        self.category_loss = losses.decomposition_loss(category_img, x)
+        self.category_loss = losses.decomposition_loss(
+            category_img, {'lab': x['lab'][:, 1:3]}
+        )
 
         self.vq_loss = torch.mean(torch.norm((emb - z_e.detach()) ** 2, 2, 1))
         self.commit_loss = torch.mean(
