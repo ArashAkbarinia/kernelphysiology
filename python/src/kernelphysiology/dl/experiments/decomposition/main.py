@@ -340,12 +340,14 @@ def train(epoch, model, train_loader, optimizer, save_path, args):
                 save_path, 'reconstruction_train%.5d' % bidx
             )
             if args.model == 'category':
-                target_ab = target['lab']
-                target_ab[:, 0] = 0
-                cat_out = target_ab.clone()
-                cat_out[:, 1:3] = outputs[4]['lab'].detach()
+                target_lab = target['lab']
+                lab_tensor = vae_util.quantilise_lum(target_lab)
+                cat_out = outputs[4]['lab'].detach()
+                # target_ab[:, 0] = 0
+                # cat_out = target_ab.clone()
+                # cat_out[:, 1:3] = outputs[4]['lab'].detach()
                 vae_util.grid_save_reconstructions(
-                    args.outs_dict, {'lab': target_ab}, {'lab': cat_out},
+                    args.outs_dict, {'lab': lab_tensor}, {'lab': cat_out},
                     args.mean, args.std, epoch,
                     save_path, 'category_train%.5d' % bidx
                 )
@@ -388,12 +390,14 @@ def test_net(epoch, model, test_loader, save_path, args):
                     epoch, save_path, 'reconstruction_test%.5d' % bidx
                 )
                 if args.model == 'category':
-                    target_ab = target['lab']
-                    target_ab[:, 0] = 0
-                    cat_out = target_ab.clone()
-                    cat_out[:, 1:3] = outputs[4]['lab'].detach()
+                    target_lab = target['lab']
+                    lab_tensor = vae_util.quantilise_lum(target_lab)
+                    cat_out = outputs[4]['lab'].detach()
+                    # target_ab[:, 0] = 0
+                    # cat_out = target_ab.clone()
+                    # cat_out[:, 1:3] = outputs[4]['lab'].detach()
                     vae_util.grid_save_reconstructions(
-                        args.outs_dict, {'lab': target_ab}, {'lab': cat_out},
+                        args.outs_dict, {'lab': lab_tensor}, {'lab': cat_out},
                         args.mean, args.std, epoch,
                         save_path, 'category_test%.5d' % bidx
                     )

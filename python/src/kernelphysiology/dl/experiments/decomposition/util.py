@@ -158,3 +158,15 @@ def wavelet_visualise(tensor):
     img *= 255
     img = np.uint8(img).squeeze()
     return img
+
+
+def quantilise_lum(lab_tensor):
+    lab_tensor = lab_tensor.clone()
+    condition = torch.zeros(lab_tensor.shape) == 1
+    condition[:, 0] = lab_tensor[:, 0] < -0.33
+    lab_tensor[condition] = -0.5
+    condition[:, 0] = lab_tensor[:, 0] > +0.33
+    lab_tensor[condition] = +0.5
+    condition[:, 0] = (lab_tensor[:, 0] <= +0.33) & (lab_tensor[:, 0] >= -0.33)
+    lab_tensor[condition] = +0.0
+    return lab_tensor

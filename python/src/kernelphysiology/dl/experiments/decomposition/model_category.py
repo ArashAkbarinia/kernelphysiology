@@ -11,6 +11,7 @@ from torch import nn
 import torch.utils.data
 
 from kernelphysiology.dl.experiments.decomposition import nearest_embed
+from kernelphysiology.dl.experiments.decomposition import util as vae_util
 from kernelphysiology.dl.pytorch.optimisations import losses
 
 
@@ -170,7 +171,7 @@ class DecomposeNet(AbstractAutoEncoder):
         category_img = dict()
         for key in self.outs_dict.keys():
             embed_imgsize = nn.functional.interpolate(
-                z_q[:, 0:2], size=insize, mode='nearest'
+                z_q[:, 0:3], size=insize, mode='nearest'
             )
             category_img[key] = embed_imgsize
 
@@ -207,8 +208,10 @@ class DecomposeNet(AbstractAutoEncoder):
 
     def loss_function(self, x, recon_x, z_e, emb, argmin, category_img):
         self.mse = losses.decomposition_loss(recon_x, x)
+        target_lab = x['lab']
+        lab_tensor = vae_util.quantilise_lum(target_lab)
         self.category_loss = losses.decomposition_loss(
-            category_img, {'lab': x['lab'][:, 1:3]}
+            category_img, {'lab': lab_tensor}
         )
 
         self.vq_loss = torch.mean(torch.norm((emb - z_e.detach()) ** 2, 2, 1))
