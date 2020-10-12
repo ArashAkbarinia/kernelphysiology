@@ -223,7 +223,14 @@ def main(args):
         test_dataset = datasets_classes[args.dataset](
             root=args.data_dir, split='test', **transforms_kwargs
         )
-    elif args.dataset in ['voc', 'coco']:
+    elif args.dataset in ['coco']:
+        train_dataset = datasets_classes[args.dataset](
+            root=args.data_dir, split='train', **transforms_kwargs
+        )
+        test_dataset = datasets_classes[args.dataset](
+            root=args.data_dir, split='val', **transforms_kwargs
+        )
+    elif args.dataset in ['voc']:
         train_dataset = datasets_classes[args.dataset](
             root=args.data_dir, image_set='train', **transforms_kwargs
         )
