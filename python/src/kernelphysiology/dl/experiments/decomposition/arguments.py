@@ -69,7 +69,7 @@ def parse_arguments(args):
     )
     pipe_parser.add_argument(
         '--dataset', default='imagenet',
-        choices=('imagenet', 'celeba', 'touch', 'voc'),
+        choices=('imagenet', 'celeba', 'touch', 'voc', 'coco'),
         help='dataset for train/validation'
     )
     pipe_parser.add_argument(

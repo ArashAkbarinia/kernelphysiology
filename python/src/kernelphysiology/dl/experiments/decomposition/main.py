@@ -31,12 +31,14 @@ datasets_classes = {
     'celeba': data_loaders.CelebA,
     'touch': data_loaders.TouchRelief,
     'voc': data_loaders.VOCSegmentation,
+    'coco': data_loaders.COCOPanoptic,
 }
 dataset_target_size = {
     'imagenet': 256,
     'celeba': 64,
     'touch': 256,
-    'voc': 256
+    'voc': 256,
+    'coco': 256,
 }
 
 
@@ -221,7 +223,7 @@ def main(args):
         test_dataset = datasets_classes[args.dataset](
             root=args.data_dir, split='test', **transforms_kwargs
         )
-    elif args.dataset in ['voc']:
+    elif args.dataset in ['voc', 'coco']:
         train_dataset = datasets_classes[args.dataset](
             root=args.data_dir, image_set='train', **transforms_kwargs
         )

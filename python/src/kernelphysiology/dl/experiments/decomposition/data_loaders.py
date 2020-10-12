@@ -4,8 +4,13 @@ Data-loader for multiple outputs.
 
 import os
 import numpy as np
+import json
+
+import cv2
 
 from torchvision import datasets as tdatasets
+
+from panopticapi.utils import rgb2id
 
 from kernelphysiology.utils import path_utils
 
@@ -201,3 +206,69 @@ class VOCSegmentation(tdatasets.VOCSegmentation):
 
     def __len__(self):
         return len(self.images)
+
+
+class COCOPanoptic(tdatasets.VisionDataset):
+    def __init__(self, split, intransform=None, outtransform=None,
+                 pre_transform=None, post_transform=None, **kwargs):
+        super(COCOPanoptic, self).__init__(**kwargs)
+        json_path = os.path.join(
+            self.root, 'panoptic_annotations', 'annotations',
+            'panoptic_%s2017.json' % split
+        )
+        with open(json_path, 'r') as f:
+            d_coco = json.load(f)
+        self.annotations = d_coco['annotations']
+        self.imgs_dir = os.path.join(self.root, 'images', '%s2017' % split)
+        self.gts_dir = os.path.join(
+            self.root, 'panoptic_annotations', 'annotations',
+            'panoptic_%s2017' % split
+        )
+
+        self.loader = tdatasets.folder.pil_loader
+        self.intransform = intransform
+        self.outtransform = outtransform
+        self.pre_transform = pre_transform
+        self.post_transform = post_transform
+
+    def __getitem__(self, index):
+        current_annotation = self.annotations[index]
+        img_name = current_annotation['file_name']
+        img_path = os.path.join(self.imgs_dir, img_name.replace('png', 'jpg'))
+        gt_path = os.path.join(self.gts_dir, img_name)
+
+        imgin = self.loader(img_path)
+        imgin = np.asarray(imgin).copy()
+        pan_img = self.loader(gt_path)
+        pan_img = np.asarray(pan_img).copy()
+        pan = rgb2id(pan_img)
+        # semantic = np.zeros(pan.shape, dtype=np.uint8)
+        #
+        # for segm_info in current_annotation['segments_info']:
+        #     cat_id = segm_info['category_id']
+        #     mask = pan == segm_info['id']
+        #     semantic[mask] = cat_id
+
+        colour_cat_img = imgin.copy()
+        colour_cat_img = cv2.cvtColor(colour_cat_img, cv2.COLOR_RGB2LAB)
+        colour_cat_img = colour_cat_img.astype('float') / 255
+        weights = [[0.25, 0.75], [0.5, 0.5], [0.5, 0.5]]
+        for unique_id in np.unique(pan):
+            condition = pan == unique_id
+            for i in range(3):
+                imgchn = colour_cat_img[:, :, i]
+                imgchn[condition] = imgchn[condition] * weights[i][0] + np.mean(
+                    imgchn[condition]) * weights[i][1]
+                colour_cat_img[:, :, i] = imgchn
+        colour_cat_img = (colour_cat_img * 255).astype('uint8')
+        imgout = cv2.cvtColor(colour_cat_img, cv2.COLOR_LAB2RGB)
+
+        imgin, imgout = _apply_transforms(
+            imgin, imgout, self.intransform, self.outtransform,
+            self.pre_transform, self.post_transform
+        )
+
+        return imgin, imgout, gt_path
+
+    def __len__(self):
+        return len(self.inputs)
