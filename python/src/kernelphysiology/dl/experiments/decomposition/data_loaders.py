@@ -271,4 +271,4 @@ class COCOPanoptic(tdatasets.VisionDataset):
         return imgin, imgout, gt_path
 
     def __len__(self):
-        return len(self.inputs)
+        return len(self.annotations)
