@@ -100,13 +100,15 @@ def report_csf(contrast_sf_mat, test_contrasts, th=0.75):
                 break
 
     csf_contrast_vals = []
-    up_contrast = 1.0
-    low_contrast = 0.0
     for i in range(len(csf_inds)):
         if i > 0:
             low_contrast = test_contrasts[i - 1]
+        else:
+            low_contrast = 0.0
         if i < len(csf_inds) - 1:
             up_contrast = test_contrasts[i + 1]
+        else:
+            up_contrast = 1.0
         diff_acc = accatth[i] - 0.75
         if abs(diff_acc) < 0.005:
             csf_contrast_vals.append(None)
