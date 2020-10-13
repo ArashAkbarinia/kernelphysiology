@@ -261,7 +261,7 @@ def main(args):
     if args.db == 'gratings':
         for i in range(len(csf_flags)):
             while csf_flags[i] is not None:
-                print('%.2d Doing %f' % (i, test_sfs[i]))
+                print('%.2d Doing %f %f' % (i, test_sfs[i], csf_flags[i]))
                 db.lambda_wave = test_sfs[i]
                 db_loader = torch.utils.data.DataLoader(
                     db, batch_size=args.batch_size, shuffle=False,
