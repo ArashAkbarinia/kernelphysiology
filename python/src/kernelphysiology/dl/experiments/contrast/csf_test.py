@@ -43,10 +43,12 @@ def parse_arguments(args):
                               default=False)
     model_parser.add_argument('--grey_width', default=40, choices=[0, 40],
                               type=int)
+    model_parser.add_argument('--old_results', type=str, default=None)
     return parser.parse_args(args)
 
 
-def run_gratings(db_loader, model, out_file, update=False, mean_std=None):
+def run_gratings(db_loader, model, out_file, update=False, mean_std=None,
+                 old_results=None):
     with torch.no_grad():
         header = 'Contrast,SpatialFrequency,Theta,Rho,Side,Prediction'
         all_results = []
@@ -79,7 +81,83 @@ def run_gratings(db_loader, model, out_file, update=False, mean_std=None):
                 print('%.2f [%d/%d]' % (percent, test_num, num_tests))
 
     save_path = out_file + '.csv'
-    np.savetxt(save_path, np.array(all_results), delimiter=',', header=header)
+    if old_results is not None:
+        all_results = [*old_results, *all_results]
+    all_results = np.array(all_results)
+    np.savetxt(save_path, all_results, delimiter=',', header=header)
+    return all_results
+
+
+def report_csf(contrast_sf_mat, test_contrasts, th=0.75):
+    contrast_sf_mat[contrast_sf_mat < th] = 0
+    csf_inds = []
+    accatth = []
+    for j in range(contrast_sf_mat.shape[1]):
+        for k in range(contrast_sf_mat.shape[0]):
+            if contrast_sf_mat[k, j] > 0 or k == (contrast_sf_mat.shape[0] - 1):
+                csf_inds.append(k)
+                accatth.append(contrast_sf_mat[k, j])
+                break
+
+    csf_contrast_vals = []
+    up_contrast = 1.0
+    low_contrast = 0.0
+    for i in range(len(csf_inds)):
+        if i > 0:
+            low_contrast = test_contrasts[i - 1]
+        if i < len(csf_inds) - 1:
+            up_contrast = test_contrasts[i + 1]
+        diff_acc = accatth[i] - 0.75
+        if abs(diff_acc) < 0.005:
+            csf_contrast_vals.append(None)
+        elif diff_acc > 0:
+            csf_contrast_vals.append(
+                (low_contrast + test_contrasts[csf_inds[i]]) / 2
+            )
+        else:
+            csf_contrast_vals.append(
+                (up_contrast + test_contrasts[csf_inds[i]]) / 2
+            )
+
+    return csf_contrast_vals
+
+
+def report_csf_variable(result_mat, varname='all', th=0.75):
+    keys = ['contrast', 'wave', 'angle', 'phase', 'side']
+    unique_params = dict()
+    # the last element is prediction so we don't need to consider it
+    for i in range(result_mat.shape[1] - 1):
+        unique_params[keys[i]] = np.unique(result_mat[:, i])
+
+    n_contrasts = len(unique_params['contrast'])
+    n_waves = len(unique_params['wave'])
+    if varname == 'all':
+        contrasts_waves = np.zeros((n_contrasts, n_waves))
+    else:
+        contrasts_waves = np.zeros(
+            (n_contrasts, n_waves, len(unique_params[varname]))
+        )
+    for i, tcon in enumerate(unique_params['contrast']):
+        current_contrast = result_mat[result_mat[:, 0] == tcon]
+        for j, tsf in enumerate(unique_params['wave']):
+            current_wave = current_contrast[current_contrast[:, 1] == tsf]
+            if varname == 'all':
+                contrasts_waves[i, j] = current_wave[:, -1].mean()
+            else:
+                key_ind = keys.index(varname)
+                for k, ttmp in enumerate(unique_params[varname]):
+                    curr_array = current_wave[current_wave[:, key_ind] == ttmp]
+                    contrasts_waves[i, j, k] = curr_array[:, -1].mean()
+
+    if varname == 'all':
+        return report_csf(contrasts_waves, unique_params['contrast'], th)
+    else:
+        csfs = []
+        for i in range(contrasts_waves.shape[2]):
+            csfs.append(report_csf(
+                contrasts_waves[:, :, i], unique_params['contrast'], th
+            ))
+        return csfs
 
 
 def main(args):
@@ -132,13 +210,14 @@ def main(args):
             test_sfs = np.linspace(freqs[0], freqs[1], int(freqs[2]))
         else:
             test_sfs = freqs
+    # so the sfs gets sorted
+    test_sfs = np.unique(test_sfs)
     contrasts = args.contrasts
     if contrasts is None:
-        test_contrasts = [
-            0.001, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
-            0.010, 0.012, 0.014, 0.016, 0.018, 0.020, 0.023, 0.026, 0.029,
-            0.032, 0.036, 0.040, 0.045, 0.050, 0.100, 0.200, 0.300, 0.500
-        ]
+        test_contrasts = [0.0, 1.0]
+        # 0.001, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
+        # 0.010, 0.012, 0.014, 0.016, 0.018, 0.020, 0.023, 0.026, 0.029,
+        # 0.032, 0.036, 0.040, 0.045, 0.050, 0.100, 0.200, 0.300, 0.500
     else:
         test_contrasts = contrasts
     test_thetas = np.linspace(0, np.pi, 7)
@@ -158,10 +237,6 @@ def main(args):
         data_dir=test_samples, **db_params
     )
     db.contrast_space = args.contrast_space
-    db_loader = torch.utils.data.DataLoader(
-        db, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True
-    )
 
     if args.pretrained:
         model = pretrained_models.NewClassificationModel(
@@ -175,10 +250,32 @@ def main(args):
     mean_std = None
     if args.visualise:
         mean_std = (mean, std)
+
+    result_mat = None
+    if args.old_results is not None:
+        result_mat = np.loadtxt(args.old_results, delimiter=',')
+        csf_flags = report_csf_variable(result_mat, varname='all', th=0.75)
+    else:
+        csf_flags = [1.0 for _ in test_sfs]
+
     if args.db == 'gratings':
-        run_gratings(
-            db_loader, model, args.out_file, args.print, mean_std=mean_std
-        )
+        for i in range(len(csf_flags)):
+            while csf_flags[i] is not None:
+                print('%.2d Doing %f' % (i, test_sfs[i]))
+                db.lambda_wave = test_sfs[i]
+                db_loader = torch.utils.data.DataLoader(
+                    db, batch_size=args.batch_size, shuffle=False,
+                    num_workers=args.workers, pin_memory=True,
+                )
+                result_mat = run_gratings(
+                    db_loader, model, args.out_file,
+                    args.print, mean_std=mean_std, old_results=result_mat
+                )
+                csf_flags = report_csf_variable(
+                    result_mat, varname='all', th=0.75
+                )
+                if csf_flags[i] == 1.0 or csf_flags[i] == 0.0:
+                    csf_flags[i] = None
 
 
 if __name__ == "__main__":
