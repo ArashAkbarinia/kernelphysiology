@@ -43,7 +43,6 @@ def parse_arguments(args):
                               default=False)
     model_parser.add_argument('--grey_width', default=40, choices=[0, 40],
                               type=int)
-    model_parser.add_argument('--old_results', type=str, default=None)
     return parser.parse_args(args)
 
 
@@ -51,7 +50,7 @@ def run_gratings(db_loader, model, out_file, update=False, mean_std=None,
                  old_results=None):
     with torch.no_grad():
         header = 'Contrast,SpatialFrequency,Theta,Rho,Side,Prediction'
-        all_results = []
+        new_results = []
         num_batches = db_loader.__len__()
         for i, (test_img, targets, item_settings) in enumerate(db_loader):
             test_img = test_img.cuda()
@@ -73,7 +72,7 @@ def run_gratings(db_loader, model, out_file, update=False, mean_std=None,
             for j in range(len(preds)):
                 current_settings = item_settings[j]
                 params = [*current_settings, preds[j] == targets[j]]
-                all_results.append(params)
+                new_results.append(params)
             num_tests = num_batches * test_img.shape[0]
             test_num = i * test_img.shape[0]
             percent = float(test_num) / float(num_tests)
@@ -82,84 +81,30 @@ def run_gratings(db_loader, model, out_file, update=False, mean_std=None,
 
     save_path = out_file + '.csv'
     if old_results is not None:
-        all_results = [*old_results, *all_results]
+        all_results = [*old_results, *new_results]
+    else:
+        all_results = new_results
     all_results = np.array(all_results)
     np.savetxt(save_path, all_results, delimiter=',', header=header)
-    return all_results
+    return np.array(new_results), all_results
 
 
-def report_csf(contrast_sf_mat, test_contrasts, th=0.75):
-    contrast_sf_mat[contrast_sf_mat < th] = 0
-    csf_inds = []
-    accatth = []
-    for j in range(contrast_sf_mat.shape[1]):
-        for k in range(contrast_sf_mat.shape[0]):
-            if contrast_sf_mat[k, j] > 0 or k == (contrast_sf_mat.shape[0] - 1):
-                csf_inds.append(k)
-                accatth.append(contrast_sf_mat[k, j])
-                break
+def sensitivity_sf(result_mat, sf, varname='all', th=0.75, low=0, high=1):
+    result_mat = result_mat[result_mat[:, 1] == sf, :]
+    unique_contrast = np.unique(result_mat[:, 0])
+    accs = []
+    for contrast in unique_contrast:
+        accs.append(result_mat[result_mat[:, 0] == contrast, -1].mean())
 
-    csf_contrast_vals = []
-    for i in range(len(csf_inds)):
-        if i > 0:
-            low_contrast = test_contrasts[i - 1]
-        else:
-            low_contrast = 0.0
-        if i < len(csf_inds) - 1:
-            up_contrast = test_contrasts[i + 1]
-        else:
-            up_contrast = 1.0
-        diff_acc = accatth[i] - 0.75
-        if abs(diff_acc) < 0.005:
-            csf_contrast_vals.append(None)
-        elif diff_acc > 0:
-            csf_contrast_vals.append(
-                (low_contrast + test_contrasts[csf_inds[i]]) / 2
-            )
-        else:
-            csf_contrast_vals.append(
-                (up_contrast + test_contrasts[csf_inds[i]]) / 2
-            )
-
-    return csf_contrast_vals
-
-
-def report_csf_variable(result_mat, varname='all', th=0.75):
-    keys = ['contrast', 'wave', 'angle', 'phase', 'side']
-    unique_params = dict()
-    # the last element is prediction so we don't need to consider it
-    for i in range(result_mat.shape[1] - 1):
-        unique_params[keys[i]] = np.unique(result_mat[:, i])
-
-    n_contrasts = len(unique_params['contrast'])
-    n_waves = len(unique_params['wave'])
-    if varname == 'all':
-        contrasts_waves = np.zeros((n_contrasts, n_waves))
+    max_ind = 0
+    diff_acc = accs[max_ind] - th
+    contrast_i = unique_contrast[max_ind]
+    if abs(diff_acc) < 0.005:
+        return None, 0, 1
+    elif diff_acc > 0:
+        return (low + contrast_i) / 2, low, contrast_i
     else:
-        contrasts_waves = np.zeros(
-            (n_contrasts, n_waves, len(unique_params[varname]))
-        )
-    for i, tcon in enumerate(unique_params['contrast']):
-        current_contrast = result_mat[result_mat[:, 0] == tcon]
-        for j, tsf in enumerate(unique_params['wave']):
-            current_wave = current_contrast[current_contrast[:, 1] == tsf]
-            if varname == 'all':
-                contrasts_waves[i, j] = current_wave[:, -1].mean()
-            else:
-                key_ind = keys.index(varname)
-                for k, ttmp in enumerate(unique_params[varname]):
-                    curr_array = current_wave[current_wave[:, key_ind] == ttmp]
-                    contrasts_waves[i, j, k] = curr_array[:, -1].mean()
-
-    if varname == 'all':
-        return report_csf(contrasts_waves, unique_params['contrast'], th)
-    else:
-        csfs = []
-        for i in range(contrasts_waves.shape[2]):
-            csfs.append(report_csf(
-                contrasts_waves[:, :, i], unique_params['contrast'], th
-            ))
-        return csfs
+        return (high + contrast_i) / 2, contrast_i, high
 
 
 def main(args):
@@ -200,12 +145,16 @@ def main(args):
             args.gabor = 'model_fest'
         else:
             t4 = target_size / 4
+            t4a = target_size / 3.75
+            t3b = target_size / 3.5
+            t3 = target_size / 3
+            t3a = target_size / 2.5
             t2 = target_size / 2
             sf_base = ((target_size / 2) / np.pi)
             test_sfs = [
                 sf_base / e for e in
                 [*np.arange(1, 21), *np.arange(21, 61, 5),
-                 *np.arange(61, t4, 25), t4, t2]
+                 *np.arange(61, t4, 25), t4, t4a, t3b, t3, t3a, t2]
             ]
     else:
         if len(freqs) == 3:
@@ -216,29 +165,12 @@ def main(args):
     test_sfs = np.unique(test_sfs)
     contrasts = args.contrasts
     if contrasts is None:
-        test_contrasts = [0.0, 1.0]
-        # 0.001, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
-        # 0.010, 0.012, 0.014, 0.016, 0.018, 0.020, 0.023, 0.026, 0.029,
-        # 0.032, 0.036, 0.040, 0.045, 0.050, 0.100, 0.200, 0.300, 0.500
+        test_contrasts = [0.5]
     else:
         test_contrasts = contrasts
     test_thetas = np.linspace(0, np.pi, 7)
     test_rhos = np.linspace(0, np.pi, 4)
     test_ps = [0.0, 1.0]
-    test_samples = {
-        'amp': test_contrasts, 'lambda_wave': test_sfs,
-        'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
-    }
-    db_params = {
-        'colour_space': colour_space, 'vision_type': args.vision_type,
-        'mask_image': args.gabor, 'grey_width': args.grey_width
-    }
-
-    db = dataloader.validation_set(
-        args.db, target_size, mean, std, extra_transformations,
-        data_dir=test_samples, **db_params
-    )
-    db.contrast_space = args.contrast_space
 
     if args.pretrained:
         model = pretrained_models.NewClassificationModel(
@@ -253,31 +185,59 @@ def main(args):
     if args.visualise:
         mean_std = (mean, std)
 
-    result_mat = None
-    if args.old_results is not None:
-        result_mat = np.loadtxt(args.old_results, delimiter=',')
-        csf_flags = report_csf_variable(result_mat, varname='all', th=0.75)
-    else:
-        csf_flags = [1.0 for _ in test_sfs]
+    all_results = None
+    csf_flags = [0.5 for _ in test_sfs]
 
     if args.db == 'gratings':
         for i in range(len(csf_flags)):
+            low = 0
+            high = 1
+            j = 0
             while csf_flags[i] is not None:
-                print('%.2d Doing %f %f' % (i, test_sfs[i], csf_flags[i]))
-                db.lambda_wave = test_sfs[i]
+                print(
+                    '%.2d %.3d Doing %f - %f %f %f' % (
+                        i, j, test_sfs[i], csf_flags[i], low, high
+                    )
+                )
+
+                test_samples = {
+                    'amp': [csf_flags[i]], 'lambda_wave': [test_sfs[i]],
+                    'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
+                }
+                db_params = {
+                    'colour_space': colour_space,
+                    'vision_type': args.vision_type,
+                    'mask_image': args.gabor, 'grey_width': args.grey_width
+                }
+
+                db = dataloader.validation_set(
+                    args.db, target_size, mean, std, extra_transformations,
+                    data_dir=test_samples, **db_params
+                )
+                db.contrast_space = args.contrast_space
+
                 db_loader = torch.utils.data.DataLoader(
                     db, batch_size=args.batch_size, shuffle=False,
                     num_workers=args.workers, pin_memory=True,
                 )
-                result_mat = run_gratings(
+
+                new_results, all_results = run_gratings(
                     db_loader, model, args.out_file,
-                    args.print, mean_std=mean_std, old_results=result_mat
+                    args.print, mean_std=mean_std, old_results=all_results
                 )
-                csf_flags = report_csf_variable(
-                    result_mat, varname='all', th=0.75
+                new_contrast, low, high = sensitivity_sf(
+                    new_results, test_sfs[i], varname='all', th=0.75,
+                    low=low, high=high
                 )
-                if csf_flags[i] == 1.0 or csf_flags[i] == 0.0:
+                if (
+                        abs(csf_flags[i] - 1.0) < 1e-3 or csf_flags[i] == 0.0
+                        or new_contrast == csf_flags[i] or j == 20
+                ):
+                    print('had to skip', csf_flags[i])
                     csf_flags[i] = None
+                else:
+                    csf_flags[i] = new_contrast
+                j += 1
 
 
 if __name__ == "__main__":
