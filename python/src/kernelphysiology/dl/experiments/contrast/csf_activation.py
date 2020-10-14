@@ -134,12 +134,16 @@ def main(args):
             args.gabor = 'model_fest'
         else:
             t4 = target_size / 4
+            t4a = target_size / 3.75
+            t3b = target_size / 3.5
+            t3 = target_size / 3
+            t3a = target_size / 2.5
             t2 = target_size / 2
             sf_base = ((target_size / 2) / np.pi)
             test_sfs = [
                 sf_base / e for e in
                 [*np.arange(1, 21), *np.arange(21, 61, 5),
-                 *np.arange(61, t4, 25), t4, t2]
+                 *np.arange(61, t4, 25), t4, t4a, t3b, t3, t3a, t2]
             ]
     else:
         if len(freqs) == 3:
