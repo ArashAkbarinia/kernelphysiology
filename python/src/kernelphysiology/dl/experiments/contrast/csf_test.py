@@ -43,6 +43,7 @@ def parse_arguments(args):
                               default=False)
     model_parser.add_argument('--grey_width', default=40, choices=[0, 40],
                               type=int)
+    model_parser.add_argument('--constant_contrast', default=0, type=float)
     return parser.parse_args(args)
 
 
@@ -186,11 +187,12 @@ def main(args):
         mean_std = (mean, std)
 
     all_results = None
-    csf_flags = [0.5 for _ in test_sfs]
+    mid_contrast = (args.constant_contrast + 1) / 2
+    csf_flags = [mid_contrast for _ in test_sfs]
 
     if args.db == 'gratings':
         for i in range(len(csf_flags)):
-            low = 0
+            low = args.constant_contrast
             high = 1
             j = 0
             while csf_flags[i] is not None:
@@ -202,7 +204,8 @@ def main(args):
 
                 test_samples = {
                     'amp': [csf_flags[i]], 'lambda_wave': [test_sfs[i]],
-                    'theta': test_thetas, 'rho': test_rhos, 'side': test_ps
+                    'theta': test_thetas, 'rho': test_rhos, 'side': test_ps,
+                    'constant_contrast': args.constant_contrast
                 }
                 db_params = {
                     'colour_space': colour_space,
@@ -230,8 +233,10 @@ def main(args):
                     low=low, high=high
                 )
                 if (
-                        abs(csf_flags[i] - 1.0) < 1e-3 or csf_flags[i] == 0.0
-                        or new_contrast == csf_flags[i] or j == 20
+                        abs(csf_flags[i] - 1.0) < 1e-3
+                        or csf_flags[i] == args.constant_contrast
+                        or new_contrast == csf_flags[i]
+                        or j == 20
                 ):
                     print('had to skip', csf_flags[i])
                     csf_flags[i] = None

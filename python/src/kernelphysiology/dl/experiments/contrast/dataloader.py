@@ -300,7 +300,9 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         if type(samples) is dict:
             # under this condition one contrast will be zero while the other
             # takes the arguments of samples.
-            self.samples, self.settings = self._create_samples(samples)
+            (
+                self.samples, self.settings, self.constant_contrast
+            ) = self._create_samples(samples)
         else:
             self.samples = samples
             self.settings = None
@@ -348,7 +350,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             theta = self.settings['theta'][inds[2]]
             rho = self.settings['rho'][inds[3]]
             self.p = self.settings['side'][inds[4]]
-            contrast1 = 0
+            contrast1 = self.constant_contrast
         omega = [np.cos(theta), np.sin(theta)]
 
         if self.mask_image == 'model_fest':
@@ -471,13 +473,18 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         return self.samples
 
     def _create_samples(self, samples):
+        if 'constant_contrast' in samples:
+            constant_contrast = samples['constant_contrast']
+            del samples['constant_contrast']
+        else:
+            constant_contrast = 0
         settings = samples
         settings['lenghts'] = (
             len(settings['amp']), len(settings['lambda_wave']),
             len(settings['theta']), len(settings['rho']), len(settings['side'])
         )
         num_samples = np.prod(np.array(settings['lenghts']))
-        return num_samples, settings
+        return num_samples, settings, constant_contrast
 
 
 def train_set(db, target_size, mean, std, extra_transformation=None, **kwargs):
