@@ -107,7 +107,8 @@ def _resnet_features(model, network_name, layer, grey_width):
                     org_classes = 3397632
             else:
                 if network_name in [
-                    'resnet18', 'resnet34', 'resnet18_custom'
+                    'resnet18', 'resnet34',
+                    'resnet18_custom', 'deeplabv3_resnet18_custom'
                 ]:
                     org_classes = 524288
                 else:
@@ -121,7 +122,8 @@ def _resnet_features(model, network_name, layer, grey_width):
                     org_classes = 1698816
             else:
                 if network_name in [
-                    'resnet18', 'resnet34', 'resnet18_custom'
+                    'resnet18', 'resnet34',
+                    'resnet18_custom', 'deeplabv3_resnet18_custom'
                 ]:
                     org_classes = 262144
                 else:
@@ -137,7 +139,8 @@ def _resnet_features(model, network_name, layer, grey_width):
                     org_classes = 860160
             else:
                 if network_name in [
-                    'resnet18', 'resnet34', 'resnet18_custom'
+                    'resnet18', 'resnet34',
+                    'resnet18_custom', 'deeplabv3_resnet18_custom'
                 ]:
                     org_classes = 131072
                 elif 'custom' not in network_name and (
@@ -157,7 +160,8 @@ def _resnet_features(model, network_name, layer, grey_width):
                     org_classes = 860160
             else:
                 if network_name in [
-                    'resnet18', 'resnet34', 'resnet18_custom'
+                    'resnet18', 'resnet34',
+                    'resnet18_custom', 'deeplabv3_resnet18_custom'
                 ]:
                     org_classes = 65536
                 elif 'custom' not in network_name and (
