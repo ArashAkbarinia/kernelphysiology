@@ -68,6 +68,8 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
             dkl0[:, :, 1] = 0
         elif vision_type == 'dichromat_yb':
             dkl0[:, :, 2] = 0
+        elif vision_type == 'monochromat':
+            dkl0[:, :, [1, 2]] = 0
         img0 = colour_spaces.dkl2rgb(dkl0)
 
     img1 = img0.copy()
