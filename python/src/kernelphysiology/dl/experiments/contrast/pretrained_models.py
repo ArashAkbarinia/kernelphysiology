@@ -2,6 +2,8 @@
 
 """
 
+import os
+
 import torch
 import torch.nn as nn
 
@@ -104,7 +106,9 @@ def _resnet_features(model, network_name, layer, grey_width):
                 else:
                     org_classes = 3397632
             else:
-                if network_name in ['resnet18', 'resnet34']:
+                if network_name in [
+                    'resnet18', 'resnet34', 'deeplabv3_resnet18_custom'
+                ]:
                     org_classes = 524288
                 else:
                     org_classes = 2097152
@@ -116,7 +120,9 @@ def _resnet_features(model, network_name, layer, grey_width):
                 else:
                     org_classes = 1698816
             else:
-                if network_name in ['resnet18', 'resnet34']:
+                if network_name in [
+                    'resnet18', 'resnet34', 'deeplabv3_resnet18_custom'
+                ]:
                     org_classes = 262144
                 else:
                     org_classes = 1048576
@@ -130,9 +136,13 @@ def _resnet_features(model, network_name, layer, grey_width):
                 else:
                     org_classes = 860160
             else:
-                if network_name in ['resnet18', 'resnet34']:
+                if network_name in [
+                    'resnet18', 'resnet34', 'deeplabv3_resnet18_custom'
+                ]:
                     org_classes = 131072
-                elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+                elif 'custom' not in network_name and (
+                        'deeplabv3_' in network_name or 'fcn_' in network_name
+                ):
                     org_classes = 2097152
                 else:
                     org_classes = 524288
@@ -146,9 +156,13 @@ def _resnet_features(model, network_name, layer, grey_width):
                 else:
                     org_classes = 860160
             else:
-                if network_name in ['resnet18', 'resnet34']:
+                if network_name in [
+                    'resnet18', 'resnet34', 'deeplabv3_resnet18_custom'
+                ]:
                     org_classes = 65536
-                elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+                elif 'custom' not in network_name and (
+                        'deeplabv3_' in network_name or 'fcn_' in network_name
+                ):
                     org_classes = 4194304
                 else:
                     org_classes = 262144
@@ -235,8 +249,13 @@ class NewClassificationModel(nn.Module):
             network_name = checkpoint['arch']
             transfer_weights = checkpoint['transfer_weights']
 
-        if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
-                or 'keypointrcnn_' in network_name
+        if os.path.isfile(transfer_weights[0]):
+            (model, _) = model_utils.which_network(
+                transfer_weights[0], transfer_weights[2],
+                num_classes=1000 if 'class' in transfer_weights[2] else 21
+            )
+        elif ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
+              or 'keypointrcnn_' in network_name
         ):
             model = detection.__dict__[network_name](pretrained=True)
         elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
@@ -256,7 +275,7 @@ class NewClassificationModel(nn.Module):
             )
         # print(model)
         layer = -1
-        if len(transfer_weights) == 2:
+        if len(transfer_weights) >= 2:
             layer = transfer_weights[1]
 
         if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
