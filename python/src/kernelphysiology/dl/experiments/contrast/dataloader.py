@@ -458,6 +458,9 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             elif self.vision_type == 'dichromat_yb':
                 dkl0[:, :, 2] = 0
                 dkl1[:, :, 2] = 0
+            elif self.vision_type == 'monochromat':
+                dkl0[:, :, [1, 2]] = 0
+                dkl1[:, :, [1, 2]] = 0
             img0 = colour_spaces.dkl2rgb01(dkl0)
             img1 = colour_spaces.dkl2rgb01(dkl1)
 
