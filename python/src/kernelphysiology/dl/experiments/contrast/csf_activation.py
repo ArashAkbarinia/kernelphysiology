@@ -100,12 +100,11 @@ def main(args):
     args = parse_arguments(args)
     if args.imagenet_dir is None:
         args.imagenet_dir = '/home/arash/Software/imagenet/raw-data/validation/'
-    vision_type = 'trichromat'
     colour_space = args.colour_space
     target_size = args.target_size
 
     mean, std = model_utils.get_preprocessing_function(
-        colour_space, vision_type
+        colour_space, 'trichromat'
     )
     extra_transformations = []
     if args.noise is not None:
