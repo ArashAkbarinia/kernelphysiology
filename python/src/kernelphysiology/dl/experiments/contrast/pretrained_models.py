@@ -168,6 +168,8 @@ def _resnet_features(model, network_name, layer, grey_width):
                         'deeplabv3_' in network_name or 'fcn_' in network_name
                 ):
                     org_classes = 4194304
+                elif network_name == 'transparency':
+                    org_classes = 1048576
                 else:
                     org_classes = 262144
     else:
