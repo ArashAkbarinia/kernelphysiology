@@ -1,4 +1,5 @@
 import numpy as np
+import re
 import glob
 import ntpath
 import os
@@ -16,20 +17,36 @@ target_size = 256
 base_sf = ((target_size / 2) / np.pi)
 
 
+def atoi(text):
+    return int(text) if text.isdigit() else text
+
+
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    (See Toothy's implementation in the comments)
+    '''
+    return [atoi(c) for c in re.split(r'(\d+)', text)]
+
+
 def get_human_csf(f):
     return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)
 
 
 def process_network(net_name):
+    all_layers_maxsf = []
     for file_path in sorted(
-            glob.glob(os.path.join(activations_dir, net_name) + '/*.pickle')
+            glob.glob(os.path.join(activations_dir, net_name) + '/*.pickle'),
+            key=natural_keys
     ):
         file_name = ntpath.basename(file_path)
         layer_name = 'layer'
         name_parts = file_name.split('_')
         for pind, part in enumerate(name_parts):
             if part == 'layer':
-                layer_name += name_parts[pind + 1].replace('.conv2.weight', '')
+                layer_name += name_parts[pind + 1].replace('.weight', '')
+                layer_name = layer_name.replace('conv', '')
                 break
         png_name = os.path.join(
             fig_out_dir, net_name, '%s_activation_%s.png' % (layer_name, 'max')
@@ -40,11 +57,20 @@ def process_network(net_name):
         print('reading', file_name, layer_name)
         result_mat = path_utils.read_pickle(file_path)
         contrast_activation, xaxis = process_layer(result_mat)
-        if not os.path.exists(png_name):
-            plot_layer(contrast_activation, xaxis, net_name, layer_name)
-        if not os.path.exists(csv_name):
-            corr_layer(contrast_activation, xaxis, net_name, layer_name)
-        maxsf_layer(contrast_activation, xaxis, net_name, layer_name)
+        # if not os.path.exists(png_name):
+        #     plot_layer(contrast_activation, xaxis, net_name, layer_name)
+        # if not os.path.exists(csv_name):
+        #     corr_layer(contrast_activation, xaxis, net_name, layer_name)
+        maxsf, header = maxsf_layer(
+            contrast_activation, xaxis, net_name, layer_name
+        )
+        all_layers_maxsf.append(maxsf)
+    out_file = os.path.join(
+        anl_out_dir, 'peak_activations', '%s_corrs.csv' % net_name
+    )
+    np.savetxt(
+        out_file, np.array(all_layers_maxsf), delimiter=',', header=header
+    )
     return
 
 
@@ -98,34 +124,46 @@ def maxsf_layer(contrast_activation, xaxis, net_name, layer_name):
     report_types = ['pavg', 'pmed', 'pmax']
     human_csf = np.array([get_human_csf(f) for f in xaxis])
 
-    # plotting the peack frequencies
-    fig = plt.figure(figsize=(18, 6))
+    headers = []
+    max_sfs = []
     for i, report_key in enumerate(report_types):
         maxsf = max_activations(contrast_activation, report_key)
 
-        ax = fig.add_subplot(1, 3, i + 1)
         for ckey, cval in maxsf.items():
             toplot = cval / cval.max()
             p_corr, r_corr = stats.pearsonr(human_csf, np.array(toplot))
-            ax.plot(xaxis, toplot, '-x', label=ckey + ' - %.2f' % p_corr)
-        ax.plot(xaxis, human_csf, '--', color='black')
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
+            max_sfs.append(p_corr)
+            headers.append(report_key + ckey)
+    header = ','.join(e for e in headers)
 
-        ax.legend()
-        ax.set_xlabel('SF')
-        ax.set_ylabel('#Kernels')
-        ax.set_title(report_key)
-
-    fig.tight_layout()
-    fig.savefig(
-        os.path.join(
-            fig_out_dir, 'peak_activations', net_name,
-            '%s_peakactivation.png' % (layer_name)
-        )
-    )
-    plt.close('all')
-    return
+    # plotting the peack frequencies
+    # fig = plt.figure(figsize=(18, 6))
+    # for i, report_key in enumerate(report_types):
+    #     maxsf = max_activations(contrast_activation, report_key)
+    #
+    #     ax = fig.add_subplot(1, 3, i + 1)
+    #     for ckey, cval in maxsf.items():
+    #         toplot = cval / cval.max()
+    #         p_corr, r_corr = stats.pearsonr(human_csf, np.array(toplot))
+    #         ax.plot(xaxis, toplot, '-x', label=ckey + ' - %.2f' % p_corr)
+    #     ax.plot(xaxis, human_csf, '--', color='black')
+    #     ax.set_xticklabels([])
+    #     ax.set_yticklabels([])
+    #
+    #     ax.legend()
+    #     ax.set_xlabel('SF')
+    #     ax.set_ylabel('#Kernels')
+    #     ax.set_title(report_key)
+    #
+    # fig.tight_layout()
+    # fig.savefig(
+    #     os.path.join(
+    #         fig_out_dir, 'peak_activations', net_name,
+    #         '%s_peakactivation.png' % (layer_name)
+    #     )
+    # )
+    # plt.close('all')
+    return max_sfs, header
 
 
 def process_layer(result_mat):
