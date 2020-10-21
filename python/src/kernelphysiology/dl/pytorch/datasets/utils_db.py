@@ -14,12 +14,13 @@ from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import segmentation_utils
 
+folder_dbs = ['imagenet', 'fruits', 'leaves', 'land', 'vggface2']
+
 
 def prepare_transformations_train(dataset_name, colour_transformations,
                                   other_transformations, chns_transformation,
                                   normalize, target_size):
-    if 'cifar' in dataset_name or dataset_name in ['imagenet', 'fruits',
-                                                   'leaves', 'land']:
+    if 'cifar' in dataset_name or dataset_name in folder_dbs:
         if 'cifar' in dataset_name:
             size_transform = cv2_transforms.RandomCrop(target_size, padding=4)
         elif 'imagenet' in dataset_name:
@@ -69,8 +70,7 @@ def prepare_transformations_train(dataset_name, colour_transformations,
 def prepare_transformations_test(dataset_name, colour_transformations,
                                  other_transformations, chns_transformation,
                                  normalize, target_size, task=None):
-    if 'cifar' in dataset_name or dataset_name in ['imagenet', 'fruits',
-                                                   'leaves', 'land']:
+    if 'cifar' in dataset_name or dataset_name in folder_dbs:
         transformations = torch_transforms.Compose([
             cv2_transforms.Resize(target_size),
             cv2_transforms.CenterCrop(target_size),
@@ -130,7 +130,7 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
         validation_dataset, _ = segmentation_utils.get_dataset(
             dataset_name, valdir, 'val', **data_reading_kwargs
         )
-    elif dataset_name in ['imagenet', 'fruits', 'leaves', 'land']:
+    elif dataset_name in folder_dbs:
         validation_dataset = datasets.ImageFolder(
             valdir, transformations, loader=pil2numpy_loader
         )
@@ -173,7 +173,7 @@ def get_train_dataset(dataset_name, traindir, vision_type, colour_space,
         other_transformations, chns_transformation,
         normalize, target_size
     )
-    if dataset_name in ['imagenet', 'fruits', 'leaves', 'land']:
+    if dataset_name in folder_dbs:
         train_dataset = datasets.ImageFolder(
             traindir, transformations, loader=pil2numpy_loader
         )
