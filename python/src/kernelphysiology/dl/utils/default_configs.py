@@ -40,7 +40,7 @@ def get_default_target_size(dataset_name, target_size=None):
     # default target size for a set of commonly used datasets
     if 'voc' in dataset_name:
         target_size = 480
-    elif dataset_name in ['imagenet', 'leaves', 'fruits']:
+    elif dataset_name in ['imagenet', 'leaves', 'fruits', 'land']:
         target_size = 224
     elif 'wcs_lms' in dataset_name:
         target_size = 128
