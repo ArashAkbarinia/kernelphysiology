@@ -450,7 +450,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
                 img0 = colour_spaces.dkl012rgb01(img0)
                 img1[:, :, [0, 2]] = 0.5
                 img1 = colour_spaces.dkl012rgb01(img1)
-            else:
+            elif self.contrast_space != 'rgb':
                 sys.exit('Contrast %s not supported' % self.contrast_space)
 
         if 'grey' not in self.colour_space and self.vision_type != 'trichromat':
