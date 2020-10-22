@@ -70,6 +70,8 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
             dkl0[:, :, 2] = 0
         elif vision_type == 'monochromat':
             dkl0[:, :, [1, 2]] = 0
+        else:
+            sys.exit('Vision type %s not supported' % vision_type)
         img0 = colour_spaces.dkl2rgb(dkl0)
 
     img1 = img0.copy()
@@ -448,6 +450,8 @@ class GratingImages(AfcDataset, torch_data.Dataset):
                 img0 = colour_spaces.dkl012rgb01(img0)
                 img1[:, :, [0, 2]] = 0.5
                 img1 = colour_spaces.dkl012rgb01(img1)
+            else:
+                sys.exit('Contrast %s not supported' % self.contrast_space)
 
         if 'grey' not in self.colour_space and self.vision_type != 'trichromat':
             dkl0 = colour_spaces.rgb2dkl(img0)
@@ -461,6 +465,8 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             elif self.vision_type == 'monochromat':
                 dkl0[:, :, [1, 2]] = 0
                 dkl1[:, :, [1, 2]] = 0
+            else:
+                sys.exit('Vision type %s not supported' % self.vision_type)
             img0 = colour_spaces.dkl2rgb01(dkl0)
             img1 = colour_spaces.dkl2rgb01(dkl1)
 
