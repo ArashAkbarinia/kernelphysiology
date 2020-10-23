@@ -306,7 +306,7 @@ class NewClassificationModel(nn.Module):
             features, org_classes = _resnet_features(
                 model.features, network_name, layer, grey_width
             )
-        elif 'resnet' in network_name:
+        elif 'resnet' in network_name or 'resnext' in network_name:
             features, org_classes = _resnet_features(
                 model, network_name, layer, grey_width
             )
