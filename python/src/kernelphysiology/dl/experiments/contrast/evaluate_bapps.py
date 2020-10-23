@@ -56,8 +56,8 @@ def run_eval(db_loader, model, print_val):
             out_p1 = model(img_p1)
 
             # compute the difference
-            d0s = out_ref - out_p0
-            d1s = out_ref - out_p1
+            d0s = (out_ref - out_p0) ** 2
+            d1s = (out_ref - out_p1) ** 2
             # collapse the differences
             d0s = d0s.mean(dim=(3, 2, 1))
             d1s = d1s.mean(dim=(3, 2, 1))
