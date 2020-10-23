@@ -243,6 +243,48 @@ def _vgg_features(model, network_name, layer, grey_width):
     return features, org_classes
 
 
+def get_pretrained_model(network_name, transfer_weights):
+    if os.path.isfile(transfer_weights[0]):
+        (model, _) = model_utils.which_network(
+            transfer_weights[0], transfer_weights[2],
+            num_classes=1000 if 'class' in transfer_weights[2] else 21
+        )
+    elif ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
+          or 'keypointrcnn_' in network_name
+    ):
+        model = detection.__dict__[network_name](pretrained=True)
+    elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+        model = segmentation.__dict__[network_name](pretrained=True)
+    elif network_name == 'transparency':
+        model = tranmod()
+    elif network_name == 'cityscape':
+        model = citymode()
+    elif network_name == 'simclr':
+        model = resnet_simclr.ResNetSimCLR('resnet50', 128)
+        dpath = '/home/arash/Software/repositories/kernelphysiology/data/simclr_resnet50.pth'
+        simclr_pretrained = torch.load(dpath, map_location='cpu')
+        model.load_state_dict(simclr_pretrained)
+    else:
+        (model, _) = model_utils.which_network(
+            transfer_weights[0], 'classification', num_classes=1000
+        )
+    return model
+
+
+def get_backbones(network_name, model):
+    if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
+            or 'keypointrcnn_' in network_name
+    ):
+        return model.backbone.body
+    elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+        return model.backbone
+    elif network_name == 'transparency':
+        return model.encoder
+    elif network_name == 'simclr':
+        return model.features
+    return model
+
+
 class NewClassificationModel(nn.Module):
     def __init__(self, network_name, transfer_weights=None, grey_width=True):
         super(NewClassificationModel, self).__init__()
@@ -255,30 +297,9 @@ class NewClassificationModel(nn.Module):
             network_name = checkpoint['arch']
             transfer_weights = checkpoint['transfer_weights']
 
-        if os.path.isfile(transfer_weights[0]):
-            (model, _) = model_utils.which_network(
-                transfer_weights[0], transfer_weights[2],
-                num_classes=1000 if 'class' in transfer_weights[2] else 21
-            )
-        elif ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
-              or 'keypointrcnn_' in network_name
-        ):
-            model = detection.__dict__[network_name](pretrained=True)
-        elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
-            model = segmentation.__dict__[network_name](pretrained=True)
-        elif network_name == 'transparency':
-            model = tranmod()
-        elif network_name == 'cityscape':
-            model = citymode()
-        elif network_name == 'simclr':
-            model = resnet_simclr.ResNetSimCLR('resnet50', 128)
-            dpath = '/home/arash/Software/repositories/kernelphysiology/data/simclr_resnet50.pth'
-            simclr_pretrained = torch.load(dpath, map_location='cpu')
-            model.load_state_dict(simclr_pretrained)
-        else:
-            (model, _) = model_utils.which_network(
-                transfer_weights[0], 'classification', num_classes=1000
-            )
+        model = get_pretrained_model(network_name, transfer_weights)
+        model = get_backbones(network_name, model)
+
         # print(model)
         layer = -1
         if len(transfer_weights) >= 2:
@@ -286,28 +307,15 @@ class NewClassificationModel(nn.Module):
 
         if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
                 or 'keypointrcnn_' in network_name
+                or 'deeplabv3_' in network_name or 'fcn_' in network_name
+                or network_name == 'transparency' or network_name == 'simclr'
+                or 'resnet' in network_name or 'resnext' in network_name
         ):
             features, org_classes = _resnet_features(
-                model.backbone.body, network_name, layer, grey_width
-            )
-        elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
-            features, org_classes = _resnet_features(
-                model.backbone, network_name, layer, grey_width
-            )
-        elif network_name == 'transparency':
-            features, org_classes = _resnet_features(
-                model.encoder, network_name, layer, grey_width
+                model, network_name, layer, grey_width
             )
         elif network_name == 'cityscape':
             features, org_classes = _cityscape_features(
-                model, network_name, layer, grey_width
-            )
-        elif network_name == 'simclr':
-            features, org_classes = _resnet_features(
-                model.features, network_name, layer, grey_width
-            )
-        elif 'resnet' in network_name or 'resnext' in network_name:
-            features, org_classes = _resnet_features(
                 model, network_name, layer, grey_width
             )
         elif 'vgg' in network_name:

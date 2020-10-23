@@ -7,6 +7,7 @@ import os
 import ntpath
 import numpy as np
 
+import cv2
 from torchvision import datasets as tdatasets
 
 from kernelphysiology.utils import path_utils
@@ -34,6 +35,11 @@ class BAPPS2afc(tdatasets.VisionDataset):
         path_p1 = '%s/p1/%s.png' % (self.root, base_name)
         img_p1 = self.loader(path_p1)
         img_p1 = np.asarray(img_p1).copy()
+        # a few images are of size 252, so we convert themt o 256
+        if img_ref.shape[0] != 256:
+            img_ref = cv2.resize(img_ref, (256, 256))
+            img_p0 = cv2.resize(img_p0, (256, 256))
+            img_p1 = cv2.resize(img_p1, (256, 256))
 
         path_judge = '%s/judge/%s.npy' % (self.root, base_name)
         gt = np.load(path_judge)
