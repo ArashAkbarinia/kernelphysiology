@@ -244,7 +244,11 @@ def _vgg_features(model, network_name, layer, grey_width):
 
 
 def get_pretrained_model(network_name, transfer_weights):
-    if os.path.isfile(transfer_weights[0]):
+    if '_scratch' in network_name:
+        model = model_utils.which_architecture(
+            network_name.replace('_scratch', '')
+        )
+    elif os.path.isfile(transfer_weights[0]):
         (model, _) = model_utils.which_network(
             transfer_weights[0], transfer_weights[2],
             num_classes=1000 if 'class' in transfer_weights[2] else 21
