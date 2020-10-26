@@ -302,6 +302,8 @@ class NewClassificationModel(nn.Module):
             transfer_weights = checkpoint['transfer_weights']
 
         model = get_pretrained_model(network_name, transfer_weights)
+        if '_scratch' in network_name:
+            network_name = network_name.replace('_scratch', '')
         model = get_backbones(network_name, model)
 
         # print(model)
