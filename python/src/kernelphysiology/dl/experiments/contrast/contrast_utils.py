@@ -36,8 +36,7 @@ class FaceModel(nn.Module):
         elif 'resnet50' in network_name:
             backbone = 'resnet50'
         model = custom_models.__dict__['deeplabv3_resnet'](
-            backbone, num_classes=21, pretrained=False,
-            aux_loss=False
+            backbone, num_classes=21, aux_loss=False
         )
         model = model.backbone
 
