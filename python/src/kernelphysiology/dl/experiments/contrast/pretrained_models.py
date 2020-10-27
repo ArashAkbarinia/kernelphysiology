@@ -290,9 +290,9 @@ def get_backbones(network_name, model):
 
 
 class NewClassificationModel(nn.Module):
-    def __init__(self, network_name, transfer_weights=None, grey_width=True):
+    def __init__(self, network_name, transfer_weights=None, grey_width=True,
+                 num_classes=2):
         super(NewClassificationModel, self).__init__()
-        num_classes = 2
 
         checkpoint = None
         # assuming network_name is path
