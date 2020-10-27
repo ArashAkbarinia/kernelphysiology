@@ -34,6 +34,23 @@ from kernelphysiology.utils.path_utils import create_dir
 from kernelphysiology.dl.experiments.contrast import pretrained_models
 
 
+class NewClassificationModel(nn.Module):
+    def __init__(self, original_model, num_classes):
+        super(NewClassificationModel, self).__init__()
+
+        org_classes = list(original_model.children())[-1][0].conv1.in_channels
+        self.features = original_model
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(org_classes, num_classes)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
+
+
 def main(argv):
     args = argument_handler.train_arg_parser(argv)
     args.lr, args.weight_decay = default_configs.optimisation_params(
@@ -118,10 +135,10 @@ def main_worker(ngpus_per_node, args):
     # create model
     if args.transfer_weights is not None:
         print('Transferred model!')
-        model = pretrained_models.NewClassificationModel(
+        model = pretrained_models.get_pretrained_model(
             args.network_name, args.transfer_weights,
-            grey_width=False, num_classes=args.num_classes
         )
+        model = NewClassificationModel(model, args.num_classes)
     elif args.custom_arch:
         print('Custom model!')
         supported_customs = ['resnet_basic_custom', 'resnet_bottleneck_custom']
