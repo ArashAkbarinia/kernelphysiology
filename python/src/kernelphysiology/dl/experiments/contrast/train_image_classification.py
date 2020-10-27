@@ -32,13 +32,19 @@ from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.utils.path_utils import create_dir
 
 from kernelphysiology.dl.experiments.contrast import pretrained_models
+from torchvision.models import resnet as presnet
+from kernelphysiology.dl.pytorch.models import resnet as cresnet
 
 
 class NewClassificationModel(nn.Module):
     def __init__(self, original_model, num_classes):
         super(NewClassificationModel, self).__init__()
 
-        org_classes = list(original_model.children())[-1][0].conv2.in_channels
+        last_layer = list(original_model.children())[-1][0]
+        if isinstance(last_layer, (cresnet.Bottleneck, presnet.Bottleneck)):
+            org_classes = last_layer.conv3.in_channels
+        else:
+            org_classes = last_layer.conv2.in_channels
         self.features = nn.Sequential(*list(original_model.children()))
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(org_classes, num_classes)
