@@ -38,8 +38,8 @@ class NewClassificationModel(nn.Module):
     def __init__(self, original_model, num_classes):
         super(NewClassificationModel, self).__init__()
 
-        org_classes = list(original_model.children())[-1][0].conv1.in_channels
-        self.features = original_model
+        org_classes = list(original_model.children())[-1][0].conv2.in_channels
+        self.features = nn.Sequential(*list(original_model.children()))
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(org_classes, num_classes)
 
