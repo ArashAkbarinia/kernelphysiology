@@ -14,6 +14,7 @@ from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.models import resnet_simclr
 from kernelphysiology.dl.experiments.contrast.models.transparency import tranmod
 from kernelphysiology.dl.experiments.contrast.models.cityscape import citymode
+from kernelphysiology.dl.experiments.contrast import contrast_utils
 
 
 class LayerActivation(nn.Module):
@@ -249,10 +250,14 @@ def get_pretrained_model(network_name, transfer_weights):
             network_name.replace('_scratch', '')
         )
     elif os.path.isfile(transfer_weights[0]):
-        (model, _) = model_utils.which_network(
-            transfer_weights[0], transfer_weights[2],
-            num_classes=1000 if 'class' in transfer_weights[2] else 21
-        )
+        # FIXME: cheap hack!
+        if 'vggface2/deeplabv3_' in transfer_weights[0]:
+            model = contrast_utils.FaceModel(network_name, transfer_weights)
+        else:
+            (model, _) = model_utils.which_network(
+                transfer_weights[0], transfer_weights[2],
+                num_classes=1000 if 'class' in transfer_weights[2] else 21
+            )
     elif ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
           or 'keypointrcnn_' in network_name
     ):
