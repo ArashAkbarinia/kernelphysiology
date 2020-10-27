@@ -42,5 +42,5 @@ class FaceModel(nn.Module):
 
         model = NewClassificationModel(model, 500)
         face_net = torch.load(transfer_weights[0], map_location='cpu')
-        model.load_state_dict(face_net)
+        model.load_state_dict(face_net['state_dict'])
         self.backbone = model.features
