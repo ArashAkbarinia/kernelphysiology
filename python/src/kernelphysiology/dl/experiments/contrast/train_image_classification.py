@@ -42,9 +42,9 @@ class NewClassificationModel(nn.Module):
 
         last_layer = list(original_model.children())[-1][0]
         if isinstance(last_layer, (cresnet.Bottleneck, presnet.Bottleneck)):
-            org_classes = last_layer.conv3.in_channels
+            org_classes = last_layer.conv3.out_channels
         else:
-            org_classes = last_layer.conv2.in_channels
+            org_classes = last_layer.conv2.out_channels
         self.features = nn.Sequential(*list(original_model.children()))
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(org_classes, num_classes)
