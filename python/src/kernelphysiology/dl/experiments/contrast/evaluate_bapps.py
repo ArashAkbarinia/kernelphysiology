@@ -1,21 +1,22 @@
-import numpy as np
 import argparse
 import sys
-from skimage import io
+import numpy as np
 
 import torch
 import torchvision.transforms as torch_transforms
 
 from kernelphysiology.dl.pytorch.models import model_utils
-from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 
 from kernelphysiology.dl.experiments.contrast import pretrained_models
 from kernelphysiology.utils import path_utils
 from kernelphysiology.dl.pytorch.datasets import bapps
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
-DISTORTIONS = [
+DISTORTIONS_2AFC = [
     'cnn', 'color', 'deblur', 'frameinterp', 'superres', 'traditional'
+]
+DISTORTIONS_JND = [
+    'cnn', 'traditional'
 ]
 
 
@@ -29,7 +30,7 @@ def parse_arguments(args):
     model_parser.add_argument('--split', type=str, default='val')
     model_parser.add_argument('--task', type=str, choices=['2afc', 'jnd'])
     model_parser.add_argument(
-        '--distortion', type=str, default=None, choices=DISTORTIONS
+        '--distortion', type=str, default=None, choices=DISTORTIONS_2AFC
     )
     model_parser.add_argument('--out_file', type=str)
     model_parser.add_argument('--target_size', type=int)
@@ -41,7 +42,87 @@ def parse_arguments(args):
     return parser.parse_args(args)
 
 
-def run_eval(db_loader, model, print_val):
+def _voc_ap(rec, prec, use_07_metric=False):
+    """ ap = voc_ap(rec, prec, [use_07_metric])
+    Compute VOC AP given precision and recall.
+    If use_07_metric is true, uses the
+    VOC 07 11 point method (default:False).
+    """
+    if use_07_metric:
+        # 11 point metric
+        ap = 0.
+        for t in np.arange(0., 1.1, 0.1):
+            if np.sum(rec >= t) == 0:
+                p = 0
+            else:
+                p = np.max(prec[rec >= t])
+            ap = ap + p / 11.
+    else:
+        # correct AP calculation
+        # first append sentinel values at the end
+        mrec = np.concatenate(([0.], rec, [1.]))
+        mpre = np.concatenate(([0.], prec, [0.]))
+
+        # compute the precision envelope
+        for i in range(mpre.size - 1, 0, -1):
+            mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
+
+        # to calculate area under PR curve, look for points
+        # where X axis (recall) changes value
+        i = np.where(mrec[1:] != mrec[:-1])[0]
+
+        # and sum (\Delta recall) * prec
+        ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
+    return ap
+
+
+def run_jnd(db_loader, model, print_val):
+    with torch.no_grad():
+        all_diffs = []
+        all_gts = []
+        num_batches = db_loader.__len__()
+        for i, (img0, img1, gt) in enumerate(db_loader):
+            img0 = img0.cuda()
+            img1 = img1.cuda()
+            gt = gt.squeeze()
+
+            out0 = model(img0)
+            out1 = model(img1)
+
+            # compute the difference
+            diffs = (out0 - out1) ** 2
+            # collapse the differences
+            diffs = diffs.mean(dim=(3, 2, 1))
+
+            all_diffs.extend(diffs.detach().cpu().numpy())
+            all_gts.extend(gt.detach().numpy())
+
+            num_tests = num_batches * img0.shape[0]
+            test_num = i * img0.shape[0]
+            percent = float(test_num) / float(num_tests)
+            if print_val is not None:
+                print(
+                    '%s %.2f [%d/%d]' % (
+                        print_val, percent, test_num, num_tests
+                    )
+                )
+    gt_array = np.array(all_gts)
+    result_array = np.array(all_diffs)
+
+    sorted_inds = np.argsort(result_array)
+    sames_sorted = gt_array[sorted_inds]
+
+    tps = np.cumsum(sames_sorted)
+    fps = np.cumsum(1 - sames_sorted)
+    fns = np.sum(sames_sorted) - tps
+
+    precs = tps / (tps + fps)
+    recs = tps / (tps + fns)
+    all_scores = _voc_ap(recs, precs)
+    return {'diff': all_diffs, 'score': all_scores, 'gt': all_gts}
+
+
+def run_2afc(db_loader, model, print_val):
     with torch.no_grad():
         all_results = []
         num_batches = db_loader.__len__()
@@ -117,12 +198,20 @@ def main(args):
         cv2_transforms.Normalize(mean, std),
     ])
 
-    distortions = DISTORTIONS if args.distortion is None else [args.distortion]
+    if args.task == '2afc':
+        default_dist = DISTORTIONS_2AFC
+        db_class = bapps.BAPPS2afc
+        run_fun = run_2afc
+    else:
+        default_dist = DISTORTIONS_JND
+        db_class = bapps.BAPPSjnd
+        run_fun = run_jnd
+    distortions = default_dist if args.distortion is None else [args.distortion]
 
     eval_results = dict()
     for dist in distortions:
         print('Starting with %s' % dist)
-        db = bapps.BAPPS2afc(
+        db = db_class(
             root=args.db_dir, split=args.split, distortion=dist,
             transform=transform
         )
@@ -131,7 +220,7 @@ def main(args):
             num_workers=args.workers, pin_memory=True
         )
         print_val = dist if args.print else None
-        eval_results[dist] = run_eval(db_loader, model, print_val)
+        eval_results[dist] = run_fun(db_loader, model, print_val)
     save_results(eval_results, args.out_file)
 
 

@@ -51,3 +51,39 @@ class BAPPS2afc(tdatasets.VisionDataset):
 
     def __len__(self):
         return len(self.ref_imgs)
+
+
+class BAPPSjnd(tdatasets.VisionDataset):
+    def __init__(self, split, distortion, **kwargs):
+        super(BAPPSjnd, self).__init__(**kwargs)
+        self.split = split
+        self.distortion = distortion
+        self.loader = tdatasets.folder.pil_loader
+        self.root = os.path.join(self.root, 'jnd', split, distortion)
+        self.img0_paths = path_utils.image_in_folder(self.root + '/p0/')
+        print('Read %d images.' % len(self.img0_paths))
+
+    def __getitem__(self, index):
+        path0 = self.img0_paths[index]
+        img0 = self.loader(path0)
+        img0 = np.asarray(img0).copy()
+        base_name = ntpath.basename(path0)[:-4]
+
+        path1 = '%s/p1/%s.png' % (self.root, base_name)
+        img1 = self.loader(path1)
+        img1 = np.asarray(img1).copy()
+        # a few images are of size 252, so we convert themt o 256
+        if img0.shape[0] != 256:
+            img0 = cv2.resize(img0, (256, 256))
+            img1 = cv2.resize(img1, (256, 256))
+
+        path_same = '%s/same/%s.npy' % (self.root, base_name)
+        gt = np.load(path_same)
+
+        if self.transform is not None:
+            img0, img1 = self.transform([img0, img1])
+
+        return img0, img1, gt
+
+    def __len__(self):
+        return len(self.img0_paths)
