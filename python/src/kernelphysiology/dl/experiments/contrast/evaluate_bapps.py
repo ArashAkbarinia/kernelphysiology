@@ -108,7 +108,7 @@ def run_jnd(db_loader, model, print_val):
             # collapse the differences
             diffs = _spatial_average(
                 diffs.sum(dim=1, keepdim=True), keepdim=False
-            )
+            ).squeeze()
 
             all_diffs.extend(diffs.detach().cpu().numpy())
             all_gts.extend(gt.detach().numpy())
@@ -162,8 +162,12 @@ def run_2afc(db_loader, model, print_val):
             d1s = (out_ref - out_p1) ** 2
 
             # collapse the differences
-            d0s = _spatial_average(d0s.sum(dim=1, keepdim=True), keepdim=False)
-            d1s = _spatial_average(d1s.sum(dim=1, keepdim=True), keepdim=False)
+            d0s = _spatial_average(
+                d0s.sum(dim=1, keepdim=True), keepdim=False
+            ).squeeze()
+            d1s = _spatial_average(
+                d1s.sum(dim=1, keepdim=True), keepdim=False
+            ).squeeze()
 
             d0_smaller = (d0s < d1s) * (1.0 - gt)
             d1_smaller = (d1s < d0s) * gt
