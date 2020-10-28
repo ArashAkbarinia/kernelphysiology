@@ -18,9 +18,18 @@ from kernelphysiology.dl.experiments.contrast import contrast_utils
 
 
 class LayerActivation(nn.Module):
-    def __init__(self, model, layer_name):
+    def __init__(self, model, layer_name, conv_bn_relu='relu'):
         super(LayerActivation, self).__init__()
 
+        if conv_bn_relu == 'relu':
+            self.relu = nn.ReLU(inplace=True)
+            which_fun = model_utils._get_bn
+        elif conv_bn_relu == 'bn':
+            self.relu = None
+            which_fun = model_utils._get_bn
+        else:
+            self.relu = None
+            which_fun = model_utils._get_conv
         # FIXME: only for resnet at this point
         self.sub_layer = None
         self.sub_conv = None
@@ -40,9 +49,7 @@ class LayerActivation(nn.Module):
             last_area = last_areas[area_num]
             if area_num > 0:
                 layerx = list(model.children())[last_areas[area_num]]
-                sub_layer, sub_conv = model_utils._get_conv(
-                    layerx, layer_num, conv_num
-                )
+                sub_layer, sub_conv = which_fun(layerx, layer_num, conv_num)
             self.features = nn.Sequential(*list(model.children())[:last_area])
             self.sub_layer = sub_layer
             self.sub_conv = sub_conv
@@ -53,6 +60,8 @@ class LayerActivation(nn.Module):
             x = self.sub_layer(x)
         if self.sub_conv is not None:
             x = self.sub_conv(x)
+        if self.relu is not None:
+            x = self.relu(x)
         return x
 
 
