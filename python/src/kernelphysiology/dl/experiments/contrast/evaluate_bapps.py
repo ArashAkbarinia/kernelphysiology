@@ -9,7 +9,7 @@ from kernelphysiology.dl.pytorch.models import model_utils
 
 from kernelphysiology.dl.experiments.contrast import pretrained_models
 from kernelphysiology.utils import path_utils
-from kernelphysiology.dl.pytorch.datasets import bapps
+from kernelphysiology.dl.pytorch.datasets import image_quality
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
 DISTORTIONS_2AFC = [
@@ -200,11 +200,11 @@ def main(args):
 
     if args.task == '2afc':
         default_dist = DISTORTIONS_2AFC
-        db_class = bapps.BAPPS2afc
+        db_class = image_quality.BAPPS2afc
         run_fun = run_2afc
     else:
         default_dist = DISTORTIONS_JND
-        db_class = bapps.BAPPSjnd
+        db_class = image_quality.BAPPSjnd
         run_fun = run_jnd
     distortions = default_dist if args.distortion is None else [args.distortion]
 
