@@ -6,6 +6,7 @@ Download the dataset from https://github.com/richzhang/PerceptualSimilarity .
 import os
 import ntpath
 import numpy as np
+from scipy.io import loadmat
 
 import cv2
 from torchvision import datasets as tdatasets
@@ -87,3 +88,39 @@ class BAPPSjnd(tdatasets.VisionDataset):
 
     def __len__(self):
         return len(self.img0_paths)
+
+
+class LIVE(tdatasets.VisionDataset):
+    def __init__(self, part, **kwargs):
+        super(LIVE, self).__init__(**kwargs)
+        self.part = part
+        self.loader = tdatasets.folder.pil_loader
+        self.root = os.path.join(self.root, part)
+        self.img_dir = os.path.join(self.root, 'imgs')
+        self.image_list = loadmat(self.root + '/Imagelists.mat')
+        self.scores = loadmat(self.root + '/Scores.mat')
+        print('Number of images: %d' % len(self.image_list['distimgs']))
+
+    def __getitem__(self, index):
+        img_name = self.image_list['distimgs'][index][0][0]
+        img_path = os.path.join(self.img_dir, img_name)
+        img = self.loader(img_path)
+        img = np.asarray(img).copy()
+
+        ref_name = self.image_list['refimgs'][index][0][0]
+        ref_path = os.path.join(self.img_dir, ref_name)
+        ref = self.loader(ref_path)
+        ref = np.asarray(ref).copy()
+
+        gt = [
+            self.scores['DMOSscores'][0][index],
+            self.scores['Zscores'][0][index]
+        ]
+
+        if self.transform is not None:
+            ref, img = self.transform([ref, img])
+
+        return ref, img, gt
+
+    def __len__(self):
+        return len(self.image_list['distimgs'])
