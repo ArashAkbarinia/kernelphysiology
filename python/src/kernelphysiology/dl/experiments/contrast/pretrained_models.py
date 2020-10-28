@@ -30,7 +30,8 @@ class LayerActivation(nn.Module):
         if layer_name in whole_layers:
             print('Activation for the whole %s' % layer_name)
             last_areas = [4, 5, 6, 7, 8]
-            lind = last_areas[int(layer_name[-1])]
+            # FIXME at somepoint go to 0 indexing to avoid all this mess
+            lind = last_areas[int(layer_name[-1]) - 1]
             self.features = nn.Sequential(*list(model.children())[:lind])
         elif layer_name == 'fc':
             self.features = model
