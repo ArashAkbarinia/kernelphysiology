@@ -9,10 +9,11 @@ from scipy import stats
 
 from kernelphysiology.utils import path_utils
 
+layer_type = 'relu'
 csf_dir = "/home/arash/Desktop/projects/csf/"
-activations_dir = "%s/data/kernel_activations/" % csf_dir
+activations_dir = "%s/data/kernel_activations/%s/" % (csf_dir, layer_type)
 fig_out_dir = "%s/figures/activations/" % csf_dir
-anl_out_dir = "%s/analysis/activation_corrs/" % csf_dir
+anl_out_dir = "%s/analysis/activation_corrs/%s/" % (csf_dir, layer_type)
 target_size = 256
 base_sf = ((target_size / 2) / np.pi)
 
@@ -56,13 +57,13 @@ def process_network(net_name):
         )
         print('reading', file_name, layer_name)
         result_mat = path_utils.read_pickle(file_path)
-        contrast_activation, xaxis = process_layer(result_mat)
+        contrast_activation, xvals = process_layer(result_mat)
         # if not os.path.exists(png_name):
-        #     plot_layer(contrast_activation, xaxis, net_name, layer_name)
+        #     plot_layer(contrast_activation, xvals, net_name, layer_name)
         # if not os.path.exists(csv_name):
-        #     corr_layer(contrast_activation, xaxis, net_name, layer_name)
+        #     corr_layer(contrast_activation, xvals, net_name, layer_name)
         maxsf, header = maxsf_layer(
-            contrast_activation, xaxis, net_name, layer_name
+            contrast_activation, xvals, net_name, layer_name
         )
         all_layers_maxsf.append(maxsf)
     out_file = os.path.join(
@@ -74,11 +75,12 @@ def process_network(net_name):
     return
 
 
-def plot_layer(contrast_activation, xaxis, net_name, layer_name):
+def plot_layer(contrast_activation, xvals, net_name, layer_name):
     report_types = [
         'lavg', 'lmed', 'lmax', 'ravg', 'rmed', 'rmax',
         'avg', 'med', 'max', 'pavg', 'pmed', 'pmax'
     ]
+    xaxis = [((1 / e) * base_sf) for e in xvals]
     human_csf = np.array([get_human_csf(f) for f in xaxis])
     for report_key in report_types:
         fig = plot_activations(
@@ -95,11 +97,12 @@ def plot_layer(contrast_activation, xaxis, net_name, layer_name):
     return
 
 
-def corr_layer(contrast_activation, xaxis, net_name, layer_name):
+def corr_layer(contrast_activation, xvals, net_name, layer_name):
     report_types = [
         'lavg', 'lmed', 'lmax', 'ravg', 'rmed', 'rmax',
         'avg', 'med', 'max', 'pavg', 'pmed', 'pmax'
     ]
+    xaxis = [((1 / e) * base_sf) for e in xvals]
     human_csf = np.array([get_human_csf(f) for f in xaxis])
 
     contrast_keys = list(contrast_activation.keys())
@@ -120,18 +123,32 @@ def corr_layer(contrast_activation, xaxis, net_name, layer_name):
     return
 
 
-def maxsf_layer(contrast_activation, xaxis, net_name, layer_name):
+def interpolate_all_sfs(xvals, yvals, target_size=256):
+    base_sf = ((target_size / 2) / np.pi)
+    new_xs = [base_sf / e for e in np.arange(1, 129, 0.5)]
+    new_ys = np.interp(new_xs, xvals, yvals)
+    return new_xs, new_ys
+
+
+def maxsf_layer(contrast_activation, xvals, net_name, layer_name):
     report_types = ['pavg', 'pmed', 'pmax']
+    base_sf = ((target_size / 2) / np.pi)
+    newxs = [base_sf / e for e in np.arange(1, 129, 0.5)]
+
+    xaxis = [((1 / e) * base_sf) for e in newxs]
     human_csf = np.array([get_human_csf(f) for f in xaxis])
 
     headers = []
     max_sfs = []
+    newxs = np.array(newxs, dtype='float64')
+    xvals = np.array(xvals, dtype='float64')
     for i, report_key in enumerate(report_types):
         maxsf = max_activations(contrast_activation, report_key)
 
         for ckey, cval in maxsf.items():
-            toplot = cval / cval.max()
-            p_corr, r_corr = stats.pearsonr(human_csf, np.array(toplot))
+            yvals = cval / cval.max()
+            newys = np.interp(newxs, xvals, yvals)
+            p_corr, r_corr = stats.pearsonr(human_csf, newys)
             max_sfs.append(p_corr)
             headers.append(report_key + ckey)
     header = ','.join(e for e in headers)
@@ -210,8 +227,8 @@ def process_layer(result_mat):
             report[rkey] = activation_freq
         contrast_activation[str(contrast)] = report
 
-    xaxis = [((1 / e) * base_sf) for e in unique_frequencies]
-    return contrast_activation, xaxis
+    xvals = unique_frequencies
+    return contrast_activation, xvals
 
 
 def extract_contrast(result_mat, contrast):
