@@ -76,6 +76,15 @@ def _voc_ap(rec, prec, use_07_metric=False):
     return ap
 
 
+def _normalise_tensor(in_feat, eps=1e-10):
+    norm_factor = torch.sqrt(torch.sum(in_feat ** 2, dim=1, keepdim=True))
+    return in_feat / (norm_factor + eps)
+
+
+def _spatial_average(in_tens, keepdim=True):
+    return in_tens.mean([2, 3], keepdim=keepdim)
+
+
 def run_jnd(db_loader, model, print_val):
     with torch.no_grad():
         all_diffs = []
@@ -89,10 +98,17 @@ def run_jnd(db_loader, model, print_val):
             out0 = model(img0)
             out1 = model(img1)
 
+            # normalise the activations
+            out0 = _normalise_tensor(out0)
+            out1 = _normalise_tensor(out1)
+
             # compute the difference
             diffs = (out0 - out1) ** 2
+
             # collapse the differences
-            diffs = diffs.mean(dim=(3, 2, 1))
+            diffs = _spatial_average(
+                diffs.sum(dim=1, keepdim=True), keepdim=False
+            )
 
             all_diffs.extend(diffs.detach().cpu().numpy())
             all_gts.extend(gt.detach().numpy())
@@ -136,12 +152,18 @@ def run_2afc(db_loader, model, print_val):
             out_p0 = model(img_p0)
             out_p1 = model(img_p1)
 
+            # normalise the activations
+            out_ref = _normalise_tensor(out_ref)
+            out_p0 = _normalise_tensor(out_p0)
+            out_p1 = _normalise_tensor(out_p1)
+
             # compute the difference
             d0s = (out_ref - out_p0) ** 2
             d1s = (out_ref - out_p1) ** 2
+
             # collapse the differences
-            d0s = d0s.mean(dim=(3, 2, 1))
-            d1s = d1s.mean(dim=(3, 2, 1))
+            d0s = _spatial_average(d0s.sum(dim=1, keepdim=True), keepdim=False)
+            d1s = _spatial_average(d1s.sum(dim=1, keepdim=True), keepdim=False)
 
             d0_smaller = (d0s < d1s) * (1.0 - gt)
             d1_smaller = (d1s < d0s) * gt
