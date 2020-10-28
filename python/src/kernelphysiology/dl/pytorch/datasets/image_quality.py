@@ -107,20 +107,19 @@ class LIVE(tdatasets.VisionDataset):
         img = self.loader(img_path)
         img = np.asarray(img).copy()
 
-        ref_name = self.image_list['refimgs'][index][0][0]
+        ref_ind = self.image_list['ref4dist'][index][0] - 1
+        ref_name = self.image_list['refimgs'][ref_ind][0][0]
         ref_path = os.path.join(self.img_dir, ref_name)
         ref = self.loader(ref_path)
         ref = np.asarray(ref).copy()
 
-        gt = [
-            self.scores['DMOSscores'][0][index],
-            self.scores['Zscores'][0][index]
-        ]
+        mos = self.scores['DMOSscores'][0][index]
+        zscore = self.scores['Zscores'][0][index]
 
         if self.transform is not None:
             ref, img = self.transform([ref, img])
 
-        return ref, img, gt
+        return ref, img, mos, zscore
 
     def __len__(self):
         return len(self.image_list['distimgs'])
