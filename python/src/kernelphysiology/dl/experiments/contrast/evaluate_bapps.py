@@ -8,6 +8,7 @@ import torchvision.transforms as torch_transforms
 from kernelphysiology.dl.pytorch.models import model_utils
 
 from kernelphysiology.dl.experiments.contrast import pretrained_models
+from kernelphysiology.dl.experiments.contrast import contrast_utils
 from kernelphysiology.utils import path_utils
 from kernelphysiology.dl.pytorch.datasets import image_quality
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
@@ -42,49 +43,6 @@ def parse_arguments(args):
     return parser.parse_args(args)
 
 
-def _voc_ap(rec, prec, use_07_metric=False):
-    """ ap = voc_ap(rec, prec, [use_07_metric])
-    Compute VOC AP given precision and recall.
-    If use_07_metric is true, uses the
-    VOC 07 11 point method (default:False).
-    """
-    if use_07_metric:
-        # 11 point metric
-        ap = 0.
-        for t in np.arange(0., 1.1, 0.1):
-            if np.sum(rec >= t) == 0:
-                p = 0
-            else:
-                p = np.max(prec[rec >= t])
-            ap = ap + p / 11.
-    else:
-        # correct AP calculation
-        # first append sentinel values at the end
-        mrec = np.concatenate(([0.], rec, [1.]))
-        mpre = np.concatenate(([0.], prec, [0.]))
-
-        # compute the precision envelope
-        for i in range(mpre.size - 1, 0, -1):
-            mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
-
-        # to calculate area under PR curve, look for points
-        # where X axis (recall) changes value
-        i = np.where(mrec[1:] != mrec[:-1])[0]
-
-        # and sum (\Delta recall) * prec
-        ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
-    return ap
-
-
-def _normalise_tensor(in_feat, eps=1e-10):
-    norm_factor = torch.sqrt(torch.sum(in_feat ** 2, dim=1, keepdim=True))
-    return in_feat / (norm_factor + eps)
-
-
-def _spatial_average(in_tens, keepdim=True):
-    return in_tens.mean([2, 3], keepdim=keepdim)
-
-
 def run_jnd(db_loader, model, print_val):
     with torch.no_grad():
         all_diffs = []
@@ -99,14 +57,14 @@ def run_jnd(db_loader, model, print_val):
             out1 = model(img1)
 
             # normalise the activations
-            out0 = _normalise_tensor(out0)
-            out1 = _normalise_tensor(out1)
+            out0 = contrast_utils._normalise_tensor(out0)
+            out1 = contrast_utils._normalise_tensor(out1)
 
             # compute the difference
             diffs = (out0 - out1) ** 2
 
             # collapse the differences
-            diffs = _spatial_average(
+            diffs = contrast_utils._spatial_average(
                 diffs.sum(dim=1, keepdim=True), keepdim=False
             ).squeeze()
 
@@ -134,7 +92,7 @@ def run_jnd(db_loader, model, print_val):
 
     precs = tps / (tps + fps)
     recs = tps / (tps + fns)
-    all_scores = _voc_ap(recs, precs)
+    all_scores = contrast_utils._voc_ap(recs, precs)
     return {'diff': all_diffs, 'score': all_scores, 'gt': all_gts}
 
 
@@ -153,19 +111,19 @@ def run_2afc(db_loader, model, print_val):
             out_p1 = model(img_p1)
 
             # normalise the activations
-            out_ref = _normalise_tensor(out_ref)
-            out_p0 = _normalise_tensor(out_p0)
-            out_p1 = _normalise_tensor(out_p1)
+            out_ref = contrast_utils._normalise_tensor(out_ref)
+            out_p0 = contrast_utils._normalise_tensor(out_p0)
+            out_p1 = contrast_utils._normalise_tensor(out_p1)
 
             # compute the difference
             d0s = (out_ref - out_p0) ** 2
             d1s = (out_ref - out_p1) ** 2
 
             # collapse the differences
-            d0s = _spatial_average(
+            d0s = contrast_utils._spatial_average(
                 d0s.sum(dim=1, keepdim=True), keepdim=False
             ).squeeze()
-            d1s = _spatial_average(
+            d1s = contrast_utils._spatial_average(
                 d1s.sum(dim=1, keepdim=True), keepdim=False
             ).squeeze()
 
