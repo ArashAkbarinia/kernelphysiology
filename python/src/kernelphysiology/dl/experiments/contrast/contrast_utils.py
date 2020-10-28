@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 
 import torch
 import torch.nn as nn
@@ -89,3 +90,25 @@ def _normalise_tensor(in_feat, eps=1e-10):
 
 def _spatial_average(in_tens, keepdim=True):
     return in_tens.mean([2, 3], keepdim=keepdim)
+
+
+def report_jnd(all_gts, all_diffs):
+    gt_array = np.array(all_gts)
+    result_array = np.array(all_diffs)
+
+    sorted_inds = np.argsort(result_array)
+    sames_sorted = gt_array[sorted_inds]
+
+    tps = np.cumsum(sames_sorted)
+    fps = np.cumsum(1 - sames_sorted)
+    fns = np.sum(sames_sorted) - tps
+
+    precs = tps / (tps + fps)
+    recs = tps / (tps + fns)
+    mAP = _voc_ap(recs, precs)
+
+    p_corr, r_corr = stats.pearsonr(gt_array, result_array)
+    report = {
+        'map': mAP, 'corr': p_corr
+    }
+    return report

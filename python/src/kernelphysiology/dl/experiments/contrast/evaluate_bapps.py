@@ -65,8 +65,8 @@ def run_jnd(db_loader, model, print_val):
 
             # collapse the differences
             diffs = contrast_utils._spatial_average(
-                diffs.sum(dim=1, keepdim=True), keepdim=False
-            ).squeeze()
+                diffs.sum(dim=1, keepdim=True), keepdim=True
+            ).squeeze(dim=3).squeeze(dim=2).squeeze(dim=1)
 
             all_diffs.extend(diffs.detach().cpu().numpy())
             all_gts.extend(gt.detach().numpy())
@@ -80,19 +80,7 @@ def run_jnd(db_loader, model, print_val):
                         print_val, percent, test_num, num_tests
                     )
                 )
-    gt_array = np.array(all_gts)
-    result_array = np.array(all_diffs)
-
-    sorted_inds = np.argsort(result_array)
-    sames_sorted = gt_array[sorted_inds]
-
-    tps = np.cumsum(sames_sorted)
-    fps = np.cumsum(1 - sames_sorted)
-    fns = np.sum(sames_sorted) - tps
-
-    precs = tps / (tps + fps)
-    recs = tps / (tps + fns)
-    all_scores = contrast_utils._voc_ap(recs, precs)
+    all_scores = contrast_utils.report_jnd(all_gts, all_diffs)
     return {'diff': all_diffs, 'score': all_scores, 'gt': all_gts}
 
 
@@ -121,11 +109,11 @@ def run_2afc(db_loader, model, print_val):
 
             # collapse the differences
             d0s = contrast_utils._spatial_average(
-                d0s.sum(dim=1, keepdim=True), keepdim=False
-            ).squeeze()
+                d0s.sum(dim=1, keepdim=True), keepdim=True
+            ).squeeze(dim=3).squeeze(dim=2).squeeze(dim=1)
             d1s = contrast_utils._spatial_average(
-                d1s.sum(dim=1, keepdim=True), keepdim=False
-            ).squeeze()
+                d1s.sum(dim=1, keepdim=True), keepdim=True
+            ).squeeze(dim=3).squeeze(dim=2).squeeze(dim=1)
 
             d0_smaller = (d0s < d1s) * (1.0 - gt)
             d1_smaller = (d1s < d0s) * gt
