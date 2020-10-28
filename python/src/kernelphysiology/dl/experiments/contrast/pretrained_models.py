@@ -21,23 +21,30 @@ class LayerActivation(nn.Module):
     def __init__(self, model, layer_name, conv_bn_relu='relu'):
         super(LayerActivation, self).__init__()
 
-        if conv_bn_relu == 'relu':
-            self.relu = nn.ReLU(inplace=True)
-            which_fun = model_utils._get_bn
-        elif conv_bn_relu == 'bn':
-            self.relu = None
-            which_fun = model_utils._get_bn
-        else:
-            self.relu = None
-            which_fun = model_utils._get_conv
         # FIXME: only for resnet at this point
+        self.relu = None
         self.sub_layer = None
         self.sub_conv = None
-        if layer_name == 'fc':
+
+        whole_layers = ['layer%d' % e for e in range(1, 6)]
+        if layer_name in whole_layers:
+            print('Activation for the whole %s' % layer_name)
+            last_areas = [4, 5, 6, 7, 8]
+            lind = last_areas[int(layer_name[-1])]
+            self.features = nn.Sequential(*list(model.children())[:lind])
+        elif layer_name == 'fc':
             self.features = model
         elif layer_name == 'avgpool':
             self.features = nn.Sequential(*list(model.children()))
         else:
+            if conv_bn_relu == 'relu':
+                self.relu = nn.ReLU(inplace=True)
+                which_fun = model_utils._get_bn
+            elif conv_bn_relu == 'bn':
+                which_fun = model_utils._get_bn
+            else:
+                which_fun = model_utils._get_conv
+
             name_split = layer_name.split('.')
             sub_layer = None
             sub_conv = None
