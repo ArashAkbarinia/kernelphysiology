@@ -19,18 +19,33 @@ from kernelphysiology.dl.pytorch import models as custom_models
 from kernelphysiology.dl.pytorch.models.lesion_utility import lesion_kernels
 
 
+def _get_conv_ind(module, layer_num, conv_num):
+    if (isinstance(module[layer_num], pmodels.resnet.BasicBlock) or
+            isinstance(module[layer_num], custom_models.resnet.BasicBlock)):
+        conv_ind = (conv_num - 1) * 3 + 1
+    else:
+        conv_ind = (conv_num - 1) * 2 + 1
+    return conv_ind
+
+
 def _get_conv(module, layer_num, conv_num):
     sub_layer = [*module[:layer_num]]
     sub_layer = nn.Sequential(*sub_layer)
 
     module_list = list(module[layer_num].children())
-    if (isinstance(module[layer_num], pmodels.resnet.BasicBlock) or
-            isinstance(module[layer_num], custom_models.resnet.BasicBlock)):
-        conv_ind = (conv_num - 1) * 3 + 2
-    else:
-        conv_ind = (conv_num - 1) * 2 + 2
+    conv_ind = _get_conv_ind(module, layer_num, conv_num)
     sub_conv = nn.Sequential(*module_list[:conv_ind])
     return sub_layer, sub_conv
+
+
+def _get_bn(module, layer_num, conv_num):
+    sub_layer = [*module[:layer_num]]
+    sub_layer = nn.Sequential(*sub_layer)
+
+    module_list = list(module[layer_num].children())
+    bn_ind = _get_conv_ind(module, layer_num, conv_num) + 1
+    sub_bn = nn.Sequential(*module_list[:bn_ind])
+    return sub_layer, sub_bn
 
 
 class LayerActivation(nn.Module):
