@@ -71,6 +71,7 @@ class BAPPS2afc(tdatasets.VisionDataset):
             else:
                 concat_img = torch.cat([img_p1, img_ref, img_p0], 2)
                 gt = 1 - gt
+            gt = torch.tensor([gt, 1 - gt]).squeeze()
             return concat_img, gt
         return img_ref, img_p0, img_p1, gt
 

@@ -20,6 +20,7 @@ import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.models as models
+import torchvision.transforms as torch_transforms
 
 from kernelphysiology.dl.pytorch import models as custom_models
 from kernelphysiology.dl.pytorch.utils import preprocessing
@@ -33,6 +34,11 @@ from kernelphysiology.utils.path_utils import create_dir
 
 from kernelphysiology.dl.pytorch.datasets import image_quality
 from kernelphysiology.dl.experiments.contrast import contrast_utils
+
+
+def soft_cross_entropy(pred, soft_targets):
+    logsoftmax = nn.LogSoftmax(dim=-1)
+    return torch.mean(torch.sum(- soft_targets * logsoftmax(pred), 1))
 
 
 def main(argv):
@@ -175,7 +181,7 @@ def main_worker(ngpus_per_node, args):
             model = torch.nn.DataParallel(model).cuda()
 
     # define loss function (criterion) and optimizer
-    criterion = nn.CrossEntropyLoss().cuda(args.gpus)
+    criterion = soft_cross_entropy
 
     # optimiser
     if args.transfer_weights is None:
@@ -252,8 +258,9 @@ def main_worker(ngpus_per_node, args):
     ))
 
     # loading the training set
-    train_trans = [*both_trans, *train_trans, *final_trans]
-
+    train_trans = torch_transforms.Compose(
+        [*both_trans, *train_trans, *final_trans]
+    )
     train_dataset = image_quality.BAPPS2afc(
         root=args.data_dir, split='train', transform=train_trans, concat=0.5
     )
@@ -278,7 +285,9 @@ def main_worker(ngpus_per_node, args):
     ])
 
     # loading validation set
-    valid_trans = [*both_trans, *valid_trans, *final_trans]
+    valid_trans = torch_transforms.Compose(
+        [*both_trans, *valid_trans, *final_trans]
+    )
     validation_dataset = image_quality.BAPPS2afc(
         root=args.data_dir, split='val', transform=valid_trans, concat=0
     )
@@ -337,11 +346,18 @@ def main_worker(ngpus_per_node, args):
                 is_best, out_folder=args.out_dir
             )
             # TODO: get this header directly as a dictionary keys
-            header = 'epoch,t_time,t_loss,t_top1,t_top5,v_time,v_loss,v_top1,v_top5'
+            header = 'epoch,t_time,t_loss,t_top5,v_time,v_loss,v_top1'
             np.savetxt(
                 model_progress_path, np.array(model_progress),
                 delimiter=',', header=header
             )
+
+
+def compute_accuracy(output, target):
+    target_argsort = torch.argsort(target, dim=-1)
+    out_argsort = torch.argsort(output, dim=-1)
+    comparison = out_argsort == target_argsort
+    return comparison[:, 0]
 
 
 def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
@@ -349,13 +365,12 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
     data_time = misc_utils.AverageMeter()
     losses = misc_utils.AverageMeter()
     top1 = misc_utils.AverageMeter()
-    top5 = misc_utils.AverageMeter()
 
     # switch to train mode
     model.train()
 
     end = time.time()
-    for i, (input_image, target, _) in enumerate(train_loader):
+    for i, (input_image, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -368,11 +383,9 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
         loss = criterion(output, target)
 
         # measure accuracy and record loss
-        acc1 = misc_utils.accuracy(output, target)
-        acc5 = acc1.copy()
+        acc1 = compute_accuracy(output, target)
         losses.update(loss.item(), input_image.size(0))
-        top1.update(acc1[0].cpu().numpy()[0], input_image.size(0))
-        top5.update(acc5[0].cpu().numpy()[0], input_image.size(0))
+        top1.update(acc1.cpu().numpy().mean(), input_image.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -390,29 +403,27 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                 'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                'Acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
                     epoch, i, len(train_loader), batch_time=batch_time,
-                    data_time=data_time, loss=losses, top1=top1, top5=top5
+                    data_time=data_time, loss=losses, top1=top1
                 )
             )
         if i * len(input_image) > args.train_samples:
             break
-    return [epoch, batch_time.avg, losses.avg, top1.avg, top5.avg]
+    return [epoch, batch_time.avg, losses.avg, top1.avg]
 
 
 def validate_on_data(val_loader, model, criterion, args):
     batch_time = misc_utils.AverageMeter()
     losses = misc_utils.AverageMeter()
     top1 = misc_utils.AverageMeter()
-    top5 = misc_utils.AverageMeter()
 
     # switch to evaluate mode
     model.eval()
 
     with torch.no_grad():
         end = time.time()
-        for i, (input_image, target, _) in enumerate(val_loader):
+        for i, (input_image, target) in enumerate(val_loader):
             if args.gpus is not None:
                 input_image = input_image.cuda(args.gpus, non_blocking=True)
             target = target.cuda(args.gpus, non_blocking=True)
@@ -422,11 +433,9 @@ def validate_on_data(val_loader, model, criterion, args):
             loss = criterion(output, target)
 
             # measure accuracy and record loss
-            acc1 = misc_utils.accuracy(output, target)
-            acc5 = acc1.copy()
+            acc1 = compute_accuracy(output, target)
             losses.update(loss.item(), input_image.size(0))
-            top1.update(acc1[0].cpu().numpy()[0], input_image.size(0))
-            top5.update(acc5[0].cpu().numpy()[0], input_image.size(0))
+            top1.update(acc1.cpu().numpy().mean(), input_image.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -438,22 +447,17 @@ def validate_on_data(val_loader, model, criterion, args):
                     'Test: [{0}/{1}]\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                    'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                    'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                    'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
                         i, len(val_loader), batch_time=batch_time, loss=losses,
-                        top1=top1, top5=top5
+                        top1=top1
                     )
                 )
             if i * len(input_image) > args.val_samples:
                 break
         # printing the accuracy of the epoch
-        print(
-            ' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(
-                top1=top1, top5=top5
-            )
-        )
+        print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
 
-    return [batch_time.avg, losses.avg, top1.avg, top5.avg]
+    return [batch_time.avg, losses.avg, top1.avg]
 
 
 def extra_args_fun(parser):

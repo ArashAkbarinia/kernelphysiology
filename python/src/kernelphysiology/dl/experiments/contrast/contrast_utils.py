@@ -26,12 +26,17 @@ class AFCModel(nn.Module):
         )
         if '_scratch' in network_name:
             network_name = network_name.replace('_scratch', '')
-        self.features = pretrained_models.get_backbones(network_name, model)
+        model = pretrained_models.get_backbones(network_name, model)
+        self.features = pretrained_models.LayerActivation(
+            model, transfer_weights[1]
+        )
         # making the features unlearnable
         for p in self.features.parameters():
             p.requires_grad = False
 
-        last_layer = list(self.features.children())[-1][0]
+        # get the sequential network
+        children = list(self.features.children())[-1]
+        last_layer = list(children.children())[-1][0]
         if isinstance(last_layer, (cresnet.Bottleneck, presnet.Bottleneck)):
             in_planes = last_layer.conv3.out_channels
         else:
