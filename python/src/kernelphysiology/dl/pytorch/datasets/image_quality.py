@@ -6,22 +6,38 @@ Download the dataset from https://github.com/richzhang/PerceptualSimilarity .
 import os
 import ntpath
 import numpy as np
+import random
 from scipy.io import loadmat
 
 import cv2
+import torch
 from torchvision import datasets as tdatasets
 
 from kernelphysiology.utils import path_utils
 
 
 class BAPPS2afc(tdatasets.VisionDataset):
-    def __init__(self, split, distortion, **kwargs):
+    def __init__(self, split, distortion=None, concat=-1, **kwargs):
         super(BAPPS2afc, self).__init__(**kwargs)
         self.split = split
-        self.distortion = distortion
+        self.concat = concat
         self.loader = tdatasets.folder.pil_loader
-        self.root = os.path.join(self.root, '2afc', split, distortion)
-        self.ref_imgs = path_utils.image_in_folder(self.root + '/ref/')
+        self.root = os.path.join(self.root, '2afc', split)
+        if distortion is None:
+            distortion = [
+                'cnn', 'color', 'deblur', 'frameinterp', 'superres',
+                'traditional'
+            ]
+        elif type(distortion) is str:
+            distortion = [distortion]
+        self.ref_imgs = []
+        self.ref_dist = []
+        for dist in distortion:
+            dist_paths = path_utils.image_in_folder(
+                os.path.join(self.root, dist) + '/ref/'
+            )
+            self.ref_imgs.extend(dist_paths)
+            self.ref_dist.extend([dist] * len(dist_paths))
         print('Read %d images.' % len(self.ref_imgs))
 
     def __getitem__(self, index):
@@ -30,10 +46,11 @@ class BAPPS2afc(tdatasets.VisionDataset):
         img_ref = np.asarray(img_ref).copy()
         base_name = ntpath.basename(path_ref)[:-4]
 
-        path_p0 = '%s/p0/%s.png' % (self.root, base_name)
+        dist_root = os.path.join(self.root, self.ref_dist[index])
+        path_p0 = '%s/p0/%s.png' % (dist_root, base_name)
         img_p0 = self.loader(path_p0)
         img_p0 = np.asarray(img_p0).copy()
-        path_p1 = '%s/p1/%s.png' % (self.root, base_name)
+        path_p1 = '%s/p1/%s.png' % (dist_root, base_name)
         img_p1 = self.loader(path_p1)
         img_p1 = np.asarray(img_p1).copy()
         # a few images are of size 252, so we convert themt o 256
@@ -42,12 +59,19 @@ class BAPPS2afc(tdatasets.VisionDataset):
             img_p0 = cv2.resize(img_p0, (256, 256))
             img_p1 = cv2.resize(img_p1, (256, 256))
 
-        path_judge = '%s/judge/%s.npy' % (self.root, base_name)
+        path_judge = '%s/judge/%s.npy' % (dist_root, base_name)
         gt = np.load(path_judge)
 
         if self.transform is not None:
             img_ref, img_p0, img_p1 = self.transform([img_ref, img_p0, img_p1])
 
+        if self.concat != -1:
+            if random.random() < self.concat:
+                concat_img = torch.cat([img_p0, img_ref, img_p1], 2)
+            else:
+                concat_img = torch.cat([img_p1, img_ref, img_p0], 2)
+                gt = 1 - gt
+            return concat_img, gt
         return img_ref, img_p0, img_p1, gt
 
     def __len__(self):
@@ -58,7 +82,6 @@ class BAPPSjnd(tdatasets.VisionDataset):
     def __init__(self, split, distortion, **kwargs):
         super(BAPPSjnd, self).__init__(**kwargs)
         self.split = split
-        self.distortion = distortion
         self.loader = tdatasets.folder.pil_loader
         self.root = os.path.join(self.root, 'jnd', split, distortion)
         self.img0_paths = path_utils.image_in_folder(self.root + '/p0/')
