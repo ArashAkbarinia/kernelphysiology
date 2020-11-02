@@ -186,9 +186,9 @@ def main(args):
         mean_std = (mean, std)
 
     if args.constant_contrast < 0:
-        max_high = [1 + 2 * args.constant_contrast]
+        max_high = 1 + 2 * args.constant_contrast
     elif args.constant_contrast > 0:
-        max_high = [1 + -2 * args.constant_contrast]
+        max_high = 1 + -2 * args.constant_contrast
     else:
         max_high = 1.0
     mid_contrast = (0 + max_high) / 2
@@ -240,7 +240,6 @@ def main(args):
                 )
                 if (
                         abs(csf_flags[i] - max_high) < 1e-3
-                        or csf_flags[i] == args.constant_contrast
                         or new_contrast == csf_flags[i]
                         or j == 20
                 ):
