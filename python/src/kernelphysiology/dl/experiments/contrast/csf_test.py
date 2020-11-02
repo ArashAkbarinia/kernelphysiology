@@ -185,14 +185,21 @@ def main(args):
     if args.visualise:
         mean_std = (mean, std)
 
+    if args.constant_contrast < 0:
+        max_high = [1 + 2 * args.constant_contrast]
+    elif args.constant_contrast > 0:
+        max_high = [1 + -2 * args.constant_contrast]
+    else:
+        max_high = 1.0
+    mid_contrast = (0 + max_high) / 2
+
     all_results = None
-    mid_contrast = (args.constant_contrast + 1) / 2
     csf_flags = [mid_contrast for _ in test_sfs]
 
     if args.db == 'gratings':
         for i in range(len(csf_flags)):
-            low = args.constant_contrast
-            high = 1
+            low = 0
+            high = max_high
             j = 0
             while csf_flags[i] is not None:
                 print(
@@ -232,7 +239,7 @@ def main(args):
                     low=low, high=high
                 )
                 if (
-                        abs(csf_flags[i] - 1.0) < 1e-3
+                        abs(csf_flags[i] - max_high) < 1e-3
                         or csf_flags[i] == args.constant_contrast
                         or new_contrast == csf_flags[i]
                         or j == 20

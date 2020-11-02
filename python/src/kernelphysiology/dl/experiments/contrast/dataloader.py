@@ -354,7 +354,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             theta = self.settings['theta'][inds[2]]
             rho = self.settings['rho'][inds[3]]
             self.p = self.settings['side'][inds[4]]
-            contrast1 = self.constant_contrast
+            contrast1 = 0
         omega = [np.cos(theta), np.sin(theta)]
 
         if self.mask_image == 'model_fest':
@@ -419,6 +419,9 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
         img0 = (img0 + 1) / 2
         img1 = (img1 + 1) / 2
+        # adding the constant illuminant (TODO: rename it)
+        img0 += self.constant_contrast
+        img1 += self.constant_contrast
 
         # if target size is even, the generated stimuli is 1 pixel larger.
         if np.mod(self.target_size[0], 2) == 0:
