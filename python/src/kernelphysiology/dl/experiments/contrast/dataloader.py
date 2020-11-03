@@ -305,7 +305,7 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             # under this condition one contrast will be zero while the other
             # takes the arguments of samples.
             (
-                self.samples, self.settings, self.constant_contrast
+                self.samples, self.settings, self.avg_illuminant
             ) = self._create_samples(samples)
         else:
             self.samples = samples
@@ -419,9 +419,9 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
         img0 = (img0 + 1) / 2
         img1 = (img1 + 1) / 2
-        # adding the constant illuminant (TODO: rename it)
-        img0 += self.constant_contrast
-        img1 += self.constant_contrast
+        # adding the avgerage illuminant
+        img0 += self.avg_illuminant
+        img1 += self.avg_illuminant
 
         # if target size is even, the generated stimuli is 1 pixel larger.
         if np.mod(self.target_size[0], 2) == 0:
@@ -487,18 +487,18 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         return self.samples
 
     def _create_samples(self, samples):
-        if 'constant_contrast' in samples:
-            constant_contrast = samples['constant_contrast']
-            del samples['constant_contrast']
+        if 'avg_illuminant' in samples:
+            avg_illuminant = samples['avg_illuminant']
+            del samples['avg_illuminant']
         else:
-            constant_contrast = 0
+            avg_illuminant = 0
         settings = samples
         settings['lenghts'] = (
             len(settings['amp']), len(settings['lambda_wave']),
             len(settings['theta']), len(settings['rho']), len(settings['side'])
         )
         num_samples = np.prod(np.array(settings['lenghts']))
-        return num_samples, settings, constant_contrast
+        return num_samples, settings, avg_illuminant
 
 
 def train_set(db, target_size, mean, std, extra_transformation=None, **kwargs):

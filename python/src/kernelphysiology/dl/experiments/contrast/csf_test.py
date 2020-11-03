@@ -43,7 +43,7 @@ def parse_arguments(args):
                               default=False)
     model_parser.add_argument('--grey_width', default=40, choices=[0, 40],
                               type=int)
-    model_parser.add_argument('--constant_contrast', default=0, type=float)
+    model_parser.add_argument('--avg_illuminant', default=0, type=float)
     return parser.parse_args(args)
 
 
@@ -185,10 +185,10 @@ def main(args):
     if args.visualise:
         mean_std = (mean, std)
 
-    if args.constant_contrast < 0:
-        max_high = 1 + 2 * args.constant_contrast
-    elif args.constant_contrast > 0:
-        max_high = 1 + -2 * args.constant_contrast
+    if args.avg_illuminant < 0:
+        max_high = 1 + 2 * args.avg_illuminant
+    elif args.avg_illuminant > 0:
+        max_high = 1 + -2 * args.avg_illuminant
     else:
         max_high = 1.0
     mid_contrast = (0 + max_high) / 2
@@ -211,7 +211,7 @@ def main(args):
                 test_samples = {
                     'amp': [csf_flags[i]], 'lambda_wave': [test_sfs[i]],
                     'theta': test_thetas, 'rho': test_rhos, 'side': test_ps,
-                    'constant_contrast': args.constant_contrast
+                    'avg_illuminant': args.avg_illuminant
                 }
                 db_params = {
                     'colour_space': colour_space,
