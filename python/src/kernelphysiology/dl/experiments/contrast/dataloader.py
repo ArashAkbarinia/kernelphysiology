@@ -60,7 +60,7 @@ def _random_mask_params():
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p,
-                     grey_width):
+                     grey_width, avg_illuminant=0):
     # FIXME: this might not work with the .ppm files, change it to 01 version
     if 'grey' not in colour_space and vision_type != 'trichromat':
         dkl0 = colour_spaces.rgb2dkl(img0)
@@ -121,6 +121,14 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         img0 = imutils.mask_image(img0, 0.5, **_random_mask_params())
         img1 = imutils.mask_image(img1, 0.5, **_random_mask_params())
 
+    # adding the avgerage illuminant
+    if avg_illuminant is None:
+        half_max_contrast = max(contrast0, contrast1) / 2
+        ill_gamut = (0.5 - half_max_contrast)
+        avg_illuminant = np.random.uniform(low=-ill_gamut, high=ill_gamut)
+    img0 += avg_illuminant
+    img1 += avg_illuminant
+
     if post_transform is not None:
         img0, img1 = post_transform([img0, img1])
 
@@ -180,7 +188,8 @@ def cv2_loader(path):
 class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5,
                  contrasts=None, same_transforms=False, colour_space='grey',
-                 vision_type='trichromat', mask_image=None, grey_width=40):
+                 vision_type='trichromat', mask_image=None, grey_width=40,
+                 avg_illuminant=0):
         self.p = p
         self.grey_width = grey_width
         self.contrasts = contrasts
@@ -190,6 +199,7 @@ class AfcDataset(object):
         self.mask_image = mask_image
         self.post_transform = post_transform
         self.pre_transform = pre_transform
+        self.avg_illuminant = avg_illuminant
 
 
 class CelebA(AfcDataset, tdatasets.CelebA):
@@ -231,7 +241,7 @@ class CelebA(AfcDataset, tdatasets.CelebA):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p, self.grey_width
+            self.same_transforms, self.p, self.grey_width, self.avg_illuminant
         )
 
         return img_out, contrast_target, path
@@ -261,7 +271,7 @@ class OneFolder(AfcDataset, tdatasets.VisionDataset):
                 img0.copy(), self.colour_space, self.vision_type,
                 self.contrasts, self.mask_image, self.pre_transform,
                 self.post_transform, self.same_transforms, self.p,
-                self.grey_width
+                self.grey_width, self.avg_illuminant
             )
             imgs_stack.append(current_crop)
             targets_stack.append(current_target)
@@ -286,7 +296,7 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p, self.grey_width
+            self.same_transforms, self.p, self.grey_width, self.avg_illuminant
         )
 
         # right now we're not using the class target, but perhaps in the future

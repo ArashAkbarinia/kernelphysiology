@@ -250,6 +250,7 @@ def main_worker(ngpus_per_node, args):
         'mask_image': args.mask_image,
         'grey_width': args.grey_width,
         'contrasts': args.contrasts,
+        'avg_illuminant': args.avg_illuminant
     }
     if args.dataset in dataloader.NATURAL_DATASETS:
         path_or_sample = args.data_dir
@@ -477,6 +478,7 @@ def extra_args_fun(parser):
                                 type=int)
     specific_group.add_argument('--mask_image', default=None, type=str)
     specific_group.add_argument('--contrasts', default=None, type=str)
+    specific_group.add_argument('--avg_illuminant', default=None, type=float)
 
 
 if __name__ == '__main__':
