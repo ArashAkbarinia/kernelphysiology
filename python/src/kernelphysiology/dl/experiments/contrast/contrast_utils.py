@@ -160,3 +160,10 @@ def report_jnd(all_gts, all_diffs):
         'map': mAP, 'corr': p_corr
     }
     return report
+
+
+def compute_2afc_score(d0s, d1s, gt):
+    d0_smaller = (d0s < d1s) * (1.0 - gt)
+    d1_smaller = (d1s < d0s) * gt
+    scores = d0_smaller + d1_smaller + (d1s == d0s) * 0.5
+    return scores

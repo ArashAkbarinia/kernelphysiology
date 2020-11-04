@@ -115,9 +115,7 @@ def run_2afc(db_loader, model, print_val):
                 d1s.sum(dim=1, keepdim=True), keepdim=True
             ).squeeze(dim=3).squeeze(dim=2).squeeze(dim=1)
 
-            d0_smaller = (d0s < d1s) * (1.0 - gt)
-            d1_smaller = (d1s < d0s) * gt
-            scores = d0_smaller + d1_smaller + (d1s == d0s) * 0.5
+            scores = contrast_utils.compute_2afc_score(d0s, d1s, gt)
             all_results.extend(scores.detach().cpu().numpy())
 
             num_tests = num_batches * img_ref.shape[0]
