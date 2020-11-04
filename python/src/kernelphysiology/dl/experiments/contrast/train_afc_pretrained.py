@@ -189,6 +189,10 @@ def main_worker(ngpus_per_node, args):
             # {'params': [p for p in model.features.parameters()], 'lr': 1e-6},
             {'params': [p for p in model.fc.parameters()]},
         ]
+        if '_scratch' in args.network_name:
+            params_to_optimize.append(
+                {'params': [p for p in model.features.parameters()]}
+            )
         optimizer = torch.optim.SGD(
             params_to_optimize, lr=args.lr,
             momentum=args.momentum, weight_decay=args.weight_decay
