@@ -155,9 +155,10 @@ def report_jnd(all_gts, all_diffs):
     recs = tps / (tps + fns)
     mAP = _voc_ap(recs, precs)
 
-    p_corr, r_corr = stats.pearsonr(gt_array, result_array)
+    p_corr, p_pval = stats.pearsonr(gt_array, result_array)
+    s_corr, s_pval = stats.spearmanr(gt_array, result_array)
     report = {
-        'map': mAP, 'corr': p_corr
+        'map': mAP, 'pearsonr': p_corr, 'spearmanr': s_corr
     }
     return report
 
