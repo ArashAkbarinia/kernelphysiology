@@ -46,20 +46,33 @@ def run_live(db_loader, model, print_val):
             img0 = img0.cuda()
             img1 = img1.cuda()
 
-            out0 = model(img0)
-            out1 = model(img1)
+            slice_diffs = 0
+            for srow in range(0, img0.shape[2], 256):
+                erow = srow + 256
+                if erow > img0.shape[2]:
+                    erow = img0.shape[2]
+                    srow = erow - 256
+                for scol in range(0, img0.shape[3], 512):
+                    ecol = scol + 512
+                    if ecol > img0.shape[3]:
+                        ecol = img0.shape[3]
+                        scol = ecol - 512
+                    out0 = model(img0[:, :, srow:erow, scol:ecol])
+                    out1 = model(img1[:, :, srow:erow, scol:ecol])
 
-            # normalise the activations
-            out0 = contrast_utils._normalise_tensor(out0)
-            out1 = contrast_utils._normalise_tensor(out1)
+                    # normalise the activations
+                    out0 = contrast_utils._normalise_tensor(out0)
+                    out1 = contrast_utils._normalise_tensor(out1)
 
-            # compute the difference
-            diffs = (out0 - out1) ** 2
+                    # compute the difference
+                    diffs = (out0 - out1) ** 2
 
-            # collapse the differences
-            diffs = contrast_utils._spatial_average(
-                diffs.sum(dim=1, keepdim=True), keepdim=True
-            ).squeeze(dim=3).squeeze(dim=2).squeeze(dim=1)
+                    # collapse the differences
+                    diffs = contrast_utils._spatial_average(
+                        diffs.sum(dim=1, keepdim=True), keepdim=True
+                    ).squeeze(dim=3).squeeze(dim=2).squeeze(dim=1)
+                    slice_diffs += diffs
+            diffs = slice_diffs
 
             all_diffs.extend(diffs.detach().cpu().numpy())
             all_moses.extend(mos.detach().numpy())
