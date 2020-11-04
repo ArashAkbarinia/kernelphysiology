@@ -116,3 +116,5 @@ CheckPoints/
 
 # dataset folders
 /datasets/
+
+python/src/kernelphysiology/dl/experiments/contrast/scripts/
