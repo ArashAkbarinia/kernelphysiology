@@ -8,6 +8,7 @@ import sys
 from scipy import stats
 
 from kernelphysiology.utils import path_utils
+from kernelphysiology.utils.controls import natural_keys
 
 layer_type = 'relu'
 csf_dir = "/home/arash/Desktop/projects/csf/"
@@ -16,19 +17,6 @@ fig_out_dir = "%s/figures/activations/" % csf_dir
 anl_out_dir = "%s/analysis/activation_corrs/%s/" % (csf_dir, layer_type)
 target_size = 256
 base_sf = ((target_size / 2) / np.pi)
-
-
-def atoi(text):
-    return int(text) if text.isdigit() else text
-
-
-def natural_keys(text):
-    '''
-    alist.sort(key=natural_keys) sorts in human order
-    http://nedbatchelder.com/blog/200712/human_sorting.html
-    (See Toothy's implementation in the comments)
-    '''
-    return [atoi(c) for c in re.split(r'(\d+)', text)]
 
 
 def get_human_csf(f):
@@ -67,7 +55,7 @@ def process_network(net_name):
         )
         all_layers_maxsf.append(maxsf)
     out_file = os.path.join(
-        anl_out_dir, 'peak_activations', '%s_corrs.csv' % net_name
+        anl_out_dir, 'peak_activations_avg', '%s_corrs.csv' % net_name
     )
     np.savetxt(
         out_file, np.array(all_layers_maxsf), delimiter=',', header=header
@@ -145,12 +133,19 @@ def maxsf_layer(contrast_activation, xvals, net_name, layer_name):
     for i, report_key in enumerate(report_types):
         maxsf = max_activations(contrast_activation, report_key)
 
-        for ckey, cval in maxsf.items():
+        all_newys = np.zeros(
+            (len(maxsf.keys()), *human_csf.shape)
+        )
+        for j, (ckey, cval) in enumerate(maxsf.items()):
             yvals = cval / cval.max()
             newys = np.interp(newxs, xvals, yvals)
-            p_corr, r_corr = stats.pearsonr(human_csf, newys)
-            max_sfs.append(p_corr)
-            headers.append(report_key + ckey)
+            all_newys[j] = newys
+            # p_corr, r_corr = stats.pearsonr(human_csf, newys)
+            # max_sfs.append(p_corr)
+            # headers.append(report_key + ckey)
+        p_corr, r_corr = stats.pearsonr(human_csf, all_newys.mean(axis=0))
+        max_sfs.append(p_corr)
+        headers.append(report_key + 'allcs')
     header = ','.join(e for e in headers)
 
     # plotting the peack frequencies
