@@ -16,17 +16,18 @@ from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.experiments.contrast.models.transparency import tranmod
 
 
-class ResNetLayerActivation(nn.Module):
+class ResNetIntermediate(nn.Module):
     def __init__(self, arch_name, layer_name, conv_bn_relu='relu',
                  weights_path=None):
         """
         Extract features from a specific layer of ResNet architecture.
         :param arch_name: the name of the architecture
         :param layer_name: in this format <area>.<block>.<layer> e.g. 1.0.1
+               layers are indexed from 1, area and block from 0
         :param conv_bn_relu: extracting features after conv, batch normalisation
                or relu.
         """
-        super(ResNetLayerActivation, self).__init__()
+        super(ResNetIntermediate, self).__init__()
 
         if conv_bn_relu not in ['conv', 'bn', 'relu']:
             sys.exit(
@@ -57,6 +58,8 @@ class ResNetLayerActivation(nn.Module):
             area_num = int(layer_parts[0])
             block_num = int(layer_parts[1])
             layer_num = int(layer_parts[2])
+            if layer_num < 1:
+                sys.exit('Layer num must be bigger than 0 %s' % layer_name)
             area_inds = [1, 4, 5, 6, 7]
             last_area_ind = area_inds[area_num]
             # area 0 is special since it doesn't have blocks
@@ -77,6 +80,16 @@ class ResNetLayerActivation(nn.Module):
             )
             self.last_block = last_block
             self.last_layer = last_layer
+
+    def get_num_kernels(self):
+        if self.last_layer is None:
+            for f in list(self.features.children())[::-1]:
+                if type(f) is nn.Conv2d:
+                    return f.out_channels
+        else:
+            for f in list(self.last_layer.children())[::-1]:
+                if type(f) is nn.Conv2d:
+                    return f.out_channels
 
     def forward(self, x):
         x = self.features(x)
@@ -110,8 +123,9 @@ def get_pretrained_model(network_name, weights_path):
         model = model_utils.which_architecture(
             network_name, customs=weights_path
         )
-    elif ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
-          or 'keypointrcnn_' in network_name
+    elif (
+            'maskrcnn_' in network_name or 'fasterrcnn_' in network_name
+            or 'keypointrcnn_' in network_name
     ):
         model = detection.__dict__[network_name](pretrained=pretrained)
     elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
@@ -124,7 +138,8 @@ def get_pretrained_model(network_name, weights_path):
 
 
 def get_backbones(network_name, model):
-    if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
+    if (
+            'maskrcnn_' in network_name or 'fasterrcnn_' in network_name
             or 'keypointrcnn_' in network_name
     ):
         return model.backbone.body
