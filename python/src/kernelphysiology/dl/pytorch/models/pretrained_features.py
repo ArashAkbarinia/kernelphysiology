@@ -11,6 +11,9 @@ from torchvision import models as classification
 from torchvision.models import segmentation
 from torchvision.models import detection
 
+from torchvision.models import resnet as presnet
+from kernelphysiology.dl.pytorch.models import resnet as cresnet
+
 from kernelphysiology.dl.pytorch.models import model_utils
 
 from kernelphysiology.dl.experiments.contrast.models.transparency import tranmod
@@ -83,7 +86,16 @@ class ResNetIntermediate(nn.Module):
 
     def get_num_kernels(self):
         if self.last_layer is None:
-            for f in list(self.features.children())[::-1]:
+            features = list(self.features.children())[::-1]
+            if isinstance(features[0], nn.Sequential):
+                last_block = list(features[0].children())[-1]
+                if isinstance(
+                        last_block, (cresnet.Bottleneck, presnet.Bottleneck)
+                ):
+                    return last_block.conv3.out_channels
+                else:
+                    return last_block.conv2.out_channels
+            for f in features:
                 if type(f) is nn.Conv2d:
                     return f.out_channels
         else:
