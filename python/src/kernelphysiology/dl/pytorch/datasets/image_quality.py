@@ -60,7 +60,7 @@ class BAPPS2afc(tdatasets.VisionDataset):
             img_p1 = cv2.resize(img_p1, (256, 256))
 
         path_judge = '%s/judge/%s.npy' % (dist_root, base_name)
-        gt = np.load(path_judge)
+        gt = np.load(path_judge)[0]
 
         if self.transform is not None:
             img_ref, img_p0, img_p1 = self.transform([img_ref, img_p0, img_p1])
@@ -73,6 +73,12 @@ class BAPPS2afc(tdatasets.VisionDataset):
                 gt = 1 - gt
             gt = torch.tensor([gt, 1 - gt]).squeeze()
             return concat_img, gt
+        if self.split == 'train' and random.random() > 0.5:
+            img_p1 = img_ref.clone()
+            gt = 1 - gt
+            gt = torch.tensor([gt, 1 - gt]).squeeze()
+            return img_ref, img_p1, img_p0, gt
+        gt = torch.tensor([gt, 1 - gt]).squeeze()
         return img_ref, img_p0, img_p1, gt
 
     def __len__(self):
