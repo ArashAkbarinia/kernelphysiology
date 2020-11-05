@@ -3,6 +3,7 @@ import sys
 import time
 import logging
 import numpy as np
+import random
 
 from torch import optim
 from torch import nn
@@ -117,6 +118,9 @@ def main(args):
         torch.manual_seed(args.random_seed)
         torch.cuda.manual_seed_all(args.manual_seed)
         torch.cuda.manual_seed(args.manual_seed)
+        np.random.seed(args.random_seed)
+        random.seed(args.random_seed)
+        torch.backends.cudnn.deterministic = True
     if args.cuda:
         args.gpus = [int(i) for i in args.gpus.split(',')]
         torch.cuda.set_device(args.gpus[0])
