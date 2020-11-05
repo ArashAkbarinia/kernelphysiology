@@ -111,9 +111,16 @@ def removekey(d, r_key):
 
 def main(args):
     args = parse_arguments(args)
+    args.cuda = not args.no_cuda and torch.cuda.is_available()
+
     if args.random_seed is not None:
         torch.manual_seed(args.random_seed)
-    args.cuda = not args.no_cuda and torch.cuda.is_available()
+        torch.cuda.manual_seed_all(args.manual_seed)
+        torch.cuda.manual_seed(args.manual_seed)
+    if args.cuda:
+        args.gpus = [int(i) for i in args.gpus.split(',')]
+        torch.cuda.set_device(args.gpus[0])
+        cudnn.benchmark = True
 
     args.mean = (0.5, 0.5, 0.5)
     args.std = (0.5, 0.5, 0.5)
@@ -160,14 +167,6 @@ def main(args):
 
     save_path = vae_util.setup_logging_from_args(args)
     writer = SummaryWriter(save_path)
-
-    torch.manual_seed(args.seed)
-    if args.cuda:
-        torch.cuda.manual_seed_all(args.seed)
-        args.gpus = [int(i) for i in args.gpus.split(',')]
-        torch.cuda.set_device(args.gpus[0])
-        cudnn.benchmark = True
-        torch.cuda.manual_seed(args.seed)
 
     in_colour_space = args.colour_space[:3]
     out_colour_space = args.colour_space[4:]
