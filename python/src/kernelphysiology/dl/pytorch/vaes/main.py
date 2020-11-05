@@ -216,6 +216,8 @@ def main(args):
                 'arch_name': args.backbone[0],
                 'layer_name': args.backbone[1]
             }
+            if len(args.backbone) > 2:
+                backbone['weights_path'] = args.backbone[2]
             models[args.dataset][args.model] = vae_model.Backbone_VQ_VAE
         model = models[args.dataset][args.model](
             hidden, k=k, kl=args.kl, num_channels=num_channels,
