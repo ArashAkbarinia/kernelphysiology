@@ -38,6 +38,11 @@ def main(argv):
     args = argument_handler.train_arg_parser(argv, extra_args_fun)
     if args.random_seed is not None:
         torch.manual_seed(args.random_seed)
+        torch.cuda.manual_seed_all(args.random_seed)
+        torch.cuda.manual_seed(args.random_seed)
+        np.random.seed(args.random_seed)
+        random.seed(args.random_seed)
+        torch.backends.cudnn.deterministic = True
 
     args.lr, args.weight_decay = default_configs.optimisation_params(
         'classification', args
