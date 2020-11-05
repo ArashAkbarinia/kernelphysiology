@@ -115,12 +115,14 @@ def main(args):
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
     if args.random_seed is not None:
+        os.environ['PYTHONHASHSEED'] = str(args.random_seed)
         torch.manual_seed(args.random_seed)
         torch.cuda.manual_seed_all(args.random_seed)
         torch.cuda.manual_seed(args.random_seed)
         np.random.seed(args.random_seed)
         random.seed(args.random_seed)
         torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
     if args.cuda:
         args.gpus = [int(i) for i in args.gpus.split(',')]
         torch.cuda.set_device(args.gpus[0])
