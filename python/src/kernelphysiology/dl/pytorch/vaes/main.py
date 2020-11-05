@@ -111,6 +111,8 @@ def removekey(d, r_key):
 
 def main(args):
     args = parse_arguments(args)
+    if args.random_seed is not None:
+        torch.manual_seed(args.random_seed)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
     args.mean = (0.5, 0.5, 0.5)

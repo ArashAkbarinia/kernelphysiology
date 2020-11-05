@@ -49,6 +49,7 @@ def parse_arguments(args):
                               help='commitment coefficient in loss')
     model_parser.add_argument('--kl_coef', type=float, default=None,
                               help='kl-divergence coefficient in loss')
+    model_parser.add_argument('--random_seed', default=None, type=int)
     parser.add_argument(
         '--resume', type=str, default=None,
         help='The path to previous training to be resumed (default: None).'
