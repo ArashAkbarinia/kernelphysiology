@@ -618,8 +618,8 @@ class Backbone_VQ_VAE(nn.Module):
             nn.BatchNorm2d(kl),
         )
         conv_transposes = []
-        num_conv_transpose = int(self.backbone_encoder.spatial_ratio / 2) - 2
-        for i in range(0, num_conv_transpose, 2):
+        num_conv_transpose = int(self.backbone_encoder.spatial_ratio / 2)
+        for i in range(int(np.log2(num_conv_transpose))):
             conv_transposes.append(
                 nn.ConvTranspose2d(d, d, kernel_size=4, stride=2, padding=1)
             )

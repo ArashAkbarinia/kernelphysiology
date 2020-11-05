@@ -48,7 +48,7 @@ class ResNetIntermediate(nn.Module):
         self.last_layer = None
 
         entire_area = ['area%d' % e for e in range(0, 5)]
-        spatial_ratios = [4, 8, 16, 32, 64]
+        spatial_ratios = [4, 4, 8, 16, 32]
         if layer_name in entire_area:
             # easy case of no sub blocks and layers must be identified
             print('Activation for the entire %s' % layer_name)
