@@ -20,22 +20,22 @@ from kernelphysiology.dl.experiments.contrast.models.transparency import tranmod
 
 
 class ResNetIntermediate(nn.Module):
-    def __init__(self, arch_name, layer_name, conv_bn_relu='relu',
+    def __init__(self, arch_name, layer_name, layer_type='relu',
                  weights_path=None):
         """
         Extract features from a specific layer of ResNet architecture.
         :param arch_name: the name of the architecture
         :param layer_name: in this format <area>.<block>.<layer> e.g. 1.0.1
                layers are indexed from 1, area and block from 0
-        :param conv_bn_relu: extracting features after conv, batch normalisation
-               or relu.
+        :param layer_type: extracting features after conv, batch normalisation,
+               relu or max.
         """
         super(ResNetIntermediate, self).__init__()
 
-        if conv_bn_relu not in ['conv', 'bn', 'relu']:
+        if layer_type not in ['conv', 'bn', 'relu', 'max']:
             sys.exit(
                 'ResNetLayerActivation: conv_bn_relu %s is not supported' %
-                conv_bn_relu
+                layer_type
             )
 
         # loading the pretrained network
@@ -48,12 +48,17 @@ class ResNetIntermediate(nn.Module):
         self.last_layer = None
 
         entire_area = ['area%d' % e for e in range(0, 5)]
+        spatial_ratios = [4, 8, 16, 32, 64]
         if layer_name in entire_area:
             # easy case of no sub blocks and layers must be identified
             print('Activation for the entire %s' % layer_name)
             area_inds = [4, 5, 6, 7, 8]
-            lind = area_inds[int(layer_name[-1])]
-            self.features = nn.Sequential(*list(model.children())[:lind])
+            area_num = int(layer_name[-1])
+            last_area_ind = area_inds[area_num]
+            self.features = nn.Sequential(
+                *list(model.children())[:last_area_ind]
+            )
+            self.spatial_ratio = spatial_ratios[area_num]
         else:
             layer_parts = layer_name.split('.')
             last_block = None
@@ -67,10 +72,10 @@ class ResNetIntermediate(nn.Module):
             last_area_ind = area_inds[area_num]
             # area 0 is special since it doesn't have blocks
             if area_num > 0:
-                if conv_bn_relu == 'relu':
+                if layer_type == 'relu':
                     self.relu = nn.ReLU(inplace=True)
                     which_fun = model_utils._get_bn
-                elif conv_bn_relu == 'bn':
+                elif layer_type == 'bn':
                     which_fun = model_utils._get_bn
                 else:
                     which_fun = model_utils._get_conv
@@ -78,9 +83,26 @@ class ResNetIntermediate(nn.Module):
                 last_block, last_layer = which_fun(
                     last_area, block_num, layer_num
                 )
-            self.features = nn.Sequential(
-                *list(model.children())[:last_area_ind]
-            )
+                self.features = nn.Sequential(
+                    *list(model.children())[:last_area_ind]
+                )
+                # after the first block the spatial resolution is already halved
+                if block_num > 0:
+                    self.spatial_ratio = spatial_ratios[area_num + 1]
+                else:
+                    self.spatial_ratio = spatial_ratios[area_num]
+            else:
+                self.spatial_ratio = 2
+                if layer_type == 'bn':
+                    last_area_ind = 2
+                elif layer_type == 'relu':
+                    last_area_ind = 3
+                elif layer_type == 'max':
+                    last_area_ind = 4
+                    self.spatial_ratio = 4
+                self.features = nn.Sequential(
+                    *list(model.children())[:last_area_ind]
+                )
             self.last_block = last_block
             self.last_layer = last_layer
 

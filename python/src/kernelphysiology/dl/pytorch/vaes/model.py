@@ -12,6 +12,7 @@ from torch.nn import functional as F
 import torch.utils.data
 
 from kernelphysiology.dl.pytorch.vaes import nearest_embed
+from kernelphysiology.dl.pytorch.models import pretrained_features
 
 
 class AbstractAutoEncoder(nn.Module):
@@ -470,6 +471,185 @@ class VQ_CVAE(nn.Module):
         self.commit_loss = 0
 
         for l in self.modules():
+            if isinstance(l, nn.Linear) or isinstance(l, nn.Conv2d):
+                l.weight.detach().normal_(0, 0.02)
+                torch.fmod(l.weight, 0.04)
+                nn.init.constant_(l.bias, 0)
+
+        self.encoder[-1].weight.detach().fill_(1 / 40)
+
+        self.emb.weight.detach().normal_(0, 0.02)
+        torch.fmod(self.emb.weight, 0.04)
+
+    def encode(self, x):
+        return self.encoder(x)
+
+    def decode(self, x):
+        if self.task == 'segmentation':
+            return self.fc(self.decoder(x))
+        return torch.tanh(self.decoder(x))
+
+    def forward(self, x):
+        z_e = self.encode(x)
+        self.f = z_e.shape[-1]
+        z_q, argmin = self.emb(z_e, weight_sg=True)
+        emb, _ = self.emb(z_e.detach())
+        return self.decode(z_q), z_e, emb, argmin
+
+    def sample(self, size):
+        if self.cuda():
+            sample = torch.tensor(
+                torch.randn(size, self.kl, self.f, self.f), requires_grad=False
+            ).cuda()
+        else:
+            sample = torch.tensor(
+                torch.randn(size, self.kl, self.f, self.f), requires_grad=False
+            )
+        emb, _ = self.emb(sample)
+        return self.decode(emb.view(size, self.kl, self.f, self.f)).cpu()
+
+    def sample_inds(self, inds):
+        assert len(inds.shape) == 2
+        rows = inds.shape[0]
+        cols = inds.shape[1]
+        inds = inds.reshape(rows * cols)
+        weights = self.emb.weight.detach().cpu().numpy()
+        sample = np.zeros((self.kl, rows, cols))
+        sample = sample.reshape(self.kl, rows * cols)
+        for i in range(self.k):
+            which_inds = inds == i
+            sample[:, which_inds] = np.broadcast_to(
+                weights[:, i], (which_inds.sum(), self.kl)
+            ).T
+        sample = sample.reshape(self.kl, rows, cols)
+        emb = torch.tensor(sample, dtype=torch.float32).unsqueeze(dim=0)
+        return self.decode(emb).cpu()
+
+    def loss_function(self, x, recon_x, z_e, emb, argmin):
+        if self.colour_space == 'hsv':
+            self.mse = F.mse_loss(recon_x[:, 1:], x[:, 1:])
+            self.mse += self.hue_loss(recon_x[:, 0], x[:, 0])
+        elif self.task == 'segmentation':
+            if self.out_chns == 1:
+                self.mse = F.binary_cross_entropy_with_logits(
+                    recon_x.squeeze(), x
+                )
+            else:
+                self.mse = F.cross_entropy(recon_x, x, ignore_index=255)
+        elif self.colour_space == 'labhue':
+            self.mse = F.mse_loss(recon_x[:, :3], x[:, :3])
+            self.mse += self.hue_loss(recon_x[:, 3], x[:, 3])
+        else:
+            self.mse = F.mse_loss(recon_x, x)
+
+        self.vq_loss = torch.mean(torch.norm((emb - z_e.detach()) ** 2, 2, 1))
+        self.commit_loss = torch.mean(
+            torch.norm((emb.detach() - z_e) ** 2, 2, 1))
+
+        if self.use_decor_loss != 0:
+            emb_weights = self.emb.weight.detach()
+            mean_mat = emb_weights.mean(dim=0)
+            emb_weights = emb_weights.sub(mean_mat)
+            corr = torch.zeros((self.k, self.k))
+            for i in range(self.k - 1):
+                for j in range(i + 1, self.k):
+                    r_num = emb_weights[:, i].dot(emb_weights[:, j])
+                    r_den = torch.norm(emb_weights[:, i], 2) * torch.norm(
+                        emb_weights[:, j], 2
+                    )
+                    current_corr = r_num / r_den
+                    corr[i, j] = current_corr
+                    corr[j, i] = current_corr
+            self.decor_loss = abs(corr).mean()
+            if self.use_decor_loss < 0:
+                self.decor_loss = 1 - self.decor_loss
+            return self.mse + self.vq_coef * self.vq_loss + self.commit_coef * self.commit_loss + self.decor_loss
+
+        return self.mse + self.vq_coef * self.vq_loss + self.commit_coef * self.commit_loss
+
+    def latest_losses(self):
+        if self.use_decor_loss:
+            return {'mse': self.mse, 'vq': self.vq_loss,
+                    'commitment': self.commit_loss,
+                    'decorr': self.decor_loss}
+        return {'mse': self.mse, 'vq': self.vq_loss,
+                'commitment': self.commit_loss}
+
+    def print_atom_hist(self, argmin):
+
+        argmin = argmin.detach().cpu().numpy()
+        unique, counts = np.unique(argmin, return_counts=True)
+        logging.info(counts)
+        logging.info(unique)
+
+
+class Backbone_VQ_VAE(nn.Module):
+    def __init__(self, d, k=10, kl=None, bn=True, vq_coef=1, commit_coef=0.5,
+                 in_chns=3, colour_space='rgb', out_chns=None, task=None,
+                 cos_distance=False, use_decor_loss=0, backbone=None, **kwargs):
+        super(Backbone_VQ_VAE, self).__init__()
+
+        self.backbone_encoder = pretrained_features.ResNetIntermediate(
+            **backbone)
+
+        if out_chns is None:
+            out_chns = in_chns
+        self.out_chns = out_chns
+        if task == 'segmentation':
+            out_chns = d
+        self.use_decor_loss = use_decor_loss
+        if self.use_decor_loss != 0:
+            self.decor_loss = torch.zeros(1)
+
+        self.d = d
+        self.k = k
+        if kl is None:
+            kl = d
+        self.kl = kl
+        self.emb = nearest_embed.NearestEmbed(k, kl, cos_distance)
+
+        self.colour_space = colour_space
+        self.task = task
+        self.hue_loss = HueLoss()
+
+        self.encoder = nn.Sequential(
+            self.backbone_encoder,
+            ResBlock(self.backbone_encoder.get_num_kernels(), kl, bn=True),
+            nn.BatchNorm2d(kl),
+        )
+        conv_transposes = []
+        num_conv_transpose = int(self.backbone_encoder.spatial_ratio / 2) - 2
+        for i in range(0, num_conv_transpose, 2):
+            conv_transposes.append(
+                nn.ConvTranspose2d(d, d, kernel_size=4, stride=2, padding=1)
+            )
+            conv_transposes.append(nn.BatchNorm2d(d))
+            conv_transposes.append(nn.ReLU(inplace=True))
+        self.decoder = nn.Sequential(
+            ResBlock(kl, d),
+            nn.BatchNorm2d(d),
+            ResBlock(d, d),
+            *conv_transposes,
+            nn.ConvTranspose2d(d, out_chns, kernel_size=4, stride=2, padding=1)
+        )
+        if self.task == 'segmentation':
+            self.fc = nn.Sequential(
+                nn.BatchNorm2d(d),
+                nn.ReLU(),
+                nn.Conv2d(d, self.out_chns, 1)
+            )
+        self.vq_coef = vq_coef
+        self.commit_coef = commit_coef
+        self.mse = 0
+        self.vq_loss = torch.zeros(1)
+        self.commit_loss = 0
+
+        for l in self.modules():
+            if (
+                    isinstance(l, pretrained_features.ResNetIntermediate) or
+                    l in self.backbone_encoder.modules()
+            ):
+                continue
             if isinstance(l, nn.Linear) or isinstance(l, nn.Conv2d):
                 l.weight.detach().normal_(0, 0.02)
                 torch.fmod(l.weight, 0.04)

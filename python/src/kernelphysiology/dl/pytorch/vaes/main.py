@@ -208,11 +208,18 @@ def main(args):
             out_chns = 1
         elif args.colour_space == 'labhue':
             out_chns = 4
+        backbone = None
+        if args.backbone is not None:
+            backbone = {
+                'arch_name': args.backbone[0],
+                'layer_name': args.backbone[1]
+            }
+            models[args.dataset][args.model] = vae_model.Backbone_VQ_VAE
         model = models[args.dataset][args.model](
             hidden, k=k, kl=args.kl, num_channels=num_channels,
             colour_space=args.colour_space, task=task,
             out_chns=out_chns, cos_distance=args.cos_dis,
-            use_decor_loss=args.decor
+            use_decor_loss=args.decor, backbone=backbone
         )
     if args.cuda:
         model.cuda()

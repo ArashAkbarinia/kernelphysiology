@@ -39,6 +39,8 @@ def parse_arguments(args):
                               help='decor loss')
     model_parser.add_argument('--gamma', type=float, default=None, nargs='+',
                               help='decor loss')
+    model_parser.add_argument('--backbone', type=str, default=None, nargs='+',
+                              help='details of backbone')
     model_parser.add_argument('--lr', type=float, default=None,
                               help='learning rate')
     model_parser.add_argument('--vq_coef', type=float, default=None,
