@@ -153,3 +153,31 @@ class LIVE(tdatasets.VisionDataset):
 
     def __len__(self):
         return len(self.image_list['distimgs'])
+
+
+class AADB(tdatasets.VisionDataset):
+    def __init__(self, split, **kwargs):
+        super(AADB, self).__init__(**kwargs)
+        self.split = split
+        self.loader = tdatasets.folder.pil_loader
+        self.img_dir = os.path.join(self.root, self.split)
+        info = loadmat(self.root + '/AADBinfo.mat')
+        self.img_list = info['%sNameList' % self.split]
+        self.scores = info['%sScore' % self.split]
+        print('Number of images: %d' % self.img_list.shape[1])
+
+    def __getitem__(self, index):
+        img_name = self.img_list[0][index][0]
+        img_path = os.path.join(self.img_dir, img_name)
+        img = self.loader(img_path)
+        img = np.asarray(img).copy()
+
+        score = self.scores[0][index]
+
+        if self.transform is not None:
+            img = self.transform([img])
+
+        return img, score
+
+    def __len__(self):
+        return self.img_list.shape[1]
