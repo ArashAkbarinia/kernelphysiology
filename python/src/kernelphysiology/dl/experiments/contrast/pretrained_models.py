@@ -313,7 +313,7 @@ def get_backbones(network_name, model):
 
 class NewClassificationModel(nn.Module):
     def __init__(self, network_name, transfer_weights=None, grey_width=True,
-                 num_classes=2):
+                 num_classes=2, scale_factor=1):
         super(NewClassificationModel, self).__init__()
 
         checkpoint = None
@@ -356,7 +356,7 @@ class NewClassificationModel(nn.Module):
             )
         self.features = features
         # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(org_classes, num_classes)
+        self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
 
         if checkpoint is not None:
             self.load_state_dict(checkpoint['state_dict'])

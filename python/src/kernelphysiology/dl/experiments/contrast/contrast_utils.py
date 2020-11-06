@@ -7,54 +7,47 @@ import torch.nn as nn
 from torchvision.models import resnet as presnet
 from kernelphysiology.dl.pytorch.models import resnet as cresnet
 from kernelphysiology.dl.pytorch import models as custom_models
-from kernelphysiology.dl.experiments.contrast import pretrained_models
+from kernelphysiology.dl.pytorch.models import pretrained_features
 
 
 class AFCModel(nn.Module):
-    def __init__(self, network_name, transfer_weights, num_classes=2):
+    def __init__(self, arch_name, layer_name, num_classes=2, weights_path=None):
         super(AFCModel, self).__init__()
 
-        checkpoint = None
-        # assuming network_name is path
-        if transfer_weights is None:
-            checkpoint = torch.load(network_name, map_location='cpu')
-            network_name = checkpoint['arch']
-            transfer_weights = checkpoint['transfer_weights']
-
-        model = pretrained_models.get_pretrained_model(
-            network_name, transfer_weights
-        )
-        if '_scratch' in network_name:
-            network_name = network_name.replace('_scratch', '')
-        model = pretrained_models.get_backbones(network_name, model)
-        self.features = pretrained_models.LayerActivation(
-            model, transfer_weights[1]
+        self.features = pretrained_features.ResNetIntermediate(
+            arch_name=arch_name, layer_name=layer_name,
+            weights_path=weights_path
         )
         # making the features unlearnable
-        for p in self.features.parameters():
-            p.requires_grad = False
+        # for p in self.features.parameters():
+        #     p.requires_grad = False
 
-        # get the sequential network
-        children = list(self.features.children())[-1]
-        last_layer = list(children.children())[-1][0]
-        if isinstance(last_layer, (cresnet.Bottleneck, presnet.Bottleneck)):
-            in_planes = last_layer.conv3.out_channels
-        else:
-            in_planes = last_layer.conv2.out_channels
-        self.cvon1x1 = nn.Conv2d(in_planes, 128, kernel_size=1, bias=False)
+        in_planes = self.features.get_num_kernels()
+        nkernels = 256
+        self.cvon1x1 = nn.Conv2d(in_planes, nkernels, kernel_size=1, bias=False)
+        self.relu = nn.ReLU(inplace=True)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(128, num_classes)
-
-        if checkpoint is not None:
-            self.load_state_dict(checkpoint['state_dict'])
+        self.fc = nn.Linear(nkernels, num_classes)
 
     def forward(self, x):
         x = self.features(x)
         x = self.cvon1x1(x)
+        x = self.relu(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
+
+
+def load_afc_model(model_path):
+    checkpoint = torch.load(model_path, map_location='cpu')
+    arch_name = checkpoint['arch']
+    customs = checkpoint['customs']
+    model = AFCModel(
+        arch_name, customs['layer_name'], num_classes=customs['num_classes']
+    )
+    model.load_state_dict(checkpoint['state_dict'])
+    return model
 
 
 class NewClassificationModel(nn.Module):

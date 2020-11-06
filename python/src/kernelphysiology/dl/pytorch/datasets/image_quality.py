@@ -175,7 +175,7 @@ class AADB(tdatasets.VisionDataset):
         score = self.scores[0][index]
 
         if self.transform is not None:
-            img = self.transform([img])
+            img = self.transform(img)
 
         return img, score
 
