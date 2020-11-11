@@ -68,6 +68,7 @@ def parse_arguments(args):
         '--batch_size', type=int, default=128, metavar='N',
         help='input batch size for training (default: 128)'
     )
+    parser.add_argument('--num_classes', type=int)
     parser.add_argument('--k', type=int, dest='k', metavar='K',
                         help='number of atoms in dictionary')
     parser.add_argument('--kl', type=int, dest='kl',
@@ -119,7 +120,7 @@ def main(args):
     args.out_colour_space = args.colour_space[4:7]
 
     (imagenet_model, target_size) = model_utils.which_network(
-        args.imagenet_model, 'classification', num_classes=1000,
+        args.imagenet_model, 'classification', num_classes=args.num_classes,
     )
     imagenet_model.cuda()
     imagenet_model.eval()
