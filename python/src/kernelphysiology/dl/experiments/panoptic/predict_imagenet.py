@@ -241,7 +241,7 @@ def export(data_loader, model, mean, std, imagenet_model,
                 top5.update(acc5[0], img_imagenet.size(0))
             print(i, top1.avg, top5.avg)
 
-            if np.mod(i, 100) == 0:
+            if np.mod(i, 10000) == 0:
                 if len(all_predictions) == 1:
                     prediction_output = np.concatenate(all_predictions[0])
                 else:
