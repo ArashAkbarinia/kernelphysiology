@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import sys
+import random
 
 import torch
 from torchvision import transforms
@@ -18,6 +19,7 @@ from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.transformations import normalisations
 from kernelphysiology.dl.pytorch.vaes import vanilla_vae
+from kernelphysiology.utils import imutils
 import argparse
 
 
@@ -73,12 +75,25 @@ def parse_arguments(args):
         default=None,
         help='The path to the validation directory (default: None)'
     )
+    parser.add_argument('--random_seed', default=0, type=int)
+    parser.add_argument('--noise', type=str, default=None)
 
     return parser.parse_args(args)
 
 
 def main(args):
     args = parse_arguments(args)
+
+    if args.random_seed < 0:
+        os.environ['PYTHONHASHSEED'] = str(args.random_seed)
+        torch.manual_seed(args.random_seed)
+        torch.cuda.manual_seed_all(args.random_seed)
+        torch.cuda.manual_seed(args.random_seed)
+        np.random.seed(args.random_seed)
+        random.seed(args.random_seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
     weights_net = torch.load(args.model_path, map_location='cpu')
     if args.model == 'vae':
         network = vanilla_vae.VanillaVAE(latent_dim=args.k, in_channels=3)
@@ -114,6 +129,21 @@ def main(args):
     ])
 
     intransform_funs = []
+    if args.noise is not None:
+        if args.noise == 'sp':
+            noise_fun = imutils.s_p_noise
+            kwargs = {'amount': 0.01, 'seed': args.random_seed}
+        elif args.noise == 'gaussian':
+            noise_fun = imutils.gaussian_noise
+            kwargs = {'amount': 0.01, 'seed': args.random_seed}
+        elif args.noise == 'speckle':
+            noise_fun = imutils.speckle_noise
+            kwargs = {'amount': 0.01, 'seed': args.random_seed}
+        intransform_funs.append(
+            cv2_preprocessing.UniqueTransformation(
+                noise_fun, kwargs
+            )
+        )
     if args.in_colour_space != ' rgb':
         intransform_funs.append(
             cv2_preprocessing.ColourSpaceTransformation(args.in_colour_space)
