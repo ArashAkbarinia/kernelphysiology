@@ -199,7 +199,8 @@ def export(data_loader, model, mean, std, args):
 
             for img_ind in range(out_rgb.shape[0]):
                 img_path = img_paths[img_ind]
-                print(img_path)
+                if np.mod(i, 1000) == 0:
+                    print(i, img_path)
                 img_ready = img_readies[img_ind].unsqueeze(0)
 
                 org_img_tmp = inv_normalise_tensor(img_ready, mean, std)
@@ -257,13 +258,34 @@ def export(data_loader, model, mean, std, args):
                     de = color.deltaE_ciede2000(img_org, img_res)
                     all_des.append([np.mean(de), np.median(de), np.max(de)])
 
-            np.savetxt(args.out_dir + '/ssim_' + args.colour_space + '.txt',
-                       np.array(all_ssim))
-            np.savetxt(args.out_dir + '/psnr_' + args.colour_space + '.txt',
-                       np.array(all_psnr))
-            if args.de:
-                np.savetxt(args.out_dir + '/de_' + args.colour_space + '.txt',
-                           np.array(all_des))
+            if np.mod(i, 10000) == 0:
+                np.savetxt(
+                    args.out_dir + '/ssim_' + args.colour_space + '.txt',
+                    np.array(all_ssim)
+                )
+                np.savetxt(
+                    args.out_dir + '/psnr_' + args.colour_space + '.txt',
+                    np.array(all_psnr)
+                )
+                if args.de:
+                    np.savetxt(
+                        args.out_dir + '/de_' + args.colour_space + '.txt',
+                        np.array(all_des)
+                    )
+
+    np.savetxt(
+        args.out_dir + '/ssim_' + args.colour_space + '.txt',
+        np.array(all_ssim)
+    )
+    np.savetxt(
+        args.out_dir + '/psnr_' + args.colour_space + '.txt',
+        np.array(all_psnr)
+    )
+    if args.de:
+        np.savetxt(
+            args.out_dir + '/de_' + args.colour_space + '.txt',
+            np.array(all_des)
+        )
 
 
 if __name__ == "__main__":
