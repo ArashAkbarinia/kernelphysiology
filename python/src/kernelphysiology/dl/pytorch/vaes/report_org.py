@@ -141,7 +141,7 @@ def main(args):
             kwargs = {'amount': 0.01, 'seed': args.random_seed}
         intransform_funs.append(
             cv2_preprocessing.UniqueTransformation(
-                noise_fun, kwargs
+                noise_fun, **kwargs
             )
         )
     if args.in_colour_space != ' rgb':
