@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import sys
+import random
 
 import torch
 from torchvision import transforms
@@ -17,6 +18,7 @@ from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.transformations import normalisations
 from kernelphysiology.dl.pytorch.utils.misc import AverageMeter
 from kernelphysiology.dl.pytorch.utils.misc import accuracy_preds
+from kernelphysiology.utils import imutils
 import argparse
 
 from torchvision import datasets as tdatasets
@@ -91,12 +93,24 @@ def parse_arguments(args):
         default=None,
         help='The path to the validation directory (default: None)'
     )
+    parser.add_argument('--random_seed', default=0, type=int)
+    parser.add_argument('--noise', type=str, default=None)
 
     return parser.parse_args(args)
 
 
 def main(args):
     args = parse_arguments(args)
+    if args.random_seed < 0:
+        os.environ['PYTHONHASHSEED'] = str(args.random_seed)
+        torch.manual_seed(args.random_seed)
+        torch.cuda.manual_seed_all(args.random_seed)
+        torch.cuda.manual_seed(args.random_seed)
+        np.random.seed(args.random_seed)
+        random.seed(args.random_seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
     weights_rgb = torch.load(args.model_path, map_location='cpu')
     network = vqmodel.VQ_CVAE(128, k=args.k, kl=args.kl, in_chns=3,
                               cos_distance=args.cos_dis)
@@ -127,6 +141,7 @@ def main(args):
 
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
+
     transform_funcs = transforms.Compose([
         cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
         # cv2_transforms.Resize(512),
@@ -135,12 +150,27 @@ def main(args):
     ])
 
     imagenet_transformations = transforms.Compose([
-        cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
+        # cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
     intransform_funs = []
+    if args.noise is not None:
+        if args.noise == 'sp':
+            noise_fun = imutils.s_p_noise
+            kwargs = {'amount': 0.01, 'seed': args.random_seed}
+        elif args.noise == 'gaussian':
+            noise_fun = imutils.gaussian_noise
+            kwargs = {'amount': 0.01, 'seed': args.random_seed}
+        elif args.noise == 'speckle':
+            noise_fun = imutils.speckle_noise
+            kwargs = {'amount': 0.01, 'seed': args.random_seed}
+        intransform_funs.append(
+            cv2_preprocessing.UniqueTransformation(
+                noise_fun, **kwargs
+            )
+        )
     if args.in_colour_space != ' rgb':
         intransform_funs.append(
             cv2_preprocessing.VisionTypeTransformation(
