@@ -142,18 +142,31 @@ def main(args):
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
 
-    transform_funcs = transforms.Compose([
-        # cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
-        cv2_transforms.Resize(512),
-        cv2_transforms.ToTensor(),
-        cv2_transforms.Normalize(mean, std)
-    ])
+    if 'vggface2' in args.validation_dir:
+        transform_funcs = transforms.Compose([
+            cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
+            cv2_transforms.ToTensor(),
+            cv2_transforms.Normalize(mean, std)
+        ])
 
-    imagenet_transformations = transforms.Compose([
-        cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
-        cv2_transforms.ToTensor(),
-        cv2_transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
+        imagenet_transformations = transforms.Compose([
+            cv2_transforms.ToTensor(),
+            cv2_transforms.Normalize([0.485, 0.456, 0.406],
+                                     [0.229, 0.224, 0.225])
+        ])
+    else:
+        transform_funcs = transforms.Compose([
+            cv2_transforms.Resize(512),
+            cv2_transforms.ToTensor(),
+            cv2_transforms.Normalize(mean, std)
+        ])
+
+        imagenet_transformations = transforms.Compose([
+            cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
+            cv2_transforms.ToTensor(),
+            cv2_transforms.Normalize([0.485, 0.456, 0.406],
+                                     [0.229, 0.224, 0.225])
+        ])
 
     intransform_funs = []
     if args.noise is not None:
