@@ -128,8 +128,8 @@ def main(args):
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
     transform_funcs = transforms.Compose([
-        # cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
-        cv2_transforms.Resize(512),
+        cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
+        # cv2_transforms.Resize(512),
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(mean, std)
     ])
