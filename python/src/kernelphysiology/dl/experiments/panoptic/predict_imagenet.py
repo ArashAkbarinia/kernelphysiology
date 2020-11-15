@@ -94,7 +94,7 @@ def parse_arguments(args):
         help='The path to the validation directory (default: None)'
     )
     parser.add_argument('--random_seed', default=0, type=int)
-    parser.add_argument('--noise', type=str, default=None)
+    parser.add_argument('--noise', type=str, nargs='+', default=None)
 
     return parser.parse_args(args)
 
@@ -156,7 +156,7 @@ def main(args):
         ])
     else:
         transform_funcs = transforms.Compose([
-            cv2_transforms.Resize(512),
+            cv2_transforms.Resize(512), cv2_transforms.CenterCrop(512),
             cv2_transforms.ToTensor(),
             cv2_transforms.Normalize(mean, std)
         ])
@@ -169,16 +169,21 @@ def main(args):
         ])
 
     intransform_funs = []
-    if args.noise is not None:
-        if args.noise == 'sp':
+    if args.noise[0] is not None:
+        value = float(args.noise[1])
+        noise_name = args.noise[0]
+        if noise_name == 'sp':
             noise_fun = imutils.s_p_noise
-            kwargs = {'amount': 0.01, 'seed': args.random_seed}
-        elif args.noise == 'gaussian':
+            kwargs = {'amount': value, 'seed': args.random_seed}
+        elif noise_name == 'gaussian':
             noise_fun = imutils.gaussian_noise
-            kwargs = {'amount': 0.01, 'seed': args.random_seed}
-        elif args.noise == 'speckle':
+            kwargs = {'amount': value, 'seed': args.random_seed}
+        elif noise_name == 'speckle':
             noise_fun = imutils.speckle_noise
-            kwargs = {'amount': 0.01, 'seed': args.random_seed}
+            kwargs = {'amount': value, 'seed': args.random_seed}
+        elif noise_name == 'blur':
+            noise_fun = imutils.gaussian_blur
+            kwargs = {'sigmax': value, 'seed': args.random_seed}
         intransform_funs.append(
             cv2_preprocessing.UniqueTransformation(
                 noise_fun, **kwargs
