@@ -13,6 +13,7 @@ from torchvision.models import detection
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.models import resnet_simclr
 from kernelphysiology.dl.experiments.contrast.models.transparency import tranmod
+from kernelphysiology.dl.experiments.contrast.models.unet import unet_model
 from kernelphysiology.dl.experiments.contrast.models.cityscape import citymode
 from kernelphysiology.dl.experiments.contrast import contrast_utils
 
@@ -270,6 +271,8 @@ def get_pretrained_model(network_name, transfer_weights):
         # FIXME: cheap hack!
         if 'vggface2/deeplabv3_' in transfer_weights[0]:
             model = contrast_utils.FaceModel(network_name, transfer_weights)
+        elif 'unet' in transfer_weights[0]:
+            model = unet_model(transfer_weights[0])
         else:
             (model, _) = model_utils.which_network(
                 transfer_weights[0], transfer_weights[2],
@@ -304,7 +307,7 @@ def get_backbones(network_name, model):
         return model.backbone.body
     elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
         return model.backbone
-    elif network_name == 'transparency':
+    elif network_name == 'transparency' or 'unet' in network_name:
         return model.encoder
     elif network_name == 'simclr':
         return model.features
