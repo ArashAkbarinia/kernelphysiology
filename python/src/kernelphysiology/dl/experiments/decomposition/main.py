@@ -125,13 +125,15 @@ def main(args):
             model = model_segmentation.deeplabv3_resnet(
                 backbone, num_classes=out_shape[-1], outs_dict=args.outs_dict
             )
-        elif args.model == 'unet':
+        elif 'unet' in args.model:
             from segmentation_models import unet
+            encoder_name = args.model.split('_')[-1]
             model = unet.model.Unet(
-                in_channels=args.in_chns, encoder_weights=None,
+                in_channels=args.in_chns, encoder_name=encoder_name,
+                encoder_weights=None,
                 outs_dict=args.outs_dict, classes=out_shape[-1]
             )
-            arch_params = {'encoder_name': 'resnet18'}
+            arch_params = {'encoder_name': encoder_name}
         elif args.model == 'category':
             # FIXME: archs_param should be added to resume and fine_tune
             arch_params = {'k': args.k, 'd': args.d, 'hidden': args.hidden}
