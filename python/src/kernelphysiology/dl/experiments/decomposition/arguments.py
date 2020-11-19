@@ -10,7 +10,8 @@ def parse_arguments(args):
     model_parser = parser.add_argument_group('Model Parameters')
     model_parser.add_argument(
         '--model', type=str, default='single',
-        choices=['single', 'multi', 'deeplabv3', 'unet', 'category'],
+        choices=['single', 'multi', 'deeplabv3', 'unet_resnet18',
+                 'unet_resnet50', 'category'],
         help='type of model (default: single)'
     )
     model_parser.add_argument(
