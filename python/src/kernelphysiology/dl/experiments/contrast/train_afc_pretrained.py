@@ -253,6 +253,15 @@ def main_worker(ngpus_per_node, args):
         args.dataset, args.target_size
     )
 
+    # to have 100% deterministic behaviour train_params must be passed
+    if args.train_params is not None:
+        args.workers = 0
+        shuffle = False
+        args.avg_illuminant = 0
+    else:
+        shuffle = True
+
+
     # loading the training set
     train_trans = [*both_trans, *train_trans]
     db_params = {
@@ -283,12 +292,6 @@ def main_worker(ngpus_per_node, args):
     else:
         train_sampler = None
 
-    # it's impossible to have 100% deterministic behaviour using random
-    if args.train_params is not None:
-        args.workers = 0
-        shuffle = False
-    else:
-        shuffle = train_sampler is None
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=args.batch_size, shuffle=shuffle,
@@ -296,6 +299,8 @@ def main_worker(ngpus_per_node, args):
         sampler=train_sampler
     )
 
+    # validation always is random
+    db_params['train_params'] = None
     # loading validation set
     valid_trans = [*both_trans, *valid_trans]
     validation_dataset = dataloader.validation_set(

@@ -324,7 +324,6 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
                 'crops': self.train_params['crops'][self.img_counter]
             }
             self.img_counter += 1
-        print('Reading image %d' % self.img_counter)
 
         path, class_target = self.samples[index]
         img0 = self.loader(path)
