@@ -113,9 +113,6 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     if contrasts is None:
         contrast0 = random.uniform(0, 1)
         contrast1 = random.uniform(0, 1)
-    elif contrasts == 'chns':
-        contrast0 = [random.uniform(0, 1) for _ in range(3)]
-        contrast1 = [random.uniform(0, 1) for _ in range(3)]
     else:
         contrast0, contrast1 = contrasts
 
@@ -155,9 +152,6 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     if post_transform is not None:
         img0, img1 = post_transform([img0, img1])
 
-    if contrasts == 'chns':
-        contrast0 = np.array(contrast0).mean()
-        contrast1 = np.array(contrast1).mean()
     img_out, contrast_target = _two_pairs_stimuli(
         img0, img1, contrast0, contrast1, p, grey_width,
         contrast_target=contrast_target
@@ -228,7 +222,7 @@ class AfcDataset(object):
             self.train_params = train_params
         else:
             self.train_params = path_utils.read_pickle(train_params)
-            self.img_counter = 0
+        self.img_counter = 0
 
 
 class CelebA(AfcDataset, tdatasets.CelebA):
