@@ -20,13 +20,15 @@ from kernelphysiology.utils import path_utils
 NATURAL_DATASETS = ['imagenet', 'celeba', 'natural', 'land']
 
 
-def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5, grey_width=40):
+def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5, grey_width=40,
+                       contrast_target=None):
     imgs_cat = [img0, img1]
     max_contrast = np.argmax([contrast0, contrast1])
-    if random.random() < p:
-        contrast_target = 0
-    else:
-        contrast_target = 1
+    if contrast_target is None:
+        if random.random() < p:
+            contrast_target = 0
+        else:
+            contrast_target = 1
     if max_contrast != contrast_target:
         imgs_cat = imgs_cat[::-1]
 
@@ -60,7 +62,7 @@ def _random_mask_params():
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p,
-                     grey_width, avg_illuminant=0):
+                     grey_width, avg_illuminant=0, current_param=None):
     # FIXME: this might not work with the .ppm files, change it to 01 version
     if 'grey' not in colour_space and vision_type != 'trichromat':
         dkl0 = colour_spaces.rgb2dkl(img0)
@@ -79,6 +81,27 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
     # converting to range 0 to 1
     img0 = np.float32(img0) / 255
     img1 = np.float32(img1) / 255
+
+    contrast_target = None
+    # if current_param is passed no randomness is generated on the fly
+    if current_param is not None:
+        # cropping
+        srow0, scol0, srow1, scol1 = current_param['crops']
+        img0 = img0[srow0:, scol0:, :]
+        img1 = img1[srow1:, scol1:, :]
+        # flipping
+        hflip0, hflip1 = current_param['hflips']
+        if hflip0 > 0.5:
+            img0 = img0[:, ::-1, :]
+        if hflip1 > 0.5:
+            img1 = img1[:, ::-1, :]
+        # contrast
+        contrasts = current_param['contrasts']
+        # side of high contrast
+        if current_param['ps'] < 0.5:
+            contrast_target = 0
+        else:
+            contrast_target = 1
 
     if pre_transform is not None:
         if same_transforms:
@@ -136,7 +159,8 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
         contrast0 = np.array(contrast0).mean()
         contrast1 = np.array(contrast1).mean()
     img_out, contrast_target = _two_pairs_stimuli(
-        img0, img1, contrast0, contrast1, p, grey_width
+        img0, img1, contrast0, contrast1, p, grey_width,
+        contrast_target=contrast_target
     )
     return img_out, contrast_target
 
@@ -189,7 +213,7 @@ class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5,
                  contrasts=None, same_transforms=False, colour_space='grey',
                  vision_type='trichromat', mask_image=None, grey_width=40,
-                 avg_illuminant=0):
+                 avg_illuminant=0, train_params=None):
         self.p = p
         self.grey_width = grey_width
         self.contrasts = contrasts
@@ -200,6 +224,11 @@ class AfcDataset(object):
         self.post_transform = post_transform
         self.pre_transform = pre_transform
         self.avg_illuminant = avg_illuminant
+        if train_params is None:
+            self.train_params = train_params
+        else:
+            self.train_params = path_utils.read_pickle(train_params)
+            self.img_counter = 0
 
 
 class CelebA(AfcDataset, tdatasets.CelebA):
@@ -291,12 +320,25 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
         self.loader = cv2_loader
 
     def __getitem__(self, index):
+        current_param = None
+        if self.train_params is not None:
+            index = self.train_params['image_inds'][self.img_counter]
+            current_param = {
+                'ps': self.train_params['ps'][self.img_counter],
+                'contrasts': self.train_params['contrasts'][self.img_counter],
+                'hflips': self.train_params['hflips'][self.img_counter],
+                'crops': self.train_params['crops'][self.img_counter]
+            }
+            self.img_counter += 1
+        print('Reading image %d' % self.img_counter)
+
         path, class_target = self.samples[index]
         img0 = self.loader(path)
         img_out, contrast_target = _prepare_stimuli(
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
-            self.same_transforms, self.p, self.grey_width, self.avg_illuminant
+            self.same_transforms, self.p, self.grey_width, self.avg_illuminant,
+            current_param=current_param
         )
 
         # right now we're not using the class target, but perhaps in the future
@@ -514,17 +556,28 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 def train_set(db, target_size, mean, std, extra_transformation=None, **kwargs):
     if extra_transformation is None:
         extra_transformation = []
-    shared_pre_transforms = [
-        *extra_transformation,
-        cv2_transforms.RandomHorizontalFlip(),
-    ]
+    if kwargs['train_params'] is None:
+        shared_pre_transforms = [
+            *extra_transformation,
+            cv2_transforms.RandomHorizontalFlip(),
+        ]
+    else:
+        shared_pre_transforms = [*extra_transformation]
     shared_post_transforms = _get_shared_post_transforms(mean, std)
     if db in NATURAL_DATASETS:
-        scale = (0.08, 1.0)
-        size_transform = cv2_transforms.RandomResizedCrop(
-            target_size, scale=scale
-        )
-        pre_transforms = [size_transform, *shared_pre_transforms]
+        # if train params are passed don't use any random processes
+        if kwargs['train_params'] is None:
+            scale = (0.08, 1.0)
+            size_transform = cv2_transforms.RandomResizedCrop(
+                target_size, scale=scale
+            )
+            pre_transforms = [size_transform, *shared_pre_transforms]
+        else:
+            pre_transforms = [
+                cv2_transforms.Resize(target_size),
+                cv2_transforms.CenterCrop(target_size),
+                *shared_pre_transforms
+            ]
         post_transforms = [*shared_post_transforms]
         return _natural_dataset(
             db, 'train', pre_transforms, post_transforms, **kwargs

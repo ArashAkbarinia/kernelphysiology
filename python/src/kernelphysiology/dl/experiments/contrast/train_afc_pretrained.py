@@ -261,7 +261,8 @@ def main_worker(ngpus_per_node, args):
         'mask_image': args.mask_image,
         'grey_width': args.grey_width,
         'contrasts': args.contrasts,
-        'avg_illuminant': args.avg_illuminant
+        'avg_illuminant': args.avg_illuminant,
+        'train_params': args.train_params
     }
     if args.dataset in dataloader.NATURAL_DATASETS:
         path_or_sample = args.data_dir
@@ -282,9 +283,15 @@ def main_worker(ngpus_per_node, args):
     else:
         train_sampler = None
 
+    # it's impossible to have 100% deterministic behaviour using random
+    if args.train_params is not None:
+        args.workers = 0
+        shuffle = False
+    else:
+        shuffle = train_sampler is None
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=args.batch_size, shuffle=(train_sampler is None),
+        batch_size=args.batch_size, shuffle=shuffle,
         num_workers=args.workers, pin_memory=True,
         sampler=train_sampler
     )
@@ -489,6 +496,7 @@ def extra_args_fun(parser):
                                 type=int)
     specific_group.add_argument('--mask_image', default=None, type=str)
     specific_group.add_argument('--contrasts', default=None, type=str)
+    specific_group.add_argument('--train_params', default=None, type=str)
     specific_group.add_argument('--avg_illuminant', default=None, type=float)
 
 
