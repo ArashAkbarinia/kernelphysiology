@@ -288,13 +288,18 @@ def which_architecture(network_name, customs=None):
         else:
             # assuming if it doesn't exist, it's 3
             kernel_size = 7
+        if 'stride' in customs:
+            stride = customs['stride']
+        else:
+            # assuming if it doesn't exist, it's 3
+            stride = 2
         # differentiating between custom models and nominal one
         if 'blocks' in customs and customs['blocks'] is not None:
             num_kernels = customs['num_kernels']
             model = custom_models.__dict__[network_name](
                 customs['blocks'], pretrained=False, pooling_type=pooling_type,
                 in_chns=in_chns, num_classes=num_classes, inplanes=num_kernels,
-                kernel_size=kernel_size
+                kernel_size=kernel_size, stride=stride
             )
         else:
             model = custom_models.__dict__[network_name](
