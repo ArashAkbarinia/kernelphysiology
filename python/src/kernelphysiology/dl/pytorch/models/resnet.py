@@ -221,7 +221,7 @@ class ResNet(nn.Module):
                  groups=1, width_per_group=64,
                  replace_stride_with_dilation=None,
                  norm_layer=None, pooling_type='max', in_chns=3,
-                 inplanes=64, kernel_size=7):
+                 inplanes=64, kernel_size=7, stride=2):
         # TODO: pass pooling_type as an argument
         super(ResNet, self).__init__()
         if norm_layer is None:
@@ -263,15 +263,15 @@ class ResNet(nn.Module):
         )
         self.layer1 = self._make_layer(block, self.inplanes, layers[0])
         self.layer2 = self._make_layer(
-            block, inplanes * 2, layers[1], stride=2,
+            block, inplanes * 2, layers[1], stride=stride,
             dilate=replace_stride_with_dilation[0]
         )
         self.layer3 = self._make_layer(
-            block, inplanes * 4, layers[2], stride=2,
+            block, inplanes * 4, layers[2], stride=stride,
             dilate=replace_stride_with_dilation[1]
         )
         self.layer4 = self._make_layer(
-            block, inplanes * 8, layers[3], stride=2,
+            block, inplanes * 8, layers[3], stride=stride,
             dilate=replace_stride_with_dilation[2]
         )
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
