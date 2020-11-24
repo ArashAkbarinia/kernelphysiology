@@ -16,6 +16,7 @@ from kernelphysiology.dl.experiments.contrast.models.transparency import tranmod
 from kernelphysiology.dl.experiments.contrast.models.unet import unet_model
 from kernelphysiology.dl.experiments.contrast.models.cityscape import citymode
 from kernelphysiology.dl.experiments.contrast import contrast_utils
+from kernelphysiology.dl.pytorch.vaes import model as vae_model
 
 
 class LayerActivation(nn.Module):
@@ -269,7 +270,24 @@ def get_pretrained_model(network_name, transfer_weights):
         )
     elif os.path.isfile(transfer_weights[0]):
         # FIXME: cheap hack!
-        if 'vggface2/deeplabv3_' in transfer_weights[0]:
+        if 'vqvae' in network_name:
+            backbone = {
+                'arch_name': 'deeplabv3_resnet50',
+                'layer_name': 'area4'
+            }
+            # hardcoded to test one type
+            hidden = 128
+            k = 8
+            kl = 8
+            model = vae_model.Backbone_VQ_VAE(
+                hidden, k=k, kl=kl, num_channels=3, colour_space='rgb2rgb',
+                task=None, out_chns=3, cos_distance=False,
+                use_decor_loss=False, backbone=backbone
+            )
+            weights = torch.load(transfer_weights[0], map_location='cpu')
+            model.load_state_dict(weights)
+            print('Loaded the VQVAE model!')
+        elif 'vggface2/deeplabv3_' in transfer_weights[0]:
             model = contrast_utils.FaceModel(network_name, transfer_weights)
         elif 'unet' in transfer_weights[0]:
             model = unet_model(transfer_weights[0])
@@ -301,8 +319,10 @@ def get_pretrained_model(network_name, transfer_weights):
 
 
 def get_backbones(network_name, model):
-    if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
-            or 'keypointrcnn_' in network_name
+    if 'vqvae' in network_name:
+        return model.backbone_encoder.features
+    elif ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
+          or 'keypointrcnn_' in network_name
     ):
         return model.backbone.body
     elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
