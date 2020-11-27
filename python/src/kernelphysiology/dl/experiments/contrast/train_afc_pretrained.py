@@ -130,7 +130,8 @@ def main_worker(ngpus_per_node, args):
     if args.transfer_weights is not None:
         print('Transferred model!')
         model = pretrained_models.NewClassificationModel(
-            args.network_name, args.transfer_weights, args.grey_width == 40
+            args.network_name, args.transfer_weights, args.grey_width == 40,
+            scale_factor=(args.target_size / 256)
         )
     elif args.custom_arch:
         print('Custom model!')
@@ -260,7 +261,6 @@ def main_worker(ngpus_per_node, args):
         args.avg_illuminant = 0
     else:
         shuffle = True
-
 
     # loading the training set
     train_trans = [*both_trans, *train_trans]
