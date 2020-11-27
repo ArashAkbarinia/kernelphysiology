@@ -178,7 +178,7 @@ def main(args):
     if args.pretrained:
         model = pretrained_models.NewClassificationModel(
             args.model_path, grey_width=args.grey_width == 40,
-            scale_factor=(args.target_size[0] / 256) ** 2
+            scale_factor=(args.target_size / 256) ** 2
         )
     else:
         model, _ = model_utils.which_network_classification(args.model_path, 2)
