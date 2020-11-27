@@ -5,6 +5,7 @@ Data-loader for multiple outputs.
 import os
 import numpy as np
 import json
+import glob
 
 import cv2
 
@@ -161,6 +162,43 @@ class TouchRelief(tdatasets.VisionDataset):
     def __getitem__(self, index):
         img_path = os.path.join(self.img_dir, self.inputs[index])
         gt_path = os.path.join(self.gt_dir, self.targets[index])
+
+        imgin = self.loader(img_path)
+        imgin = np.asarray(imgin).copy()
+        imgout = self.loader(gt_path)
+        imgout = np.asarray(imgout).copy()
+        imgin, imgout = _apply_transforms(
+            imgin, imgout, self.intransform, self.outtransform,
+            self.pre_transform, self.post_transform
+        )
+
+        return imgin, imgout, gt_path
+
+    def __len__(self):
+        return len(self.inputs)
+
+
+class ColourConstancyVR(tdatasets.VisionDataset):
+    def __init__(self, split, intransform=None, outtransform=None,
+                 pre_transform=None, post_transform=None, **kwargs):
+        super(ColourConstancyVR, self).__init__(**kwargs)
+        img_dir = '%s/%s/inputs/' % (self.root, split)
+        gt_dir = '%s/%s/gts/' % (self.root, split)
+        self.inputs = sorted(glob.glob(img_dir + '/*.jpg'))
+        self.targets = sorted(glob.glob(gt_dir + '/*.jpg'))
+
+        print(
+            'ColourConstancyVR set %s has %d images' % (split, len(self.inputs))
+        )
+        self.loader = tdatasets.folder.pil_loader
+        self.intransform = intransform
+        self.outtransform = outtransform
+        self.pre_transform = pre_transform
+        self.post_transform = post_transform
+
+    def __getitem__(self, index):
+        img_path = self.inputs[index]
+        gt_path = self.targets[index]
 
         imgin = self.loader(img_path)
         imgin = np.asarray(imgin).copy()

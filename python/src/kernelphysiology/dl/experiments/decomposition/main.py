@@ -28,6 +28,7 @@ from kernelphysiology.utils import random_imutils
 
 datasets_classes = {
     'imagenet': data_loaders.ImageFolder,
+    'ccvr': data_loaders.ColourConstancyVR,
     'celeba': data_loaders.CelebA,
     'touch': data_loaders.TouchRelief,
     'voc': data_loaders.VOCSegmentation,
@@ -35,6 +36,7 @@ datasets_classes = {
 }
 dataset_target_size = {
     'imagenet': 256,
+    'ccvr': 256,
     'celeba': 64,
     'touch': 256,
     'voc': 256,
@@ -74,10 +76,15 @@ def main(args):
     args.std = 0.5
     target_size = args.target_size or dataset_target_size[args.dataset]
 
-    pre_shared_transforms = [
-        cv2_transforms.Resize(target_size + 32),
-        cv2_transforms.CenterCrop(target_size),
-    ]
+    if args.dataset == 'ccvr':
+        pre_shared_transforms = [
+            cv2_transforms.RandomResizedCrop(target_size, scale=(0.5, 1.0)),
+        ]
+    else:
+        pre_shared_transforms = [
+            cv2_transforms.Resize(target_size + 32),
+            cv2_transforms.CenterCrop(target_size),
+        ]
     post_shared_transforms = [
         cv2_transforms.ToTensor(),
         cv2_transforms.Normalize(args.mean, args.std)
@@ -218,7 +225,7 @@ def main(args):
         'pre_transform': pre_dataset_transforms[args.dataset],
         'post_transform': post_dataset_transforms[args.dataset]
     }
-    if args.dataset in ['celeba', 'touch']:
+    if args.dataset in ['celeba', 'touch', 'ccvr']:
         train_dataset = datasets_classes[args.dataset](
             root=args.data_dir, split='train', **transforms_kwargs
         )
@@ -346,7 +353,7 @@ def train(epoch, model, train_loader, optimizer, save_path, args):
         if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
             vae_util.grid_save_reconstructions(
                 args.outs_dict, target, outputs[0], args.mean, args.std, epoch,
-                save_path, 'reconstruction_train%.5d' % bidx
+                save_path, 'reconstruction_train%.5d' % bidx, inputs=data
             )
             if args.model == 'category':
                 target_lab = target['lab']
@@ -396,7 +403,8 @@ def test_net(epoch, model, test_loader, save_path, args):
             if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
                 vae_util.grid_save_reconstructions(
                     args.outs_dict, target, outputs[0], args.mean, args.std,
-                    epoch, save_path, 'reconstruction_test%.5d' % bidx
+                    epoch, save_path, 'reconstruction_test%.5d' % bidx,
+                    inputs=data
                 )
                 if args.model == 'category':
                     target_lab = target['lab']
