@@ -308,7 +308,7 @@ def rgb2all(img, dest_space):
 
     :param img: the input image in RGB colour space,
     :param dest_space: the destination colour space.
-    :return: an img of the same spatial size with three dimenstions.
+    :return: an img of the same spatial size with three dimensions.
     """
     img = img.copy()
     img = normalisations.rgb2double(img)
@@ -339,4 +339,30 @@ def rgb2all(img, dest_space):
     # all matrices are of three dimensions
     if len(img.shape) == 2:
         img = np.repeat(img[:, :, np.newaxis], 1, axis=2)
+    return img
+
+
+def all2rgb(img, src_space):
+    """Converting other colour spaces to RGB.
+
+    :param img: the input image in npn-RGB colour space in range of [0, 1]
+    :param src_space: the source colour space.
+    :return: an img of the same spatial size with three dimensions.
+    """
+    img = img.copy()
+    if src_space == 'lab':
+        img *= 255
+        img = np.uint8(img)
+        img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
+    else:
+        if src_space == 'dkl':
+            img = dkl012rgb(img)
+        elif src_space == 'hsv':
+            img = hsv012rgb(img)
+        elif src_space == 'lms':
+            img = lms012rgb(img)
+        elif src_space == 'yog':
+            img = yog012rgb(img)
+        else:
+            sys.exit('colour_spaces.all2rgb does not support %s.' % src_space)
     return img

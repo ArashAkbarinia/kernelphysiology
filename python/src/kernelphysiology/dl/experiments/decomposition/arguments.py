@@ -101,6 +101,10 @@ def parse_arguments(args):
         '--pred', type=str, default=None,
         help='Only prediction'
     )
+    pipe_parser.add_argument(
+        '--vis_rgb', action='store_true', default=False,
+        help='Visualise in RGB'
+    )
 
     logging_parser = parser.add_argument_group('Logging Parameters')
     logging_parser.add_argument(

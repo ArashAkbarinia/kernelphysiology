@@ -25,6 +25,7 @@ from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
 from kernelphysiology.utils import random_imutils
+from kernelphysiology.transformations.colour_spaces import all2rgb
 
 datasets_classes = {
     'imagenet': data_loaders.ImageFolder,
@@ -215,6 +216,8 @@ def main(args):
             vis_fun = None
         elif out_type == 'db1':
             vis_fun = vae_util.wavelet_visualise
+        elif args.vis_rgb:
+            vis_fun = lambda x: all2rgb(x, out_type)
         else:
             vis_fun = None
         args.outs_dict[out_type]['vis_fun'] = vis_fun
