@@ -270,7 +270,7 @@ def get_pretrained_model(network_name, transfer_weights):
         )
     elif os.path.isfile(transfer_weights[0]):
         # FIXME: cheap hack!
-        if 'vqvae' in network_name:
+        if 'vqvae' in network_name or 'vqvae' in transfer_weights[0]:
             backbone = {
                 'arch_name': 'deeplabv3_resnet50',
                 'layer_name': 'area4'
