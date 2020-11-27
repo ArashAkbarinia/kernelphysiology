@@ -295,6 +295,20 @@ def resized_crop(img, top, left, height, width, size, interpolation='BILINEAR'):
     return img
 
 
+def pad_crop(img, padding, pad_if_needed, size, **kwargs):
+    if padding > 0:
+        img = pad(img, padding)
+
+    # pad the width if needed
+    if pad_if_needed and img.shape[1] < size[1]:
+        img = pad(img, (int((1 + size[1] - img.shape[1]) / 2), 0))
+    # pad the height if needed
+    if pad_if_needed and img.shape[0] < size[0]:
+        img = pad(img, (0, int((1 + size[0] - img.shape[0]) / 2)))
+
+    return crop(img, **kwargs)
+
+
 def hflip(img):
     """Horizontally flip the given CV2 Image.
 

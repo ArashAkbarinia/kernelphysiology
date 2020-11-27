@@ -60,30 +60,24 @@ class RandomCrop(object):
             j = random.randint(w - tw, 0)
         return i, j, th, tw
 
-    def __call__(self, img):
+    def __call__(self, imgs):
         """
         Args:
             img (np.ndarray): Image to be cropped.
         Returns:
             np.ndarray: Cropped image.
         """
-        if self.padding > 0:
-            img = tfunctional.pad(img, self.padding)
 
-        # pad the width if needed
-        if self.pad_if_needed and img.shape[1] < self.size[1]:
-            img = tfunctional.pad(
-                img, (int((1 + self.size[1] - img.shape[1]) / 2), 0)
-            )
-        # pad the height if needed
-        if self.pad_if_needed and img.shape[0] < self.size[0]:
-            img = tfunctional.pad(
-                img, (0, int((1 + self.size[0] - img.shape[0]) / 2))
-            )
-
-        i, j, h, w = self.get_params(img, self.size)
-
-        return tfunctional.crop(img, i, j, h, w)
+        top, left, height, width = self.get_params(
+            _find_first_image_recursive(imgs), self.size
+        )
+        fun = tfunctional.pad_crop
+        kwargs = {
+            'top': top, 'left': left, 'height': height, 'width': width,
+            'size': self.size,
+            'padding': self.padding, 'pad_if_needed': self.pad_if_needed
+        }
+        return _call_recursive(imgs, fun, **kwargs)
 
     def __repr__(self):
         return self.__class__.__name__ + '(size={0}, padding={1})'.format(
