@@ -320,7 +320,10 @@ def rgb2all(img, dest_space):
         elif dest_space == 'rgb-b':
             img = img[:, :, 2]
     elif dest_space == 'lab':
+        # TODO: this is really not nice to go back and forth
+        img = (img * 255).astype('uint8')
         img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+        img = img.astype('float') / 255
     elif dest_space == 'dkl':
         img = rgb2dkl01(img)
     elif dest_space == 'hsv':
