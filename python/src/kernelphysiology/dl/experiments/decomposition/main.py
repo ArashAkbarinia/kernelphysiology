@@ -78,7 +78,8 @@ def main(args):
 
     if args.dataset == 'ccvr':
         pre_shared_transforms = [
-            cv2_transforms.RandomResizedCrop(target_size, scale=(0.5, 1.0)),
+            cv2_transforms.Resize(target_size + 32),
+            cv2_transforms.RandomCrop(target_size),
         ]
     else:
         pre_shared_transforms = [
