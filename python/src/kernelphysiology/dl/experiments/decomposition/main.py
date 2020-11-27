@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import logging
+from functools import partial
 
 from torch import optim
 import torch.backends.cudnn as cudnn
@@ -217,7 +218,7 @@ def main(args):
         elif out_type == 'db1':
             vis_fun = vae_util.wavelet_visualise
         elif args.vis_rgb:
-            vis_fun = lambda x: all2rgb(x, out_type)
+            vis_fun = partial(all2rgb, src_space=out_type)
         else:
             vis_fun = None
         args.outs_dict[out_type]['vis_fun'] = vis_fun
