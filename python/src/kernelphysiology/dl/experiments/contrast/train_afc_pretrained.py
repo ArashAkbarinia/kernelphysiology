@@ -131,7 +131,7 @@ def main_worker(ngpus_per_node, args):
         print('Transferred model!')
         model = pretrained_models.NewClassificationModel(
             args.network_name, args.transfer_weights, args.grey_width == 40,
-            scale_factor=(args.target_size / 256)
+            scale_factor=(args.target_size[0] / 256)
         )
     elif args.custom_arch:
         print('Custom model!')
