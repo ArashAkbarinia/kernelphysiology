@@ -167,15 +167,20 @@ def main(args):
     # FIXME make it only for one single output
     if args.lab_init:
         distortion = [
-            116.0 / 500,
-            16.0 / 500,
-            500.0 / 500,
-            200.0 / 500,
+            116.0 / 500, 16.0 / 500, 500.0 / 500, 200.0 / 500,
             0.2068966
         ]
+        trans_mat = [[0.412453, 0.357580, 0.180423],
+                     [0.212671, 0.715160, 0.072169],
+                     [0.019334, 0.119193, 0.950227]]
+
+        ref_white = (0.95047, 1., 1.08883)
     else:
+        trans_mat = None
+        ref_white = None
         distortion = None
     colour_transformer = ColourTransformer.LabTransformer(
+        trans_mat=trans_mat, ref_white=ref_white,
         distortion=distortion, linear=args.linear
     )
     colour_transformer = colour_transformer.cuda()
