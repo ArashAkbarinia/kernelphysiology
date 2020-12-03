@@ -153,6 +153,32 @@ def grid_save_reconstructions(out_dicts, ground_truths, model_outs, mean,
         )
 
 
+def grid_save_reconstructions_noinv(out_dicts, ground_truths, model_outs, mean,
+                                    std, epoch, save_path, name, inputs=None):
+    for key in out_dicts.keys():
+        current_out = model_outs[key]
+        current_gt = ground_truths[key]
+
+        original = current_gt.detach()
+        original = tensor_tosave(original, out_dicts[key]['vis_fun'])
+        reconstructed = current_out.detach()
+        reconstructed = tensor_tosave(reconstructed, out_dicts[key]['vis_fun'])
+
+        original = np.concatenate(original, axis=1)
+        reconstructed = np.concatenate(reconstructed, axis=1)
+        toplot = [original, reconstructed]
+        # TODO: assuming the input has no visualisation function
+        if inputs is not None:
+            in_img = inputs.detach()
+            in_img = tensor_tosave(in_img, None)
+            in_img = np.concatenate(in_img, axis=1)
+            toplot = [in_img, *toplot]
+        toplot = np.concatenate(toplot, axis=0)
+        io.imsave(
+            '%s/%s_%.3d_%s.png' % (save_path, name, epoch, key), toplot
+        )
+
+
 def wavelet_visualise(tensor):
     rows = tensor.shape[0]
     cols = tensor.shape[1]
