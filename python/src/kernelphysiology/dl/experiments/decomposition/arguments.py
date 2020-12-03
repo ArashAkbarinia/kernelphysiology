@@ -108,7 +108,7 @@ def parse_arguments(args):
 
     logging_parser = parser.add_argument_group('Logging Parameters')
     logging_parser.add_argument(
-        '--log_interval', type=int, default=10,
+        '--log_interval', type=int, default=1000,
         help='how many batches to wait before logging training status'
     )
     logging_parser.add_argument(

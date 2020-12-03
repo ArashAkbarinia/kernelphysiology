@@ -92,6 +92,11 @@ def save_checkpoint(model, save_path):
     resume_path = os.path.join(save_path, 'checkpoints', 'last_epoch.pth')
     torch.save(model, resume_path)
 
+    if 'colour_transformer' in model:
+        weights_path = os.path.join(save_path, 'checkpoints',
+                                    f'colour_{epoch}.pth')
+        torch.save(model['colour_transformer'], weights_path)
+
 
 def tensor_tosave(tensor, inv_func=None):
     imgs = []

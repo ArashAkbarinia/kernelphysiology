@@ -163,7 +163,16 @@ def main(args):
             )
     model = model.cuda()
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    # FIXME make it only for one single output
+    colour_transformer = ColourTransformer.LabTransformer()
+    colour_transformer = colour_transformer.cuda()
+
+    params_to_optimize = [
+        {'params': [p for p in model.parameters() if p.requires_grad]},
+        {'params': [p for p in colour_transformer.parameters() if
+                    p.requires_grad]},
+    ]
+    optimizer = optim.Adam(params_to_optimize, lr=args.lr)
     scheduler = optim.lr_scheduler.StepLR(optimizer, int(args.epochs / 3), 0.5)
 
     if args.resume is not None:
@@ -209,10 +218,6 @@ def main(args):
         cv2_preprocessing.MultipleOutputTransformation(args.outputs)
     ]
     outtransform = transforms.Compose(outtransform_funs)
-
-    # FIXME make it only for one single output
-    colour_transformer = ColourTransformer.LabTransformer()
-    colour_transformer = colour_transformer.cuda()
 
     # FIXME
     for out_type in args.outputs:
@@ -306,6 +311,7 @@ def main(args):
             {
                 'epoch': epoch,
                 'state_dict': model.state_dict(),
+                'colour_transformer': colour_transformer.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 'scheduler': scheduler.state_dict(),
                 'arch': args.model,
@@ -393,6 +399,8 @@ def train(epoch, model, colour_transformer, train_loader, optimizer, save_path,
         if bidx * len(data) > args.train_samples:
             break
 
+    print(colour_transformer.ref_white)
+    print(colour_transformer.trans_mat)
     for key in epoch_losses:
         epoch_losses[key] /= (
                 len(train_loader.dataset) / train_loader.batch_size
