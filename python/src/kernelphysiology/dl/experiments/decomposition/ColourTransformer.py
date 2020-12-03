@@ -47,80 +47,77 @@ class LabTransformer(nn.Module):
         return self.rgb2rnd(x)
 
     def rgb2rnd(self, rgb):
-        arr = rgb.clone()
+        lin_arr = rgb.clone()
         for i in range(3):
             x_r = rgb[:, 0:1, ] * self.trans_mat[i, 0]
             y_g = rgb[:, 1:2, ] * self.trans_mat[i, 1]
             z_b = rgb[:, 2:3, ] * self.trans_mat[i, 2]
-            arr[:, i:i + 1, ] = x_r + y_g + z_b
+            lin_arr[:, i:i + 1, ] = x_r + y_g + z_b
 
         # scale by tristimulus values of the reference white point
         for i in range(3):
-            arr[:, i:i + 1, ] /= (self.ref_white[i] + 1e-4)
+            lin_arr[:, i:i + 1, ] /= (self.ref_white[i] + 1e-4)
 
         if not self.linear:
-            vals = self.distortion
-            vals += 1e-4
+            vals = self.distortion + 1e-4
             eta = vals[4]
             m = (1 / 3) * (eta ** -2)
             t0 = eta ** 3
 
             # Nonlinear distortion and linear transformation
-            mask = arr > t0
-            arr[mask] = arr[mask].pow(1 / 3)
-            arr[~mask] = m * arr[~mask] + (vals[1] / vals[0])
+            mask = lin_arr > t0
+            lin_arr[mask] = lin_arr[mask].pow(1 / 3)
+            lin_arr[~mask] = m * lin_arr[~mask] + (vals[1] / vals[0])
 
-            x = arr[:, 0:1, ]
-            y = arr[:, 1:2, ]
-            z = arr[:, 2:3, ]
+            x = lin_arr[:, 0:1, ]
+            y = lin_arr[:, 1:2, ]
+            z = lin_arr[:, 2:3, ]
 
             # Vector scaling
             L = (vals[0] * y) - vals[1]
             a = vals[2] * (x - y)
             b = vals[3] * (y - z)
 
-            arr[:, 0:1, ] = L
-            arr[:, 1:2, ] = a
-            arr[:, 2:3, ] = b
-        return arr
+            nonlin_arr = lin_arr.clone()
+            nonlin_arr[:, 0:1, ] = L
+            nonlin_arr[:, 1:2, ] = a
+            nonlin_arr[:, 2:3, ] = b
+
+            return nonlin_arr
+        return lin_arr
 
     def rnd2rgb(self, rnd, clip=False):
-        arr = rnd.clone()
+        lin_arr = rnd.detach().clone()
 
         if not self.linear:
-            vals = self.distortion
-            vals += 1e-4
+            vals = self.distortion + 1e-4
             eta = vals[4]
 
-            L = arr[:, 0:1, ]
-            a = arr[:, 1:2, ]
-            b = arr[:, 2:3, ]
+            L = lin_arr[:, 0:1, ]
+            a = lin_arr[:, 1:2, ]
+            b = lin_arr[:, 2:3, ]
             y = (L + vals[1]) / vals[0]
             x = (a / vals[2]) + y
             z = y - (b / vals[3])
 
-            # invalid = torch.nonzero(z < 0)
-            # if invalid.shape[0] > 0:
-            #     z[invalid] = 0
+            lin_arr[:, 0:1, ] = x
+            lin_arr[:, 1:2, ] = y
+            lin_arr[:, 2:3, ] = z
 
-            arr[:, 0:1, ] = x
-            arr[:, 1:2, ] = y
-            arr[:, 2:3, ] = z
-
-            mask = arr > eta
-            arr[mask] = arr[mask].pow(3.)
-            arr[~mask] = (arr[~mask] - (vals[1] / vals[0])) * 3 * (eta ** 2)
+            mask = lin_arr > eta
+            lin_arr[mask] = lin_arr[mask].pow(3.)
+            lin_arr[~mask] = (lin_arr[~mask] - (vals[1] / vals[0])) * 3 * (eta ** 2)
 
         # rescale to the reference white (illuminant)
         for i in range(3):
-            arr[:, i:i + 1, ] *= (self.ref_white[i] + 1e-4)
+            lin_arr[:, i:i + 1, ] *= (self.ref_white[i] + 1e-4)
 
-        rgb = arr.clone()
-        rgb_transform = np.linalg.inv(self.trans_mat.detach().cpu())
+        rgb = lin_arr.clone()
+        rgb_transform = torch.inverse(self.trans_mat.detach())
         for i in range(3):
-            x_r = arr[:, 0:1, ] * rgb_transform[i, 0]
-            y_g = arr[:, 1:2, ] * rgb_transform[i, 1]
-            z_b = arr[:, 2:3, ] * rgb_transform[i, 2]
+            x_r = lin_arr[:, 0:1, ] * rgb_transform[i, 0]
+            y_g = lin_arr[:, 1:2, ] * rgb_transform[i, 1]
+            z_b = lin_arr[:, 2:3, ] * rgb_transform[i, 2]
             rgb[:, i:i + 1, ] = x_r + y_g + z_b
 
         if clip:
@@ -131,9 +128,17 @@ class LabTransformer(nn.Module):
     def loss_function(self, out_space, in_space, model_rec):
         self.rec_mse = losses.decomposition_loss(model_rec, out_space)
 
+        if not self.linear:
+            # FIXME: after single otuput remove the rgb key
+            with torch.no_grad():
+                rgb_out_space = self.rnd2rgb(
+                    out_space['rgb'].detach().clone(), clip=True
+                )
+            self.rec_mse += losses.decomposition_loss(
+                {'rgb': rgb_out_space}, {'rgb': in_space}
+            )
+
         return self.rec_mse
 
     def latest_losses(self):
-        return {
-            'rec_mse': self.rec_mse
-        }
+        return {'rec_mse': self.rec_mse}

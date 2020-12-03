@@ -164,7 +164,7 @@ def main(args):
     model = model.cuda()
 
     # FIXME make it only for one single output
-    colour_transformer = ColourTransformer.LabTransformer()
+    colour_transformer = ColourTransformer.LabTransformer(linear=args.linear)
     colour_transformer = colour_transformer.cuda()
 
     params_to_optimize = [
@@ -317,8 +317,9 @@ def main(args):
                 'arch': args.model,
                 'arch_params': {
                     **arch_params,
-                    'in_chns': args.in_chns, 'outs_dict': args.outs_dict
-                }
+                    'in_chns': args.in_chns, 'outs_dict': args.outs_dict,
+                },
+                'transformer_params': {'linear': args.linear}
             },
             save_path
         )
