@@ -165,7 +165,19 @@ def main(args):
     model.tanh = False
 
     # FIXME make it only for one single output
-    colour_transformer = ColourTransformer.LabTransformer(linear=args.linear)
+    if args.lab_init:
+        distortion = [
+            116.0 / 500,
+            16.0 / 500,
+            500.0 / 500,
+            200.0 / 500,
+            0.2068966
+        ]
+    else:
+        distortion = None
+    colour_transformer = ColourTransformer.LabTransformer(
+        distortion=distortion, linear=args.linear
+    )
     colour_transformer = colour_transformer.cuda()
 
     params_to_optimize = [

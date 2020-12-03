@@ -109,6 +109,10 @@ def parse_arguments(args):
         '--linear', action='store_true', default=False,
         help='Linear colour transformer'
     )
+    pipe_parser.add_argument(
+        '--lab_init', action='store_true', default=False,
+        help='Initialise with LAB parameters'
+    )
 
     logging_parser = parser.add_argument_group('Logging Parameters')
     logging_parser.add_argument(
