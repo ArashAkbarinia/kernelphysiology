@@ -75,7 +75,7 @@ class ResBlock(nn.Module):
 
 class DecomposeNet(AbstractAutoEncoder):
     def __init__(self, hidden, k, d, vq_coef=1, commit_coef=0.5,
-                 in_chns=3, outs_dict=None):
+                 in_chns=3, outs_dict=None, tanh=True):
         super(DecomposeNet, self).__init__()
 
         if outs_dict is None:
@@ -121,6 +121,8 @@ class DecomposeNet(AbstractAutoEncoder):
         self.vq_loss = torch.zeros(1)
         self.commit_loss = 0
 
+        self.tanh = tanh
+
         for l in self.modules():
             if isinstance(l, nn.Linear) or isinstance(l, nn.Conv2d):
                 l.weight.detach().normal_(0, 0.02)
@@ -152,9 +154,11 @@ class DecomposeNet(AbstractAutoEncoder):
                     else:
                         x = x_b
             current_out = getattr(self, 'out_%s' % key)
-            out_imgs[key] = torch.tanh(nn.functional.interpolate(
+            out_imgs[key] = nn.functional.interpolate(
                 current_out(x), size=target_size
-            ))
+            )
+            if self.tanh:
+                out_imgs[key] = torch.tanh(out_imgs[key])
         return out_imgs
 
     def forward(self, x):

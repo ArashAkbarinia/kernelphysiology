@@ -162,6 +162,7 @@ def main(args):
                 outs_dict=args.outs_dict
             )
     model = model.cuda()
+    model.tanh = False
 
     # FIXME make it only for one single output
     colour_transformer = ColourTransformer.LabTransformer(linear=args.linear)
