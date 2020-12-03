@@ -37,9 +37,11 @@ class LabTransformer(nn.Module):
                 distortion = torch.rand(5)
             else:
                 distortion = torch.tensor(distortion)
-            self.distortion = nn.Parameter(distortion, requires_grad=True)
+            # TODO: constraint the distortion to make it learnable
+            self.distortion = nn.Parameter(distortion, requires_grad=False)
 
         self.rec_mse = 0
+        self.org_mse = 0
         # vals = [116.0, 16.0, 500.0, 200.0, 0.2068966]
         # vals = [e / 500 for e in vals]
 
@@ -106,7 +108,8 @@ class LabTransformer(nn.Module):
 
             mask = lin_arr > eta
             lin_arr[mask] = lin_arr[mask].pow(3.)
-            lin_arr[~mask] = (lin_arr[~mask] - (vals[1] / vals[0])) * 3 * (eta ** 2)
+            lin_arr[~mask] = (lin_arr[~mask] - (vals[1] / vals[0])) * 3 * (
+                    eta ** 2)
 
         # rescale to the reference white (illuminant)
         for i in range(3):
@@ -134,11 +137,11 @@ class LabTransformer(nn.Module):
                 rgb_out_space = self.rnd2rgb(
                     out_space['rgb'].detach().clone(), clip=True
                 )
-            self.rec_mse += losses.decomposition_loss(
+            self.org_mse = losses.decomposition_loss(
                 {'rgb': rgb_out_space}, {'rgb': in_space}
             )
 
-        return self.rec_mse
+        return self.rec_mse + self.org_mse
 
     def latest_losses(self):
-        return {'rec_mse': self.rec_mse}
+        return {'rec_mse': self.rec_mse, 'org_mse': self.org_mse}
