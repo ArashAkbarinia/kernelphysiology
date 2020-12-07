@@ -207,10 +207,10 @@ class DecomposeNet(AbstractAutoEncoder):
         return self.decode(emb).cpu()
 
     def loss_function(self, x, recon_x, z_e, emb, argmin, category_img):
-        self.mse = losses.decomposition_loss(recon_x, x)
+        self.mse = losses.decomposition_loss_dict(recon_x, x)
         target_lab = x['lab']
         lab_tensor = vae_util.quantilise_lum(target_lab)
-        self.category_loss = losses.decomposition_loss(
+        self.category_loss = losses.decomposition_loss_dict(
             category_img, {'lab': lab_tensor}
         )
 

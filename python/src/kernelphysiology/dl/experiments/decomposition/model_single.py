@@ -199,7 +199,7 @@ class DecomposeNet(AbstractAutoEncoder):
         return self.decode(emb).cpu()
 
     def loss_function(self, x, recon_x, z_e, emb, argmin):
-        self.mse = losses.decomposition_loss(recon_x, x)
+        self.mse = losses.decomposition_loss_dict(recon_x, x)
 
         self.vq_loss = torch.mean(torch.norm((emb - z_e.detach()) ** 2, 2, 1))
         self.commit_loss = torch.mean(

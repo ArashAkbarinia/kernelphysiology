@@ -60,7 +60,7 @@ class SegmentationModel(torch.nn.Module):
         return x
 
     def loss_function(self, x, recon_x):
-        self.mse = losses.decomposition_loss(recon_x, x)
+        self.mse = losses.decomposition_loss_dict(recon_x, x)
         return self.mse
 
     def latest_losses(self):
