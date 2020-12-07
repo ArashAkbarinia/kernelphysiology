@@ -252,9 +252,9 @@ def main(args):
             epoch, model_vae, model_cst, test_loader, save_path, args
         )
         for k in train_losses.keys():
-            name = k.replace('_t', '')
+            name = k.replace('_trn', '')
             train_name = k
-            test_name = k.replace('_t', '_v')
+            test_name = k.replace('_trn', '_val')
             writer.add_scalars(
                 name, {
                     'train': train_losses[train_name],
@@ -289,12 +289,12 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
     model_vae.train()
     model_cst.train()
     vae_loss_dict = model_vae.latest_losses()
-    batch_losses = {k + '_t_vae': 0 for k, v in vae_loss_dict.items()}
-    epoch_losses = {k + '_t_vae': 0 for k, v in vae_loss_dict.items()}
+    batch_losses = {k + '_trn_vae': 0 for k, v in vae_loss_dict.items()}
+    epoch_losses = {k + '_trn_vae': 0 for k, v in vae_loss_dict.items()}
     cst_loss_dict = model_cst.latest_losses()
     for k, v in cst_loss_dict.items():
-        batch_losses[k + '_t_cst'] = 0
-        epoch_losses[k + '_t_cst'] = 0
+        batch_losses[k + '_trn_cst'] = 0
+        epoch_losses[k + '_trn_cst'] = 0
 
     num_batches = len(train_loader)
     start_time = time.time()
@@ -322,12 +322,12 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
 
         latest_losses = model_vae.latest_losses()
         for key in latest_losses:
-            batch_losses[key + '_t_vae'] += float(latest_losses[key])
-            epoch_losses[key + '_t_vae'] += float(latest_losses[key])
+            batch_losses[key + '_trn_vae'] += float(latest_losses[key])
+            epoch_losses[key + '_trn_vae'] += float(latest_losses[key])
         ct_latest_losses = model_cst.latest_losses()
         for key in ct_latest_losses:
-            batch_losses[key + '_t_cst'] += float(ct_latest_losses[key])
-            epoch_losses[key + '_t_cst'] += float(ct_latest_losses[key])
+            batch_losses[key + '_trn_cst'] += float(ct_latest_losses[key])
+            epoch_losses[key + '_trn_cst'] += float(ct_latest_losses[key])
 
         if bidx % args.log_interval == 0:
             for key in batch_losses.keys():
@@ -375,10 +375,10 @@ def test_net(epoch, model_vae, model_cst, test_loader, save_path, args):
     model_vae.eval()
     model_cst.eval()
     loss_dict = model_vae.latest_losses()
-    losses = {k + '_v_vae': 0 for k, v in loss_dict.items()}
+    losses = {k + '_val_vae': 0 for k, v in loss_dict.items()}
     ct_loss_dict = model_cst.latest_losses()
     for k, v in ct_loss_dict.items():
-        losses[k + '_v_cst'] = 0
+        losses[k + '_val_cst'] = 0
 
     num_batches = len(test_loader)
     with torch.no_grad():
@@ -392,10 +392,10 @@ def test_net(epoch, model_vae, model_cst, test_loader, save_path, args):
             model_cst.loss_function(new_target_space, data, outputs[0])
             latest_losses = model_vae.latest_losses()
             for key in latest_losses:
-                losses[key + '_v_vae'] += float(latest_losses[key])
+                losses[key + '_val_vae'] += float(latest_losses[key])
             ct_latest_losses = model_cst.latest_losses()
             for key in ct_latest_losses:
-                losses[key + '_v_cst'] += float(ct_latest_losses[key])
+                losses[key + '_val_cst'] += float(ct_latest_losses[key])
             if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
                 out_rgb = {
                     'rgb': model_cst.rnd2rgb(outputs[0].clone(), clip=True)}
