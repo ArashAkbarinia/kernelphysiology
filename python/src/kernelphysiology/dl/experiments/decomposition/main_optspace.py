@@ -117,8 +117,8 @@ def main(args):
         vae_model = (
             model_single if checkpoint['model'] == 'single' else model_multi
         )
-        model = vae_model.DecomposeNet(**checkpoint['arch_params'])
-        model.load_state_dict(checkpoint['state_dict'])
+        model_vae = vae_model.DecomposeNet(**checkpoint['arch_params'])
+        model_vae.load_state_dict(checkpoint['state_dict'])
     else:
         # FIXME: add to prediction, right now it's hard-coded for resnet18
         if args.model == 'deeplabv3':
@@ -133,13 +133,13 @@ def main(args):
             }
             # FIXME out_shape is defined far above, this is just a hack
             arch_params = {'backbone': backbone, 'num_classes': out_shape[-1]}
-            model = model_segmentation.deeplabv3_resnet(
+            model_vae = model_segmentation.deeplabv3_resnet(
                 backbone, num_classes=out_shape[-1], outs_dict=args.outs_dict
             )
         elif 'unet' in args.model:
             from segmentation_models import unet
             encoder_name = args.model.split('_')[-1]
-            model = unet.model.Unet(
+            model_vae = unet.model.Unet(
                 in_channels=args.in_chns, encoder_name=encoder_name,
                 encoder_weights=None,
                 outs_dict=args.outs_dict, classes=out_shape[-1]
@@ -149,7 +149,7 @@ def main(args):
             # FIXME: archs_param should be added to resume and fine_tune
             arch_params = {'k': args.k, 'd': args.d, 'hidden': args.hidden}
             vae_model = model_category
-            model = vae_model.DecomposeNet(
+            model_vae = vae_model.DecomposeNet(
                 hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
                 outs_dict=args.outs_dict
             )
@@ -157,12 +157,12 @@ def main(args):
             # FIXME: archs_param should be added to resume and fine_tune
             arch_params = {'k': args.k, 'd': args.d, 'hidden': args.hidden}
             vae_model = model_single if args.model == 'single' else model_multi
-            model = vae_model.DecomposeNet(
+            model_vae = vae_model.DecomposeNet(
                 hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
                 outs_dict=args.outs_dict
             )
-    model = model.cuda()
-    model.tanh = False
+    model_vae = model_vae.cuda()
+    model_vae.tanh = False
 
     # FIXME make it only for one single output
     if args.lab_init:
@@ -179,31 +179,40 @@ def main(args):
         trans_mat = None
         ref_white = None
         distortion = None
-    colour_transformer = ColourTransformer.LabTransformer(
+    model_cst = ColourTransformer.LabTransformer(
         trans_mat=trans_mat, ref_white=ref_white,
         distortion=distortion, linear=args.linear
     )
-    colour_transformer = colour_transformer.cuda()
+    model_cst = model_cst.cuda()
 
-    params_to_optimize = [
-        {'params': [p for p in model.parameters() if p.requires_grad]},
-        {'params': [p for p in colour_transformer.parameters() if
-                    p.requires_grad]},
+    params_to_vae = [
+        {'params': [p for p in model_vae.parameters() if p.requires_grad]},
     ]
-    optimizer = optim.Adam(params_to_optimize, lr=args.lr)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, int(args.epochs / 3), 0.5)
+    params_to_cst = [
+        {'params': [p for p in model_cst.parameters() if p.requires_grad]},
+    ]
+    optimizer_vae = optim.Adam(params_to_vae, lr=args.lr)
+    optimizer_cst = optim.Adam(params_to_cst, lr=args.lr)
+    scheduler_vae = optim.lr_scheduler.StepLR(
+        optimizer_vae, int(args.epochs / 3), 0.5
+    )
+    scheduler_cst = optim.lr_scheduler.StepLR(
+        optimizer_cst, int(args.epochs / 3), 0.5
+    )
 
     if args.resume is not None:
         checkpoint = torch.load(args.resume, map_location='cpu')
-        model.load_state_dict(checkpoint['state_dict'])
-        model = model.cuda()
+        model_vae.load_state_dict(checkpoint['state_dict'])
+        model_vae = model_vae.cuda()
         args.start_epoch = checkpoint['epoch'] + 1
-        scheduler.load_state_dict(checkpoint['scheduler'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
+        scheduler_vae.load_state_dict(checkpoint['scheduler_vae'])
+        optimizer_vae.load_state_dict(checkpoint['optimizer_vae'])
+        scheduler_cst.load_state_dict(checkpoint['scheduler_cst'])
+        optimizer_cst.load_state_dict(checkpoint['optimizer_cst'])
     elif args.fine_tune is not None:
         weights = torch.load(args.fine_tune, map_location='cpu')
-        model.load_state_dict(weights, strict=False)
-        model = model.cuda()
+        model_vae.load_state_dict(weights, strict=False)
+        model_vae = model_vae.cuda()
 
     intransform_funs = []
     if args.in_space.lower() == 'cgi':
@@ -299,7 +308,7 @@ def main(args):
     )
 
     if args.pred is not None:
-        predict(model, test_loader, save_path, args)
+        predict(model_vae, test_loader, save_path, args)
         return
 
     # starting to train
@@ -308,11 +317,11 @@ def main(args):
     logging.getLogger('').addHandler(console)
     for epoch in range(args.start_epoch, args.epochs):
         train_losses = train(
-            epoch, model, colour_transformer, train_loader,
-            optimizer, save_path, args
+            epoch, model_vae, model_cst, train_loader,
+            (optimizer_vae, optimizer_cst), save_path, args
         )
         test_losses = test_net(
-            epoch, model, colour_transformer, test_loader, save_path, args
+            epoch, model_vae, model_cst, test_loader, save_path, args
         )
         for k in train_losses.keys():
             name = k.replace('_t', '')
@@ -324,14 +333,17 @@ def main(args):
                     'test': test_losses[test_name]
                 }, epoch
             )
-        scheduler.step()
+        scheduler_vae.step()
+        scheduler_cst.step()
         vae_util.save_checkpoint(
             {
                 'epoch': epoch,
-                'state_dict': model.state_dict(),
-                'colour_transformer': colour_transformer.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'scheduler': scheduler.state_dict(),
+                'state_dict': model_vae.state_dict(),
+                'colour_transformer': model_cst.state_dict(),
+                'optimizer_vae': optimizer_vae.state_dict(),
+                'scheduler_vae': scheduler_vae.state_dict(),
+                'optimizer_cst': optimizer_cst.state_dict(),
+                'scheduler_cst': scheduler_cst.state_dict(),
                 'arch': args.model,
                 'arch_params': {
                     **arch_params,
@@ -343,14 +355,15 @@ def main(args):
         )
 
 
-def train(epoch, model, colour_transformer, train_loader, optimizer, save_path,
+def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
           args):
-    model.train()
-    colour_transformer.train()
-    loss_dict = model.latest_losses()
+    (optimizer_vae, optimizer_cst) = optimizers
+    model_vae.train()
+    model_cst.train()
+    loss_dict = model_vae.latest_losses()
     losses = {k + '_t_m': 0 for k, v in loss_dict.items()}
     epoch_losses = {k + '_t_m': 0 for k, v in loss_dict.items()}
-    ct_loss_dict = colour_transformer.latest_losses()
+    ct_loss_dict = model_cst.latest_losses()
     for k, v in ct_loss_dict.items():
         losses[k + '_t_ct'] = 0
         epoch_losses[k + '_t_ct'] = 0
@@ -364,23 +377,33 @@ def train(epoch, model, colour_transformer, train_loader, optimizer, save_path,
         for key in target.keys():
             target[key] = target[key].cuda()
 
-        optimizer.zero_grad()
-        new_target_space = colour_transformer(data)
+        # optimise the colour space transformer network
+        optimizer_vae.zero_grad()
+        new_target_space = model_cst(data)
         # FIXME: clean it up no multiple outputs
         target['rgb'] = new_target_space
-        outputs = model(data)
+        outputs = model_vae(data)
 
-        loss = (
-                model.loss_function(target, *outputs) +
-                colour_transformer.loss_function(target, data, outputs[0])
-        )
-        loss.backward()
-        optimizer.step()
-        latest_losses = model.latest_losses()
+        loss_cst = model_cst.loss_function(target, data, outputs[0])
+        loss_cst.backward()
+        optimizer_cst.step()
+
+        # optimise the VAE
+        optimizer_cst.zero_grad()
+        new_target_space = model_cst(data)
+        # FIXME: clean it up no multiple outputs
+        target['rgb'] = new_target_space
+        outputs = model_vae(data)
+
+        loss_vae = model_vae.loss_function(target, *outputs)
+        loss_vae.backward()
+        optimizer_vae.step()
+
+        latest_losses = model_vae.latest_losses()
         for key in latest_losses:
             losses[key + '_t_m'] += float(latest_losses[key])
             epoch_losses[key + '_t_m'] += float(latest_losses[key])
-        ct_latest_losses = colour_transformer.latest_losses()
+        ct_latest_losses = model_cst.latest_losses()
         for key in ct_latest_losses:
             losses[key + '_t_ct'] += float(ct_latest_losses[key])
             epoch_losses[key + '_t_ct'] += float(ct_latest_losses[key])
@@ -405,10 +428,10 @@ def train(epoch, model, colour_transformer, train_loader, optimizer, save_path,
                 losses[key] = 0
         if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
             out_rgb = outputs[0].copy()
-            out_rgb['rgb'] = colour_transformer.rnd2rgb(
+            out_rgb['rgb'] = model_cst.rnd2rgb(
                 out_rgb['rgb'], clip=True)
             target_rgb = target.copy()
-            target_rgb['rgb'] = colour_transformer.rnd2rgb(
+            target_rgb['rgb'] = model_cst.rnd2rgb(
                 target_rgb['rgb'], clip=True)
             vae_util.grid_save_reconstructions_noinv(
                 args.outs_dict, target_rgb, out_rgb, args.mean, args.std, epoch,
@@ -418,8 +441,8 @@ def train(epoch, model, colour_transformer, train_loader, optimizer, save_path,
         if bidx * len(data) > args.train_samples:
             break
 
-    print(colour_transformer.ref_white)
-    print(colour_transformer.trans_mat)
+    print(model_cst.ref_white)
+    print(model_cst.trans_mat)
     for key in epoch_losses:
         epoch_losses[key] /= (
                 len(train_loader.dataset) / train_loader.batch_size
@@ -431,12 +454,12 @@ def train(epoch, model, colour_transformer, train_loader, optimizer, save_path,
     return epoch_losses
 
 
-def test_net(epoch, model, colour_transformer, test_loader, save_path, args):
-    model.eval()
-    colour_transformer.eval()
-    loss_dict = model.latest_losses()
+def test_net(epoch, model_vae, model_cst, test_loader, save_path, args):
+    model_vae.eval()
+    model_cst.eval()
+    loss_dict = model_vae.latest_losses()
     losses = {k + '_v_m': 0 for k, v in loss_dict.items()}
-    ct_loss_dict = colour_transformer.latest_losses()
+    ct_loss_dict = model_cst.latest_losses()
     for k, v in ct_loss_dict.items():
         losses[k + '_v_ct'] = 0
 
@@ -449,26 +472,26 @@ def test_net(epoch, model, colour_transformer, test_loader, save_path, args):
             for key in target.keys():
                 target[key] = target[key].cuda()
 
-            new_target_space = colour_transformer(data)
+            new_target_space = model_cst(data)
             # FIXME: clean it up no multiple outputs
             target['rgb'] = new_target_space
-            outputs = model(data)
-            model.loss_function(target, *outputs)
-            colour_transformer.loss_function(
+            outputs = model_vae(data)
+            model_vae.loss_function(target, *outputs)
+            model_cst.loss_function(
                 target, data, outputs[0]
             )
-            latest_losses = model.latest_losses()
+            latest_losses = model_vae.latest_losses()
             for key in latest_losses:
                 losses[key + '_v_m'] += float(latest_losses[key])
-            ct_latest_losses = colour_transformer.latest_losses()
+            ct_latest_losses = model_cst.latest_losses()
             for key in ct_latest_losses:
                 losses[key + '_v_ct'] += float(ct_latest_losses[key])
             if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
                 out_rgb = outputs[0].copy()
-                out_rgb['rgb'] = colour_transformer.rnd2rgb(
+                out_rgb['rgb'] = model_cst.rnd2rgb(
                     out_rgb['rgb'], clip=True)
                 target_rgb = target.copy()
-                target_rgb['rgb'] = colour_transformer.rnd2rgb(
+                target_rgb['rgb'] = model_cst.rnd2rgb(
                     target_rgb['rgb'], clip=True)
                 vae_util.grid_save_reconstructions_noinv(
                     args.outs_dict, target_rgb, out_rgb, args.mean, args.std,
