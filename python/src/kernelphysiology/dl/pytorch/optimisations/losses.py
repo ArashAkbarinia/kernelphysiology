@@ -7,11 +7,10 @@ from torch.nn import functional as nnf
 
 
 def decomposition_loss(x_pred, x_true, out_space=None):
-    mse = 0
     if out_space == 'hsv':
-        mse += hue_loss(x_pred, x_true)
+        mse = hue_loss(x_pred, x_true)
     else:
-        mse += nnf.mse_loss(x_pred, x_true)
+        mse = nnf.mse_loss(x_pred, x_true)
     return mse
 
 

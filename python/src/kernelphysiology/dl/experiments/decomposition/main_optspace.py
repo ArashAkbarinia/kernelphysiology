@@ -16,8 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
 from kernelphysiology.dl.experiments.decomposition import util as vae_util
-from kernelphysiology.dl.experiments.decomposition import model_single
-from kernelphysiology.dl.experiments.decomposition import model_category
+from kernelphysiology.dl.experiments.decomposition import model_vqvae
 from kernelphysiology.dl.experiments.decomposition import model_multi
 from kernelphysiology.dl.experiments.decomposition import model_segmentation
 from kernelphysiology.dl.experiments.decomposition import arguments
@@ -51,29 +50,10 @@ def main(args):
     args = arguments.parse_arguments(args)
 
     # determining the number of input channels
-    in_size = 1
-    if args.in_space == 'gry':
-        args.in_chns = 1
-    elif args.in_space == 'db1':
-        args.in_chns = 4
-        in_size = 0.5
-    else:
-        args.in_chns = 3
+    args.in_chns = 3
 
-    # FIXME
-    # preparing the output dictionary
-    args.outs_dict = dict()
-    for out_type in args.outputs:
-        if out_type == 'input':
-            out_shape = [1 / in_size, 1 / in_size, args.in_chns]
-        elif out_type == 'gry':
-            out_shape = [1 / in_size, 1 / in_size, 1]
-        elif out_type == 'db1':
-            # TODO: just assuming numbers of square 2
-            out_shape = [0.5 / in_size, 0.5 / in_size, 4]
-        else:
-            out_shape = [1 / in_size, 1 / in_size, 3]
-        args.outs_dict[out_type] = {'shape': out_shape}
+    out_chns = 3
+    args.out_chns = out_chns
 
     args.mean = 0.5
     args.std = 0.5
@@ -114,53 +94,15 @@ def main(args):
 
     if args.pred is not None:
         checkpoint = torch.load(args.pred, map_location='cpu')
-        vae_model = (
-            model_single if checkpoint['model'] == 'single' else model_multi
-        )
-        model_vae = vae_model.DecomposeNet(**checkpoint['arch_params'])
+        model_vae = model_vqvae.DecomposeNet(**checkpoint['arch_params'])
         model_vae.load_state_dict(checkpoint['state_dict'])
     else:
-        # FIXME: add to prediction, right now it's hard-coded for resnet18
-        if args.model == 'deeplabv3':
-            backbone = {
-                'arch': 'resnet_bottleneck_custom',
-                'customs': {
-                    'pooling_type': 'max',
-                    'in_chns': args.in_chns,
-                    'blocks': [2, 2, 2, 2], 'num_kernels': 64,
-                    'num_classes': 1000
-                }
-            }
-            # FIXME out_shape is defined far above, this is just a hack
-            arch_params = {'backbone': backbone, 'num_classes': out_shape[-1]}
-            model_vae = model_segmentation.deeplabv3_resnet(
-                backbone, num_classes=out_shape[-1], outs_dict=args.outs_dict
-            )
-        elif 'unet' in args.model:
-            from segmentation_models import unet
-            encoder_name = args.model.split('_')[-1]
-            model_vae = unet.model.Unet(
-                in_channels=args.in_chns, encoder_name=encoder_name,
-                encoder_weights=None,
-                outs_dict=args.outs_dict, classes=out_shape[-1]
-            )
-            arch_params = {'encoder_name': encoder_name}
-        elif args.model == 'category':
-            # FIXME: archs_param should be added to resume and fine_tune
-            arch_params = {'k': args.k, 'd': args.d, 'hidden': args.hidden}
-            vae_model = model_category
-            model_vae = vae_model.DecomposeNet(
-                hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
-                outs_dict=args.outs_dict
-            )
-        else:
-            # FIXME: archs_param should be added to resume and fine_tune
-            arch_params = {'k': args.k, 'd': args.d, 'hidden': args.hidden}
-            vae_model = model_single if args.model == 'single' else model_multi
-            model_vae = vae_model.DecomposeNet(
-                hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
-                outs_dict=args.outs_dict
-            )
+        # FIXME: archs_param should be added to resume and fine_tune
+        arch_params = {'k': args.k, 'd': args.d, 'hidden': args.hidden}
+        model_vae = model_vqvae.DecomposeNet(
+            hidden=args.hidden, k=args.k, d=args.d, in_chns=args.in_chns,
+            out_chns=args.out_chns
+        )
     model_vae = model_vae.cuda()
     model_vae.tanh = False
 
@@ -185,14 +127,14 @@ def main(args):
     )
     model_cst = model_cst.cuda()
 
-    params_to_vae = [
+    vae_params = [
         {'params': [p for p in model_vae.parameters() if p.requires_grad]},
     ]
-    params_to_cst = [
+    cst_params = [
         {'params': [p for p in model_cst.parameters() if p.requires_grad]},
     ]
-    optimizer_vae = optim.Adam(params_to_vae, lr=args.lr)
-    optimizer_cst = optim.Adam(params_to_cst, lr=args.lr)
+    optimizer_vae = optim.Adam(vae_params, lr=args.lr)
+    optimizer_cst = optim.Adam(cst_params, lr=args.lr)
     scheduler_vae = optim.lr_scheduler.StepLR(
         optimizer_vae, int(args.epochs / 3), 0.5
     )
@@ -241,24 +183,10 @@ def main(args):
         )
     intransform = transforms.Compose(intransform_funs)
 
-    outtransform_funs = [
-        cv2_preprocessing.MultipleOutputTransformation(args.outputs)
-    ]
+    outtransform_funs = []
     outtransform = transforms.Compose(outtransform_funs)
 
-    # FIXME
-    for out_type in args.outputs:
-        if out_type == 'input':
-            vis_fun = None
-        elif out_type == 'gry':
-            vis_fun = None
-        elif out_type == 'db1':
-            vis_fun = vae_util.wavelet_visualise
-        elif args.vis_rgb:
-            vis_fun = partial(all2rgb, src_space=out_type)
-        else:
-            vis_fun = None
-        args.outs_dict[out_type]['vis_fun'] = vis_fun
+    args.outs_dict = {'rgb': {'vis_fun': None}}
 
     # preparing the dataset
     transforms_kwargs = {
@@ -347,7 +275,7 @@ def main(args):
                 'arch': args.model,
                 'arch_params': {
                     **arch_params,
-                    'in_chns': args.in_chns, 'outs_dict': args.outs_dict,
+                    'in_chns': args.in_chns, 'out_chns': args.out_chns,
                 },
                 'transformer_params': {'linear': args.linear}
             },
@@ -360,59 +288,52 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
     (optimizer_vae, optimizer_cst) = optimizers
     model_vae.train()
     model_cst.train()
-    loss_dict = model_vae.latest_losses()
-    losses = {k + '_t_m': 0 for k, v in loss_dict.items()}
-    epoch_losses = {k + '_t_m': 0 for k, v in loss_dict.items()}
-    ct_loss_dict = model_cst.latest_losses()
-    for k, v in ct_loss_dict.items():
-        losses[k + '_t_ct'] = 0
-        epoch_losses[k + '_t_ct'] = 0
+    vae_loss_dict = model_vae.latest_losses()
+    batch_losses = {k + '_t_vae': 0 for k, v in vae_loss_dict.items()}
+    epoch_losses = {k + '_t_vae': 0 for k, v in vae_loss_dict.items()}
+    cst_loss_dict = model_cst.latest_losses()
+    for k, v in cst_loss_dict.items():
+        batch_losses[k + '_t_cst'] = 0
+        epoch_losses[k + '_t_cst'] = 0
 
     num_batches = len(train_loader)
     start_time = time.time()
     for bidx, loader_data in enumerate(train_loader):
         data = loader_data[0]
         data = data.cuda()
-        target = loader_data[1]
-        for key in target.keys():
-            target[key] = target[key].cuda()
-
-        # optimise the colour space transformer network
-        optimizer_vae.zero_grad()
-        new_target_space = model_cst(data)
-        # FIXME: clean it up no multiple outputs
-        target['rgb'] = new_target_space
-        outputs = model_vae(data)
-
-        loss_cst = model_cst.loss_function(target, data, outputs[0])
-        loss_cst.backward()
-        optimizer_cst.step()
 
         # optimise the VAE
-        optimizer_cst.zero_grad()
+        model_cst.zero_grad()
         new_target_space = model_cst(data)
-        # FIXME: clean it up no multiple outputs
-        target['rgb'] = new_target_space
         outputs = model_vae(data)
 
-        loss_vae = model_vae.loss_function(target, *outputs)
+        loss_vae = model_vae.loss_function(new_target_space, *outputs)
         loss_vae.backward()
         optimizer_vae.step()
 
+        # optimise the colour space transformer network
+        model_vae.zero_grad()
+        new_target_space = model_cst(data)
+        outputs = model_vae(data)
+
+        loss_cst = model_cst.loss_function(new_target_space, data, outputs[0])
+        loss_cst.backward()
+        optimizer_cst.step()
+
         latest_losses = model_vae.latest_losses()
         for key in latest_losses:
-            losses[key + '_t_m'] += float(latest_losses[key])
-            epoch_losses[key + '_t_m'] += float(latest_losses[key])
+            batch_losses[key + '_t_vae'] += float(latest_losses[key])
+            epoch_losses[key + '_t_vae'] += float(latest_losses[key])
         ct_latest_losses = model_cst.latest_losses()
         for key in ct_latest_losses:
-            losses[key + '_t_ct'] += float(ct_latest_losses[key])
-            epoch_losses[key + '_t_ct'] += float(ct_latest_losses[key])
+            batch_losses[key + '_t_cst'] += float(ct_latest_losses[key])
+            epoch_losses[key + '_t_cst'] += float(ct_latest_losses[key])
 
         if bidx % args.log_interval == 0:
-            for key in losses.keys():
-                losses[key] /= args.log_interval
+            for key in batch_losses.keys():
+                batch_losses[key] /= args.log_interval
             loss_string = ' '.join(
-                ['{}: {:.6f}'.format(k, v) for k, v in losses.items()]
+                ['{}: {:.6f}'.format(k, v) for k, v in batch_losses.items()]
             )
             logging.info(
                 'Train Epoch: {epoch} [{batch:5d}/{total_batch} '
@@ -424,15 +345,11 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
                 )
             )
             start_time = time.time()
-            for key in losses.keys():
-                losses[key] = 0
+            for key in batch_losses.keys():
+                batch_losses[key] = 0
         if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
-            out_rgb = outputs[0].copy()
-            out_rgb['rgb'] = model_cst.rnd2rgb(
-                out_rgb['rgb'], clip=True)
-            target_rgb = target.copy()
-            target_rgb['rgb'] = model_cst.rnd2rgb(
-                target_rgb['rgb'], clip=True)
+            out_rgb = {'rgb': model_cst.rnd2rgb(outputs[0].clone(), clip=True)}
+            target_rgb = {'rgb': model_cst.rnd2rgb(new_target_space, clip=True)}
             vae_util.grid_save_reconstructions_noinv(
                 args.outs_dict, target_rgb, out_rgb, args.mean, args.std, epoch,
                 save_path, 'reconstruction_train%.5d' % bidx, inputs=data
@@ -458,41 +375,32 @@ def test_net(epoch, model_vae, model_cst, test_loader, save_path, args):
     model_vae.eval()
     model_cst.eval()
     loss_dict = model_vae.latest_losses()
-    losses = {k + '_v_m': 0 for k, v in loss_dict.items()}
+    losses = {k + '_v_vae': 0 for k, v in loss_dict.items()}
     ct_loss_dict = model_cst.latest_losses()
     for k, v in ct_loss_dict.items():
-        losses[k + '_v_ct'] = 0
+        losses[k + '_v_cst'] = 0
 
     num_batches = len(test_loader)
     with torch.no_grad():
         for bidx, loader_data in enumerate(test_loader):
             data = loader_data[0]
             data = data.cuda()
-            target = loader_data[1]
-            for key in target.keys():
-                target[key] = target[key].cuda()
 
             new_target_space = model_cst(data)
-            # FIXME: clean it up no multiple outputs
-            target['rgb'] = new_target_space
             outputs = model_vae(data)
-            model_vae.loss_function(target, *outputs)
-            model_cst.loss_function(
-                target, data, outputs[0]
-            )
+            model_vae.loss_function(new_target_space, *outputs)
+            model_cst.loss_function(new_target_space, data, outputs[0])
             latest_losses = model_vae.latest_losses()
             for key in latest_losses:
-                losses[key + '_v_m'] += float(latest_losses[key])
+                losses[key + '_v_vae'] += float(latest_losses[key])
             ct_latest_losses = model_cst.latest_losses()
             for key in ct_latest_losses:
-                losses[key + '_v_ct'] += float(ct_latest_losses[key])
+                losses[key + '_v_cst'] += float(ct_latest_losses[key])
             if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
-                out_rgb = outputs[0].copy()
-                out_rgb['rgb'] = model_cst.rnd2rgb(
-                    out_rgb['rgb'], clip=True)
-                target_rgb = target.copy()
-                target_rgb['rgb'] = model_cst.rnd2rgb(
-                    target_rgb['rgb'], clip=True)
+                out_rgb = {
+                    'rgb': model_cst.rnd2rgb(outputs[0].clone(), clip=True)}
+                target_rgb = {
+                    'rgb': model_cst.rnd2rgb(new_target_space, clip=True)}
                 vae_util.grid_save_reconstructions_noinv(
                     args.outs_dict, target_rgb, out_rgb, args.mean, args.std,
                     epoch, save_path, 'reconstruction_test%.5d' % bidx,

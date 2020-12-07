@@ -133,13 +133,8 @@ class LabTransformer(nn.Module):
         self.rec_mse = losses.decomposition_loss(model_rec, out_space)
 
         if not self.linear:
-            # FIXME: after single otuput remove the rgb key
-            rgb_out_space = self.rnd2rgb(
-                out_space['rgb'].detach().clone(), clip=True
-            )
-            self.org_mse = losses.decomposition_loss(
-                {'rgb': rgb_out_space}, {'rgb': in_space}
-            )
+            rgb_out_space = self.rnd2rgb(out_space.detach().clone(), clip=True)
+            self.org_mse = losses.decomposition_loss(rgb_out_space, in_space)
 
         return self.rec_mse + self.org_mse
 
