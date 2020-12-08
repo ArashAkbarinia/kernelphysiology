@@ -115,6 +115,8 @@ def main(args):
         args.imagenet_dir = '/home/arash/Software/imagenet/raw-data/validation/'
     colour_space = args.colour_space
     target_size = args.target_size
+    if args.repeat:
+        target_size = int(args.target_size / 2)
 
     mean, std = model_utils.get_preprocessing_function(
         colour_space, 'trichromat'
@@ -145,7 +147,7 @@ def main(args):
             ]
             args.gabor = 'model_fest'
         else:
-            if target_size == 256 and not args.repeat:
+            if target_size == 256:
                 t4s = [
                     target_size / 2, target_size / 2.5, target_size / 3,
                     target_size / 3.5, target_size / 3.75, target_size / 4,
