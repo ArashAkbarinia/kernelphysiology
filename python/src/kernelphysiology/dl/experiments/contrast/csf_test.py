@@ -41,6 +41,7 @@ def parse_arguments(args):
     model_parser.add_argument('--vision_type', type=str, default='trichromat')
     model_parser.add_argument('--pretrained', action='store_true',
                               default=False)
+    model_parser.add_argument('--repeat', action='store_true', default=False)
     model_parser.add_argument('--grey_width', default=40, choices=[0, 40],
                               type=int)
     model_parser.add_argument('--avg_illuminant', default=0, type=float)
@@ -144,7 +145,7 @@ def main(args):
             ]
             args.gabor = 'model_fest'
         else:
-            if target_size == 256:
+            if target_size == 256 and not args.repeat:
                 t4s = [
                     target_size / 2, target_size / 2.5, target_size / 3,
                     target_size / 3.5, target_size / 3.75, target_size / 4,
@@ -219,7 +220,7 @@ def main(args):
                 }
                 db_params = {
                     'colour_space': colour_space,
-                    'vision_type': args.vision_type,
+                    'vision_type': args.vision_type, 'repeat': args.repeat,
                     'mask_image': args.gabor, 'grey_width': args.grey_width
                 }
 

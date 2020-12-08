@@ -207,7 +207,7 @@ class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5,
                  contrasts=None, same_transforms=False, colour_space='grey',
                  vision_type='trichromat', mask_image=None, grey_width=40,
-                 avg_illuminant=0, train_params=None):
+                 avg_illuminant=0, train_params=None, repeat=False):
         self.p = p
         self.grey_width = grey_width
         self.contrasts = contrasts
@@ -223,6 +223,7 @@ class AfcDataset(object):
         else:
             self.train_params = path_utils.read_pickle(train_params)
         self.img_counter = 0
+        self.repeat = repeat
 
 
 class CelebA(AfcDataset, tdatasets.CelebA):
@@ -524,6 +525,9 @@ class GratingImages(AfcDataset, torch_data.Dataset):
         img_out, contrast_target = _two_pairs_stimuli(
             img0, img1, contrast0, contrast1, self.p, self.grey_width
         )
+        if self.repeat:
+            img_out = torch.repeat_interleave(img_out, 2, dim=1)
+            img_out = torch.repeat_interleave(img_out, 2, dim=2)
 
         item_settings = np.array([contrast0, lambda_wave, theta, rho, self.p])
         return img_out, contrast_target, item_settings
