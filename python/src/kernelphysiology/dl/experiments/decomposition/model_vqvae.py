@@ -75,7 +75,7 @@ class ResBlock(nn.Module):
 
 class DecomposeNet(AbstractAutoEncoder):
     def __init__(self, hidden, k, d, vq_coef=1, commit_coef=0.5,
-                 in_chns=3, out_chns=3, tanh=False):
+                 in_chns=3, out_chns=3, tanh=True):
         super(DecomposeNet, self).__init__()
 
         self.hidden = hidden

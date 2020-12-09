@@ -7,7 +7,6 @@ import os
 import sys
 import time
 import logging
-from functools import partial
 
 from torch import optim
 import torch.backends.cudnn as cudnn
@@ -17,8 +16,6 @@ from torchvision import transforms
 
 from kernelphysiology.dl.experiments.decomposition import util as vae_util
 from kernelphysiology.dl.experiments.decomposition import model_vqvae
-from kernelphysiology.dl.experiments.decomposition import model_multi
-from kernelphysiology.dl.experiments.decomposition import model_segmentation
 from kernelphysiology.dl.experiments.decomposition import arguments
 from kernelphysiology.dl.experiments.decomposition import data_loaders
 from kernelphysiology.dl.experiments.decomposition import ColourTransformer
@@ -26,7 +23,6 @@ from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 
 from kernelphysiology.utils import random_imutils
-from kernelphysiology.transformations.colour_spaces import all2rgb
 
 datasets_classes = {
     'imagenet': data_loaders.ImageFolder,
@@ -104,7 +100,6 @@ def main(args):
             out_chns=args.out_chns
         )
     model_vae = model_vae.cuda()
-    model_vae.tanh = False
 
     # FIXME make it only for one single output
     if args.lab_init:
@@ -307,7 +302,7 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
         target = model_cst(data)
         outputs = model_vae(data)
 
-        loss_vae = model_vae.loss_function(target, *outputs)
+        loss_vae = model_vae.loss_function(target.detach(), *outputs)
         loss_vae.backward()
         optimizer_vae.step()
 
@@ -316,18 +311,18 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
         target = model_cst(data)
         outputs = model_vae(data)
 
-        loss_cst = model_cst.loss_function(target, data, outputs[0])
+        loss_cst = model_cst.loss_function(target, data, outputs[0].detach())
         loss_cst.backward()
         optimizer_cst.step()
 
-        latest_losses = model_vae.latest_losses()
-        for key in latest_losses:
-            batch_losses[key + '_trn_vae'] += float(latest_losses[key])
-            epoch_losses[key + '_trn_vae'] += float(latest_losses[key])
-        ct_latest_losses = model_cst.latest_losses()
-        for key in ct_latest_losses:
-            batch_losses[key + '_trn_cst'] += float(ct_latest_losses[key])
-            epoch_losses[key + '_trn_cst'] += float(ct_latest_losses[key])
+        vae_latest_losses = model_vae.latest_losses()
+        for key in vae_latest_losses:
+            batch_losses[key + '_trn_vae'] += float(vae_latest_losses[key])
+            epoch_losses[key + '_trn_vae'] += float(vae_latest_losses[key])
+        cst_latest_losses = model_cst.latest_losses()
+        for key in cst_latest_losses:
+            batch_losses[key + '_trn_cst'] += float(cst_latest_losses[key])
+            epoch_losses[key + '_trn_cst'] += float(cst_latest_losses[key])
 
         if bidx % args.log_interval == 0:
             for key in batch_losses.keys():

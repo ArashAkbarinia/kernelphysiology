@@ -2,20 +2,16 @@
 A model to learn parameters of a LAB-like transformation.
 """
 
-import abc
-import numpy as np
-import logging
-
 import torch
 from torch import nn
 import torch.utils.data
 
-from kernelphysiology.dl.experiments.decomposition import nearest_embed
 from kernelphysiology.dl.pytorch.optimisations import losses
 
 
 class LabTransformer(nn.Module):
     def __init__(self, trans_mat=None, ref_white=None, distortion=None,
+                 trans_mat_gr=True, ref_white_gr=True, distortion_gr=True,
                  linear=True):
         super(LabTransformer, self).__init__()
 
@@ -23,13 +19,13 @@ class LabTransformer(nn.Module):
             trans_mat = torch.rand((3, 3))
         else:
             trans_mat = torch.tensor(trans_mat)
-        self.trans_mat = nn.Parameter(trans_mat, requires_grad=True)
+        self.trans_mat = nn.Parameter(trans_mat, requires_grad=trans_mat_gr)
 
         if ref_white is None:
             ref_white = torch.rand(3)
         else:
             ref_white = torch.tensor(ref_white)
-        self.ref_white = nn.Parameter(ref_white, requires_grad=True)
+        self.ref_white = nn.Parameter(ref_white, requires_grad=ref_white_gr)
 
         self.linear = linear
         if not self.linear:
@@ -37,8 +33,9 @@ class LabTransformer(nn.Module):
                 distortion = torch.rand(5)
             else:
                 distortion = torch.tensor(distortion)
-            # TODO: constraint the distortion to make it learnable
-            self.distortion = nn.Parameter(distortion, requires_grad=False)
+            self.distortion = nn.Parameter(
+                distortion, requires_grad=distortion_gr
+            )
 
         self.rec_mse = 0
         self.org_mse = 0
@@ -46,7 +43,9 @@ class LabTransformer(nn.Module):
         # vals = [e / 500 for e in vals]
 
     def forward(self, x):
-        return self.rgb2rnd(x)
+        x = self.rgb2rnd(x)
+        x = torch.tanh(x)
+        return x
 
     def rgb2rnd(self, rgb):
         lin_arr = rgb.clone()
@@ -89,52 +88,53 @@ class LabTransformer(nn.Module):
         return lin_arr
 
     def rnd2rgb(self, rnd, clip=False):
-        with torch.no_grad():
-            lin_arr = rnd.detach().clone()
+        rnd = torch.atanh(rnd)
+        lin_arr = rnd.detach().clone()
 
-            if not self.linear:
-                vals = self.distortion + 1e-4
-                eta = vals[4]
+        if not self.linear:
+            vals = self.distortion + 1e-4
+            eta = vals[4]
 
-                L = lin_arr[:, 0:1, ]
-                a = lin_arr[:, 1:2, ]
-                b = lin_arr[:, 2:3, ]
-                y = (L + vals[1]) / vals[0]
-                x = (a / vals[2]) + y
-                z = y - (b / vals[3])
+            L = lin_arr[:, 0:1, ]
+            a = lin_arr[:, 1:2, ]
+            b = lin_arr[:, 2:3, ]
+            y = (L + vals[1]) / vals[0]
+            x = (a / vals[2]) + y
+            z = y - (b / vals[3])
 
-                lin_arr[:, 0:1, ] = x
-                lin_arr[:, 1:2, ] = y
-                lin_arr[:, 2:3, ] = z
+            lin_arr[:, 0:1, ] = x
+            lin_arr[:, 1:2, ] = y
+            lin_arr[:, 2:3, ] = z
 
-                mask = lin_arr > eta
-                lin_arr[mask] = lin_arr[mask].pow(3.)
-                lin_arr[~mask] = (lin_arr[~mask] - (vals[1] / vals[0])) * 3 * (
-                        eta ** 2)
+            mask = lin_arr > eta
+            lin_arr[mask] = lin_arr[mask].pow(3.)
+            lin_arr[~mask] = (lin_arr[~mask] - (vals[1] / vals[0])) * 3 * (
+                    eta ** 2)
 
-            # rescale to the reference white (illuminant)
-            for i in range(3):
-                lin_arr[:, i:i + 1, ] *= (self.ref_white[i] + 1e-4)
+        # rescale to the reference white (illuminant)
+        for i in range(3):
+            lin_arr[:, i:i + 1, ] *= (self.ref_white[i] + 1e-4)
 
-            rgb = lin_arr.clone()
-            rgb_transform = torch.inverse(self.trans_mat.detach())
-            for i in range(3):
-                x_r = lin_arr[:, 0:1, ] * rgb_transform[i, 0]
-                y_g = lin_arr[:, 1:2, ] * rgb_transform[i, 1]
-                z_b = lin_arr[:, 2:3, ] * rgb_transform[i, 2]
-                rgb[:, i:i + 1, ] = x_r + y_g + z_b
+        rgb = lin_arr.clone()
+        rgb_transform = torch.inverse(self.trans_mat.detach())
+        for i in range(3):
+            x_r = lin_arr[:, 0:1, ] * rgb_transform[i, 0]
+            y_g = lin_arr[:, 1:2, ] * rgb_transform[i, 1]
+            z_b = lin_arr[:, 2:3, ] * rgb_transform[i, 2]
+            rgb[:, i:i + 1, ] = x_r + y_g + z_b
 
-            if clip:
-                rgb[rgb < 0] = 0
-                rgb[rgb > 1] = 1
+        if clip:
+            rgb[torch.isnan(rgb)] = 0
+            rgb = (rgb * 0.5) + 0.5
+            rgb[rgb < 0] = 0
+            rgb[rgb > 1] = 1
         return rgb
 
     def loss_function(self, out_space, in_space, model_rec):
         self.rec_mse = losses.decomposition_loss(model_rec, out_space)
 
-        if not self.linear:
-            rgb_out_space = self.rnd2rgb(out_space.detach().clone(), clip=True)
-            self.org_mse = losses.decomposition_loss(rgb_out_space, in_space)
+        rgb_out_space = self.rnd2rgb(out_space.detach().clone(), clip=True)
+        self.org_mse = losses.decomposition_loss(rgb_out_space, in_space)
 
         return self.rec_mse + self.org_mse
 
