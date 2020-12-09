@@ -164,7 +164,7 @@ def grid_save_reconstructions_noinv(out_dicts, ground_truths, model_outs, mean,
         current_out = model_outs[key]
         current_gt = ground_truths[key]
 
-        original = inv_normalise_tensor(current_gt, mean, std).detach()
+        original = current_gt.detach()
         original = tensor_tosave(original, out_dicts[key]['vis_fun'])
         reconstructed = current_out.detach()
         reconstructed = tensor_tosave(reconstructed, out_dicts[key]['vis_fun'])
@@ -172,8 +172,9 @@ def grid_save_reconstructions_noinv(out_dicts, ground_truths, model_outs, mean,
         original = np.concatenate(original, axis=1)
         reconstructed = np.concatenate(reconstructed, axis=1)
         toplot = [original, reconstructed]
+        # TODO: assuming the input has no visualisation function
         if inputs is not None:
-            in_img = inputs.detach()
+            in_img = inv_normalise_tensor(inputs, mean, std).detach()
             in_img = tensor_tosave(in_img, None)
             in_img = np.concatenate(in_img, axis=1)
             toplot = [in_img, *toplot]
