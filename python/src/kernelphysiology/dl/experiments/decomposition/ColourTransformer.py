@@ -49,7 +49,7 @@ class LabTransformer(nn.Module):
         return x
 
     def rgb2rnd(self, rgb):
-        lin_arr = rgb.clone()
+        lin_arr = torch.zeros(rgb.shape)
         for i in range(3):
             x_r = rgb[:, 0:1, ] * self.trans_mat[i, 0]
             y_g = rgb[:, 1:2, ] * self.trans_mat[i, 1]
@@ -57,7 +57,7 @@ class LabTransformer(nn.Module):
             lin_arr[:, i:i + 1, ] = x_r + y_g + z_b
 
         # scale by tristimulus values of the reference white point
-        ref_white = nn.functional.softmax(self.ref_white + 1e-4)
+        ref_white = self.ref_white + 1e-4
         for i in range(3):
             lin_arr[:, i:i + 1, ] /= ref_white[i]
 
@@ -81,17 +81,19 @@ class LabTransformer(nn.Module):
             a = vals[2] * (x - y)
             b = vals[3] * (y - z)
 
-            nonlin_arr = lin_arr.clone()
+            nonlin_arr = torch.zeros(rgb.shape)
             nonlin_arr[:, 0:1, ] = L
             nonlin_arr[:, 1:2, ] = a
             nonlin_arr[:, 2:3, ] = b
 
-            return nonlin_arr
-        return lin_arr
+            output = nonlin_arr
+        else:
+            output = lin_arr
+        return output
 
     def rnd2rgb(self, rnd, clip=False):
         rnd = torch.atanh(rnd)
-        lin_arr = rnd.detach().clone()
+        lin_arr = torch.zeros(rnd.shape)
 
         if not self.linear:
             vals = self.distortion + 1e-4
@@ -114,12 +116,12 @@ class LabTransformer(nn.Module):
                     eta ** 2)
 
         # rescale to the reference white (illuminant)
-        ref_white = nn.functional.softmax(self.ref_white + 1e-4)
+        ref_white = self.ref_white + 1e-4
         for i in range(3):
             lin_arr[:, i:i + 1, ] *= ref_white[i]
 
-        rgb = lin_arr.clone()
-        rgb_transform = torch.inverse(self.trans_mat.detach())
+        rgb = torch.zeros(rnd.shape)
+        rgb_transform = torch.inverse(self.trans_mat)
         for i in range(3):
             x_r = lin_arr[:, 0:1, ] * rgb_transform[i, 0]
             y_g = lin_arr[:, 1:2, ] * rgb_transform[i, 1]

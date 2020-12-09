@@ -325,8 +325,9 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
             epoch_losses[key + '_trn_cst'] += float(cst_latest_losses[key])
 
         if bidx % args.log_interval == 0:
-            for key in batch_losses.keys():
-                batch_losses[key] /= args.log_interval
+            if bidx > 0:
+                for key in batch_losses.keys():
+                    batch_losses[key] /= args.log_interval
             loss_string = ' '.join(
                 ['{}: {:.6f}'.format(k, v) for k, v in batch_losses.items()]
             )
