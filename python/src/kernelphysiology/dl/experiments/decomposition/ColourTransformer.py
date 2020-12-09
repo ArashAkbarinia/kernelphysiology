@@ -57,8 +57,9 @@ class LabTransformer(nn.Module):
             lin_arr[:, i:i + 1, ] = x_r + y_g + z_b
 
         # scale by tristimulus values of the reference white point
+        ref_white = nn.functional.softmax(self.ref_white + 1e-4)
         for i in range(3):
-            lin_arr[:, i:i + 1, ] /= (self.ref_white[i] + 1e-4)
+            lin_arr[:, i:i + 1, ] /= ref_white
 
         if not self.linear:
             vals = self.distortion + 1e-4
@@ -113,8 +114,9 @@ class LabTransformer(nn.Module):
                     eta ** 2)
 
         # rescale to the reference white (illuminant)
+        ref_white = nn.functional.softmax(self.ref_white + 1e-4)
         for i in range(3):
-            lin_arr[:, i:i + 1, ] *= (self.ref_white[i] + 1e-4)
+            lin_arr[:, i:i + 1, ] *= ref_white[i]
 
         rgb = lin_arr.clone()
         rgb_transform = torch.inverse(self.trans_mat.detach())
