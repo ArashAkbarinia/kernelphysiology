@@ -59,7 +59,7 @@ class LabTransformer(nn.Module):
         # scale by tristimulus values of the reference white point
         ref_white = nn.functional.softmax(self.ref_white + 1e-4)
         for i in range(3):
-            lin_arr[:, i:i + 1, ] /= ref_white
+            lin_arr[:, i:i + 1, ] /= ref_white[i]
 
         if not self.linear:
             vals = self.distortion + 1e-4
