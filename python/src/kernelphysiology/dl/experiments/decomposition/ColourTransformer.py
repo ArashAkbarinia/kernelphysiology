@@ -49,17 +49,18 @@ class LabTransformer(nn.Module):
         return x
 
     def rgb2rnd(self, rgb):
-        lin_arr = torch.zeros(rgb.shape, device=rgb.get_device())
+        rgb_arr = torch.zeros(rgb.shape, device=rgb.get_device())
         for i in range(3):
             x_r = rgb[:, 0:1, ] * self.trans_mat[i, 0]
             y_g = rgb[:, 1:2, ] * self.trans_mat[i, 1]
             z_b = rgb[:, 2:3, ] * self.trans_mat[i, 2]
-            lin_arr[:, i:i + 1, ] = x_r + y_g + z_b
+            rgb_arr[:, i:i + 1, ] = x_r + y_g + z_b
 
         # scale by tristimulus values of the reference white point
         ref_white = self.ref_white + 1e-4
+        white_arr = torch.zeros(rgb.shape, device=rgb.get_device())
         for i in range(3):
-            lin_arr[:, i:i + 1, ] = lin_arr[:, i:i + 1, ] / ref_white[i]
+            white_arr[:, i:i + 1, ] = rgb_arr[:, i:i + 1, ] / ref_white[i]
 
         if not self.linear:
             vals = self.distortion + 1e-4
@@ -68,13 +69,13 @@ class LabTransformer(nn.Module):
             t0 = eta ** 3
 
             # Nonlinear distortion and linear transformation
-            mask = lin_arr > t0
-            lin_arr[mask] = lin_arr[mask].pow(1 / 3)
-            lin_arr[~mask] = m * lin_arr[~mask] + (vals[1] / vals[0])
+            mask = rgb_arr > t0
+            rgb_arr[mask] = rgb_arr[mask].pow(1 / 3)
+            rgb_arr[~mask] = m * rgb_arr[~mask] + (vals[1] / vals[0])
 
-            x = lin_arr[:, 0:1, ]
-            y = lin_arr[:, 1:2, ]
-            z = lin_arr[:, 2:3, ]
+            x = rgb_arr[:, 0:1, ]
+            y = rgb_arr[:, 1:2, ]
+            z = rgb_arr[:, 2:3, ]
 
             # Vector scaling
             L = (vals[0] * y) - vals[1]
@@ -88,44 +89,45 @@ class LabTransformer(nn.Module):
 
             output = nonlin_arr
         else:
-            output = lin_arr
+            output = white_arr
         return output
 
     def rnd2rgb(self, rnd, clip=False):
         rnd = torch.atanh(rnd)
-        lin_arr = torch.zeros(rnd.shape, device=rnd.get_device())
+        rnd_arr = torch.zeros(rnd.shape, device=rnd.get_device())
 
         if not self.linear:
             vals = self.distortion + 1e-4
             eta = vals[4]
 
-            L = lin_arr[:, 0:1, ]
-            a = lin_arr[:, 1:2, ]
-            b = lin_arr[:, 2:3, ]
+            L = rnd_arr[:, 0:1, ]
+            a = rnd_arr[:, 1:2, ]
+            b = rnd_arr[:, 2:3, ]
             y = (L + vals[1]) / vals[0]
             x = (a / vals[2]) + y
             z = y - (b / vals[3])
 
-            lin_arr[:, 0:1, ] = x
-            lin_arr[:, 1:2, ] = y
-            lin_arr[:, 2:3, ] = z
+            rnd_arr[:, 0:1, ] = x
+            rnd_arr[:, 1:2, ] = y
+            rnd_arr[:, 2:3, ] = z
 
-            mask = lin_arr > eta
-            lin_arr[mask] = lin_arr[mask].pow(3.)
-            lin_arr[~mask] = (lin_arr[~mask] - (vals[1] / vals[0])) * 3 * (
+            mask = rnd_arr > eta
+            rnd_arr[mask] = rnd_arr[mask].pow(3.)
+            rnd_arr[~mask] = (rnd_arr[~mask] - (vals[1] / vals[0])) * 3 * (
                     eta ** 2)
 
         # rescale to the reference white (illuminant)
         ref_white = self.ref_white + 1e-4
+        white_arr = torch.zeros(rnd.shape, device=rnd.get_device())
         for i in range(3):
-            lin_arr[:, i:i + 1, ] = lin_arr[:, i:i + 1, ] * ref_white[i]
+            white_arr[:, i:i + 1, ] = rnd_arr[:, i:i + 1, ] * ref_white[i]
 
         rgb = torch.zeros(rnd.shape, device=rnd.get_device())
         rgb_transform = torch.inverse(self.trans_mat)
         for i in range(3):
-            x_r = lin_arr[:, 0:1, ] * rgb_transform[i, 0]
-            y_g = lin_arr[:, 1:2, ] * rgb_transform[i, 1]
-            z_b = lin_arr[:, 2:3, ] * rgb_transform[i, 2]
+            x_r = white_arr[:, 0:1, ] * rgb_transform[i, 0]
+            y_g = white_arr[:, 1:2, ] * rgb_transform[i, 1]
+            z_b = white_arr[:, 2:3, ] * rgb_transform[i, 2]
             rgb[:, i:i + 1, ] = x_r + y_g + z_b
 
         if clip:
