@@ -302,7 +302,7 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
         target = model_cst(data)
         outputs = model_vae(data)
 
-        loss_vae = model_vae.loss_function(target.detach(), *outputs)
+        loss_vae = model_vae.loss_function(target, *outputs)
         loss_vae.backward()
         optimizer_vae.step()
 
@@ -311,7 +311,7 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
         target = model_cst(data)
         outputs = model_vae(data)
 
-        loss_cst = model_cst.loss_function(target, data, outputs[0].detach())
+        loss_cst = model_cst.loss_function(target, data, outputs[0])
         loss_cst.backward()
         optimizer_cst.step()
 
