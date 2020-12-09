@@ -115,6 +115,9 @@ class LabTransformer(nn.Module):
             rnd_arr[mask] = rnd_arr[mask].pow(3.)
             rnd_arr[~mask] = (rnd_arr[~mask] - (vals[1] / vals[0])) * 3 * (
                     eta ** 2)
+        else:
+            for i in range(3):
+                rnd_arr[:, i:i + 1, ] = rnd[:, i:i + 1, ]
 
         # rescale to the reference white (illuminant)
         ref_white = self.ref_white + 1e-4
