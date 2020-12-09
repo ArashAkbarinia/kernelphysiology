@@ -3,12 +3,29 @@ import os
 
 from matplotlib import pyplot as plt
 from scipy import stats
+from scipy.optimize import curve_fit
 
 mStyles = [
     "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p", "P",
     "*", "h", "H", "+", "x", "X", "D", "d", "|", "_", 0, 1, 2, 3, 4, 5, 6, 7, 8,
     9, 10, 11
 ]
+
+
+def fit_to_model(xvals, yvals, model='uhlrich'):
+    if model == 'uhlrich':
+        p0 = [295.42, 295.92, 0.03902, 0.0395]
+        bounds = ([1, 1, 0, 0], [300, 300, 1, 5])
+        popt, pcov = curve_fit(
+            animal_csf, xvals, yvals, p0=p0, bounds=bounds
+        )
+    else:
+        p0 = [2.6, 0.0192, 0.114, 1.1, 0.114]
+        bounds = (0, np.inf)
+        popt, pcov = curve_fit(
+            manos_model, xvals, yvals, p0=p0, bounds=bounds
+        )
+    return popt, pcov
 
 
 def get_label_colour(key):
@@ -61,13 +78,29 @@ def interpolate_all_sfs(xvals, yvals, target_size, max_val):
     return new_xs, new_ys
 
 
-def human_csf(f):
-    return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)
+def animal_csf(f, k1, k2, alpha, beta):
+    the_csf = (k1 * np.exp(-2 * np.pi * alpha * f) - k2 * np.exp(
+        -2 * np.pi * beta * f))
+    the_csf = np.maximum(the_csf, 0)
+    return the_csf
+
+
+def manos_model(f, k1, k2, k3, k4, k5):
+    the_csf = k1 * (k2 + k3 * f) * np.exp(-(k4 * f) ** k5)
+    the_csf = np.maximum(the_csf, 0)
+    return the_csf
+
+
+def human_csf(f, method='uhlrich'):
+    if method == 'uhlrich':
+        return animal_csf(f, k1=295.42, k2=295.92, alpha=0.03902, beta=0.0395)
+    else:
+        return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)
 
 
 def plot_sensitivity(all_summaries, param_name, out_file=None, target_size=None,
                      nrows=5, figsize=(22, 4), log_axis=False, till64=False,
-                     normalise=True):
+                     normalise=True, model_name='uhlrich'):
     if log_axis:
         till64 = True
 
@@ -145,7 +178,9 @@ def plot_sensitivity(all_summaries, param_name, out_file=None, target_size=None,
                 # first plot the human CSF
                 if 'lum' in key_chn and plot_human:
                     plot_human = False
-                    hcsf = np.array([human_csf(f) for f in org_freqs])
+                    hcsf = np.array(
+                        [human_csf(f, model_name) for f in org_freqs]
+                    )
                     hcsf /= hcsf.max()
                     hcsf *= np.max(cut_yvals)
                     ax.plot(org_freqs, hcsf, '--', color='black', label='human')
@@ -157,7 +192,7 @@ def plot_sensitivity(all_summaries, param_name, out_file=None, target_size=None,
                 int_freqs = [((1 / e) * base_sf) for e in int_xvals]
 
                 # compute the correlation
-                hcsf = np.array([human_csf(f) for f in int_freqs])
+                hcsf = np.array([human_csf(f, model_name) for f in int_freqs])
                 hcsf /= hcsf.max()
                 int_yvals /= int_yvals.max()
                 p_corr, r_corr = stats.pearsonr(int_yvals, hcsf)
@@ -167,6 +202,20 @@ def plot_sensitivity(all_summaries, param_name, out_file=None, target_size=None,
                     label='%s [r=%.2f | d=%.2f]' % (label, p_corr, euc_dis),
                     **kwargs
                 )
+
+                # model_name = 'uhlrich'
+                # popt, pcov = fit_to_model(int_freqs, int_yvals, model_name)
+                # if model_name == 'uhlrich':
+                #     fit_yvals = [animal_csf(f, *popt) for f in int_freqs]
+                # else:
+                #     fit_yvals = [manos_model(f, *popt) for f in int_freqs]
+                # fit_yvals = np.array(fit_yvals)
+                # # fit_yvals /= fit_yvals.max()
+                # error = 0
+                # ax.plot(
+                #     int_freqs, fit_yvals, '--', color='blue',
+                #     label='fit [r=%.2f]' % error
+                # )
 
                 ax.set_xlabel('Spatial Frequency (Cycle/Image)')
                 ax.set_ylabel('Sensitivity (1/Contrast)')
@@ -184,7 +233,7 @@ def plot_sensitivity(all_summaries, param_name, out_file=None, target_size=None,
 
 
 def compute_corrs(all_summaries, param_name, target_size=None, animal='human',
-                  till64=False):
+                  till64=False, model_name='uhlrich'):
     corr_networks = dict()
     euc_networks = dict()
     for key_exp, exp_results in all_summaries.items():
@@ -230,7 +279,7 @@ def compute_corrs(all_summaries, param_name, target_size=None, animal='human',
                 int_freqs = [((1 / e) * base_sf) for e in int_xvals]
 
                 # compute the correlation
-                hcsf = np.array([human_csf(f) for f in int_freqs])
+                hcsf = np.array([human_csf(f, model_name) for f in int_freqs])
                 hcsf /= hcsf.max()
                 int_yvals /= int_yvals.max()
                 p_corr, r_corr = stats.pearsonr(int_yvals, hcsf)
@@ -244,7 +293,7 @@ def compute_corrs(all_summaries, param_name, target_size=None, animal='human',
 
 
 def group_compute(all_summaries, param_name, target_size=None, animal='human',
-                  till64=False):
+                  till64=False, model_name='uhlrich'):
     freq_networks = dict()
     yval_networks = dict()
     hcsf_networks = dict()
@@ -294,7 +343,7 @@ def group_compute(all_summaries, param_name, target_size=None, animal='human',
                     last_freq = org_freqs[0]
 
                 # compute the correlation
-                hcsf = np.array([human_csf(f) for f in org_freqs])
+                hcsf = np.array([human_csf(f, model_name) for f in org_freqs])
                 hcsf /= hcsf.max()
                 cut_yvals /= cut_yvals.max()
 
@@ -308,7 +357,7 @@ def group_compute(all_summaries, param_name, target_size=None, animal='human',
 
 
 def group_plot(results, out_file=None, nrows=5, figsize=(22, 4),
-               log_axis=False,):
+               log_axis=False, ):
     fig = plt.figure(figsize=figsize)
     freq_networks, yval_networks, hcsf_networks = results
     for i in range(freq_networks.shape[0]):
