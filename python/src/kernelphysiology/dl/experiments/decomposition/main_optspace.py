@@ -343,8 +343,16 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
             for key in batch_losses.keys():
                 batch_losses[key] = 0
         if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
-            out_rgb = {'rgb': model_cst.rnd2rgb(outputs[0].clone(), clip=True)}
-            target_rgb = {'rgb': model_cst.rnd2rgb(target, clip=True)}
+            out_rgb = {
+                'rgb': model_cst.rnd2rgb(
+                    outputs[0].detach().clone(), clip=True
+                )
+            }
+            target_rgb = {
+                'rgb': model_cst.rnd2rgb(
+                    target.detach().clone(), clip=True
+                )
+            }
             vae_util.grid_save_reconstructions_noinv(
                 args.outs_dict, target_rgb, out_rgb, args.mean, args.std, epoch,
                 save_path, 'reconstruction_train%.5d' % bidx, inputs=data
@@ -393,8 +401,15 @@ def test_net(epoch, model_vae, model_cst, test_loader, save_path, args):
                 losses[key + '_val_cst'] += float(ct_latest_losses[key])
             if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
                 out_rgb = {
-                    'rgb': model_cst.rnd2rgb(outputs[0].clone(), clip=True)}
-                target_rgb = {'rgb': model_cst.rnd2rgb(target, clip=True)}
+                    'rgb': model_cst.rnd2rgb(
+                        outputs[0].detach().clone(), clip=True
+                    )
+                }
+                target_rgb = {
+                    'rgb': model_cst.rnd2rgb(
+                        target.detach().clone(), clip=True
+                    )
+                }
                 vae_util.grid_save_reconstructions_noinv(
                     args.outs_dict, target_rgb, out_rgb, args.mean, args.std,
                     epoch, save_path, 'reconstruction_test%.5d' % bidx,

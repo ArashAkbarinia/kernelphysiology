@@ -133,8 +133,13 @@ class LabTransformer(nn.Module):
     def loss_function(self, out_space, in_space, model_rec):
         self.rec_mse = losses.decomposition_loss(model_rec, out_space)
 
-        rgb_out_space = self.rnd2rgb(out_space.detach().clone(), clip=True)
-        self.org_mse = losses.decomposition_loss(rgb_out_space, in_space)
+        target_rgb = self.rnd2rgb(out_space.detach().clone(), clip=True)
+        target_mse = losses.decomposition_loss(target_rgb, in_space)
+
+        model_rgb = self.rnd2rgb(model_rec.detach().clone(), clip=True)
+        model_mse = losses.decomposition_loss(model_rgb, in_space)
+
+        self.org_mse = target_mse + model_mse
 
         return self.rec_mse + self.org_mse
 
