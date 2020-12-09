@@ -67,7 +67,7 @@ def main(args):
         ]
     post_shared_transforms = [
         cv2_transforms.ToTensor(),
-        # cv2_transforms.Normalize(args.mean, args.std)
+        cv2_transforms.Normalize(args.mean, args.std)
     ]
 
     pre_dataset_transforms = dict()
