@@ -59,7 +59,7 @@ class LabTransformer(nn.Module):
         # scale by tristimulus values of the reference white point
         ref_white = self.ref_white + 1e-4
         for i in range(3):
-            lin_arr[:, i:i + 1, ] /= ref_white[i]
+            lin_arr[:, i:i + 1, ] = lin_arr[:, i:i + 1, ] / ref_white[i]
 
         if not self.linear:
             vals = self.distortion + 1e-4
@@ -118,7 +118,7 @@ class LabTransformer(nn.Module):
         # rescale to the reference white (illuminant)
         ref_white = self.ref_white + 1e-4
         for i in range(3):
-            lin_arr[:, i:i + 1, ] *= ref_white[i]
+            lin_arr[:, i:i + 1, ] = lin_arr[:, i:i + 1, ] * ref_white[i]
 
         rgb = torch.zeros(rnd.shape)
         rgb_transform = torch.inverse(self.trans_mat)
