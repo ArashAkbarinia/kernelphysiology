@@ -38,7 +38,8 @@ class LabTransformer(nn.Module):
             )
 
         self.rec_mse = 0
-        self.org_mse = 0
+        self.inv_mse = 0
+        self.out_mse = 0
         # vals = [116.0, 16.0, 500.0, 200.0, 0.2068966]
         # vals = [e / 500 for e in vals]
 
@@ -134,14 +135,15 @@ class LabTransformer(nn.Module):
         self.rec_mse = losses.decomposition_loss(model_rec, out_space)
 
         target_rgb = self.rnd2rgb(out_space.detach().clone(), clip=True)
-        target_mse = losses.decomposition_loss(target_rgb, in_space)
+        self.inv_mse = losses.decomposition_loss(target_rgb, in_space)
 
         model_rgb = self.rnd2rgb(model_rec.detach().clone(), clip=True)
-        model_mse = losses.decomposition_loss(model_rgb, in_space)
+        self.out_mse = losses.decomposition_loss(model_rgb, in_space)
 
-        self.org_mse = target_mse + model_mse
-
-        return self.rec_mse + self.org_mse
+        return self.rec_mse + self.inv_mse + self.out_mse
 
     def latest_losses(self):
-        return {'rec_mse': self.rec_mse, 'org_mse': self.org_mse}
+        return {
+            'rec_mse': self.rec_mse, 'inv_mse': self.inv_mse,
+            'out_mse': self.out_mse
+        }
