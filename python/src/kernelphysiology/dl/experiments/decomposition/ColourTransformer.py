@@ -49,7 +49,7 @@ class LabTransformer(nn.Module):
         return x
 
     def rgb2rnd(self, rgb):
-        lin_arr = torch.zeros(rgb.shape)
+        lin_arr = torch.zeros(rgb.shape, device=rgb.get_device())
         for i in range(3):
             x_r = rgb[:, 0:1, ] * self.trans_mat[i, 0]
             y_g = rgb[:, 1:2, ] * self.trans_mat[i, 1]
@@ -81,7 +81,7 @@ class LabTransformer(nn.Module):
             a = vals[2] * (x - y)
             b = vals[3] * (y - z)
 
-            nonlin_arr = torch.zeros(rgb.shape)
+            nonlin_arr = torch.zeros(rgb.shape, device=rgb.get_device())
             nonlin_arr[:, 0:1, ] = L
             nonlin_arr[:, 1:2, ] = a
             nonlin_arr[:, 2:3, ] = b
@@ -93,7 +93,7 @@ class LabTransformer(nn.Module):
 
     def rnd2rgb(self, rnd, clip=False):
         rnd = torch.atanh(rnd)
-        lin_arr = torch.zeros(rnd.shape)
+        lin_arr = torch.zeros(rnd.shape, device=rnd.get_device())
 
         if not self.linear:
             vals = self.distortion + 1e-4
@@ -120,7 +120,7 @@ class LabTransformer(nn.Module):
         for i in range(3):
             lin_arr[:, i:i + 1, ] = lin_arr[:, i:i + 1, ] * ref_white[i]
 
-        rgb = torch.zeros(rnd.shape)
+        rgb = torch.zeros(rnd.shape, device=rnd.get_device())
         rgb_transform = torch.inverse(self.trans_mat)
         for i in range(3):
             x_r = lin_arr[:, 0:1, ] * rgb_transform[i, 0]
