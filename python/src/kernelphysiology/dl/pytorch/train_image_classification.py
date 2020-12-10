@@ -245,7 +245,9 @@ def main_worker(ngpus_per_node, args):
         )
         train_trans.append(augmentations)
 
-    target_size = default_configs.get_default_target_size(args.dataset)
+    target_size = default_configs.get_default_target_size(
+        args.dataset, args.target_size
+    )
 
     # loading the training set
     train_trans = [*both_trans, *train_trans]
