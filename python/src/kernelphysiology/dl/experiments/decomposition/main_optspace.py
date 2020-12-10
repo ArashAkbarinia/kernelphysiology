@@ -130,7 +130,7 @@ def main(args):
         {'params': [p for p in model_cst.parameters() if p.requires_grad]},
     ]
     optimizer_vae = optim.Adam(vae_params, lr=args.lr)
-    optimizer_cst = optim.Adam(cst_params, lr=args.lr * 0.01)
+    optimizer_cst = optim.Adam(cst_params, lr=args.lr)
     scheduler_vae = optim.lr_scheduler.StepLR(
         optimizer_vae, int(args.epochs / 3), 0.5
     )

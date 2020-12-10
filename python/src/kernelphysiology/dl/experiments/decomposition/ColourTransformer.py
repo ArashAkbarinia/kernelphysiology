@@ -180,7 +180,9 @@ class ConvTransformer(nn.Module):
         trans_mat = torch.inverse(trans_mat)
 
         y = torch.atanh(y)
-        x = torch.zeros(y.shape, device=y.get_device())
+        device = y.get_device()
+        device = 'cpu' if device == -1 else device
+        x = torch.zeros(y.shape, device=device)
         for i in range(3):
             x_r = y[:, 0:1, ] * trans_mat[i, 0]
             y_g = y[:, 1:2, ] * trans_mat[i, 1]
