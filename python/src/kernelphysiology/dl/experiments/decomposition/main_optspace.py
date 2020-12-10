@@ -21,6 +21,7 @@ from kernelphysiology.dl.experiments.decomposition import data_loaders
 from kernelphysiology.dl.experiments.decomposition import ColourTransformer
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
+from kernelphysiology.transformations import colour_spaces
 
 from kernelphysiology.utils import random_imutils
 
@@ -112,15 +113,21 @@ def main(args):
                      [0.019334, 0.119193, 0.950227]]
 
         ref_white = (0.95047, 1., 1.08883)
+
+        tmat = colour_spaces.dkl_from_rgb.T
+        tmat = np.expand_dims(tmat, [2, 3])
+        cst_lr = args.lr * 0.1
     else:
         trans_mat = None
         ref_white = None
         distortion = None
+        tmat = None
+        cst_lr = args.lr
     # model_cst = ColourTransformer.LabTransformer(
     #     trans_mat=trans_mat, ref_white=ref_white,
     #     distortion=distortion, linear=args.linear
     # )
-    model_cst = ColourTransformer.ConvTransformer()
+    model_cst = ColourTransformer.ConvTransformer(tmat=tmat)
     model_cst = model_cst.cuda()
 
     vae_params = [
@@ -130,7 +137,7 @@ def main(args):
         {'params': [p for p in model_cst.parameters() if p.requires_grad]},
     ]
     optimizer_vae = optim.Adam(vae_params, lr=args.lr)
-    optimizer_cst = optim.Adam(cst_params, lr=args.lr)
+    optimizer_cst = optim.Adam(cst_params, lr=cst_lr)
     scheduler_vae = optim.lr_scheduler.StepLR(
         optimizer_vae, int(args.epochs / 3), 0.5
     )

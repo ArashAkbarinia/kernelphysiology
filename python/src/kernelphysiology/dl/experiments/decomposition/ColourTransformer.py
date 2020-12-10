@@ -159,13 +159,17 @@ class LabTransformer(nn.Module):
 
 
 class ConvTransformer(nn.Module):
-    def __init__(self, bias=False):
+    def __init__(self, bias=False, tmat=None):
         super(ConvTransformer, self).__init__()
 
         self.t0 = nn.Sequential(
             nn.Conv2d(3, 3, 1, 1, groups=1, bias=bias),
             nn.Tanh()
         )
+        if tmat is not None:
+            self.t0[0].weight = nn.Parameter(
+                torch.tensor(tmat).float()
+            )
 
         self.rec_mse = 0
         self.inv_mse = 0
