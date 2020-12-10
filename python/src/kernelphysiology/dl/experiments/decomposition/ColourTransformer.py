@@ -156,3 +156,49 @@ class LabTransformer(nn.Module):
             'rec_mse': self.rec_mse, 'inv_mse': self.inv_mse,
             'out_mse': self.out_mse
         }
+
+
+class Convransformer(nn.Module):
+    def __init__(self, bias=True):
+        super(Convransformer, self).__init__()
+
+        self.t0 = nn.Sequential(
+            nn.Conv2d(3, 3, 1, 1, groups=3, bias=bias),
+            nn.BatchNorm2d(3),
+            nn.Tanh()
+        )
+
+        self.i0 = nn.Sequential(
+            nn.Conv2d(3, 3, 1, 1, groups=3, bias=bias),
+            nn.BatchNorm2d(3),
+            nn.Tanh()
+        )
+
+        self.rec_mse = 0
+        self.inv_mse = 0
+        self.out_mse = 0
+
+    def forward(self, x):
+        y = self.t0(x)
+        x = self.i0(y)
+        return y, x
+
+    def rnd2rgb(self, y):
+        x = self.i0(y)
+        return x
+
+    def loss_function(self, y, x_inv, x, y_rec):
+        self.rec_mse = losses.decomposition_loss(y_rec, y)
+
+        self.inv_mse = losses.decomposition_loss(x_inv, x)
+
+        y_rec_inv = self.rnd2rgb(y_rec)
+        self.out_mse = losses.decomposition_loss(y_rec_inv, x)
+
+        return self.rec_mse + self.inv_mse + self.out_mse
+
+    def latest_losses(self):
+        return {
+            'rec_mse': self.rec_mse, 'inv_mse': self.inv_mse,
+            'out_mse': self.out_mse
+        }
