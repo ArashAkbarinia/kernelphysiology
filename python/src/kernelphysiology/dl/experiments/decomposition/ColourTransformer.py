@@ -158,19 +158,12 @@ class LabTransformer(nn.Module):
         }
 
 
-class Convransformer(nn.Module):
-    def __init__(self, bias=True):
-        super(Convransformer, self).__init__()
+class ConvTransformer(nn.Module):
+    def __init__(self, bias=False):
+        super(ConvTransformer, self).__init__()
 
         self.t0 = nn.Sequential(
-            nn.Conv2d(3, 3, 1, 1, groups=3, bias=bias),
-            nn.BatchNorm2d(3),
-            nn.Tanh()
-        )
-
-        self.i0 = nn.Sequential(
-            nn.Conv2d(3, 3, 1, 1, groups=3, bias=bias),
-            nn.BatchNorm2d(3),
+            nn.Conv2d(3, 3, 1, 1, groups=1, bias=bias),
             nn.Tanh()
         )
 
@@ -180,20 +173,29 @@ class Convransformer(nn.Module):
 
     def forward(self, x):
         y = self.t0(x)
-        x = self.i0(y)
-        return y, x
+        return y
 
     def rnd2rgb(self, y):
-        x = self.i0(y)
+        trans_mat = self.t0[0].weight.detach().squeeze()
+        trans_mat = torch.inverse(trans_mat)
+
+        y = torch.atanh(y)
+        x = torch.zeros(y.shape, device=y.get_device())
+        for i in range(3):
+            x_r = y[:, 0:1, ] * trans_mat[i, 0]
+            y_g = y[:, 1:2, ] * trans_mat[i, 1]
+            z_b = y[:, 2:3, ] * trans_mat[i, 2]
+            x[:, i:i + 1, ] = x_r + y_g + z_b
         return x
 
-    def loss_function(self, y, x_inv, x, y_rec):
+    def loss_function(self, y, x, y_rec):
         self.rec_mse = losses.decomposition_loss(y_rec, y)
 
+        x_inv = self.rnd2rgb(y)
         self.inv_mse = losses.decomposition_loss(x_inv, x)
 
-        y_rec_inv = self.rnd2rgb(y_rec)
-        self.out_mse = losses.decomposition_loss(y_rec_inv, x)
+        # y_rec_inv = self.rnd2rgb(y_rec)
+        # self.out_mse = losses.decomposition_loss(y_rec_inv, x)
 
         return self.rec_mse + self.inv_mse + self.out_mse
 
