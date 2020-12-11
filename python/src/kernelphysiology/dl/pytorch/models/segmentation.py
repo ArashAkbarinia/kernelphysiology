@@ -20,6 +20,8 @@ __all__ = [
 def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
     # FIXME: 1000 and _
     if isinstance(backbone_name, dict):
+        if 'backbone' in kwargs:
+            del kwargs['backbone']
         backbone = model_utils.which_architecture(
             backbone_name['arch'], backbone_name['customs']
         )
