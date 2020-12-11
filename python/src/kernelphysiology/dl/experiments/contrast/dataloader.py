@@ -21,7 +21,7 @@ NATURAL_DATASETS = ['imagenet', 'celeba', 'natural', 'land']
 
 
 def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5, grey_width=40,
-                       contrast_target=None):
+                       contrast_target=None, side_by_side=True):
     imgs_cat = [img0, img1]
     max_contrast = np.argmax([contrast0, contrast1])
     if contrast_target is None:
@@ -32,23 +32,28 @@ def _two_pairs_stimuli(img0, img1, contrast0, contrast1, p=0.5, grey_width=40,
     if max_contrast != contrast_target:
         imgs_cat = imgs_cat[::-1]
 
-    dim = 2
-    if grey_width > 0:
-        grey_cols = torch.zeros(
-            (img0.shape[0], img0.shape[1], grey_width)
-        ).type(img0.type())
-        imgs_cat = [grey_cols, imgs_cat[0], grey_cols, imgs_cat[1], grey_cols]
+    if side_by_side:
+        dim = 2
+        if grey_width > 0:
+            grey_cols = torch.zeros(
+                (img0.shape[0], img0.shape[1], grey_width)
+            ).type(img0.type())
+            imgs_cat = [grey_cols, imgs_cat[0],
+                        grey_cols, imgs_cat[1],
+                        grey_cols]
+        else:
+            imgs_cat = [imgs_cat[0], imgs_cat[1]]
+        img_out = torch.cat(imgs_cat, dim)
+        dim = 1
+        if grey_width > 0:
+            grey_rows = torch.zeros(
+                (img0.shape[0], grey_width, img_out.shape[2])
+            ).type(img0.type())
+            final_image = torch.cat([grey_rows, img_out, grey_rows], dim)
+        else:
+            final_image = img_out
     else:
-        imgs_cat = [imgs_cat[0], imgs_cat[1]]
-    img_out = torch.cat(imgs_cat, dim)
-    dim = 1
-    if grey_width > 0:
-        grey_rows = torch.zeros(
-            (img0.shape[0], grey_width, img_out.shape[2])
-        ).type(img0.type())
-        final_image = torch.cat([grey_rows, img_out, grey_rows], dim)
-    else:
-        final_image = img_out
+        final_image = (imgs_cat[0], imgs_cat[1])
 
     return final_image, contrast_target
 
@@ -62,7 +67,8 @@ def _random_mask_params():
 
 def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
                      pre_transform, post_transform, same_transforms, p,
-                     grey_width, avg_illuminant=0, current_param=None):
+                     grey_width, avg_illuminant=0, current_param=None,
+                     side_by_side=True):
     # FIXME: this might not work with the .ppm files, change it to 01 version
     if 'grey' not in colour_space and vision_type != 'trichromat':
         dkl0 = colour_spaces.rgb2dkl(img0)
@@ -154,7 +160,7 @@ def _prepare_stimuli(img0, colour_space, vision_type, contrasts, mask_image,
 
     img_out, contrast_target = _two_pairs_stimuli(
         img0, img1, contrast0, contrast1, p, grey_width,
-        contrast_target=contrast_target
+        contrast_target=contrast_target, side_by_side=side_by_side
     )
     return img_out, contrast_target
 
@@ -207,7 +213,8 @@ class AfcDataset(object):
     def __init__(self, post_transform=None, pre_transform=None, p=0.5,
                  contrasts=None, same_transforms=False, colour_space='grey',
                  vision_type='trichromat', mask_image=None, grey_width=40,
-                 avg_illuminant=0, train_params=None, repeat=False):
+                 avg_illuminant=0, train_params=None, repeat=False,
+                 side_by_side=True):
         self.p = p
         self.grey_width = grey_width
         self.contrasts = contrasts
@@ -224,6 +231,7 @@ class AfcDataset(object):
             self.train_params = path_utils.read_pickle(train_params)
         self.img_counter = 0
         self.repeat = repeat
+        self.side_by_side = side_by_side
 
 
 class CelebA(AfcDataset, tdatasets.CelebA):
@@ -332,14 +340,17 @@ class ImageFolder(AfcDataset, tdatasets.ImageFolder):
             img0, self.colour_space, self.vision_type, self.contrasts,
             self.mask_image, self.pre_transform, self.post_transform,
             self.same_transforms, self.p, self.grey_width, self.avg_illuminant,
-            current_param=current_param
+            current_param=current_param, side_by_side=self.side_by_side
         )
 
         # right now we're not using the class target, but perhaps in the future
         if self.target_transform is not None:
             class_target = self.target_transform(class_target)
 
-        return img_out, contrast_target, path
+        if self.side_by_side:
+            return img_out, contrast_target, path
+        else:
+            return img_out[0], img_out[1], contrast_target, path
 
 
 class GratingImages(AfcDataset, torch_data.Dataset):
@@ -523,14 +534,19 @@ class GratingImages(AfcDataset, torch_data.Dataset):
             img0, img1 = self.post_transform([img0, img1])
 
         img_out, contrast_target = _two_pairs_stimuli(
-            img0, img1, contrast0, contrast1, self.p, self.grey_width
+            img0, img1, contrast0, contrast1, self.p, self.grey_width,
+            self.side_by_side
         )
+        # TODO: if repeat is used then only works for side_by_side
         if self.repeat:
             img_out = torch.repeat_interleave(img_out, 2, dim=1)
             img_out = torch.repeat_interleave(img_out, 2, dim=2)
 
         item_settings = np.array([contrast0, lambda_wave, theta, rho, self.p])
-        return img_out, contrast_target, item_settings
+        if self.side_by_side:
+            return img_out, contrast_target, item_settings
+        else:
+            return img_out[0], img_out[1], contrast_target, item_settings
 
     def __len__(self):
         return self.samples
