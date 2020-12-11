@@ -305,22 +305,15 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
         data = loader_data[0]
         data = data.cuda()
 
-        # optimise the VAE
+        # optimise the VAE and CST together
         model_vae.zero_grad()
+        model_cst.zero_grad()
         target = model_cst(data)
         outputs = model_vae(data)
 
         loss_vae = model_vae.loss_function(target, *outputs)
         loss_vae.backward()
         optimizer_vae.step()
-
-        # optimise the colour space transformer network
-        model_cst.zero_grad()
-        target = model_cst(data)
-        outputs = model_vae(data)
-
-        loss_cst = model_cst.loss_function(target, data, outputs[0])
-        loss_cst.backward()
         optimizer_cst.step()
 
         vae_latest_losses = model_vae.latest_losses()
