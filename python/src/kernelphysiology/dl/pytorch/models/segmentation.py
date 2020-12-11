@@ -24,6 +24,8 @@ def _segm_resnet(name, backbone_name, num_classes, aux, **kwargs):
             backbone_name['arch'], backbone_name['customs']
         )
     elif os.path.isfile(backbone_name):
+        if 'backbone' in kwargs:
+            del kwargs['backbone']
         backbone, _ = model_utils.which_network_classification(
             backbone_name, 1000, **kwargs
         )
