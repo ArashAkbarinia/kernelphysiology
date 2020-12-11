@@ -30,7 +30,8 @@ class ContrastDiscrimination(nn.Module):
 
         if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
                 or 'keypointrcnn_' in network_name
-                or 'deeplabv3_' in network_name or 'fcn_' in network_name
+                or 'deeplabv3_' in network_name or 'fcn_' in network_name or
+                'deeplab_' in network_name
                 or network_name == 'transparency' or network_name == 'simclr'
                 or 'resnet' in network_name or 'resnext' in network_name
         ):
