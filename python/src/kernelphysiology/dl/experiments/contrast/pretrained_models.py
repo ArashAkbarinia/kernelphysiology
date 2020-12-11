@@ -300,7 +300,9 @@ def get_pretrained_model(network_name, transfer_weights):
           or 'keypointrcnn_' in network_name
     ):
         model = detection.__dict__[network_name](pretrained=True)
-    elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+    elif ('deeplabv3_' in network_name or 'fcn_' in network_name or
+          'deeplab_' in network_name
+    ):
         model = segmentation.__dict__[network_name](pretrained=True)
     elif network_name == 'transparency':
         model = tranmod()
@@ -325,7 +327,9 @@ def get_backbones(network_name, model):
           or 'keypointrcnn_' in network_name
     ):
         return model.backbone.body
-    elif 'deeplabv3_' in network_name or 'fcn_' in network_name:
+    elif ('deeplabv3_' in network_name or 'fcn_' in network_name or
+          'deeplab_' in network_name
+    ):
         return model.backbone
     elif network_name == 'transparency' or 'unet' in network_name:
         return model.encoder
@@ -359,6 +363,7 @@ class NewClassificationModel(nn.Module):
         if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
                 or 'keypointrcnn_' in network_name
                 or 'deeplabv3_' in network_name or 'fcn_' in network_name
+                or 'deeplab_' in network_name
                 or network_name == 'transparency' or network_name == 'simclr'
                 or 'resnet' in network_name or 'resnext' in network_name
         ):
