@@ -30,6 +30,12 @@ def get_logging_group(parser):
         default=None,
         help='Number of random images to try (default: None)'
     )
+    logging_group.add_argument(
+        '--save_all',
+        action='store_true',
+        default=False,
+        help='Saving all check points (default: False)'
+    )
 
 
 def get_segmentation_group(parser):

@@ -235,9 +235,11 @@ def main(args):
             'args': args,
             'best_iou': best_iou,
         }
-        utils.save_on_master(
-            model_data, os.path.join(args.out_dir, 'checkpoint.pth')
-        )
+        if args.save_all:
+            checkpoint_path = os.path.join(args.out_dir, 'epoch%3d.pth' % epoch)
+        else:
+            checkpoint_path = os.path.join(args.out_dir, 'checkpoint.pth')
+        utils.save_on_master(model_data, checkpoint_path)
         if is_best:
             utils.save_on_master(
                 model_data, os.path.join(args.out_dir, 'model_best.pth')
