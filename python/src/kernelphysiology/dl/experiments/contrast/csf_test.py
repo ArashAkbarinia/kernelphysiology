@@ -13,6 +13,7 @@ from kernelphysiology.utils import imutils
 from kernelphysiology.dl.pytorch.utils.preprocessing import inv_normalise_tensor
 
 from kernelphysiology.dl.experiments.contrast import pretrained_models
+from kernelphysiology.dl.experiments.contrast import models_csf
 
 
 def parse_arguments(args):
@@ -23,9 +24,9 @@ def parse_arguments(args):
     model_parser.add_argument('--out_file', type=str)
     model_parser.add_argument('--target_size', type=int)
     model_parser.add_argument('--imagenet_dir', type=str, default=None)
-    model_parser.add_argument('--colour_space', type=str, default='grey')
+    model_parser.add_argument('--colour_space', type=str, default='rgb')
     model_parser.add_argument('--contrast_space', type=str, default=None)
-    model_parser.add_argument('--batch_size', type=int, default=16)
+    model_parser.add_argument('--batch_size', type=int, default=1)
     model_parser.add_argument('-j', '--workers', type=int, default=4)
     model_parser.add_argument('--noise', nargs='+', type=str, default=None)
     model_parser.add_argument('--contrasts', nargs='+', type=float,
@@ -42,9 +43,11 @@ def parse_arguments(args):
     model_parser.add_argument('--pretrained', action='store_true',
                               default=False)
     model_parser.add_argument('--repeat', action='store_true', default=False)
-    model_parser.add_argument('--grey_width', default=40, choices=[0, 40],
+    model_parser.add_argument('--grey_width', default=0, choices=[0, 40],
                               type=int)
     model_parser.add_argument('--avg_illuminant', default=0, type=float)
+    model_parser.add_argument('--side_by_side', action='store_true',
+                              default=False)
     return parser.parse_args(args)
 
 
@@ -77,6 +80,50 @@ def run_gratings(db_loader, model, out_file, update=False, mean_std=None,
                 new_results.append(params)
             num_tests = num_batches * test_img.shape[0]
             test_num = i * test_img.shape[0]
+            percent = float(test_num) / float(num_tests)
+            if update:
+                print('%.2f [%d/%d]' % (percent, test_num, num_tests))
+
+    save_path = out_file + '.csv'
+    if old_results is not None:
+        all_results = [*old_results, *new_results]
+    else:
+        all_results = new_results
+    all_results = np.array(all_results)
+    np.savetxt(save_path, all_results, delimiter=',', header=header)
+    return np.array(new_results), all_results
+
+
+def run_gratings_separate(db_loader, model, out_file, update=False,
+                          mean_std=None, old_results=None):
+    with torch.no_grad():
+        header = 'Contrast,SpatialFrequency,Theta,Rho,Side,Prediction'
+        new_results = []
+        num_batches = db_loader.__len__()
+        for i, (timg0, timg1, targets, item_settings) in enumerate(db_loader):
+            timg0 = timg0.cuda()
+            timg1 = timg1.cuda()
+
+            out = model(timg0, timg1)
+            preds = out.cpu().numpy().argmax(axis=1)
+            targets = targets.numpy()
+            item_settings = item_settings.numpy()
+
+            if mean_std is not None:
+                timgs = torch.cat([timg0, timg1], dim=2)
+                img_inv = inv_normalise_tensor(timgs, mean_std[0], mean_std[1])
+                img_inv = img_inv.detach().cpu().numpy().transpose(0, 2, 3, 1)
+                img_inv = np.concatenate(img_inv, axis=1)
+                save_path = '%s%.5d.png' % (out_file, i)
+                img_inv = np.uint8((img_inv.squeeze() * 255))
+                io.imsave(save_path, img_inv)
+
+            for j in range(len(preds)):
+                current_settings = item_settings[j]
+                params = [*current_settings, preds[j] == targets[j]]
+                new_results.append(params)
+            num_tests = num_batches * timg0.shape[0]
+            test_num = i * timg0.shape[0]
             percent = float(test_num) / float(num_tests)
             if update:
                 print('%.2f [%d/%d]' % (percent, test_num, num_tests))
@@ -179,10 +226,16 @@ def main(args):
     test_ps = [0.0, 1.0]
 
     if args.pretrained:
-        model = pretrained_models.NewClassificationModel(
-            args.model_path, grey_width=args.grey_width == 40,
-            scale_factor=(args.target_size / 256) ** 2
-        )
+        if args.side_by_side:
+            model = pretrained_models.NewClassificationModel(
+                args.model_path, grey_width=args.grey_width == 40,
+                scale_factor=(args.target_size / 256) ** 2
+            )
+        else:
+            model = models_csf.ContrastDiscrimination(
+                args.model_path, grey_width=args.grey_width == 40,
+                scale_factor=(args.target_size / 128) ** 2
+            )
     else:
         model, _ = model_utils.which_network_classification(args.model_path, 2)
     model.eval()
@@ -223,7 +276,8 @@ def main(args):
                 db_params = {
                     'colour_space': colour_space,
                     'vision_type': args.vision_type, 'repeat': args.repeat,
-                    'mask_image': args.gabor, 'grey_width': args.grey_width
+                    'mask_image': args.gabor, 'grey_width': args.grey_width,
+                    'side_by_side': args.side_by_side
                 }
 
                 db = dataloader.validation_set(
@@ -237,10 +291,16 @@ def main(args):
                     num_workers=args.workers, pin_memory=True,
                 )
 
-                new_results, all_results = run_gratings(
-                    db_loader, model, args.out_file,
-                    args.print, mean_std=mean_std, old_results=all_results
-                )
+                if args.side_by_side:
+                    new_results, all_results = run_gratings(
+                        db_loader, model, args.out_file,
+                        args.print, mean_std=mean_std, old_results=all_results
+                    )
+                else:
+                    new_results, all_results = run_gratings_separate(
+                        db_loader, model, args.out_file,
+                        args.print, mean_std=mean_std, old_results=all_results
+                    )
                 new_contrast, low, high = sensitivity_sf(
                     new_results, test_sfs[i], varname='all', th=0.75,
                     low=low, high=high

@@ -532,11 +532,11 @@ class GratingImages(AfcDataset, torch_data.Dataset):
 
         if self.post_transform is not None:
             img0, img1 = self.post_transform([img0, img1])
-
         img_out, contrast_target = _two_pairs_stimuli(
             img0, img1, contrast0, contrast1, self.p, self.grey_width,
-            self.side_by_side
+            side_by_side=self.side_by_side
         )
+
         # TODO: if repeat is used then only works for side_by_side
         if self.repeat:
             img_out = torch.repeat_interleave(img_out, 2, dim=1)

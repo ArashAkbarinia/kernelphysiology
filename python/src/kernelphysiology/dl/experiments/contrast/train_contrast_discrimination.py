@@ -442,24 +442,22 @@ def validate_on_data(val_loader, model, criterion, args):
 
     with torch.no_grad():
         end = time.time()
-        for i, (input_image, target, _) in enumerate(val_loader):
-            if args.dataset == 'natural':
-                input_image = input_image[0]
-                target = target[0]
+        for i, (img0, img1, target, _) in enumerate(val_loader):
             if args.gpus is not None:
-                input_image = input_image.cuda(args.gpus, non_blocking=True)
+                img0 = img0.cuda(args.gpus, non_blocking=True)
+                img1 = img1.cuda(args.gpus, non_blocking=True)
             target = target.cuda(args.gpus, non_blocking=True)
 
             # compute output
-            output = model(input_image)
+            output = model(img0, img1)
             loss = criterion(output, target)
 
             # measure accuracy and record loss
             acc1 = misc_utils.accuracy(output, target)
             acc5 = acc1.copy()
-            losses.update(loss.item(), input_image.size(0))
-            top1.update(acc1[0].cpu().numpy()[0], input_image.size(0))
-            top5.update(acc5[0].cpu().numpy()[0], input_image.size(0))
+            losses.update(loss.item(), img0.size(0))
+            top1.update(acc1[0].cpu().numpy()[0], img0.size(0))
+            top5.update(acc5[0].cpu().numpy()[0], img0.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -477,7 +475,7 @@ def validate_on_data(val_loader, model, criterion, args):
                         top1=top1, top5=top5
                     )
                 )
-            if i * len(input_image) > args.val_samples:
+            if i * len(img0) > args.val_samples:
                 break
         # printing the accuracy of the epoch
         print(
