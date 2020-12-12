@@ -30,8 +30,8 @@ class ContrastDiscrimination(nn.Module):
 
         if ('maskrcnn_' in network_name or 'fasterrcnn_' in network_name
                 or 'keypointrcnn_' in network_name
-                or 'deeplabv3_' in network_name or 'fcn_' in network_name or
-                'deeplab_' in network_name
+                or 'deeplabv3_' in network_name or 'fcn_' in network_name
+                or 'deeplab_' in network_name
                 or network_name == 'transparency' or network_name == 'simclr'
                 or 'resnet' in network_name or 'resnext' in network_name
         ):
@@ -64,7 +64,7 @@ class ContrastDiscrimination(nn.Module):
         x0 = self.features(x0)
         x0 = x0.view(x0.size(0), -1)
         x1 = self.features(x1)
-        x1 = x0.view(x1.size(0), -1)
+        x1 = x1.view(x1.size(0), -1)
         x = torch.cat([x0, x1], dim=1)
         x = self.fc(x)
         return x
