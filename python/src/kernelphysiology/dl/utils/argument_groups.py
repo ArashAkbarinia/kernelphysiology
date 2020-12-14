@@ -177,7 +177,8 @@ def get_network_group(parser):
             'mix',
             'contrast_avg',
             'contrast_max',
-            'contrast'
+            'contrast',
+            'none'
         ],
         help='The pooling type (default: max)'
     )
