@@ -127,7 +127,7 @@ def main(args):
     #     trans_mat=trans_mat, ref_white=ref_white,
     #     distortion=distortion, linear=args.linear
     # )
-    model_cst = ColourTransformer.ConvTransformer(tmat=tmat)
+    model_cst = ColourTransformer.ResNetTransformer(layers=args.cst_layers)
     model_cst = model_cst.cuda()
 
     vae_params = [
@@ -186,8 +186,7 @@ def main(args):
         )
     intransform = transforms.Compose(intransform_funs)
 
-    outtransform_funs = []
-    outtransform = transforms.Compose(outtransform_funs)
+    outtransform = None
 
     args.outs_dict = {'rgb': {'vis_fun': None}}
 
@@ -308,11 +307,17 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
         # optimise the VAE and CST together
         model_vae.zero_grad()
         model_cst.zero_grad()
-        target = model_cst(data)
+        target_rnd, target_rgb = model_cst(data)
         outputs = model_vae(data)
 
-        loss_vae = model_vae.loss_function(target, *outputs)
+        loss_vae = model_vae.loss_function(target_rnd.detach(), *outputs)
         loss_vae.backward()
+
+        loss_cst = model_cst.loss_function(
+            target_rnd, target_rgb, outputs[0].detach(), data
+        )
+        loss_cst.backward()
+
         optimizer_vae.step()
         optimizer_cst.step()
 
@@ -346,7 +351,7 @@ def train(epoch, model_vae, model_cst, train_loader, optimizers, save_path,
                 batch_losses[key] = 0
         if bidx in list(np.linspace(0, num_batches - 1, 4).astype('int')):
             out_rgb = {'rgb': model_cst.rnd2rgb(outputs[0].detach().clone())}
-            target_rgb = {'rgb': model_cst.rnd2rgb(target)}
+            target_rgb = {'rgb': target_rgb}
             vae_util.grid_save_reconstructions(
                 args.outs_dict, target_rgb, out_rgb, args.mean, args.std, epoch,
                 save_path, 'reconstruction_train%.5d' % bidx, inputs=data
@@ -381,10 +386,10 @@ def test_net(epoch, model_vae, model_cst, test_loader, save_path, args):
             data = loader_data[0]
             data = data.cuda()
 
-            target = model_cst(data)
+            target_rnd, target_rgb = model_cst(data)
             outputs = model_vae(data)
-            model_vae.loss_function(target, *outputs)
-            model_cst.loss_function(target, data, outputs[0])
+            model_vae.loss_function(target_rnd, *outputs)
+            model_cst.loss_function(target_rnd, target_rgb, outputs[0], data)
             latest_losses = model_vae.latest_losses()
             for key in latest_losses:
                 losses[key + '_val_vae'] += float(latest_losses[key])
@@ -395,7 +400,7 @@ def test_net(epoch, model_vae, model_cst, test_loader, save_path, args):
                 out_rgb = {
                     'rgb': model_cst.rnd2rgb(outputs[0].detach().clone())
                 }
-                target_rgb = {'rgb': model_cst.rnd2rgb(target)}
+                target_rgb = {'rgb': target_rgb}
                 vae_util.grid_save_reconstructions(
                     args.outs_dict, target_rgb, out_rgb, args.mean, args.std,
                     epoch, save_path, 'reconstruction_test%.5d' % bidx,

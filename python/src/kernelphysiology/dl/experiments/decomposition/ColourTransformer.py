@@ -158,17 +158,73 @@ class LabTransformer(nn.Module):
         }
 
 
-class ConvTransformer(nn.Module):
-    def __init__(self, bias=False, tmat=None):
-        super(ConvTransformer, self).__init__()
+def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
+    """3x3 convolution with padding"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+                     padding=dilation, groups=groups, bias=False,
+                     dilation=dilation)
 
-        self.t0 = nn.Sequential(
-            nn.Conv2d(3, 3, 1, 1, groups=1, bias=bias),
-            nn.Tanh()
-        )
-        if tmat is not None:
-            self.t0[0].weight = nn.Parameter(
-                torch.tensor(tmat).float()
+
+def conv1x1(in_planes, out_planes, stride=1):
+    """1x1 convolution"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
+                     bias=False)
+
+
+class Bottleneck(nn.Module):
+    def __init__(self, inchns, outchns, stride=1, downsample=None, groups=1,
+                 base_width=64, dilation=1, norm_layer=None, expansion=1):
+        super(Bottleneck, self).__init__()
+        self.expansion = expansion
+        if norm_layer is None:
+            norm_layer = nn.BatchNorm2d
+        width = int(outchns * (base_width / 64.)) * groups
+        self.conv1 = conv1x1(inchns, width)
+        self.bn1 = norm_layer(width)
+        self.conv2 = conv3x3(width, width, stride, groups, dilation)
+        self.bn2 = norm_layer(width)
+        self.conv3 = conv1x1(width, outchns * self.expansion)
+        self.bn3 = norm_layer(outchns * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.relu(out)
+
+        return out
+
+
+class ResNetTransformer(nn.Module):
+    def __init__(self, layers=1):
+        super(ResNetTransformer, self).__init__()
+
+        self.layers = layers
+
+        for i in range(layers):
+            setattr(
+                self, 'e%.3d' % i, Bottleneck(3, 3, norm_layer=nn.BatchNorm2d)
+            )
+        for i in range(layers):
+            setattr(
+                self, 'd%.3d' % i, Bottleneck(3, 3, norm_layer=nn.BatchNorm2d)
             )
 
         self.rec_mse = 0
@@ -176,22 +232,92 @@ class ConvTransformer(nn.Module):
         self.out_mse = 0
 
     def forward(self, x):
-        y = self.t0(x)
-        return y
+        rnd = self.e000(x)
+        for i in range(1, self.layers):
+            rnd = getattr(self, 'e%.3d' % i)(rnd)
+        rnd = torch.tanh(rnd)
+
+        rgb = self.d000(rnd)
+        for i in range(1, self.layers):
+            rgb = getattr(self, 'd%.3d' % i)(rgb)
+        rgb = torch.tanh(rgb)
+        return rnd, rgb
+
+    def rnd2rgb(self, x):
+        for i in range(self.layers):
+            x = getattr(self, 'd%.3d' % i)(x)
+        rgb = torch.tanh(x)
+        return rgb
+
+    def loss_function(self, y, x_inv, y_rec, x):
+        self.rec_mse = losses.decomposition_loss(y_rec, y)
+        self.inv_mse = losses.decomposition_loss(x_inv, x)
+
+        return self.rec_mse + self.inv_mse + self.out_mse
+
+    def latest_losses(self):
+        return {
+            'rec_mse': self.rec_mse, 'inv_mse': self.inv_mse,
+            'out_mse': self.out_mse
+        }
+
+
+class ConvTransformer(nn.Module):
+    def __init__(self, layers=1, bias=False, tmat=None, bvec=None):
+        super(ConvTransformer, self).__init__()
+
+        self.layers = layers
+
+        if bvec is not None:
+            bias = True
+        self.bias = bias
+
+        for i in range(layers):
+            setattr(
+                self, 't%.3d' % i, nn.Sequential(
+                    nn.Conv2d(3, 3, 1, 1, groups=1, bias=self.bias),
+                    nn.Tanh()
+                )
+            )
+        if tmat is not None:
+            for i in range(self.layers):
+                getattr(self, 't%.3d' % i)[0].weight = nn.Parameter(
+                    torch.tensor(tmat).float()
+                )
+        if bvec is not None:
+            for i in range(self.layers):
+                getattr(self, 't%.3d' % i)[0].bias = nn.Parameter(
+                    torch.tensor(bvec).float()
+                )
+
+        self.rec_mse = 0
+        self.inv_mse = 0
+        self.out_mse = 0
+
+    def forward(self, x):
+        for i in range(self.layers):
+            x = getattr(self, 't%.3d' % i)(x)
+        return x
 
     def rnd2rgb(self, y):
-        trans_mat = self.t0[0].weight.detach().squeeze()
-        trans_mat = torch.inverse(trans_mat)
+        for i in range(self.layers - 1, -1, -1):
+            trans_mat = getattr(self, 't%.3d' % i)[0].weight.detach().squeeze()
+            trans_mat = torch.inverse(trans_mat)
 
-        y = torch.atanh(y)
-        device = y.get_device()
-        device = 'cpu' if device == -1 else device
-        x = torch.zeros(y.shape, device=device)
-        for i in range(3):
-            x_r = y[:, 0:1, ] * trans_mat[i, 0]
-            y_g = y[:, 1:2, ] * trans_mat[i, 1]
-            z_b = y[:, 2:3, ] * trans_mat[i, 2]
-            x[:, i:i + 1, ] = x_r + y_g + z_b
+            y = torch.atanh(y)
+            if self.bias:
+                bias_vec = getattr(self, 't%.3d' % i)[0].bias.detach().squeeze()
+                for i in range(3):
+                    y[:, i, ] -= bias_vec[i]
+            device = y.get_device()
+            device = 'cpu' if device == -1 else device
+            x = torch.zeros(y.shape, device=device)
+            for i in range(3):
+                x_r = y[:, 0:1, ] * trans_mat[i, 0]
+                y_g = y[:, 1:2, ] * trans_mat[i, 1]
+                z_b = y[:, 2:3, ] * trans_mat[i, 2]
+                x[:, i:i + 1, ] = x_r + y_g + z_b
+            y = x.clone()
         return x
 
     def loss_function(self, y, x, y_rec):

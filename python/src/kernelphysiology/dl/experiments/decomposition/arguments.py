@@ -50,6 +50,10 @@ def parse_arguments(args):
         '--commit_coef', type=float, default=0.5,
         help='commitment coefficient in loss (default 0.5)'
     )
+    model_parser.add_argument(
+        '--cst_layers', type=int, default=6,
+        help='Number of layers in cst (default: 6)'
+    )
 
     pipe_parser = parser.add_argument_group('Pipeline Parameters')
     pipe_parser.add_argument(
