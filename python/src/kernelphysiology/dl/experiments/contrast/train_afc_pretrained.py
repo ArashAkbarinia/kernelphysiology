@@ -128,10 +128,14 @@ def main_worker(ngpus_per_node, args):
 
     # create model
     if args.transfer_weights is not None:
+        if args.scale_factor is None:
+            scale_factor = (args.target_size[0] / 256) ** 2
+        else:
+            scale_factor = args.scale_factor
         print('Transferred model!')
         model = pretrained_models.NewClassificationModel(
             args.network_name, args.transfer_weights, args.grey_width == 40,
-            scale_factor=(args.target_size[0] / 256) ** 2
+            scale_factor=scale_factor
         )
     elif args.custom_arch:
         print('Custom model!')
@@ -503,6 +507,7 @@ def extra_args_fun(parser):
     specific_group.add_argument('--contrasts', default=None, type=str)
     specific_group.add_argument('--train_params', default=None, type=str)
     specific_group.add_argument('--avg_illuminant', default=None, type=float)
+    specific_group.add_argument('--scale_factor', default=None, type=int)
 
 
 if __name__ == '__main__':
