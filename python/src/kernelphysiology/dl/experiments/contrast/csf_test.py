@@ -48,6 +48,7 @@ def parse_arguments(args):
     model_parser.add_argument('--avg_illuminant', default=0, type=float)
     model_parser.add_argument('--side_by_side', action='store_true',
                               default=False)
+    model_parser.add_argument('--scale_factor', default=None, type=int)
     return parser.parse_args(args)
 
 
@@ -227,14 +228,22 @@ def main(args):
 
     if args.pretrained:
         if args.side_by_side:
+            if args.scale_factor is None:
+                scale_factor = (args.target_size[0] / 256) ** 2
+            else:
+                scale_factor = args.scale_factor
             model = pretrained_models.NewClassificationModel(
                 args.model_path, grey_width=args.grey_width == 40,
-                scale_factor=(args.target_size / 256) ** 2
+                scale_factor=scale_factor
             )
         else:
+            if args.scale_factor is None:
+                scale_factor = (args.target_size[0] / 128) ** 2
+            else:
+                scale_factor = args.scale_factor
             model = models_csf.ContrastDiscrimination(
                 args.model_path, grey_width=args.grey_width == 40,
-                scale_factor=(args.target_size / 128) ** 2
+                scale_factor=scale_factor
             )
     else:
         model, _ = model_utils.which_network_classification(args.model_path, 2)
