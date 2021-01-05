@@ -48,7 +48,7 @@ def parse_arguments(args):
     model_parser.add_argument('--avg_illuminant', default=0, type=float)
     model_parser.add_argument('--side_by_side', action='store_true',
                               default=False)
-    model_parser.add_argument('--scale_factor', default=None, type=int)
+    model_parser.add_argument('--scale_factor', default=None, type=float)
     return parser.parse_args(args)
 
 

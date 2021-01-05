@@ -507,7 +507,7 @@ def extra_args_fun(parser):
     specific_group.add_argument('--contrasts', default=None, type=str)
     specific_group.add_argument('--train_params', default=None, type=str)
     specific_group.add_argument('--avg_illuminant', default=None, type=float)
-    specific_group.add_argument('--scale_factor', default=None, type=int)
+    specific_group.add_argument('--scale_factor', default=None, type=float)
 
 
 if __name__ == '__main__':
