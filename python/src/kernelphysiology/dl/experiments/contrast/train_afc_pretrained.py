@@ -497,7 +497,7 @@ def extra_args_fun(parser):
     specific_group.add_argument('--train_samples', default=10000, type=int)
     specific_group.add_argument('--val_samples', default=1000, type=int)
     specific_group.add_argument('--random_seed', default=None, type=int)
-    specific_group.add_argument('--grey_width', default=40, choices=[0, 40],
+    specific_group.add_argument('--grey_width', default=0, choices=[0, 40],
                                 type=int)
     specific_group.add_argument('--mask_image', default=None, type=str)
     specific_group.add_argument('--contrasts', default=None, type=str)
