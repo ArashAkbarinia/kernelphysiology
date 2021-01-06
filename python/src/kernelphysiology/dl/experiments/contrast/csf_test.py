@@ -229,7 +229,7 @@ def main(args):
     if args.pretrained:
         if args.side_by_side:
             if args.scale_factor is None:
-                scale_factor = (args.target_size[0] / 256) ** 2
+                scale_factor = (args.target_size / 256) ** 2
             else:
                 scale_factor = args.scale_factor
             model = pretrained_models.NewClassificationModel(
@@ -238,7 +238,7 @@ def main(args):
             )
         else:
             if args.scale_factor is None:
-                scale_factor = (args.target_size[0] / 128) ** 2
+                scale_factor = (args.target_size / 128) ** 2
             else:
                 scale_factor = args.scale_factor
             model = models_csf.ContrastDiscrimination(
