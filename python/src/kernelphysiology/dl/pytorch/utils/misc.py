@@ -70,7 +70,7 @@ def accuracy_preds(output, target, topk=(1,)):
         corrects = []
         for k in topk:
             corrects.append(correct[:k])
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+            correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res, corrects
 
