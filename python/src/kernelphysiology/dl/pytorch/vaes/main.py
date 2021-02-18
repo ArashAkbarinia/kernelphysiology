@@ -279,7 +279,7 @@ def main(args):
         intransform_funs.append(
             cv2_preprocessing.MosaicTransformation(args.mosaic_pattern)
         )
-    if in_colour_space != ' rgb':
+    if in_colour_space != 'rgb':
         intransform_funs.append(
             cv2_preprocessing.ColourSpaceTransformation(in_colour_space)
         )
