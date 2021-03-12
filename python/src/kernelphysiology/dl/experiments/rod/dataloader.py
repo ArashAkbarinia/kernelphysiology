@@ -16,20 +16,22 @@ def cv2_loader(path):
 
 def rgb2xopic(rgb, org_img):
     if org_img:
-        div_fac = 1.0
+        light_con = -1
     else:
-        div_fac = np.random.uniform(1e2, 1e6)
+        light_con = np.random.randint(10)
     gray = np.mean(rgb, axis=2)
     xopic = np.zeros((rgb.shape[0], rgb.shape[1], 4))
-    if div_fac <= 1e3:
+    if light_con == -1:
         # simulation of photopic
-        xopic[:, :, :3] = rgb / div_fac
-    elif div_fac <= 1e4:
+        xopic[:, :, :3] = rgb
+    elif light_con < 3:
         # simulation of mesopic
+        div_fac = np.random.uniform(1e2, 1e3)
         xopic[:, :, :3] = rgb / div_fac
         xopic[:, :, 3] = gray / div_fac
     else:
         # simulation of scotopic
+        div_fac = np.random.uniform(1e3, 1e6)
         xopic[:, :, 3] = gray / div_fac
     return xopic
 

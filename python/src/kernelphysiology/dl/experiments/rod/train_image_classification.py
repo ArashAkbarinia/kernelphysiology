@@ -30,7 +30,7 @@ from kernelphysiology.dl.utils import default_configs
 from kernelphysiology.dl.utils import prepare_training
 from kernelphysiology.utils.path_utils import create_dir
 
-from . import dataloader
+import dataloader
 
 
 def main(argv):
@@ -41,7 +41,7 @@ def main(argv):
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]
     # the colour space is always LMS-cones and R-rod.
-    args.colour_space = 'lmsr'
+    args.colour_space = 4
 
     # TODO: why load weights is False?
     args.out_dir = prepare_training.prepare_output_directories(
