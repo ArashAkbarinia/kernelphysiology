@@ -136,6 +136,9 @@ def train_on_data(train_loader, model, criterion, optimizer, epoch, args):
                     data_time=data_time, loss=losses, top1=top1, top5=top5
                 )
             )
+        if (args.train_samples is not None and
+                (i * len(input_image) > args.train_samples)):
+            break
     return [epoch, batch_time.avg, losses.avg, top1.avg, top5.avg]
 
 
@@ -186,6 +189,9 @@ def validate_on_data(val_loader, model, criterion, args):
                         top1=top1, top5=top5
                     )
                 )
+            if (args.validation_samples is not None and
+                    (i * len(input_image) > args.validation_samples)):
+                break
         # printing the accuracy of the epoch
         print(
             ' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(

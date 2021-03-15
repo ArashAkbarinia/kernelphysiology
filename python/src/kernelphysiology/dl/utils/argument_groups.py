@@ -425,3 +425,5 @@ def get_dataset_group(parser):
         default=None,
         help='The path to the validation directory (default: None)'
     )
+    dataset_group.add_argument('--train_samples', default=None, type=int)
+    dataset_group.add_argument('--validation_samples', default=None, type=int)
