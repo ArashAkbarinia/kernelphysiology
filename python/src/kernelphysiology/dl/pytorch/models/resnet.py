@@ -2,6 +2,7 @@
 Custom version of ResNet
 """
 
+import os
 import torch
 import torch.nn as nn
 from .model_utils import load_state_dict_from_url
@@ -371,8 +372,12 @@ class ResNet(nn.Module):
 def _resnet(arch, block_type, planes, pretrained, progress, **kwargs):
     model = ResNet(block_type, planes, **kwargs)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress)
+        if os.path.exists(pretrained):
+            state_dict = torch.load(pretrained, map_location='cpu')
+        else:
+            state_dict = load_state_dict_from_url(
+                model_urls[arch], progress=progress
+            )
         model.load_state_dict(state_dict)
     return model
 
