@@ -470,8 +470,8 @@ def extra_args_fun(parser):
     specific_group = parser.add_argument_group('Contrast specific')
 
     # specific_group.add_argument('-db', '--db', default=None, type=str)
-    specific_group.add_argument('--train_samples', default=10000, type=int)
-    specific_group.add_argument('--val_samples', default=1000, type=int)
+    # specific_group.add_argument('--train_samples', default=10000, type=int)
+    # specific_group.add_argument('--val_samples', default=1000, type=int)
     specific_group.add_argument('--mask_image', default=None, type=str)
 
 
