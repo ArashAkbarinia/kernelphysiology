@@ -151,6 +151,21 @@ class MosaicTransformation(object):
         return x
 
 
+class SpatialFrequencyTransformation(object):
+
+    def __init__(self, sf_filter):
+        self.hsf_cut, self.lsf_cut = sf_filter
+
+    def __call__(self, x):
+        kwargs = {
+            'hsf_cut': self.hsf_cut, 'lsf_cut': self.lsf_cut
+        }
+        if type(x) is list:
+            return _call_recursive(x, imutils.filter_img_sf, **kwargs)
+        x = imutils.filter_img_sf(x, **kwargs)
+        return x
+
+
 class UniqueTransformation(object):
 
     def __init__(self, manipulation_function, **kwargs):
