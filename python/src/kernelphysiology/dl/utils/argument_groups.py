@@ -113,6 +113,14 @@ def get_input_group(parser):
         help='Target size (default: according to dataset)'
     )
 
+    input_group.add_argument(
+        '--sf_filter',
+        default=None,
+        nargs='+',
+        type=float,
+        help='Filtering images with <high,low> spatial freq (default: None)'
+    )
+
 
 def get_output_group(parser):
     output_group = parser.add_argument_group('output')
