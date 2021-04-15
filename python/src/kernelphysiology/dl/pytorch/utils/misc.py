@@ -49,7 +49,7 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar',
         shutil.copyfile(filename, model_best_path)
     if save_all:
         shutil.copyfile(filename, os.path.join(
-            path, 'checkpoint_epoch_%s.pth.tar' % state['epoch']))
+            out_folder, 'checkpoint_epoch_%s.pth.tar' % state['epoch']))
 
 
 def adjust_learning_rate(optimizer, epoch, args):
