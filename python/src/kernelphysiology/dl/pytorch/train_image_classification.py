@@ -330,7 +330,7 @@ def main_worker(ngpus_per_node, args):
                     'optimizer': optimizer.state_dict(),
                     'target_size': target_size,
                 },
-                is_best, out_folder=args.out_dir
+                is_best, out_folder=args.out_dir, save_all=args.save_all
             )
         # TODO: get this header directly as a dictionary keys
         header = 'epoch,t_time,t_loss,t_top1,t_top5,v_time,v_loss,v_top1,v_top5'
