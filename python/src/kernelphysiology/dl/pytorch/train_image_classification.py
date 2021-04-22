@@ -240,8 +240,8 @@ def main_worker(ngpus_per_node, args):
         both_trans.append(mosaic_trans)
 
     if args.sf_filter is not None:
-        mosaic_trans = preprocessing.sf_transformation(args.sf_filter)
-        both_trans.append(mosaic_trans)
+        sf_trans = preprocessing.sf_transformation(args.sf_filter)
+        both_trans.append(sf_trans)
 
     if args.num_augmentations != 0:
         augmentations = preprocessing.random_augmentation(
