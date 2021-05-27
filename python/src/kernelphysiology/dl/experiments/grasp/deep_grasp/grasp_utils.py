@@ -151,6 +151,12 @@ def _add_optimisation_group(parser):
         help='The learning rate parameter (default: 0.1)'
     )
     optimisation_group.add_argument(
+        '--lr_step_size',
+        default=3,
+        type=int,
+        help='Decays the LR by 0.1 at step_size epochs (default: 3)'
+    )
+    optimisation_group.add_argument(
         '--momentum',
         default=0.9,
         type=float,

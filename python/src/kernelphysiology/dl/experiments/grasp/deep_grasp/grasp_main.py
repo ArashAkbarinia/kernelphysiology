@@ -155,7 +155,8 @@ def _main_worker(args):
 
 
 def _adjust_learning_rate(optimizer, epoch, args):
-    lr = args.learning_rate * (0.1 ** (epoch // (args.epochs / 3)))
+    lr_epoch = (epoch // (args.epochs / args.lr_step_size))
+    lr = args.learning_rate * (0.1 ** lr_epoch)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
