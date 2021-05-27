@@ -130,8 +130,10 @@ class SingleParticipant(torch_data.Dataset):
         intensity = torch.tensor([intensity]).type(torch.FloatTensor)
 
         # FIXME
+        # response -1 means the participant hasn't responded
+        # in this case we'll assume that zhe hasn't felt it.
         if response == -1:
-            response = 0
+            response = 1
         return trial_img, intensity, mass_dist, response
 
     def __len__(self):
