@@ -1,0 +1,1 @@
+from .grasp_main import main as train_val_main

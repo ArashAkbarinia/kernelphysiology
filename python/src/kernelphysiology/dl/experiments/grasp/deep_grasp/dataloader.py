@@ -8,7 +8,9 @@ import glob
 
 from scipy.io import loadmat
 
+import torch
 from torch.utils import data as torch_data
+import torchvision.transforms as torch_transforms
 
 from kernelphysiology.transformations.normalisations import min_max_normalise
 
@@ -86,7 +88,8 @@ def trial2voxel(trial, which_xyz, img_size=128):
 
 class SingleParticipant(torch_data.Dataset):
 
-    def __init__(self, root, participant, condition, which_xyz=None, timestamp_range=None):
+    def __init__(self, root, participant, condition, which_xyz=None,
+                 timestamp_range=None, transform=None):
         self.root = root
         self.participant = participant
         self.condition = condition
@@ -95,6 +98,7 @@ class SingleParticipant(torch_data.Dataset):
             self.which_xyz = ['thumb', 'index']
 
         self.max_timestamp = timestamp_range
+        self.transform = transform
 
         self.condition_root = '%s/%s/%s/' % (root, participant, condition)
         # reading the mat info
@@ -105,7 +109,7 @@ class SingleParticipant(torch_data.Dataset):
         self.num_trials = len(glob.glob(self.condition_root + 'trial_*'))
 
     def __getitem__(self, item):
-        file_path = '%s/trial_%d' % (self.condition_root, item)
+        file_path = '%s/trial_%d' % (self.condition_root, item + 1)
         trial_data = np.loadtxt(file_path)
 
         trial_img = trial2img(trial_data, self.which_xyz)
@@ -113,11 +117,21 @@ class SingleParticipant(torch_data.Dataset):
         if self.max_timestamp is not None:
             sind, eind = self.max_timestamp
             trial_img = trial_img[sind:eind]
+        if self.transform is not None:
+            trial_img = self.transform(trial_img)
 
         mass_dist = self.stimuli_data[item][2]
         intensity = self.stimuli_data[item][-3]
-        response = self.stimuli_data[item][-1]
+        # -1 because in Matlab they're stored as 1 and 2
+        response = self.stimuli_data[item][-1] - 1
 
+        # converting to tensor
+        trial_img = torch.tensor(trial_img.transpose((2, 0, 1))).type(torch.FloatTensor)
+        intensity = torch.tensor([intensity]).type(torch.FloatTensor)
+
+        # FIXME
+        if response == -1:
+            response = 0
         return trial_img, intensity, mass_dist, response
 
     def __len__(self):
@@ -134,7 +148,7 @@ def _random_train_val_sets(train_percent):
     return train_group, val_group
 
 
-def train_val_sets(root, condition, train_group=None, val_group=None, **kwargs):
+def train_val_sets(root, condition, target_size, train_group=None, val_group=None, **kwargs):
     if train_group is None:
         train_group = 0.8
         val_group = 0.2
@@ -142,14 +156,47 @@ def train_val_sets(root, condition, train_group=None, val_group=None, **kwargs):
     if not type(train_group) is list:
         train_group, val_group = _random_train_val_sets(train_group)
 
+    t_transform = torch_transforms.Compose([
+        ClipTime(target_size, place=None)
+    ])
     train_set = []
     for tg in train_group:
-        train_set.append(SingleParticipant(root, str(tg), condition, **kwargs))
+        train_set.append(
+            SingleParticipant(
+                root, str(tg), condition, transform=t_transform, **kwargs
+            )
+        )
     train_db = torch_data.dataset.ConcatDataset(train_set)
 
+    v_transform = torch_transforms.Compose([
+        ClipTime(target_size, place=0)
+    ])
     val_set = []
     for vg in val_group:
-        val_set.append(SingleParticipant(root, str(vg), condition, **kwargs))
+        val_set.append(
+            SingleParticipant(
+                root, str(vg), condition, transform=v_transform, **kwargs
+            )
+        )
     val_db = torch_data.dataset.ConcatDataset(val_set)
 
     return train_db, val_db
+
+
+class ClipTime(object):
+    def __init__(self, size, place=None):
+        self.size = size
+        self.place = place
+
+    def __call__(self, trial_img):
+        if self.place is None:
+            max_time = abs(len(trial_img) - self.size)
+            sind = np.random.randint(0, max_time)
+        else:
+            sind = self.place
+        eind = sind + self.size
+        trial_img = trial_img[sind:eind]
+        return trial_img
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(size={0})'.format(self.size)
