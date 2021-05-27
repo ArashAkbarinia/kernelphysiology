@@ -222,6 +222,20 @@ def _add_dataset_group(parser):
         default=None,
         help='Number of validation samples (default: All)'
     )
+    dataset_group.add_argument(
+        '--time_interval',
+        type=int,
+        nargs='+',
+        default=None,
+        help='The range of time from each trial (default: None)'
+    )
+    dataset_group.add_argument(
+        '--which_xyz',
+        type=str,
+        nargs='+',
+        default=['thumb', 'index'],
+        help='Which data to consider in the model (default: [thumb, index])'
+    )
 
 
 def _add_lesion_group(parser):

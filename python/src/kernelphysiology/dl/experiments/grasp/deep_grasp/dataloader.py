@@ -89,7 +89,7 @@ def trial2voxel(trial, which_xyz, img_size=128):
 class SingleParticipant(torch_data.Dataset):
 
     def __init__(self, root, participant, condition, which_xyz=None,
-                 timestamp_range=None, transform=None):
+                 time_interval=None, transform=None):
         self.root = root
         self.participant = participant
         self.condition = condition
@@ -97,7 +97,7 @@ class SingleParticipant(torch_data.Dataset):
         if self.which_xyz is None:
             self.which_xyz = ['thumb', 'index']
 
-        self.max_timestamp = timestamp_range
+        self.time_interval = time_interval
         self.transform = transform
 
         self.condition_root = '%s/%s/%s/' % (root, participant, condition)
@@ -114,8 +114,8 @@ class SingleParticipant(torch_data.Dataset):
 
         trial_img = trial2img(trial_data, self.which_xyz)
 
-        if self.max_timestamp is not None:
-            sind, eind = self.max_timestamp
+        if self.time_interval is not None:
+            sind, eind = self.time_interval
             trial_img = trial_img[sind:eind]
         if self.transform is not None:
             trial_img = self.transform(trial_img)

@@ -44,7 +44,7 @@ def _main_worker(args):
     mean, std = (0.5, 0.5)
 
     # create model
-    kwargs = {'in_chns': 2, 'inplanes': args.num_kernels}
+    kwargs = {'in_chns': len(args.which_xyz), 'inplanes': args.num_kernels}
     model = grasp_model.__dict__[args.architecture](args.blocks, **kwargs)
 
     torch.cuda.set_device(args.gpu)
@@ -88,18 +88,17 @@ def _main_worker(args):
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
-    train_trans = []
-    valid_trans = []
-    both_trans = []
-
     shuffle = True
 
     # loading the training set
-    train_trans = [*both_trans, *train_trans]
+    db_kwargs = {
+        'time_interval': args.time_interval,
+        'which_xyz': args.which_xyz
+    }
 
     train_db, val_db = dataloader.train_val_sets(
         args.data_dir, args.condition, args.target_size,
-        args.train_group, args.val_group
+        args.train_group, args.val_group, **db_kwargs
     )
 
     train_loader = torch.utils.data.DataLoader(
@@ -108,7 +107,6 @@ def _main_worker(args):
     )
 
     # loading validation set
-    valid_trans = [*both_trans, *valid_trans]
     val_loader = torch.utils.data.DataLoader(
         val_db, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True
