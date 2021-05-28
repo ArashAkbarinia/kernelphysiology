@@ -3,6 +3,8 @@ The train and test script.
 """
 
 import os
+import sys
+
 import numpy as np
 import time
 
@@ -25,14 +27,23 @@ def main(argv):
     # it's a binary classification
     args.num_classes = 2
 
+    if args.only_test:
+        if args.val_group is None:
+            sys.exit('With testing the val_group must be passed.')
+
+        # preparing the output folder
+        args.output_dir = '%s/tests/%s/' % (args.output_dir, args.condition)
+        system_utils.create_dir(args.output_dir)
+        _test_network(args)
+        return
+    elif args.train_group is None:
+        args.train_group, args.val_group = dataloader._random_train_val_sets(0.8)
+
     # preparing the output folder
     args.output_dir = '%s/networks/%s/%s/' % (
         args.output_dir, args.architecture, args.experiment_name
     )
     system_utils.create_dir(args.output_dir)
-
-    if args.train_group is None:
-        args.train_group, args.val_group = dataloader._random_train_val_sets(0.8)
 
     # dumping all passed arguments to a json file
     system_utils.save_arguments(args)
@@ -40,12 +51,56 @@ def main(argv):
     _main_worker(args)
 
 
+def _test_network(args):
+    torch.cuda.set_device(args.gpu)
+
+    model = grasp_model.load_pretrained(args.architecture)
+    model = model.cuda(args.gpu)
+
+    # loading the training set
+    db_kwargs = {
+        'time_interval': args.time_interval,
+        'which_xyz': args.which_xyz
+    }
+
+    val_db = dataloader.get_val_set(
+        args.data_dir, args.condition, args.target_size,
+        args.val_group, **db_kwargs
+    )
+
+    # loading validation set
+    val_loader = torch.utils.data.DataLoader(
+        val_db, batch_size=args.batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True
+    )
+
+    with torch.set_grad_enabled(False):
+        outputs = []
+        for i, (kinematic, inten_torch, _, _, trial_num) in enumerate(val_loader):
+            kinematic = kinematic.cuda(args.gpu, non_blocking=True)
+            trial_num = trial_num.numpy()
+
+            for intensity in args.test_intensity:
+                inten_torch = inten_torch.fill_(intensity)
+                inten_torch = inten_torch.cuda(args.gpu, non_blocking=True)
+
+                # compute output
+                output = model(kinematic, inten_torch)
+                output = output.detach().cpu().numpy()
+                output = np.argmax(output, axis=1)
+                for j in range(output.shape[0]):
+                    outputs.append([trial_num[j], intensity, output[j]])
+    out_path = os.path.join(args.output_dir, '%s.csv' % args.experiment_name)
+    header = 'trial,intensity,output'
+    np.savetxt(out_path, np.array(outputs), delimiter=',', header=header)
+
+
 def _main_worker(args):
     mean, std = (0.5, 0.5)
 
     # create model
-    kwargs = {'in_chns': len(args.which_xyz), 'inplanes': args.num_kernels}
-    model = grasp_model.__dict__[args.architecture](args.blocks, **kwargs)
+    net_kwargs = {'in_chns': len(args.which_xyz), 'inplanes': args.num_kernels}
+    model = grasp_model.__dict__[args.architecture](args.blocks, **net_kwargs)
 
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
@@ -138,6 +193,10 @@ def _main_worker(args):
             {
                 'epoch': epoch,
                 'arch': args.architecture,
+                'net_info': {
+                    'blocks': args.blocks,
+                    'kwargs': net_kwargs
+                },
                 'transfer_weights': args.transfer_weights,
                 'preprocessing': {'mean': mean, 'std': std},
                 'state_dict': model.state_dict(),
@@ -178,7 +237,9 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
 
     end = time.time()
     with torch.set_grad_enabled(is_train):
-        for i, (kinematic, intensity, mass_dist, response) in enumerate(train_loader):
+        for i, (
+                kinematic, intensity, mass_dist, response, trial_name
+        ) in enumerate(train_loader):
             # measure data loading time
             data_time.update(time.time() - end)
 

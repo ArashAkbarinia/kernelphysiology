@@ -26,6 +26,19 @@ def main_arg_parser(argvs, extra_args_fun=None):
         type=str,
         help='Path to a predefined set of parameters (default: None)'
     )
+    misc_group.add_argument(
+        '--only_test',
+        default=False,
+        action='store_true',
+        help='Test a model with all intensities (default: False)'
+    )
+    misc_group.add_argument(
+        '--test_intensity',
+        type=int,
+        nargs='+',
+        default=[0, 3, 6, 9, 12, 15, 18],
+        help='Test intensities (default: [0,3,6,9,12,15,18])'
+    )
 
     if extra_args_fun is not None:
         extra_args_fun(parser)

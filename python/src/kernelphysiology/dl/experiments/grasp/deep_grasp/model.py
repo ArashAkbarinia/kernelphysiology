@@ -232,3 +232,17 @@ def resnet_basic(planes, pretrained=False, **kwargs):
 
 def resnet_bottleneck(planes, pretrained=False, **kwargs):
     return _resnet(Bottleneck, planes, pretrained, **kwargs)
+
+
+def load_pretrained(path):
+    net_data = torch.load(path, map_location='cpu')
+    planes = net_data['net_info']['blocks']
+    kwargs = net_data['net_info']['kwargs']
+    if net_data['arch'] == 'resnet_bottleneck':
+        network = resnet_bottleneck(planes, **kwargs)
+    elif net_data['arch'] == 'resnet_basic':
+        network = resnet_basic(planes, **kwargs)
+    else:
+        sys.exit('Unsupported architecture!')
+    network.load_state_dict(net_data['state_dict'])
+    return network

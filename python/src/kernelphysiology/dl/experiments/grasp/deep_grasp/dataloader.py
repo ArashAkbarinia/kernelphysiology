@@ -109,7 +109,8 @@ class SingleParticipant(torch_data.Dataset):
         self.num_trials = len(glob.glob(self.condition_root + 'trial_*'))
 
     def __getitem__(self, item):
-        file_path = '%s/trial_%d' % (self.condition_root, item + 1)
+        trial_num = item + 1
+        file_path = '%s/trial_%d' % (self.condition_root, trial_num)
         trial_data = np.loadtxt(file_path)
 
         trial_img = trial2img(trial_data, self.which_xyz)
@@ -134,7 +135,7 @@ class SingleParticipant(torch_data.Dataset):
         # in this case we'll assume that zhe hasn't felt it.
         if response == -1:
             response = 1
-        return trial_img, intensity, mass_dist, response
+        return trial_img, intensity, mass_dist, response, trial_num
 
     def __len__(self):
         return self.num_trials
@@ -148,6 +149,21 @@ def _random_train_val_sets(train_percent):
     train_group = all_sets[:break_ind]
     val_group = all_sets[break_ind:]
     return train_group, val_group
+
+
+def get_val_set(root, condition, target_size, val_group, **kwargs):
+    v_transform = torch_transforms.Compose([
+        ClipTime(target_size, place=0)
+    ])
+    val_set = []
+    for vg in val_group:
+        val_set.append(
+            SingleParticipant(
+                root, str(vg), condition, transform=v_transform, **kwargs
+            )
+        )
+    val_db = torch_data.dataset.ConcatDataset(val_set)
+    return val_db
 
 
 def train_val_sets(root, condition, target_size, train_group=None, val_group=None, **kwargs):
@@ -170,17 +186,7 @@ def train_val_sets(root, condition, target_size, train_group=None, val_group=Non
         )
     train_db = torch_data.dataset.ConcatDataset(train_set)
 
-    v_transform = torch_transforms.Compose([
-        ClipTime(target_size, place=0)
-    ])
-    val_set = []
-    for vg in val_group:
-        val_set.append(
-            SingleParticipant(
-                root, str(vg), condition, transform=v_transform, **kwargs
-            )
-        )
-    val_db = torch_data.dataset.ConcatDataset(val_set)
+    val_db = get_val_set(root, condition, target_size, val_group, **kwargs)
 
     return train_db, val_db
 
