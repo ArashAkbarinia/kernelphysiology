@@ -17,7 +17,7 @@ from model import *
 from dataset import get_train_dataset, get_val_dataset
 
 models = {
-    'custom': {'vqvae': VQ_CVAE, 'vae': VAE},
+    'custom': {'vqvae': VQ_CVAE, 'vae': VAE, 'resnet': Backbone_VQ_VAE},
 }
 datasets_classes = {
     'custom': datasets.ImageFolder,
@@ -55,7 +55,7 @@ def main(args):
                         help='Only prediction')
     model_parser = parser.add_argument_group('Model Parameters')
     model_parser.add_argument('--model', default='vqvae',
-                              choices=['vae', 'vqvae'],
+                              choices=['vae', 'vqvae', 'resnet'],
                               help='autoencoder variant to use: vae | vqvae')
     model_parser.add_argument('--batch-size', type=int, default=4,
                               metavar='N',
@@ -113,6 +113,8 @@ def main(args):
                                 help='saved folder')
     logging_parser.add_argument('--data-format', default='json',
                                 help='in which format to save the data')
+    model_parser.add_argument('--backbone', type=str, default=None, nargs='+',
+                              help='details of backbone')
 
     args = parser.parse_args(args)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -139,10 +141,22 @@ def main(args):
         cudnn.benchmark = True
         torch.cuda.manual_seed(args.seed)
 
-    model = models[args.dataset][args.model](
-        hidden, k=k, kl=args.kl, num_channels=num_channels,
-        gabor_layer=args.gabor_layer
-    )
+    if args.model == 'resnet':
+        backbone = {
+            'arch_name': args.backbone[0],
+            'layer_name': args.backbone[1]
+        }
+        if len(args.backbone) > 2:
+            backbone['weights_path'] = args.backbone[2]
+        model = models[args.dataset][args.model](
+            hidden, k=k, kl=args.kl, num_channels=num_channels,
+            gabor_layer=args.gabor_layer, backbone=backbone
+        )
+    else:
+        model = models[args.dataset][args.model](
+            hidden, k=k, kl=args.kl, num_channels=num_channels,
+            gabor_layer=args.gabor_layer
+        )
     if args.resume is not None:
         weights = torch.load(args.resume, map_location='cpu')
         model.load_state_dict(weights)
@@ -160,10 +174,15 @@ def main(args):
     args.mean = [0.5, 0.5, 0.5]
     args.std = [0.5, 0.5, 0.5]
 
+    in_chns = 1
+    if args.model == 'resnet':
+        in_chns = 3
+
     val_dataset = get_val_dataset(
         args.data_dir + '/img/', args.data_dir + '/gt/',
         args.data_dir + '/all_imgs.txt', args.test_inds,
-        trans_funcs, args.mean, args.std, args.target_size
+        trans_funcs, args.mean, args.std, args.target_size,
+        chns=in_chns
     )
 
     # NOTE: shuffle is False
@@ -182,7 +201,8 @@ def main(args):
     train_dataset = get_train_dataset(
         args.data_dir + '/img/', args.data_dir + '/gt/',
         args.data_dir + '/all_imgs.txt', args.test_inds,
-        trans_funcs, args.mean, args.std, args.target_size
+        trans_funcs, args.mean, args.std, args.target_size,
+        chns=in_chns
     )
 
     train_loader = torch.utils.data.DataLoader(

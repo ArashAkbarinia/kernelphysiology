@@ -11,13 +11,14 @@ from torchvision.datasets.folder import pil_loader
 
 class TouchDataset(Dataset):
     def __init__(self, img_dir, gt_dir, all_txt, test_inds, image_set,
-                 transforms=None):
+                 transforms=None, chns=1):
         self.img_dir = img_dir
         self.gt_dir = gt_dir
         self.all_imgs = np.loadtxt(all_txt, delimiter=',', dtype=int)
         self.inputs = []
         self.targets = []
         self.targets_participant = []
+        self.chns = chns
 
         specific_test_inds = type(test_inds) == str
         if specific_test_inds:
@@ -55,6 +56,9 @@ class TouchDataset(Dataset):
             img, gt = self.transforms(img, gt)
         img = img[0].unsqueeze(0)
         gt = gt[0].unsqueeze(0)
+        if self.chns > 1:
+            img = img.repeat(3, 1, 1)
+            gt = gt.repeat(3, 1, 1)
         # if gt.max() > 0:
         #     gt /= gt.max()
 
@@ -67,7 +71,7 @@ class TouchDataset(Dataset):
 
 
 def get_train_dataset(img_dir, gt_dir, all_txt, test_inds,
-                      trans_funcs, mean, std, target_size):
+                      trans_funcs, mean, std, target_size, chns=1):
     train_transforms = Compose([
         *trans_funcs,
         RandomHorizontalFlip(),
@@ -77,14 +81,14 @@ def get_train_dataset(img_dir, gt_dir, all_txt, test_inds,
     ])
 
     train_dataset = TouchDataset(
-        img_dir, gt_dir, all_txt, test_inds, 'train', train_transforms
+        img_dir, gt_dir, all_txt, test_inds, 'train', train_transforms, chns=chns
     )
 
     return train_dataset
 
 
 def get_val_dataset(img_dir, gt_dir, all_txt, test_inds, trans_funcs, mean, std,
-                    target_size):
+                    target_size, chns=1):
     train_transforms = Compose([
         *trans_funcs,
         CenterCrop(target_size),
@@ -93,7 +97,7 @@ def get_val_dataset(img_dir, gt_dir, all_txt, test_inds, trans_funcs, mean, std,
     ])
 
     train_dataset = TouchDataset(
-        img_dir, gt_dir, all_txt, test_inds, 'test', train_transforms
+        img_dir, gt_dir, all_txt, test_inds, 'test', train_transforms, chns=chns
     )
 
     return train_dataset
