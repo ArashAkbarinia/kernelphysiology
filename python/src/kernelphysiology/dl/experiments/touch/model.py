@@ -528,42 +528,12 @@ class Backbone_VQ_VAE(nn.Module):
         emb = torch.tensor(sample, dtype=torch.float32).unsqueeze(dim=0)
         return self.decode(emb).cpu()
 
-    def loss_function(self, x, recon_x, z_e, emb, argmin):
-        if self.task == 'segmentation':
-            if self.out_chns == 1:
-                self.mse = F.binary_cross_entropy_with_logits(
-                    recon_x.squeeze(), x
-                )
-            else:
-                self.mse = F.cross_entropy(recon_x, x, ignore_index=255)
-        elif self.colour_space == 'labhue':
-            self.mse = F.mse_loss(recon_x[:, :3], x[:, :3])
-            self.mse += self.hue_loss(recon_x[:, 3], x[:, 3])
-        else:
-            self.mse = F.mse_loss(recon_x, x)
+    def loss_function(self, x, participant, recon_x, z_e, emb, argmin):
+        self.mse = F.mse_loss(recon_x, x)
 
         self.vq_loss = torch.mean(torch.norm((emb - z_e.detach()) ** 2, 2, 1))
         self.commit_loss = torch.mean(
             torch.norm((emb.detach() - z_e) ** 2, 2, 1))
-
-        if self.use_decor_loss != 0:
-            emb_weights = self.emb.weight.detach()
-            mean_mat = emb_weights.mean(dim=0)
-            emb_weights = emb_weights.sub(mean_mat)
-            corr = torch.zeros((self.k, self.k))
-            for i in range(self.k - 1):
-                for j in range(i + 1, self.k):
-                    r_num = emb_weights[:, i].dot(emb_weights[:, j])
-                    r_den = torch.norm(emb_weights[:, i], 2) * torch.norm(
-                        emb_weights[:, j], 2
-                    )
-                    current_corr = r_num / r_den
-                    corr[i, j] = current_corr
-                    corr[j, i] = current_corr
-            self.decor_loss = abs(corr).mean()
-            if self.use_decor_loss < 0:
-                self.decor_loss = 1 - self.decor_loss
-            return self.mse + self.vq_coef * self.vq_loss + self.commit_coef * self.commit_loss + self.decor_loss
 
         return self.mse + self.vq_coef * self.vq_loss + self.commit_coef * self.commit_loss
 
