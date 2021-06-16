@@ -431,7 +431,7 @@ class Backbone_VQ_VAE(nn.Module):
         if kl is None:
             kl = d
         self.kl = kl
-        self.emb = NearestEmbed(k, kl, cos_distance)
+        self.emb = NearestEmbed(k, kl)
 
         self.colour_space = colour_space
         self.task = task
