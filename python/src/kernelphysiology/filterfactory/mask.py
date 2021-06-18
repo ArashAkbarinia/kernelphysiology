@@ -171,3 +171,37 @@ def create_mask_image(image, mask_type, **kwargs):
     else:
         sys.exit('Unsupported mask type %s' % mask_type)
     return image_mask
+
+
+def ring_mask(img, inner, outer):
+    rows = img.shape[0]
+    cols = img.shape[1]
+    smaller_side = np.minimum(rows, cols)
+    centre = (int(math.floor(cols / 2)), int(math.floor(rows / 2)))
+
+    if inner == 0:
+        mask_in = np.ones(img.shape, np.uint8)
+        in_length = 0
+    else:
+        if type(inner) is float and inner < 1.0:
+            in_length = int(math.floor(inner * smaller_side * 0.5))
+        else:
+            in_length = int(inner - 1)
+        mask_in = np.zeros(img.shape, np.uint8)
+        mask_in = 1 - cv2.circle(mask_in, centre, in_length, (1, 1, 1), -1)
+
+    if outer == 0:
+        mask_out = np.ones(img.shape, np.uint8)
+    else:
+        if type(outer) is float and abs(outer) < 1.0:
+            outer = 1 - outer
+            out_length = int(math.floor(outer * smaller_side * 0.5))
+        elif outer < 0:
+            out_length = centre[0] - int(abs(outer))
+        else:
+            out_length = in_length + int(outer)
+        mask_out = np.zeros(img.shape, np.uint8)
+        mask_out = cv2.circle(mask_out, centre, out_length, (1, 1, 1), -1)
+
+    mask_img = np.logical_and(mask_in, mask_out)
+    return mask_img

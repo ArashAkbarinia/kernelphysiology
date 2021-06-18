@@ -16,6 +16,7 @@ from kernelphysiology.filterfactory.gaussian import gaussian_kernel2
 from kernelphysiology.filterfactory.mask import random_filter_array
 from kernelphysiology.filterfactory.mask import create_mask_image
 from kernelphysiology.filterfactory.mask import colour_filter_array
+from kernelphysiology.filterfactory.mask import ring_mask
 from kernelphysiology.transformations.colour_spaces import rgb2opponency
 from kernelphysiology.transformations.colour_spaces import opponency2rgb
 from kernelphysiology.transformations.colour_spaces import get_max_lightness
@@ -590,26 +591,12 @@ def _filter_chn_sf(img, **kwargs):
 
 
 def _cutoff_chn_fourier(img, hsf_cut, lsf_cut):
-    rows = img.shape[0]
-    cols = img.shape[1]
-    smaller_side = np.minimum(rows, cols)
-    centre = (int(math.floor(cols / 2)), int(math.floor(rows / 2)))
-
-    if hsf_cut == 0:
-        mask_hsf = np.ones(img.shape, np.uint8)
-    else:
-        hsf_cut = 1 - hsf_cut
-        hsf_length = int(math.floor(hsf_cut * smaller_side * 0.5))
-        mask_hsf = np.zeros(img.shape, np.uint8)
-        mask_hsf = cv2.circle(mask_hsf, centre, hsf_length, (1, 1, 1), -1)
-
-    if lsf_cut == 0:
-        mask_lsf = np.ones(img.shape, np.uint8)
-    else:
-        lsf_length = int(math.floor(lsf_cut * smaller_side * 0.5))
-        mask_lsf = np.zeros(img.shape, np.uint8)
-        mask_lsf = 1 - cv2.circle(mask_lsf, centre, lsf_length, (1, 1, 1), -1)
-
-    mask_img = np.logical_and(mask_lsf, mask_hsf).astype('uint8')
+    inverse = False
+    if lsf_cut < 0:
+        lsf_cut = abs(lsf_cut)
+        inverse = True
+    mask_img = ring_mask(img, inner=lsf_cut, outer=hsf_cut)
+    if inverse:
+        mask_img = ~mask_img
     img_sf_filtered = np.multiply(img, mask_img)
     return img_sf_filtered

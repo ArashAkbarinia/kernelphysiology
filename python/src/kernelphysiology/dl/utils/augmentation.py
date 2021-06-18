@@ -47,6 +47,7 @@ supported_testing_manipulations = {
     'invert_chromaticity': imutils.invert_chromaticity,
     'invert_opponency': imutils.invert_colour_opponency,
     'invert_lightness': imutils.invert_lightness,
+    'sf_ring': imutils.filter_img_sf,
     'original': do_nothing
 }
 
