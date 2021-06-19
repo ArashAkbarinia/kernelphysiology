@@ -255,6 +255,15 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
 
         for i, manipulation_value in enumerate(manipulation_values):
             args.parameters['kwargs'][args.manipulation] = manipulation_value
+
+            output_file = prepapre_testing._prepare_saving_file(
+                args.experiment_name, args.network_names[j],
+                args.dataset, manipulation_name, manipulation_value,
+                extension='csv'
+            )
+            if os.path.exists(output_file):
+                continue
+
             prediction_transformation = preprocessing.prediction_transformation(
                 args.parameters, args.colour_space,
                 tmp_c_space(manipulation_name)
