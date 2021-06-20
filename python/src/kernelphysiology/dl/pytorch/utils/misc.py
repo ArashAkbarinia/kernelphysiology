@@ -264,10 +264,16 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
             if os.path.exists(output_file):
                 continue
 
-            prediction_transformation = preprocessing.prediction_transformation(
-                args.parameters, args.colour_space,
-                tmp_c_space(manipulation_name)
-            )
+            if args.task_type == 'segmentation' or 'voc' in args.dataset:
+                prediction_transformation = preprocessing.prediction_transformation_seg(
+                    args.parameters, args.colour_space,
+                    tmp_c_space(manipulation_name)
+                )
+            else:
+                prediction_transformation = preprocessing.prediction_transformation(
+                    args.parameters, args.colour_space,
+                    tmp_c_space(manipulation_name)
+                )
             colour_vision = 'trichromat'
             if _requires_colour_transform(
                     manipulation_name, args.network_chromaticities[j]

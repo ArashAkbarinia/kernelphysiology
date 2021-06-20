@@ -413,7 +413,7 @@ def get_dataset(name, data_dir, image_set, **kwargs):
     return ds, num_classes
 
 
-def get_transform(train, colour_vision, colour_space, target_size=480):
+def get_transform(train, colour_vision, colour_space, target_size=480, other_tf=None):
     # in the original version instead of target_size they use base_size of 520
     min_size = int((0.5 if train else 1.0) * target_size)
     max_size = int((2.0 if train else 1.0) * target_size)
@@ -421,6 +421,9 @@ def get_transform(train, colour_vision, colour_space, target_size=480):
     if train:
         transforms.append(T.RandomHorizontalFlip(0.5))
         transforms.append(T.RandomCrop(target_size))
+
+    if other_tf is not None:
+        transforms.append(other_tf)
 
     colour_transformation = preprocessing.colour_transformation(
         colour_vision, colour_space

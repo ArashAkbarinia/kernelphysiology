@@ -125,7 +125,8 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
         data_reading_kwargs = {
             'target_size': target_size,
             'colour_vision': vision_type,
-            'colour_space': colour_space
+            'colour_space': colour_space,
+            'other_tf': other_transformations
         }
         validation_dataset, _ = segmentation_utils.get_dataset(
             dataset_name, valdir, 'val', **data_reading_kwargs

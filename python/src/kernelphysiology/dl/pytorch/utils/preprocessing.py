@@ -71,6 +71,12 @@ def prediction_transformation(parameters, colour_space='rgb', tmp_c=False):
     )
 
 
+def prediction_transformation_seg(parameters, colour_space='rgb', tmp_c=False):
+    return cv2_preprocessing.PredictionTransformationPilSeg(
+        parameters, colour_space=colour_space, tmp_c=tmp_c
+    )
+
+
 def random_augmentation(augmentation_settings, num_augmentations=None):
     return cv2_preprocessing.RandomAugmentationTransformation(
         augmentation_settings, num_augmentations

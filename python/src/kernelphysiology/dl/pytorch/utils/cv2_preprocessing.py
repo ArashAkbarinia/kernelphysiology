@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import random
 
+from PIL import Image as PilImage
 import cv2
 
 from kernelphysiology.dl.pytorch.utils.cv2_transforms import _call_recursive
@@ -228,3 +229,24 @@ class PredictionTransformation(object):
 
         x = manipulation_function(x, **kwargs)
         return x
+
+
+class PredictionTransformationPilSeg(object):
+
+    def __init__(self, parameters, colour_space='rgb', tmp_c=False):
+        # FIXME: tmp_c
+        self.parameters = parameters
+        self.colour_space = colour_space.upper()
+        self.tmpc = tmp_c
+
+    def __call__(self, x, target):
+        x = np.asarray(x).copy()
+
+        manipulation_function = self.parameters['function']
+        kwargs = self.parameters['kwargs']
+        if self.colour_space.lower() != 'rgb' and self.tmpc:
+            kwargs['colour_space'] = None
+
+        x = manipulation_function(x, **kwargs)
+        x = PilImage.fromarray(x)
+        return x, target
