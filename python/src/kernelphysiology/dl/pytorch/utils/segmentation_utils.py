@@ -423,7 +423,7 @@ def get_transform(train, colour_vision, colour_space, target_size=480, other_tf=
         transforms.append(T.RandomCrop(target_size))
 
     if other_tf is not None:
-        transforms.append(other_tf)
+        transforms.append(*other_tf)
 
     colour_transformation = preprocessing.colour_transformation(
         colour_vision, colour_space
