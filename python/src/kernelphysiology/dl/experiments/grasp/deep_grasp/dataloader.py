@@ -3,6 +3,7 @@ The dataloader routines for the grasp project.
 """
 
 import numpy as np
+import os
 import sys
 import glob
 
@@ -100,20 +101,32 @@ class SingleParticipant(torch_data.Dataset):
         self.time_interval = time_interval
         self.transform = transform
 
-        self.condition_root = '%s/%s/%s/' % (root, participant, condition)
+        # creating the root paths
+        self.kinematic_root = os.path.join(self.root, 'kinematic', participant, condition)
+        self.startend_root = os.path.join(self.root, 'start_end', participant, condition)
+
         # reading the mat info
-        mat_path = '%s/stimlist_%s.mat' % (self.condition_root, condition)
+        mat_path = '%s/stimlist_%s.mat' % (self.kinematic_root, condition)
         matdata = loadmat(mat_path)
         # trial target_position mass_distribution intensity time response
         self.stimuli_data = matdata['stimlist']
-        self.num_trials = len(glob.glob(self.condition_root + 'trial_*'))
+        self.valid_trials = glob.glob(self.startend_root + '/trial_*')
+        self.num_trials = len(self.valid_trials)
 
     def __getitem__(self, item):
-        trial_num = item + 1
-        file_path = '%s/trial_%d' % (self.condition_root, trial_num)
+        se_file_path = self.valid_trials[item]
+        tnum = int(se_file_path.split('_')[-1][:-4])
+
+        start_end = np.loadtxt(se_file_path).astype(int)
+
+        file_path = '%s/trial_%d' % (self.kinematic_root, tnum)
         trial_data = np.loadtxt(file_path)
 
         trial_img = trial2img(trial_data, self.which_xyz)
+
+        # only considering the interval from start_end file
+        sind, eind = start_end
+        trial_img = trial_img[sind:eind]
 
         if self.time_interval is not None:
             sind, eind = self.time_interval
@@ -121,10 +134,10 @@ class SingleParticipant(torch_data.Dataset):
         if self.transform is not None:
             trial_img = self.transform(trial_img)
 
-        mass_dist = self.stimuli_data[item][2]
-        intensity = self.stimuli_data[item][-3]
+        mass_dist = self.stimuli_data[tnum][2]
+        intensity = self.stimuli_data[tnum][-3]
         # -1 because in Matlab they're stored as 1 and 2
-        response = self.stimuli_data[item][-1] - 1
+        response = self.stimuli_data[tnum][-1] - 1
 
         # converting to tensor
         trial_img = torch.tensor(trial_img.transpose((2, 0, 1))).type(torch.FloatTensor)
@@ -134,8 +147,9 @@ class SingleParticipant(torch_data.Dataset):
         # response -1 means the participant hasn't responded
         # in this case we'll assume that zhe hasn't felt it.
         if response == -1:
+            print('Shouldnt happen', se_file_path)
             response = 1
-        return trial_img, intensity, mass_dist, response, trial_num
+        return trial_img, intensity, mass_dist, response, tnum
 
     def __len__(self):
         return self.num_trials
