@@ -23,6 +23,32 @@ def get_human_csf(f):
     return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)
 
 
+def get_network_activation(net_name):
+    all_layers_maxsf = []
+    all_activations = []
+    for file_path in sorted(
+            glob.glob(os.path.join(activations_dir, net_name) + '/*.pickle'),
+            key=natural_keys
+    ):
+        file_name = ntpath.basename(file_path)
+        layer_name = 'layer'
+        name_parts = file_name.split('_')
+        for pind, part in enumerate(name_parts):
+            if part == 'layer':
+                layer_name += name_parts[pind + 1].replace('.weight', '')
+                layer_name = layer_name.replace('conv', '')
+                break
+        print('reading', file_name, layer_name)
+        result_mat = path_utils.read_pickle(file_path)
+        contrast_activation, xvals = process_layer(result_mat)
+        all_activations.append(contrast_activation)
+        maxsf, header = maxsf_layer(
+            contrast_activation, xvals, net_name, layer_name
+        )
+        all_layers_maxsf.append(maxsf)
+    return all_layers_maxsf, all_activations, xvals
+
+
 def process_network(net_name):
     all_layers_maxsf = []
     for file_path in sorted(
