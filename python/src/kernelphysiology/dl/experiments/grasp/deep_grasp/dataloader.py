@@ -142,6 +142,7 @@ class SingleParticipant(torch_data.Dataset):
         # converting to tensor
         trial_img = torch.tensor(trial_img.transpose((2, 0, 1))).type(torch.FloatTensor)
         intensity = torch.tensor([intensity]).type(torch.FloatTensor)
+        mass_dist = torch.tensor([mass_dist]).type(torch.FloatTensor)
 
         # FIXME
         # response -1 means the participant hasn't responded

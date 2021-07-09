@@ -108,7 +108,8 @@ class ResNet(nn.Module):
 
     def __init__(self, block, layers, in_chns, num_classes=2,
                  zero_init_residual=False, norm_layer=None,
-                 inplanes=4, kernel_size=(3, 3), bias=False, stride=2):
+                 inplanes=4, kernel_size=(3, 3), bias=False, stride=2,
+                 intensity_length=0):
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -148,8 +149,9 @@ class ResNet(nn.Module):
             fcm = 2
         elif layers[3] == 0:
             fcm = 4
+        self.intensity_length = intensity_length
         self.fc = nn.Linear(
-            inplanes * fcm * block.expansion + 1,
+            inplanes * fcm * block.expansion + self.intensity_length,
             num_classes
         )
 
@@ -209,7 +211,10 @@ class ResNet(nn.Module):
         kinematic = self.avgpool(kinematic)
         kinematic = kinematic.view(kinematic.size(0), -1)
 
-        x = torch.cat([kinematic, intensity], dim=1)
+        if self.intensity_length == 0:
+            x = kinematic
+        else:
+            x = torch.cat([kinematic, intensity], dim=1)
         x = self.fc(x)
 
         return x

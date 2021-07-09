@@ -39,6 +39,15 @@ def main_arg_parser(argvs, extra_args_fun=None):
         default=[0, 3, 6, 9, 12, 15, 18],
         help='Test intensities (default: [0,3,6,9,12,15,18])'
     )
+    misc_group.add_argument(
+        '--out_type',
+        choices=[
+            'intensity', 'mass'
+        ],
+        default='mass',
+        type=str,
+        help='What should be the output of the network (default: mass)'
+    )
 
     if extra_args_fun is not None:
         extra_args_fun(parser)

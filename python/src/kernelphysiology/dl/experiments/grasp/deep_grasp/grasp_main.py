@@ -25,7 +25,10 @@ def main(argv):
     system_utils.set_random_environment(args.random_seed)
 
     # it's a binary classification
-    args.num_classes = 2
+    if args.out_type == 'intensity':
+        args.num_classes = 2
+    elif args.out_type == 'mass':
+        args.num_classes = 3
 
     if args.only_test:
         if args.val_group is None:
@@ -99,7 +102,11 @@ def _main_worker(args):
     mean, std = (0.5, 0.5)
 
     # create model
-    net_kwargs = {'in_chns': len(args.which_xyz), 'inplanes': args.num_kernels}
+    net_kwargs = {
+        'in_chns': len(args.which_xyz),
+        'inplanes': args.num_kernels,
+        'intensity_length': 1 if args.out_type == 'intensity' else 0
+    }
     model = grasp_model.__dict__[args.architecture](args.blocks, **net_kwargs)
 
     torch.cuda.set_device(args.gpu)
@@ -244,8 +251,12 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
             data_time.update(time.time() - end)
 
             kinematic = kinematic.cuda(args.gpu, non_blocking=True)
-            intensity = intensity.cuda(args.gpu, non_blocking=True)
-            response = response.cuda(args.gpu, non_blocking=True)
+            if args.out_type == 'intensity':
+                intensity = intensity.cuda(args.gpu, non_blocking=True)
+                response = response.cuda(args.gpu, non_blocking=True)
+            else:
+                intensity = None
+                response = mass_dist.cuda(args.gpu, non_blocking=True)
 
             # compute output
             output = model(kinematic, intensity)
