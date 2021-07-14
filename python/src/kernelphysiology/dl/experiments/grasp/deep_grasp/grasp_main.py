@@ -29,6 +29,8 @@ def main(argv):
         args.num_classes = 2
     elif args.out_type == 'mass':
         args.num_classes = 3
+    else:
+        sys.exit('Unsupported out_type %s' % args.out_type)
 
     if args.only_test:
         if args.val_group is None:
@@ -74,7 +76,7 @@ def _test_network(args):
     # loading validation set
     val_loader = torch.utils.data.DataLoader(
         val_db, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True
+        num_workers=args.workers, pin_memory=False
     )
 
     with torch.set_grad_enabled(False):
@@ -103,6 +105,7 @@ def _main_worker(args):
 
     # create model
     net_kwargs = {
+        'num_classes': args.num_classes,
         'in_chns': len(args.which_xyz),
         'inplanes': args.num_kernels,
         'intensity_length': 1 if args.out_type == 'intensity' else 0
@@ -165,13 +168,13 @@ def _main_worker(args):
 
     train_loader = torch.utils.data.DataLoader(
         train_db, batch_size=args.batch_size, shuffle=shuffle,
-        num_workers=args.workers, pin_memory=True, sampler=None
+        num_workers=args.workers, pin_memory=False, sampler=None
     )
 
     # loading validation set
     val_loader = torch.utils.data.DataLoader(
         val_db, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True
+        num_workers=args.workers, pin_memory=False
     )
 
     # training on epoch

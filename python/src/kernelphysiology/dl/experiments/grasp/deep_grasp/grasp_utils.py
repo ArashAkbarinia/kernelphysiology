@@ -210,7 +210,7 @@ def _add_input_group(parser):
     input_group.add_argument(
         '--target_size',
         type=int,
-        default=448,
+        default=64,
         help='Target size'
     )
 

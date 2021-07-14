@@ -1,7 +1,7 @@
 """
 The dataloader routines for the grasp project.
 """
-
+import cv2
 import numpy as np
 import os
 import sys
@@ -126,6 +126,8 @@ class SingleParticipant(torch_data.Dataset):
 
         # only considering the interval from start_end file
         sind, eind = start_end
+        if (eind - sind) < 10:
+            print(start_end, se_file_path)
         trial_img = trial_img[sind:eind]
 
         if self.time_interval is not None:
@@ -134,7 +136,8 @@ class SingleParticipant(torch_data.Dataset):
         if self.transform is not None:
             trial_img = self.transform(trial_img)
 
-        mass_dist = self.stimuli_data[tnum][2]
+        # -1 because in Matlab they're stored from 1
+        mass_dist = self.stimuli_data[tnum][2] - 1
         intensity = self.stimuli_data[tnum][-3]
         # -1 because in Matlab they're stored as 1 and 2
         response = self.stimuli_data[tnum][-1] - 1
@@ -142,13 +145,12 @@ class SingleParticipant(torch_data.Dataset):
         # converting to tensor
         trial_img = torch.tensor(trial_img.transpose((2, 0, 1))).type(torch.FloatTensor)
         intensity = torch.tensor([intensity]).type(torch.FloatTensor)
-        mass_dist = torch.tensor([mass_dist]).type(torch.FloatTensor)
 
         # FIXME
         # response -1 means the participant hasn't responded
         # in this case we'll assume that zhe hasn't felt it.
         if response == -1:
-            print('Shouldnt happen', se_file_path)
+            # print('Shouldnt happen', se_file_path)
             response = 1
         return trial_img, intensity, mass_dist, response, tnum
 
@@ -168,7 +170,7 @@ def _random_train_val_sets(train_percent):
 
 def get_val_set(root, condition, target_size, val_group, **kwargs):
     v_transform = torch_transforms.Compose([
-        ClipTime(target_size, place=0)
+        TimeResize(target_size)
     ])
     val_set = []
     for vg in val_group:
@@ -190,7 +192,8 @@ def train_val_sets(root, condition, target_size, train_group=None, val_group=Non
         train_group, val_group = _random_train_val_sets(train_group)
 
     t_transform = torch_transforms.Compose([
-        ClipTime(target_size, place=None)
+        #        ClipTime(target_size, place=None),
+        TimeResize(target_size)
     ])
     train_set = []
     for tg in train_group:
@@ -206,6 +209,18 @@ def train_val_sets(root, condition, target_size, train_group=None, val_group=Non
     return train_db, val_db
 
 
+class TimeResize(object):
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, trial_img):
+        trial_img = cv2.resize(trial_img, (trial_img.shape[1], self.size))
+        return trial_img
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(size={0})'.format(self.size)
+
+
 class ClipTime(object):
     def __init__(self, size, place=None):
         self.size = size
@@ -214,7 +229,10 @@ class ClipTime(object):
     def __call__(self, trial_img):
         if self.place is None:
             max_time = abs(len(trial_img) - self.size)
-            sind = np.random.randint(0, max_time)
+            if max_time == 0:
+                sind = 0
+            else:
+                sind = np.random.randint(0, max_time)
         else:
             sind = self.place
         eind = sind + self.size
