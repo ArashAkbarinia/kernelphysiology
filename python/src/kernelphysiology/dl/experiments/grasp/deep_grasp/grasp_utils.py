@@ -23,6 +23,7 @@ def main_arg_parser(argvs, extra_args_fun=None):
             'baseline', 'KC', 'KL', 'KR', 'UN'
         ],
         default=None,
+        nargs='+',
         type=str,
         help='Path to a predefined set of parameters (default: None)'
     )

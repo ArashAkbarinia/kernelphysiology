@@ -168,22 +168,23 @@ def _random_train_val_sets(train_percent):
     return train_group, val_group
 
 
-def get_val_set(root, condition, target_size, val_group, **kwargs):
+def get_val_set(root, conditions, target_size, val_group, **kwargs):
     v_transform = torch_transforms.Compose([
         TimeResize(target_size)
     ])
     val_set = []
-    for vg in val_group:
-        val_set.append(
-            SingleParticipant(
-                root, str(vg), condition, transform=v_transform, **kwargs
+    for cond in conditions:
+        for vg in val_group:
+            val_set.append(
+                SingleParticipant(
+                    root, str(vg), cond, transform=v_transform, **kwargs
+                )
             )
-        )
     val_db = torch_data.dataset.ConcatDataset(val_set)
     return val_db
 
 
-def train_val_sets(root, condition, target_size, train_group=None, val_group=None, **kwargs):
+def train_val_sets(root, conditions, target_size, train_group=None, val_group=None, **kwargs):
     if train_group is None:
         train_group = 0.8
         val_group = 0.2
@@ -196,15 +197,16 @@ def train_val_sets(root, condition, target_size, train_group=None, val_group=Non
         TimeResize(target_size)
     ])
     train_set = []
-    for tg in train_group:
-        train_set.append(
-            SingleParticipant(
-                root, str(tg), condition, transform=t_transform, **kwargs
+    for cond in conditions:
+        for tg in train_group:
+            train_set.append(
+                SingleParticipant(
+                    root, str(tg), cond, transform=t_transform, **kwargs
+                )
             )
-        )
     train_db = torch_data.dataset.ConcatDataset(train_set)
 
-    val_db = get_val_set(root, condition, target_size, val_group, **kwargs)
+    val_db = get_val_set(root, conditions, target_size, val_group, **kwargs)
 
     return train_db, val_db
 

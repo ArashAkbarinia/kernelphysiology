@@ -239,9 +239,11 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
     is_train = optimizer is not None
 
     if is_train:
+        train_test_str = 'Train'
         model.train()
         num_samples = args.train_samples
     else:
+        train_test_str = 'Test'
         model.eval()
         num_samples = args.val_samples
 
@@ -283,14 +285,14 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
             # printing the accuracy at certain intervals
             if i % args.print_freq == 0:
                 print(
-                    'Epoch: [{0}][{1}/{2}]\t'
+                    '%s: [{0}][{1}/{2}]\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                     'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                     'Acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
                         epoch, i, len(train_loader), batch_time=batch_time,
                         data_time=data_time, loss=losses, top1=top1
-                    )
+                    ) % train_test_str
                 )
             if num_samples is not None and i * len(kinematic) > num_samples:
                 break
