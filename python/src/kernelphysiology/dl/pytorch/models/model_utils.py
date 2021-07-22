@@ -278,7 +278,10 @@ def which_architecture(network_name, customs=None):
         else:
             model = pmodels.__dict__[network_name](pretrained=False)
     else:
-        pooling_type = customs['pooling_type']
+        if 'pooling_type' in customs:
+            pooling_type = customs['pooling_type']
+        else:
+            pooling_type = 'max'
         num_classes = customs['num_classes']
         if 'in_chns' in customs:
             in_chns = customs['in_chns']
