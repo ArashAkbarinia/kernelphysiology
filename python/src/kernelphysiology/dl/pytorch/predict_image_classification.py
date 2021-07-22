@@ -38,7 +38,7 @@ def main(argv):
     torch.cuda.set_device(args.device)
     criterion = nn.CrossEntropyLoss().to(args.device)
     cudnn.benchmark = True
-    kwargs = {'print_freq': args.print_freq}
+    kwargs = {'print_freq': args.print_freq, 'top_k': args.top_k}
     if args.random_images is not None:
         fn = visualise_input
         save_fn = None
@@ -101,7 +101,7 @@ def compute_activation(val_loader, model, device, print_freq=100):
     return prediction_output
 
 
-def predict(val_loader, model, criterion, device, print_freq=100):
+def predict(val_loader, model, criterion, device, print_freq=100, top_k=5):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -123,7 +123,7 @@ def predict(val_loader, model, criterion, device, print_freq=100):
 
             # measure accuracy and record loss
             ((acc1, acc5), (corrects1, corrects5)) = accuracy_preds(
-                output, target, topk=(1, 5)
+                output, target, topk=(1, top_k)
             )
             corrects1 = corrects1.cpu().numpy()
             corrects5 = corrects5.cpu().numpy().sum(axis=0)
