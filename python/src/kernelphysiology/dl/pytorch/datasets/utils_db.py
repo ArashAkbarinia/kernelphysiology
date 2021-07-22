@@ -107,7 +107,7 @@ def prepare_transformations_test(dataset_name, colour_transformations,
 
 def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
                            other_transformations, normalize, target_size,
-                           task=None):
+                           task=None, target_transform=None):
     colour_transformations = preprocessing.colour_transformation(
         vision_type, colour_space
     )
@@ -133,7 +133,8 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
         )
     elif dataset_name in folder_dbs:
         validation_dataset = datasets.ImageFolder(
-            valdir, transformations, loader=pil2numpy_loader
+            valdir, transformations, loader=pil2numpy_loader,
+            target_transform=target_transform
         )
     elif dataset_name == 'cifar10':
         validation_dataset = datasets.CIFAR10(
@@ -161,7 +162,8 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
 
 # TODO: train and validation merge together
 def get_train_dataset(dataset_name, traindir, vision_type, colour_space,
-                      other_transformations, normalize, target_size):
+                      other_transformations, normalize, target_size,
+                      target_transform=None):
     colour_transformations = preprocessing.colour_transformation(
         vision_type, colour_space
     )
@@ -176,7 +178,8 @@ def get_train_dataset(dataset_name, traindir, vision_type, colour_space,
     )
     if dataset_name in folder_dbs:
         train_dataset = datasets.ImageFolder(
-            traindir, transformations, loader=pil2numpy_loader
+            traindir, transformations, loader=pil2numpy_loader,
+            target_transform=target_transform
         )
     elif dataset_name == 'cifar10':
         train_dataset = datasets.CIFAR10(
@@ -291,3 +294,17 @@ class RandomVerticalFlip(object):
 def pil2numpy_loader(path):
     img = datasets.folder.pil_loader(path)
     return np.asarray(img)
+
+
+class ImagenetCategoryTransform(object):
+    def __init__(self, category, cat_dir):
+        if category is None:
+            self.target_mapper = np.arange(1000)
+        elif category == 'natural_manmade':
+            self.target_mapper = np.zeros(1000, dtype=int)
+            file_path = cat_dir + '/half_nat_idx.txt'
+            nat_idx = np.loadtxt(file_path).astype('int')
+            self.target_mapper[nat_idx] = 1
+
+    def __call__(self, target):
+        return self.target_mapper[target]

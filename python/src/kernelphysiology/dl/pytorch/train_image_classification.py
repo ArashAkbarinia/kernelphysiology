@@ -253,11 +253,16 @@ def main_worker(ngpus_per_node, args):
         args.dataset, args.target_size
     )
 
+    target_transform = utils_db.ImagenetCategoryTransform(
+        args.categories, args.cat_dir
+    )
+
     # loading the training set
     train_trans = [*both_trans, *train_trans]
     train_dataset = utils_db.get_train_dataset(
         args.dataset, args.train_dir, args.vision_type,
-        args.colour_space, train_trans, normalize, target_size
+        args.colour_space, train_trans, normalize, target_size,
+        target_transform=target_transform
     )
 
     if args.distributed:
@@ -279,6 +284,7 @@ def main_worker(ngpus_per_node, args):
     validation_dataset = utils_db.get_validation_dataset(
         args.dataset, args.validation_dir, args.vision_type,
         args.colour_space, valid_trans, normalize, target_size,
+        target_transform=target_transform
     )
 
     val_loader = torch.utils.data.DataLoader(

@@ -433,5 +433,20 @@ def get_dataset_group(parser):
         default=None,
         help='The path to the validation directory (default: None)'
     )
+    dataset_group.add_argument(
+        '--categories',
+        type=str,
+        choices=[
+            'natural_manmade'
+        ],
+        default=None,
+        help='Choosing different categories from imagenet (default: None)'
+    )
+    dataset_group.add_argument(
+        '--cat_dir',
+        type=str,
+        default=None,
+        help='The directory with category files (default: None)'
+    )
     dataset_group.add_argument('--train_samples', default=None, type=int)
     dataset_group.add_argument('--validation_samples', default=None, type=int)
