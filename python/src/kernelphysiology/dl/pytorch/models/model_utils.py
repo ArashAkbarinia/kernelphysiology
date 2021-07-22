@@ -187,7 +187,10 @@ def which_network_classification(network_name, num_classes, **kwargs):
         #         model = IntermediateModel(model, 1600, 0, checkpoint['arch'])
 
         model.load_state_dict(checkpoint['state_dict'])
-        target_size = checkpoint['target_size']
+        if 'target_size' in checkpoint:
+            target_size = checkpoint['target_size']
+        else:
+            target_size = 224
     elif network_name == 'inception_v3':
         target_size = 299
         model = pmodels.__dict__[network_name](
