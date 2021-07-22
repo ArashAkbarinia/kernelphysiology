@@ -9,7 +9,7 @@ import shutil
 import torch
 import torchvision.transforms as transforms
 
-from kernelphysiology.dl.pytorch.datasets.utils_db import get_validation_dataset
+from kernelphysiology.dl.pytorch.datasets import utils_db
 from kernelphysiology.dl.pytorch.models import model_utils
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils.cv2_transforms import NormalizeInverse
@@ -304,10 +304,15 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
                 args.dataset, args.target_size
             )
 
-            validation_dataset = get_validation_dataset(
+            target_transform = utils_db.ImagenetCategoryTransform(
+                args.categories, args.cat_dir
+            )
+
+            validation_dataset = utils_db.get_validation_dataset(
                 args.dataset, args.validation_dir, colour_vision,
                 args.colour_space, other_transformations, normalize,
-                target_size, task=args.task_type
+                target_size, task=args.task_type,
+                target_transform=target_transform
             )
 
             # TODO: nicer solution:
