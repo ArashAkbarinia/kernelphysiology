@@ -215,7 +215,7 @@ def train_val_sets(root, conditions, target_size, train_group=None,
         kwargs['which_part'] = same_participants_split
 
     t_transform = torch_transforms.Compose([
-        #        ClipTime(target_size, place=None),
+        TimeClip(int(target_size * 0.75), place=None),
         TimeResize(target_size)
     ])
     train_set = []
@@ -247,15 +247,15 @@ class TimeResize(object):
         return self.__class__.__name__ + '(size={0})'.format(self.size)
 
 
-class ClipTime(object):
+class TimeClip(object):
     def __init__(self, size, place=None):
         self.size = size
         self.place = place
 
     def __call__(self, trial_img):
         if self.place is None:
-            max_time = abs(len(trial_img) - self.size)
-            if max_time == 0:
+            max_time = len(trial_img) - self.size
+            if max_time <= 0:
                 sind = 0
             else:
                 sind = np.random.randint(0, max_time)
