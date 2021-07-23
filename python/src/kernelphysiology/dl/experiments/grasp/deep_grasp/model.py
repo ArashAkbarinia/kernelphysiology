@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 __all__ = [
-    'ResNet', 'resnet_basic', 'resnet_bottleneck'
+    'ResNet', 'resnet_basic', 'resnet_bottleneck', 'fully_dense'
 ]
 
 
@@ -32,7 +32,8 @@ def conv1x1(in_planes, out_planes, stride=1, bias=False):
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, norm_layer=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None,
+                 norm_layer=None):
         super(BasicBlock, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -66,7 +67,8 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, norm_layer=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None,
+                 norm_layer=None):
         super(Bottleneck, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -108,7 +110,7 @@ class ResNet(nn.Module):
 
     def __init__(self, block, layers, in_chns, num_classes=2,
                  zero_init_residual=False, norm_layer=None,
-                 inplanes=4, kernel_size=(3, 3), bias=False, stride=2,
+                 inplanes=4, kernel_size=(3, 2), bias=False, stride=2,
                  intensity_length=0):
         super(ResNet, self).__init__()
         if norm_layer is None:
@@ -218,6 +220,36 @@ class ResNet(nn.Module):
         x = self.fc(x)
 
         return x
+
+
+class FullyDense(nn.Module):
+
+    def __init__(self, target_size, in_chns, num_classes=2, intensity_length=0):
+        super(FullyDense, self).__init__()
+        self.intensity_length = intensity_length
+        feature_length = 100
+        self.fc0 = nn.Linear(
+            target_size * 3 * in_chns + self.intensity_length, feature_length
+        )
+        self.fc1 = nn.Linear(feature_length, num_classes)
+        self.relu = nn.ReLU()
+
+    def forward(self, kinematic, intensity):
+        kinematic = kinematic.view(kinematic.size(0), -1)
+
+        if self.intensity_length == 0:
+            x = kinematic
+        else:
+            x = torch.cat([kinematic, intensity], dim=1)
+        x = self.fc0(x)
+        x = self.relu(x)
+        x = self.fc1(x)
+
+        return x
+
+
+def fully_dense(**kwargs):
+    return FullyDense(**kwargs)
 
 
 def _resnet(block_type, planes, pretrained, **kwargs):

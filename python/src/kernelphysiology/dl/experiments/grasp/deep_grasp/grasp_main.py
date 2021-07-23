@@ -42,7 +42,8 @@ def main(argv):
         _test_network(args)
         return
     elif args.train_group is None:
-        args.train_group, args.val_group = dataloader._random_train_val_sets(0.8)
+        args.train_group, args.val_group = dataloader._random_train_val_sets(
+            0.8)
 
     # preparing the output folder
     args.output_dir = '%s/networks/%s/%s/' % (
@@ -81,7 +82,8 @@ def _test_network(args):
 
     with torch.set_grad_enabled(False):
         outputs = []
-        for i, (kinematic, inten_torch, _, _, trial_num) in enumerate(val_loader):
+        for i, (kinematic, inten_torch, _, _, trial_num) in enumerate(
+                val_loader):
             kinematic = kinematic.cuda(args.gpu, non_blocking=True)
             trial_num = trial_num.numpy()
 
@@ -104,13 +106,23 @@ def _main_worker(args):
     mean, std = (0.5, 0.5)
 
     # create model
-    net_kwargs = {
-        'num_classes': args.num_classes,
-        'in_chns': len(args.which_xyz),
-        'inplanes': args.num_kernels,
-        'intensity_length': 1 if args.out_type == 'intensity' else 0
-    }
-    model = grasp_model.__dict__[args.architecture](args.blocks, **net_kwargs)
+    if args.architecture == 'fully_dense':
+        net_kwargs = {
+            'target_size': args.target_size,
+            'num_classes': args.num_classes,
+            'in_chns': len(args.which_xyz),
+            'intensity_length': 1 if args.out_type == 'intensity' else 0
+        }
+        model = grasp_model.__dict__[args.architecture](**net_kwargs)
+    else:
+        net_kwargs = {
+            'num_classes': args.num_classes,
+            'in_chns': len(args.which_xyz),
+            'inplanes': args.num_kernels,
+            'intensity_length': 1 if args.out_type == 'intensity' else 0
+        }
+        model = grasp_model.__dict__[args.architecture](args.blocks,
+                                                        **net_kwargs)
 
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
