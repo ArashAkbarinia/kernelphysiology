@@ -90,7 +90,7 @@ def trial2voxel(trial, which_xyz, img_size=128):
 class SingleParticipant(torch_data.Dataset):
 
     def __init__(self, root, participant, condition, which_xyz=None,
-                 time_interval=None, transform=None):
+                 time_interval=None, transform=None, which_part=None):
         self.root = root
         self.participant = participant
         self.condition = condition
@@ -102,15 +102,28 @@ class SingleParticipant(torch_data.Dataset):
         self.transform = transform
 
         # creating the root paths
-        self.kinematic_root = os.path.join(self.root, 'kinematic', participant, condition)
-        self.startend_root = os.path.join(self.root, 'start_end', participant, condition)
+        self.kinematic_root = os.path.join(
+            self.root, 'kinematic', participant, condition
+        )
+        self.startend_root = os.path.join(
+            self.root, 'start_end', participant, condition
+        )
 
         # reading the mat info
         mat_path = '%s/stimlist_%s.mat' % (self.kinematic_root, condition)
         matdata = loadmat(mat_path)
         # trial target_position mass_distribution intensity time response
         self.stimuli_data = matdata['stimlist']
-        self.valid_trials = glob.glob(self.startend_root + '/trial_*')
+        self.valid_trials = sorted(glob.glob(self.startend_root + '/trial_*'))
+        if which_part is not None:
+            num_sets = len(self.valid_trials)
+            break_ind = round(abs(which_part) * num_sets)
+            if which_part > 0:
+                self.valid_trials = self.valid_trials[:break_ind]
+            else:
+                self.valid_trials = self.valid_trials[break_ind:]
+            train_test = 'train' if which_part > 0 else 'test'
+            print('Participant %s %d.' % (train_test, len(self.valid_trials)))
         self.num_trials = len(self.valid_trials)
 
     def __getitem__(self, item):
@@ -143,7 +156,9 @@ class SingleParticipant(torch_data.Dataset):
         response = self.stimuli_data[tnum][-1] - 1
 
         # converting to tensor
-        trial_img = torch.tensor(trial_img.transpose((2, 0, 1))).type(torch.FloatTensor)
+        trial_img = torch.tensor(
+            trial_img.transpose((2, 0, 1))
+        ).type(torch.FloatTensor)
         intensity = torch.tensor([intensity]).type(torch.FloatTensor)
 
         # FIXME
@@ -159,7 +174,9 @@ class SingleParticipant(torch_data.Dataset):
 
 
 def _random_train_val_sets(train_percent):
-    all_sets = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 20, 22, 23, 24]
+    all_sets = [
+        1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 20, 22, 23, 24
+    ]
     num_sets = len(all_sets)
     np.random.shuffle(all_sets)
     break_ind = round(train_percent * num_sets)
@@ -184,13 +201,18 @@ def get_val_set(root, conditions, target_size, val_group, **kwargs):
     return val_db
 
 
-def train_val_sets(root, conditions, target_size, train_group=None, val_group=None, **kwargs):
+def train_val_sets(root, conditions, target_size, train_group=None,
+                   val_group=None, **kwargs):
     if train_group is None:
         train_group = 0.8
         val_group = 0.2
     # computing the portion of train and validation
     if not type(train_group) is list:
         train_group, val_group = _random_train_val_sets(train_group)
+
+    same_participants_split = 0.8
+    if train_group == val_group:
+        kwargs['which_part'] = same_participants_split
 
     t_transform = torch_transforms.Compose([
         #        ClipTime(target_size, place=None),
@@ -206,6 +228,8 @@ def train_val_sets(root, conditions, target_size, train_group=None, val_group=No
             )
     train_db = torch_data.dataset.ConcatDataset(train_set)
 
+    if train_group == val_group:
+        kwargs['which_part'] = -same_participants_split
     val_db = get_val_set(root, conditions, target_size, val_group, **kwargs)
 
     return train_db, val_db
