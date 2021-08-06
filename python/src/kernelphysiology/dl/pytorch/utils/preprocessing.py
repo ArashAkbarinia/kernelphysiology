@@ -61,8 +61,10 @@ def mosaic_transformation(mosaic_pattern):
     return cv2_preprocessing.MosaicTransformation(mosaic_pattern)
 
 
-def sf_transformation(sf_filter):
-    return cv2_preprocessing.SpatialFrequencyTransformation(sf_filter)
+def sf_transformation(sf_filter, sf_filter_chn):
+    return cv2_preprocessing.SpatialFrequencyTransformation(
+        sf_filter, sf_filter_chn
+    )
 
 
 def prediction_transformation(parameters, colour_space='rgb', tmp_c=False):

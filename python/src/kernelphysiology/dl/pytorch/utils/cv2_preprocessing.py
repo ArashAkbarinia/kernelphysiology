@@ -154,12 +154,26 @@ class MosaicTransformation(object):
 
 class SpatialFrequencyTransformation(object):
 
-    def __init__(self, sf_filter):
+    def __init__(self, sf_filter, sf_filter_chn):
         self.hsf_cut, self.lsf_cut = sf_filter
+        if sf_filter_chn is None:
+            self.chn_info = None
+        else:
+            w_colour_space, w_chn = sf_filter_chn.split('_')
+            if w_colour_space == 'dkl':
+                self.chn_info = dict()
+                self.chn_info['f_convert'] = colour_spaces.rgb2dkl01
+                self.chn_info['b_convert'] = colour_spaces.dkl012rgb
+                self.chn_info['chn_ind'] = 0
+                if w_chn == 'rg':
+                    self.chn_info['chn_ind'] = 1
+                elif w_chn == 'yb':
+                    self.chn_info['chn_ind'] = 2
 
     def __call__(self, x):
         kwargs = {
-            'hsf_cut': self.hsf_cut, 'lsf_cut': self.lsf_cut
+            'hsf_cut': self.hsf_cut, 'lsf_cut': self.lsf_cut,
+            'chn_info': self.chn_info
         }
         if type(x) is list:
             return _call_recursive(x, imutils.filter_img_sf, **kwargs)

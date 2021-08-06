@@ -564,8 +564,14 @@ def mask_image(img, mask_val, **kwargs):
     return masked_img
 
 
-def filter_img_sf(img, **kwargs):
-    img = img.astype('float') / 255
+def filter_img_sf(img, chn_info=None, **kwargs):
+    if chn_info is not None:
+        org_img = chn_info['f_convert'](img)
+        img = org_img[:, :, chn_info['chn_ind']]
+
+    uint_img = img.dtype == 'uint8'
+    if uint_img:
+        img = img.astype('float') / 255
     img_norm = (img.copy() - 0.5) / 0.5
     if len(img_norm.shape) > 2:
         img_back = np.zeros(img_norm.shape)
@@ -574,8 +580,13 @@ def filter_img_sf(img, **kwargs):
     else:
         img_back = _filter_chn_sf(img_norm, **kwargs)
     img_back = (img_back * 0.5) + 0.5
-    img_back = img_back * 255
-    img_back = img_back.astype('uint8')
+    if uint_img:
+        img_back = img_back * 255
+        img_back = img_back.astype('uint8')
+
+    if chn_info is not None:
+        org_img[:, :, chn_info['chn_ind']] = img_back
+        img_back = chn_info['b_convert'](org_img)
     return img_back
 
 

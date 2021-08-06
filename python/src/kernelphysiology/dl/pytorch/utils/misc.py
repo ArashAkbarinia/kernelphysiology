@@ -286,9 +286,10 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
                     preprocessing.mosaic_transformation(args.mosaic_pattern)
                 )
             if args.sf_filter is not None:
-                other_transformations.append(
-                    preprocessing.sf_transformation(args.sf_filter)
-                )
+                other_transformations.append(preprocessing.sf_transformation(
+                    args.sf_filter,
+                    args.sf_filter_chn
+                ))
             other_transformations.append(prediction_transformation)
 
             print(

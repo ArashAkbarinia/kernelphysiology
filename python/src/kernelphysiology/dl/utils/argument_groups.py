@@ -121,6 +121,18 @@ def get_input_group(parser):
         help='Filtering images with <high,low> spatial freq (default: None)'
     )
 
+    input_group.add_argument(
+        '--sf_filter_chn',
+        default=None,
+        choices=[
+            'dkl_lum',
+            'dkl_rg',
+            'dkl_yb'
+        ],
+        type=str,
+        help='Filtering specific channels (default: None)'
+    )
+
 
 def get_output_group(parser):
     output_group = parser.add_argument_group('output')
