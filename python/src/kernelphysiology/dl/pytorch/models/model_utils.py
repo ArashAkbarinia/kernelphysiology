@@ -162,14 +162,13 @@ def which_network_classification(network_name, num_classes, **kwargs):
     if os.path.isfile(network_name):
         print('Loading %s' % network_name)
         checkpoint = torch.load(network_name, map_location='cpu')
-        customs = None
-        if customs is None:
-            customs = {'num_classes': num_classes}
-        elif 'customs' in checkpoint:
+        if 'customs' in checkpoint:
             customs = checkpoint['customs']
             # TODO: num_classes is just for backward compatibility
             if 'num_classes' not in customs:
                 customs['num_classes'] = num_classes
+        else:
+            customs = {'num_classes': num_classes}
         model = which_architecture(checkpoint['arch'], customs=customs)
 
         # TODO: for each dataset a class of network should be defined
