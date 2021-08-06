@@ -20,6 +20,7 @@ from kernelphysiology.filterfactory.mask import ring_mask
 from kernelphysiology.transformations.colour_spaces import rgb2opponency
 from kernelphysiology.transformations.colour_spaces import opponency2rgb
 from kernelphysiology.transformations.colour_spaces import get_max_lightness
+from kernelphysiology.transformations import colour_spaces
 from kernelphysiology.transformations.normalisations import im2double_max
 from kernelphysiology.transformations.normalisations import im2double
 from kernelphysiology.transformations.normalisations import img_midvals
@@ -564,8 +565,12 @@ def mask_image(img, mask_val, **kwargs):
     return masked_img
 
 
-def filter_img_sf(img, chn_info=None, **kwargs):
-    if chn_info is not None:
+def filter_img_sf(img, chn_info=None, dkl_chn=None, **kwargs):
+    if dkl_chn is not None:
+        dkl_chn = int(dkl_chn)
+        org_img = colour_spaces.rgb2dkl01(img)
+        img = org_img[:, :, dkl_chn]
+    elif chn_info is not None:
         org_img = chn_info['f_convert'](img)
         img = org_img[:, :, chn_info['chn_ind']]
 
@@ -584,7 +589,10 @@ def filter_img_sf(img, chn_info=None, **kwargs):
         img_back = img_back * 255
         img_back = img_back.astype('uint8')
 
-    if chn_info is not None:
+    if dkl_chn is not None:
+        org_img[:, :, dkl_chn] = img_back
+        img_back = colour_spaces.dkl012rgb(org_img)
+    elif chn_info is not None:
         org_img[:, :, chn_info['chn_ind']] = img_back
         img_back = chn_info['b_convert'](org_img)
     return img_back
