@@ -2,7 +2,6 @@
 Utility functions for image processing.
 """
 
-from skimage.util import random_noise
 from skimage.color import rgb2gray
 from skimage.draw import rectangle
 
@@ -24,6 +23,7 @@ from kernelphysiology.transformations import colour_spaces
 from kernelphysiology.transformations.normalisations import im2double_max
 from kernelphysiology.transformations.normalisations import im2double
 from kernelphysiology.transformations.normalisations import img_midvals
+from kernelphysiology.utils.noise import random_noise
 
 
 # TODO: merge it with Keras image manipulation class
@@ -359,14 +359,14 @@ def adjust_illuminant(image, illuminant, pixel_variatoin=0, mask_type=None,
 
 
 def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True,
-              mask_type=None, **kwargs):
+              mask_type=None, eq_chns=False, **kwargs):
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)
 
     image_noise = random_noise(
         image, mode='s&p', seed=seed, clip=clip,
-        salt_vs_pepper=salt_vs_pepper, amount=amount
+        salt_vs_pepper=salt_vs_pepper, amount=amount, eq_chns=eq_chns
     )
     output = image_org * image_mask + image_noise * (1 - image_mask)
     output *= max_pixel
@@ -374,13 +374,14 @@ def s_p_noise(image, amount, salt_vs_pepper=0.5, seed=None, clip=True,
 
 
 def speckle_noise(image, amount, seed=None, clip=True, mask_type=None,
-                  **kwargs):
+                  eq_chns=False, **kwargs):
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)
 
     image_noise = random_noise(
-        image, mode='speckle', seed=seed, clip=clip, var=amount
+        image, mode='speckle', seed=seed, clip=clip, var=amount,
+        eq_chns=eq_chns
     )
     output = image_org * image_mask + image_noise * (1 - image_mask)
     output *= max_pixel
@@ -388,25 +389,29 @@ def speckle_noise(image, amount, seed=None, clip=True, mask_type=None,
 
 
 def gaussian_noise(image, amount, seed=None, clip=True, mask_type=None,
-                   **kwargs):
+                   eq_chns=False, **kwargs):
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)
 
     image_noise = random_noise(
-        image, mode='gaussian', seed=seed, clip=clip, var=amount
+        image, mode='gaussian', seed=seed, clip=clip, var=amount,
+        eq_chns=eq_chns
     )
     output = image_org * image_mask + image_noise * (1 - image_mask)
     output *= max_pixel
     return output
 
 
-def poisson_noise(image, seed=None, clip=True, mask_type=None, **kwargs):
+def poisson_noise(image, seed=None, clip=True, mask_type=None,
+                  eq_chns=False, **kwargs):
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)
 
-    image_noise = random_noise(image, mode='poisson', seed=seed, clip=clip)
+    image_noise = random_noise(
+        image, mode='poisson', seed=seed, clip=clip, eq_chns=eq_chns
+    )
     output = image_org * image_mask + image_noise * (1 - image_mask)
     output *= max_pixel
     return output
