@@ -143,7 +143,7 @@ def main(args):
         elif args.noise == 'speckle':
             noise_fun = imutils.speckle_noise
             kwargs = {'amount': 0.01, 'seed': args.random_seed}
-        kwargs['eq_chns': True]
+        kwargs['eq_chns'] = True
         intransform_funs.append(
             cv2_preprocessing.UniqueTransformation(
                 noise_fun, **kwargs
