@@ -17,9 +17,9 @@ from kernelphysiology.transformations import colour_spaces
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.dl.pytorch.utils import cv2_preprocessing
 from kernelphysiology.transformations import normalisations
-import argparse
+from kernelphysiology.utils import imutils
 
-from kernelphysiology.dl.experiments.decomposition import model_single
+import argparse
 
 
 def parse_arguments(args):
@@ -50,6 +50,12 @@ def parse_arguments(args):
         action='store_true',
         default=False,
         help='Compute DeltaE (default: False)'
+    )
+    parser.add_argument(
+        '--corr_noise',
+        type=float,
+        default=None,
+        help='Add correlated noise (default: None)'
     )
 
     parser.add_argument(
@@ -122,6 +128,15 @@ def main(args):
     if args.in_colour_space != ' rgb':
         intransform_funs.append(
             cv2_preprocessing.ColourSpaceTransformation(args.in_colour_space)
+        )
+    if args.corr_noise:
+        parameters = dict()
+        parameters['function'] = imutils.s_p_noise
+        parameters['kwargs'] = {
+            'amount': args.corr_noise, 'eq_chns': True
+        }
+        intransform_funs.append(
+            cv2_preprocessing.PredictionTransformation(parameters)
         )
     intransform = transforms.Compose(intransform_funs)
 
