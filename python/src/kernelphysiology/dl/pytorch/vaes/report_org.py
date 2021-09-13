@@ -129,6 +129,10 @@ def main(args):
     ])
 
     intransform_funs = []
+    if args.in_colour_space != ' rgb':
+        intransform_funs.append(
+            cv2_preprocessing.ColourSpaceTransformation(args.in_colour_space)
+        )
     if args.noise is not None:
         if args.noise == 'sp':
             noise_fun = imutils.s_p_noise
@@ -139,14 +143,11 @@ def main(args):
         elif args.noise == 'speckle':
             noise_fun = imutils.speckle_noise
             kwargs = {'amount': 0.01, 'seed': args.random_seed}
+        kwargs['eq_chns': True]
         intransform_funs.append(
             cv2_preprocessing.UniqueTransformation(
                 noise_fun, **kwargs
             )
-        )
-    if args.in_colour_space != ' rgb':
-        intransform_funs.append(
-            cv2_preprocessing.ColourSpaceTransformation(args.in_colour_space)
         )
     intransform = transforms.Compose(intransform_funs)
 
