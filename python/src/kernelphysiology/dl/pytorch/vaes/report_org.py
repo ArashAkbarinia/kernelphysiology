@@ -98,8 +98,7 @@ def main(args):
     if args.model == 'vae':
         network = vanilla_vae.VanillaVAE(latent_dim=args.k, in_channels=3)
     else:
-        network = vqmodel.VQ_CVAE(128, k=args.k, kl=args.kl, in_chns=3,
-                                  cos_distance=args.cos_dis)
+        network = vqmodel.VQ_CVAE(128, k=args.k, kl=args.kl, in_chns=3, cos_distance=args.cos_dis)
     network.load_state_dict(weights_net)
     if args.exclude > 0:
         which_vec = [args.exclude - 1]
@@ -130,9 +129,7 @@ def main(args):
 
     intransform_funs = []
     if args.in_colour_space != ' rgb':
-        intransform_funs.append(
-            cv2_preprocessing.ColourSpaceTransformation(args.in_colour_space)
-        )
+        intransform_funs.append(cv2_preprocessing.ColourSpaceTransformation(args.in_colour_space))
     if args.noise is not None:
         if args.noise == 'sp':
             noise_fun = imutils.s_p_noise
@@ -144,11 +141,7 @@ def main(args):
             noise_fun = imutils.speckle_noise
             kwargs = {'amount': 0.01, 'seed': args.random_seed}
         kwargs['eq_chns'] = True
-        intransform_funs.append(
-            cv2_preprocessing.UniqueTransformation(
-                noise_fun, **kwargs
-            )
-        )
+        intransform_funs.append(cv2_preprocessing.UniqueTransformation(noise_fun, **kwargs))
     intransform = transforms.Compose(intransform_funs)
 
     if args.dataset == 'imagenet':
@@ -239,31 +232,25 @@ def export(data_loader, model, mean, std, args):
 
             if np.mod(i, 10000) == 0:
                 np.savetxt(
-                    args.out_dir + '/ssim_' + args.colour_space + '.txt',
-                    np.array(all_ssim)
+                    args.out_dir + '/ssim_' + args.colour_space + '.txt', np.array(all_ssim)
                 )
                 np.savetxt(
-                    args.out_dir + '/psnr_' + args.colour_space + '.txt',
-                    np.array(all_psnr)
+                    args.out_dir + '/psnr_' + args.colour_space + '.txt', np.array(all_psnr)
                 )
                 if args.de:
                     np.savetxt(
-                        args.out_dir + '/de_' + args.colour_space + '.txt',
-                        np.array(all_des)
+                        args.out_dir + '/de_' + args.colour_space + '.txt', np.array(all_des)
                     )
 
     np.savetxt(
-        args.out_dir + '/ssim_' + args.colour_space + '.txt',
-        np.array(all_ssim)
+        args.out_dir + '/ssim_' + args.colour_space + '.txt', np.array(all_ssim)
     )
     np.savetxt(
-        args.out_dir + '/psnr_' + args.colour_space + '.txt',
-        np.array(all_psnr)
+        args.out_dir + '/psnr_' + args.colour_space + '.txt', np.array(all_psnr)
     )
     if args.de:
         np.savetxt(
-            args.out_dir + '/de_' + args.colour_space + '.txt',
-            np.array(all_des)
+            args.out_dir + '/de_' + args.colour_space + '.txt', np.array(all_des)
         )
 
 

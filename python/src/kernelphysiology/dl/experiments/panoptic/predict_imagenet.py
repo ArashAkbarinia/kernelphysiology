@@ -112,8 +112,7 @@ def main(args):
         torch.backends.cudnn.benchmark = False
 
     weights_rgb = torch.load(args.model_path, map_location='cpu')
-    network = vqmodel.VQ_CVAE(128, k=args.k, kl=args.kl, in_chns=3,
-                              cos_distance=args.cos_dis)
+    network = vqmodel.VQ_CVAE(128, k=args.k, kl=args.kl, in_chns=3, cos_distance=args.cos_dis)
     network.load_state_dict(weights_rgb)
     if args.exclude > 0:
         which_vec = [args.exclude - 1]
@@ -151,8 +150,7 @@ def main(args):
 
         imagenet_transformations = transforms.Compose([
             cv2_transforms.ToTensor(),
-            cv2_transforms.Normalize([0.485, 0.456, 0.406],
-                                     [0.229, 0.224, 0.225])
+            cv2_transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     else:
         transform_funcs = transforms.Compose([
@@ -164,11 +162,14 @@ def main(args):
         imagenet_transformations = transforms.Compose([
             cv2_transforms.Resize(256), cv2_transforms.CenterCrop(224),
             cv2_transforms.ToTensor(),
-            cv2_transforms.Normalize([0.485, 0.456, 0.406],
-                                     [0.229, 0.224, 0.225])
+            cv2_transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
 
     intransform_funs = []
+    if args.in_colour_space != ' rgb':
+        intransform_funs.append(
+            cv2_preprocessing.VisionTypeTransformation(None, args.in_colour_space)
+        )
     if args.noise[0] is not None:
         value = float(args.noise[1])
         noise_name = args.noise[0]
@@ -184,17 +185,10 @@ def main(args):
         elif noise_name == 'blur':
             noise_fun = imutils.gaussian_blur
             kwargs = {'sigmax': value, 'seed': args.random_seed}
-        intransform_funs.append(
-            cv2_preprocessing.UniqueTransformation(
-                noise_fun, **kwargs
-            )
-        )
-    if args.in_colour_space != ' rgb':
-        intransform_funs.append(
-            cv2_preprocessing.VisionTypeTransformation(
-                None, args.in_colour_space
-            )
-        )
+
+        if noise_name != 'blur':
+            kwargs['eq_chns'] = True
+        intransform_funs.append(cv2_preprocessing.UniqueTransformation(noise_fun, **kwargs))
     intransform = transforms.Compose(intransform_funs)
 
     test_loader = torch.utils.data.DataLoader(
@@ -206,21 +200,19 @@ def main(args):
         ),
         batch_size=args.batch_size, shuffle=False
     )
-    top1, top5, prediction_output = export(test_loader, network, mean, std,
-                                           imagenet_model,
-                                           imagenet_transformations, args)
+    top1, top5, prediction_output = export(
+        test_loader, network, mean, std, imagenet_model, imagenet_transformations, args
+    )
     output_file = '%s/%s.csv' % (args.out_dir, args.colour_space)
     np.savetxt(output_file, prediction_output, delimiter=',', fmt='%i')
 
 
-def export(data_loader, model, mean, std, imagenet_model,
-           imagenet_transformations, args):
+def export(data_loader, model, mean, std, imagenet_model, imagenet_transformations, args):
     top1 = AverageMeter()
     top5 = AverageMeter()
     with torch.no_grad():
         all_predictions = []
-        for i, (img_readies, img_target, img_paths, targets) in enumerate(
-                data_loader):
+        for i, (img_readies, img_target, img_paths, targets) in enumerate(data_loader):
             img_readies = img_readies.cuda()
             out_rgb = model(img_readies)
             out_rgb = out_rgb[0].detach().cpu()
@@ -234,10 +226,8 @@ def export(data_loader, model, mean, std, imagenet_model,
                 org_img_tmp = org_img_tmp.numpy().squeeze().transpose(1, 2, 0)
                 org_img_tmp = org_img_tmp * 255
                 org_img_tmp = np.uint8(org_img_tmp)
-                # org_img.append(org_img_tmp)
 
-                rec_img_tmp = inv_normalise_tensor(
-                    out_rgb[img_ind].unsqueeze(0), mean, std)
+                rec_img_tmp = inv_normalise_tensor(out_rgb[img_ind].unsqueeze(0), mean, std)
                 rec_img_tmp = rec_img_tmp.numpy().squeeze().transpose(1, 2, 0)
                 rec_img_tmp = cv2.resize(
                     rec_img_tmp, (org_img_tmp.shape[1], org_img_tmp.shape[0])
@@ -258,8 +248,7 @@ def export(data_loader, model, mean, std, imagenet_model,
                     rec_img_tmp = normalisations.uint8im(rec_img_tmp)
 
                 # imagenet stuff
-                img_imagenet = imagenet_transformations(rec_img_tmp).unsqueeze(
-                    0)
+                img_imagenet = imagenet_transformations(rec_img_tmp).unsqueeze(0)
                 output = imagenet_model(img_imagenet.cuda())
 
                 # measure accuracy and record loss
@@ -294,11 +283,9 @@ def export(data_loader, model, mean, std, imagenet_model,
                 if len(all_predictions) == 1:
                     prediction_output = np.concatenate(all_predictions[0])
                 else:
-                    prediction_output = [np.concatenate(out) for out in
-                                         all_predictions]
+                    prediction_output = [np.concatenate(out) for out in all_predictions]
                 output_file = '%s/%s.csv' % (args.out_dir, args.colour_space)
-                np.savetxt(output_file, prediction_output, delimiter=',',
-                           fmt='%i')
+                np.savetxt(output_file, prediction_output, delimiter=',', fmt='%i')
         if len(all_predictions) == 1:
             prediction_output = np.concatenate(all_predictions[0])
         else:
