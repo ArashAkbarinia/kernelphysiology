@@ -194,45 +194,24 @@ def export(data_loader, model, mean, std, args):
     with torch.no_grad():
         for i, (img_readies, img_target, img_paths) in enumerate(data_loader):
             img_readies = img_readies.cuda()
-            out_rgb = model(img_readies)
-            out_rgb = out_rgb[0].detach().cpu()
-            img_readies = img_readies.detach().cpu()
+            out_img = model(img_readies)
+            out_img = out_img[0].detach().cpu()
 
-            for img_ind in range(out_rgb.shape[0]):
+            for img_ind in range(out_img.shape[0]):
                 img_path = img_paths[img_ind]
                 if np.mod(i, 1000) == 0:
                     print(i, img_path)
-                img_ready = img_readies[img_ind].unsqueeze(0)
+                ref_img = img_target[img_ind].unsqueeze(0)
 
-                org_img_tmp = inv_normalise_tensor(img_ready, mean, std)
-                org_img_tmp = org_img_tmp.numpy().squeeze().transpose(1, 2, 0)
-                # org_img.append(org_img_tmp)
+                ref_img_tmp = inv_normalise_tensor(ref_img, mean, std)
+                ref_img_tmp = ref_img_tmp.numpy().squeeze().transpose(1, 2, 0)
 
-                if args.in_colour_space == 'lab':
-                    org_img_tmp = np.uint8(org_img_tmp * 255)
-                    org_img_tmp = cv2.cvtColor(org_img_tmp, cv2.COLOR_LAB2RGB)
-                elif args.in_colour_space == 'hsv':
-                    org_img_tmp = colour_spaces.hsv012rgb(org_img_tmp)
-                elif args.in_colour_space == 'lms':
-                    org_img_tmp = colour_spaces.lms012rgb(org_img_tmp)
-                elif args.in_colour_space == 'yog':
-                    org_img_tmp = colour_spaces.yog012rgb(org_img_tmp)
-                elif args.in_colour_space == 'dkl':
-                    org_img_tmp = colour_spaces.dkl012rgb(org_img_tmp)
-                else:
-                    org_img_tmp = normalisations.uint8im(org_img_tmp)
+                # target transforms are None so always are in RGB
+                ref_img_tmp = normalisations.uint8im(ref_img_tmp)
 
-                # if os.path.exists(img_path.replace(cat_in_dir, rgb_dir)):
-                #     rec_rgb_tmp = cv2.imread(
-                #         img_path.replace(cat_in_dir, rgb_dir))
-                #     rec_rgb_tmp = cv2.cvtColor(rec_rgb_tmp, cv2.COLOR_BGR2RGB)
-                # else:
-                rec_img_tmp = inv_normalise_tensor(
-                    out_rgb[img_ind].unsqueeze(0), mean, std)
+                rec_img_tmp = inv_normalise_tensor(out_img[img_ind].unsqueeze(0), mean, std)
                 rec_img_tmp = rec_img_tmp.numpy().squeeze().transpose(1, 2, 0)
-                rec_img_tmp = cv2.resize(
-                    rec_img_tmp, (org_img_tmp.shape[1], org_img_tmp.shape[0])
-                )
+                rec_img_tmp = cv2.resize(rec_img_tmp, (ref_img_tmp.shape[1], ref_img_tmp.shape[0]))
                 if args.out_colour_space == 'lab':
                     rec_img_tmp = np.uint8(rec_img_tmp * 255)
                     rec_img_tmp = cv2.cvtColor(rec_img_tmp, cv2.COLOR_LAB2RGB)
@@ -247,14 +226,13 @@ def export(data_loader, model, mean, std, args):
                 else:
                     rec_img_tmp = normalisations.uint8im(rec_img_tmp)
 
-                ssim = metrics.structural_similarity(org_img_tmp, rec_img_tmp,
-                                                     multichannel=True)
+                ssim = metrics.structural_similarity(ref_img_tmp, rec_img_tmp, multichannel=True)
                 all_ssim.append(ssim)
-                psnr = metrics.peak_signal_noise_ratio(org_img_tmp, rec_img_tmp)
+                psnr = metrics.peak_signal_noise_ratio(ref_img_tmp, rec_img_tmp)
                 all_psnr.append(psnr)
 
                 if args.de:
-                    img_org = color.rgb2lab(org_img_tmp)
+                    img_org = color.rgb2lab(ref_img_tmp)
                     img_res = color.rgb2lab(rec_img_tmp)
                     de = color.deltaE_ciede2000(img_org, img_res)
                     all_des.append([np.mean(de), np.median(de), np.max(de)])
