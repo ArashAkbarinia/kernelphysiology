@@ -1,6 +1,7 @@
 """
 The dataloader routines for the grasp project.
 """
+
 import cv2
 import numpy as np
 import os
@@ -28,9 +29,7 @@ def _read_trial(file_path):
 
 def nan2neighbour(data):
     mask = np.isnan(data)
-    data[mask] = np.interp(
-        np.flatnonzero(mask), np.flatnonzero(~mask), data[~mask]
-    )
+    data[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), data[~mask])
     return data
 
 
@@ -102,12 +101,8 @@ class SingleParticipant(torch_data.Dataset):
         self.transform = transform
 
         # creating the root paths
-        self.kinematic_root = os.path.join(
-            self.root, 'kinematic', participant, condition
-        )
-        self.startend_root = os.path.join(
-            self.root, 'start_end', participant, condition
-        )
+        self.kinematic_root = os.path.join(self.root, 'kinematic', participant, condition)
+        self.startend_root = os.path.join(self.root, 'start_end', participant, condition)
 
         # reading the mat info
         mat_path = '%s/stimlist_%s.mat' % (self.kinematic_root, condition)
@@ -156,9 +151,8 @@ class SingleParticipant(torch_data.Dataset):
         response = self.stimuli_data[tnum][-1] - 1
 
         # converting to tensor
-        trial_img = torch.tensor(
-            trial_img.transpose((2, 0, 1))
-        ).type(torch.FloatTensor)
+        # FIXME: normalise tirl_img to -1 to 1
+        trial_img = torch.tensor(trial_img.transpose((2, 0, 1))).type(torch.FloatTensor)
         intensity = torch.tensor([intensity]).type(torch.FloatTensor)
 
         # FIXME
@@ -186,16 +180,12 @@ def _random_train_val_sets(train_percent):
 
 
 def get_val_set(root, conditions, target_size, val_group, **kwargs):
-    v_transform = torch_transforms.Compose([
-        TimeResize(target_size)
-    ])
+    v_transform = torch_transforms.Compose([TimeResize(target_size)])
     val_set = []
     for cond in conditions:
         for vg in val_group:
             val_set.append(
-                SingleParticipant(
-                    root, str(vg), cond, transform=v_transform, **kwargs
-                )
+                SingleParticipant(root, str(vg), cond, transform=v_transform, **kwargs)
             )
     val_db = torch_data.dataset.ConcatDataset(val_set)
     return val_db
@@ -222,9 +212,7 @@ def train_val_sets(root, conditions, target_size, train_group=None,
     for cond in conditions:
         for tg in train_group:
             train_set.append(
-                SingleParticipant(
-                    root, str(tg), cond, transform=t_transform, **kwargs
-                )
+                SingleParticipant(root, str(tg), cond, transform=t_transform, **kwargs)
             )
     train_db = torch_data.dataset.ConcatDataset(train_set)
 

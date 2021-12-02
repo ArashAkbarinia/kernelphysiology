@@ -121,8 +121,7 @@ def _main_worker(args):
             'inplanes': args.num_kernels,
             'intensity_length': 1 if args.out_type == 'intensity' else 0
         }
-        model = grasp_model.__dict__[args.architecture](args.blocks,
-                                                        **net_kwargs)
+        model = grasp_model.__dict__[args.architecture](args.blocks, **net_kwargs)
 
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
@@ -261,9 +260,7 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
 
     end = time.time()
     with torch.set_grad_enabled(is_train):
-        for i, (
-                kinematic, intensity, mass_dist, response, trial_name
-        ) in enumerate(train_loader):
+        for i, (kinematic, intensity, mass_dist, response, trial_name) in enumerate(train_loader):
             # measure data loading time
             data_time.update(time.time() - end)
 
