@@ -257,8 +257,7 @@ def reduce_lightness(image, amount, colour_space='lab'):
     return output
 
 
-def adjust_contrast(image, amount, pixel_variatoin=0, mask_type=None,
-                    **kwargs):
+def adjust_contrast(image, amount, pixel_variatoin=0, mask_type=None, **kwargs):
     """Return the image scaled to a certain contrast level in [0, 1].
 
     parameters:
@@ -272,6 +271,8 @@ def adjust_contrast(image, amount, pixel_variatoin=0, mask_type=None,
     assert np.all(amount >= 0.0), 'contrast_level too low.'
     assert np.all(amount <= 1.0), 'contrast_level too high.'
 
+    is_uint8 = image.dtype == 'uint8'
+
     image, max_pixel = im2double_max(image)
     image_org = image.copy()
     image_mask = create_mask_image(image, mask_type, **kwargs)
@@ -279,13 +280,15 @@ def adjust_contrast(image, amount, pixel_variatoin=0, mask_type=None,
     min_contrast = amount - pixel_variatoin
     max_contrast = amount + pixel_variatoin
 
-    contrast_mat = np.random.uniform(
-        low=min_contrast, high=max_contrast, size=image.shape
-    )
+    contrast_mat = np.random.uniform(low=min_contrast, high=max_contrast, size=image.shape)
 
     image_contrast = (1 - contrast_mat) / 2.0 + np.multiply(image, contrast_mat)
     output = image_org * image_mask + image_contrast * (1 - image_mask)
     output *= max_pixel
+
+    if is_uint8:
+        output = output.astype('uint8')
+
     return output
 
 
@@ -297,8 +300,7 @@ def grayscale_contrast(image, amount, mask_radius=None):
     - contrast_level: a scalar in [0, 1]; with 1 -> full contrast
     """
 
-    return adjust_contrast(rgb2gray(image), amount,
-                           mask_radius=mask_radius)
+    return adjust_contrast(rgb2gray(image), amount, mask_radius=mask_radius)
 
 
 def adjust_gamma(image, amount, pixel_variatoin=0, mask_type=None, **kwargs):

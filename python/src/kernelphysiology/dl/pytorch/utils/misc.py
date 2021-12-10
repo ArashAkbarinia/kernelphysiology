@@ -240,12 +240,12 @@ def _requires_colour_transform(exp, chromaticity):
 def generic_evaluation(args, fn, save_fn=None, **kwargs):
     manipulation_values = args.parameters['kwargs'][args.manipulation]
     manipulation_name = args.parameters['f_name']
+    other_mans = args.parameters['others']
     for j, current_network in enumerate(args.network_files):
         # which architecture
         (model, target_size) = model_utils.which_network(
             current_network, args.task_type, num_classes=args.num_classes,
-            kill_kernels=args.kill_kernels, kill_planes=args.kill_planes,
-            kill_lines=args.kill_lines
+            kill_kernels=args.kill_kernels, kill_planes=args.kill_planes, kill_lines=args.kill_lines
         )
         model.to(args.device)
         mean, std = model_utils.get_preprocessing_function(
@@ -257,38 +257,41 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
             args.parameters['kwargs'][args.manipulation] = manipulation_value
 
             output_file = prepapre_testing._prepare_saving_file(
-                args.experiment_name, args.network_names[j],
-                args.dataset, manipulation_name, manipulation_value,
-                extension='csv'
+                args.experiment_name, args.network_names[j], args.dataset, manipulation_name,
+                manipulation_value, extension='csv'
             )
             if os.path.exists(output_file):
                 continue
 
             if args.task_type == 'segmentation' or 'voc' in args.dataset:
                 prediction_transformation = preprocessing.prediction_transformation_seg(
-                    args.parameters, args.colour_space,
-                    tmp_c_space(manipulation_name)
+                    args.parameters, args.colour_space, tmp_c_space(manipulation_name)
                 )
             else:
                 prediction_transformation = preprocessing.prediction_transformation(
-                    args.parameters, args.colour_space,
-                    tmp_c_space(manipulation_name)
+                    args.parameters, args.colour_space, tmp_c_space(manipulation_name)
                 )
             colour_vision = 'trichromat'
-            if _requires_colour_transform(
-                    manipulation_name, args.network_chromaticities[j]
-            ):
+            if _requires_colour_transform(manipulation_name, args.network_chromaticities[j]):
                 colour_vision = args.network_chromaticities[j]
 
             other_transformations = []
+            for oth_man in other_mans:
+                if args.task_type == 'segmentation' or 'voc' in args.dataset:
+                    other_transformations.append(preprocessing.prediction_transformation_seg(
+                        oth_man, args.colour_space, tmp_c_space(oth_man['f_name'])
+                    ))
+                else:
+                    other_transformations.append(preprocessing.prediction_transformation(
+                        oth_man, args.colour_space, tmp_c_space(oth_man['f_name'])
+                    ))
             if args.mosaic_pattern is not None:
                 other_transformations.append(
                     preprocessing.mosaic_transformation(args.mosaic_pattern)
                 )
             if args.sf_filter is not None:
                 other_transformations.append(preprocessing.sf_transformation(
-                    args.sf_filter,
-                    args.sf_filter_chn
+                    args.sf_filter, args.sf_filter_chn
                 ))
             other_transformations.append(prediction_transformation)
 

@@ -207,11 +207,7 @@ def create_manipulation_list(manipulation, parameters, supported_functions):
     parameters = parse_image_modifications(
         parameters, supported_functions=supported_functions
     )
-    if len(parameters) > 1:
-        sys.exit(
-            'Currently only one manipulation at a time is supported.'
-        )
-    elif len(parameters) == 0:
+    if len(parameters) == 0:
         if manipulation is None:
             manipulation = '_nothing'
             parameters = {
@@ -220,11 +216,23 @@ def create_manipulation_list(manipulation, parameters, supported_functions):
                 'f_name': 'original'
             }
         else:
-            sys.exit(
-                'Manipulation %s requires parameters.' % manipulation
-            )
+            sys.exit('Manipulation %s requires parameters.' % manipulation)
     else:
-        parameters = parameters[0]
+        if len(parameters) > 1:
+            for i in range(1, len(parameters)):
+                param_i = parameters[i]
+                for kwarg_key, kwarg_val in param_i['kwargs'].items():
+                    if len(kwarg_val) > 1:
+                        f_name = param_i['f_name']
+                        sys.exit(
+                            'Only one manipulation is supported [%s %s].' % (f_name, kwarg_key)
+                        )
+                    parameters[i]['kwargs'][kwarg_key] = kwarg_val[0]
+            other_params = parameters[1:]
+            parameters = parameters[0]
+            parameters['others'] = other_params
+        else:
+            parameters = parameters[0]
 
         manipulation_exist = False
         for key in parameters['kwargs'].keys():
@@ -236,9 +244,7 @@ def create_manipulation_list(manipulation, parameters, supported_functions):
                 elm0 = parameters['kwargs'][key][0]
                 parameters['kwargs'][key] = elm0
         if manipulation_exist is False:
-            sys.exit(
-                'Manipulation %s not found in parameters.' % manipulation
-            )
+            sys.exit('Manipulation %s not found in parameters.' % manipulation)
     return manipulation, parameters
 
 
