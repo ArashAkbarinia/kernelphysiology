@@ -120,11 +120,9 @@ def main(argv):
         distance_mat = np.mean(all_distances, axis=0)
         pred = distance_mat.mean(axis=0).argmax()
         all_preds.append(pred)
-        if test_ind == 4:
-            break
 
     # saving the results
-    out_file = 'out.csv'
+    out_file = '%s.csv' % args.architecture
     np.savetxt(out_file, np.array(all_preds), delimiter=',')
 
 
