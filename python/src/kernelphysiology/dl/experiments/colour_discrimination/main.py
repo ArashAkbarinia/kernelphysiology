@@ -64,7 +64,9 @@ def main(argv):
     args = parser.parse_args(argv)
 
     # creating the model
-    model = pmodels.__dict__[args.architecture](pretrained=True)
+    model = pmodels.__dict__[args.architecture](pretrained=True).cuda()
+    model.eval()
+
     # creating the hooks
     act_dict, rfhs = _create_resnet_hooks(model)
 
@@ -97,29 +99,29 @@ def main(argv):
         # making it pytorch friendly
         img_batch = torch.stack(
             [transform(img_target), transform(img_ref0), transform(img_ref1), transform(img_ref2)]
-        )
+        ).cuda()
 
         # computing the activations
-        _ = model(img_batch)
+        net_out = model(img_batch)
+        act_dict['fc'] = net_out.detach()
 
-        all_distances = []
-        for key, val in act_dict.items():
-            current_acts = val.clone().cpu().numpy().squeeze()
+        with torch.no_grad():
+            layer_pred = []
+            for key, val in act_dict.items():
+                current_acts = val.clone().cpu().numpy().squeeze()
 
-            key_distance_mat = np.zeros((n_comps, n_comps))
-            for i in range(0, n_comps - 1):
-                for j in range(i, n_comps):
-                    if i == j:
-                        continue
-                    diff = current_acts[i] - current_acts[j]
-                    diff = (diff ** 2).sum() ** 0.5
-                    key_distance_mat[i, j] = diff
-                    key_distance_mat[j, i] = diff
-            all_distances.append(key_distance_mat)
-        all_distances = np.array(all_distances)
-        distance_mat = np.mean(all_distances, axis=0)
-        pred = distance_mat.mean(axis=0).argmax()
-        all_preds.append(pred)
+                key_distance_mat = np.zeros((n_comps, n_comps))
+                for i in range(0, n_comps - 1):
+                    for j in range(i, n_comps):
+                        if i == j:
+                            continue
+                        diff = current_acts[i] - current_acts[j]
+                        diff = (diff ** 2).sum() ** 0.5
+                        key_distance_mat[i, j] = diff
+                        key_distance_mat[j, i] = diff
+                distance_mat = np.mean(key_distance_mat, axis=0)
+                layer_pred.append(distance_mat.mean(axis=0).argmax())
+            all_preds.append(layer_pred)
 
     # saving the results
     out_file = '%s.csv' % args.architecture
