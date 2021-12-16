@@ -120,7 +120,7 @@ def main(argv):
                         key_distance_mat[i, j] = diff
                         key_distance_mat[j, i] = diff
                 distance_mat = np.mean(key_distance_mat, axis=0)
-                layer_pred.append(distance_mat.mean(axis=0).argmax())
+                layer_pred.append(distance_mat.argmax())
             all_preds.append(layer_pred)
 
     # saving the results
