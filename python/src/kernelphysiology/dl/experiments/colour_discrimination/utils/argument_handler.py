@@ -179,7 +179,7 @@ def _add_input_group(parser):
 
     input_group.add_argument(
         '--colour_space',
-        default='rgb',
+        default='imagenet_rgb',
         type=str,
         choices=[
             'rgb', 'imagenet_rgb',
