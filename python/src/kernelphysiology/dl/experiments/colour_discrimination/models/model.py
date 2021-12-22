@@ -9,11 +9,11 @@ import torch.nn as nn
 from . import pretrained_models
 
 
-class ContrastDiscrimination(nn.Module):
+class ColourDiscrimination(nn.Module):
     def __init__(self, architecture, target_size, transfer_weights=None):
-        super(ContrastDiscrimination, self).__init__()
+        super(ColourDiscrimination, self).__init__()
 
-        num_classes = 2
+        num_classes = 4
 
         checkpoint = None
         # assuming architecture is path
@@ -41,8 +41,8 @@ class ContrastDiscrimination(nn.Module):
             sys.exit('Unsupported network %s' % architecture)
         self.features = features
 
-        # the numbers for fc layers are hard-coded according to 256 size.
-        scale_factor = (target_size / 256)
+        # the numbers for fc layers are hard-coded according to larger image size.
+        scale_factor = (target_size / 224) * 4
         self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
 
         if checkpoint is not None:

@@ -71,12 +71,14 @@ class LayerActivation(nn.Module):
 def _resnet_features(model, network_name, layer):
     if type(layer) is str:
         if layer == 'area0':
+            # FIXME
             layer = 4
             if network_name in ['resnet18', 'resnet34']:
                 org_classes = 524288
             else:
                 org_classes = 524288
         elif layer == 'area1':
+            # FIXME
             layer = 5
             if network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
@@ -86,6 +88,7 @@ def _resnet_features(model, network_name, layer):
             else:
                 org_classes = 2097152
         elif layer == 'area2':
+            # FIXME
             layer = 6
             if network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
@@ -100,26 +103,28 @@ def _resnet_features(model, network_name, layer):
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
-                org_classes = 131072
+                org_classes = 50176
             elif 'custom' not in network_name and (
                     'deeplabv3_' in network_name or 'fcn_' in network_name
             ):
+                # FIXME
                 org_classes = 2097152
             else:
-                org_classes = 524288
+                org_classes = 200704
         elif layer == 'area4':
             layer = 8
             if network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
-                org_classes = 65536
+                org_classes = 25088
             elif 'custom' not in network_name and (
                     'deeplabv3_' in network_name or 'fcn_' in network_name
             ):
+                # FIXME
                 org_classes = 4194304
             else:
-                org_classes = 262144
+                org_classes = 100352
         else:
             sys.exit('Unsupported layer %s' % layer)
     features = nn.Sequential(*list(model.children())[:layer])
