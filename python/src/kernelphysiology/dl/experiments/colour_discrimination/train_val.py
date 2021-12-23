@@ -58,7 +58,7 @@ def _main_worker(args):
     criterion = nn.CrossEntropyLoss().cuda(args.gpu)
 
     # if transfer_weights, only train the fc layer, otherwise all parameters
-    if args.transfer_weights is None:
+    if args.transfer_weights is None or '_scratch' in args.architecture:
         params_to_optimize = [{'params': [p for p in model.parameters()]}]
     else:
         for p in model.features.parameters():
