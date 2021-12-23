@@ -55,7 +55,9 @@ def _main_worker(args):
     model = model.cuda(args.gpu)
 
     # define loss function (criterion) and optimizer
-    criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+    # FIXME
+    # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+    criterion = nn.MSELoss().cuda(args.gpu)
 
     # if transfer_weights, only train the fc layer, otherwise all parameters
     if args.transfer_weights is None or '_scratch' in args.architecture:
@@ -181,7 +183,7 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
 
     end = time.time()
     with torch.set_grad_enabled(is_train):
-        for i, (img0, img1, img2, img3, target) in enumerate(train_loader):
+        for i, (img0, img1, img2, img3, odd_ind) in enumerate(train_loader):
             # measure data loading time
             data_time.update(time.time() - end)
 
@@ -189,14 +191,20 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
             img1 = img1.cuda(args.gpu, non_blocking=True)
             img2 = img2.cuda(args.gpu, non_blocking=True)
             img3 = img3.cuda(args.gpu, non_blocking=True)
+
+            # preparing the target
+            target = torch.zeros(odd_ind.shape[0], 4)
+            target[torch.arange(odd_ind.shape[0]), odd_ind] = 1
             target = target.cuda(args.gpu, non_blocking=True)
+            odd_ind = odd_ind.cuda(args.gpu, non_blocking=True)
 
             # compute output
             output = model(img0, img1, img2, img3)
             loss = criterion(output, target)
 
             # measure accuracy and record loss
-            acc1 = report_utils.accuracy(output, target)
+            # FIXME
+            acc1 = report_utils.accuracy(output, odd_ind)
             losses.update(loss.item(), img0.size(0))
             top1.update(acc1[0].cpu().numpy()[0], img0.size(0))
 

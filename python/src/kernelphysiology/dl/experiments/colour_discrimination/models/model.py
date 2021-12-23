@@ -43,20 +43,27 @@ class ColourDiscrimination(nn.Module):
 
         # the numbers for fc layers are hard-coded according to larger image size.
         scale_factor = (target_size / 224) * 4
-        self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
+        # self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
+        self.fc = nn.Conv2d(512 * 4, num_classes, kernel_size=1, bias=False)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         if checkpoint is not None:
             self.load_state_dict(checkpoint['state_dict'])
 
     def forward(self, x0, x1, x2, x3):
         x0 = self.features(x0)
-        x0 = x0.view(x0.size(0), -1)
+        # x0 = x0.view(x0.size(0), -1)
         x1 = self.features(x1)
-        x1 = x1.view(x1.size(0), -1)
+        # x1 = x1.view(x1.size(0), -1)
         x2 = self.features(x2)
-        x2 = x2.view(x2.size(0), -1)
+        # x2 = x2.view(x2.size(0), -1)
         x3 = self.features(x3)
-        x3 = x3.view(x3.size(0), -1)
+        # x3 = x3.view(x3.size(0), -1)
         x = torch.cat([x0, x1, x2, x3], dim=1)
+
         x = self.fc(x)
+        x = self.avgpool(x)
+        x = torch.sigmoid(x)
+
+        x = x.view(x.size(0), -1)
         return x
