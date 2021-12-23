@@ -125,6 +125,10 @@ def _resnet_features(model, network_name, layer):
                 org_classes = 4194304
             else:
                 org_classes = 100352
+        elif layer == 'fc':
+            # FIXME
+            org_classes = 1000
+            return model, org_classes
         else:
             sys.exit('Unsupported layer %s' % layer)
     features = nn.Sequential(*list(model.children())[:layer])
