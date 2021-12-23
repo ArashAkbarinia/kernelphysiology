@@ -195,6 +195,7 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
             # preparing the target
             target = torch.zeros(odd_ind.shape[0], 4)
             target[torch.arange(odd_ind.shape[0]), odd_ind] = 1
+            target = (target * 2) - 1
             target = target.cuda(args.gpu, non_blocking=True)
             odd_ind = odd_ind.cuda(args.gpu, non_blocking=True)
 

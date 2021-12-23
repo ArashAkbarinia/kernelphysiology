@@ -63,7 +63,7 @@ class ColourDiscrimination(nn.Module):
 
         x = self.fc(x)
         x = self.avgpool(x)
-        x = torch.sigmoid(x)
+        x = torch.tanh(x)
 
         x = x.view(x.size(0), -1)
         return x
