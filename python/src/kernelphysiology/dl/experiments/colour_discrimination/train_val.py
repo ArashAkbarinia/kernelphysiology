@@ -182,6 +182,7 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
         model.eval()
         num_samples = args.val_samples
 
+    epoch_str = 'train' if is_train else 'val'
     end = time.time()
     with torch.set_grad_enabled(is_train):
         for i, (img0, img1, img2, img3, odd_ind) in enumerate(train_loader):
@@ -224,12 +225,12 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
             # printing the accuracy at certain intervals
             if i % args.print_freq == 0:
                 print(
-                    'Epoch: [{0}][{1}/{2}]\t'
+                    '{0}: [{1}][{2}/{3}]\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                     'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                     'Acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                        epoch, i, len(train_loader), batch_time=batch_time,
+                        epoch_str, epoch, i, len(train_loader), batch_time=batch_time,
                         data_time=data_time, loss=losses, top1=top1
                     )
                 )
