@@ -5,6 +5,7 @@
 import sys
 import torch
 import torch.nn as nn
+from torch.nn import functional as t_functional
 
 from . import pretrained_models
 
@@ -13,7 +14,7 @@ class ColourDiscrimination(nn.Module):
     def __init__(self, architecture, target_size, transfer_weights=None):
         super(ColourDiscrimination, self).__init__()
 
-        num_classes = 4
+        num_classes = 3
 
         checkpoint = None
         # assuming architecture is path
@@ -42,10 +43,10 @@ class ColourDiscrimination(nn.Module):
         self.features = features
 
         # the numbers for fc layers are hard-coded according to larger image size.
-        scale_factor = (target_size / 224) * 4
-        # self.fc = nn.Linear(int(org_classes * scale_factor), num_classes)
-        self.fc = nn.Conv2d(512 * 4, num_classes, kernel_size=1, bias=False)
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        scale_factor = (target_size / 224) * num_classes
+        self.fc = nn.Linear(int(org_classes * scale_factor), 1)
+        # self.fc = nn.Conv2d(512 * 4, num_classes, kernel_size=1, bias=False)
+        # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         if checkpoint is not None:
             self.load_state_dict(checkpoint['state_dict'])
@@ -59,11 +60,20 @@ class ColourDiscrimination(nn.Module):
         # x2 = x2.view(x2.size(0), -1)
         x3 = self.features(x3)
         # x3 = x3.view(x3.size(0), -1)
-        x = torch.cat([x0, x1, x2, x3], dim=1)
+        # x = torch.cat([x0, x1, x2, x3], dim=1)
 
-        x = self.fc(x)
-        x = self.avgpool(x)
+        comp3 = self.fc(torch.cat([x0, x1, x2], dim=1))
+        comp2 = self.fc(torch.cat([x0, x1, x3], dim=1))
+        comp1 = self.fc(torch.cat([x0, x2, x3], dim=1))
+        comp0 = self.fc(torch.cat([x1, x2, x3], dim=1))
+        # x = self.avgpool(x)
         # x = torch.tanh(x)
+        # x = x.view(x.size(0), -1)
+        return comp0, comp1, comp2, comp3
 
-        x = x.view(x.size(0), -1)
-        return x
+    def loss_function(self, comp0, comp1, comp2, comp3, targets):
+        loss0 = t_functional.binary_cross_entropy_with_logits(comp0, targets[0])
+        loss1 = t_functional.binary_cross_entropy_with_logits(comp1, targets[1])
+        loss2 = t_functional.binary_cross_entropy_with_logits(comp2, targets[2])
+        loss3 = t_functional.binary_cross_entropy_with_logits(comp3, targets[3])
+        return (loss0 + loss1 + loss2 + loss3) / 4

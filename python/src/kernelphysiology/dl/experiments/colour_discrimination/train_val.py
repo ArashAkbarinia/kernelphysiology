@@ -202,7 +202,8 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
 
             # compute output
             output = model(img0, img1, img2, img3)
-            loss = criterion(output, target)
+            # loss = criterion(output, target)
+            loss = model.loss_function(*output, target)
 
             # measure accuracy and record loss
             # FIXME
