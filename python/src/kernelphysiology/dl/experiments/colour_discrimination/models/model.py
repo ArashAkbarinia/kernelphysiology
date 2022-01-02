@@ -10,6 +10,13 @@ from torch.nn import functional as t_functional
 from . import pretrained_models
 
 
+def loss_function(output, target):
+    loss = 0
+    for i in range(4):
+        loss += t_functional.binary_cross_entropy_with_logits(output[i], target[i])
+    return loss / 4
+
+
 class ColourDiscrimination(nn.Module):
     def __init__(self, architecture, target_size, transfer_weights=None):
         super(ColourDiscrimination, self).__init__()
@@ -53,13 +60,13 @@ class ColourDiscrimination(nn.Module):
 
     def forward(self, x0, x1, x2, x3):
         x0 = self.features(x0)
-        # x0 = x0.view(x0.size(0), -1)
+        x0 = x0.view(x0.size(0), -1)
         x1 = self.features(x1)
-        # x1 = x1.view(x1.size(0), -1)
+        x1 = x1.view(x1.size(0), -1)
         x2 = self.features(x2)
-        # x2 = x2.view(x2.size(0), -1)
+        x2 = x2.view(x2.size(0), -1)
         x3 = self.features(x3)
-        # x3 = x3.view(x3.size(0), -1)
+        x3 = x3.view(x3.size(0), -1)
         # x = torch.cat([x0, x1, x2, x3], dim=1)
 
         comp3 = self.fc(torch.cat([x0, x1, x2], dim=1))
@@ -69,11 +76,4 @@ class ColourDiscrimination(nn.Module):
         # x = self.avgpool(x)
         # x = torch.tanh(x)
         # x = x.view(x.size(0), -1)
-        return comp0, comp1, comp2, comp3
-
-    def loss_function(self, comp0, comp1, comp2, comp3, targets):
-        loss0 = t_functional.binary_cross_entropy_with_logits(comp0, targets[0])
-        loss1 = t_functional.binary_cross_entropy_with_logits(comp1, targets[1])
-        loss2 = t_functional.binary_cross_entropy_with_logits(comp2, targets[2])
-        loss3 = t_functional.binary_cross_entropy_with_logits(comp3, targets[3])
-        return (loss0 + loss1 + loss2 + loss3) / 4
+        return torch.cat([comp0, comp1, comp2, comp3], dim=1)
