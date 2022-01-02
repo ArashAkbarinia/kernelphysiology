@@ -10,13 +10,6 @@ from torch.nn import functional as t_functional
 from . import pretrained_models
 
 
-def loss_function(output, target):
-    loss = 0
-    for i in range(4):
-        loss += t_functional.binary_cross_entropy_with_logits(output[i], target[i])
-    return loss / 4
-
-
 class ColourDiscrimination(nn.Module):
     def __init__(self, architecture, target_size, transfer_weights=None):
         super(ColourDiscrimination, self).__init__()
@@ -77,3 +70,9 @@ class ColourDiscrimination(nn.Module):
         # x = torch.tanh(x)
         # x = x.view(x.size(0), -1)
         return torch.cat([comp0, comp1, comp2, comp3], dim=1)
+
+    def loss_function(self, output, target):
+        loss = 0
+        for i in range(4):
+            loss += t_functional.binary_cross_entropy_with_logits(output[i], target[i])
+        return loss / 4
