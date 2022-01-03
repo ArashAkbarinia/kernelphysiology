@@ -74,5 +74,5 @@ class ColourDiscrimination(nn.Module):
     def loss_function(self, output, target):
         loss = 0
         for i in range(4):
-            loss += t_functional.binary_cross_entropy_with_logits(output[i], target[i])
+            loss += t_functional.binary_cross_entropy_with_logits(output[:, i], target[:, i])
         return loss / (4 * output.shape[0])
