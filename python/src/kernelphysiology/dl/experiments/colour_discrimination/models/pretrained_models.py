@@ -71,24 +71,21 @@ class LayerActivation(nn.Module):
 def _resnet_features(model, network_name, layer):
     if type(layer) is str:
         if layer == 'area0':
-            # FIXME
             layer = 4
             if network_name in ['resnet18', 'resnet34']:
-                org_classes = 524288
+                org_classes = 200704
             else:
-                org_classes = 524288
+                org_classes = 200704
         elif layer == 'area1':
-            # FIXME
             layer = 5
             if network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
-                org_classes = 524288
+                org_classes = 200704
             else:
-                org_classes = 2097152
+                org_classes = 802816
         elif layer == 'area2':
-            # FIXME
             layer = 6
             if network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
@@ -96,7 +93,7 @@ def _resnet_features(model, network_name, layer):
             ]:
                 org_classes = 262144
             else:
-                org_classes = 1048576
+                org_classes = 100352
         elif layer == 'area3':
             layer = 7
             if network_name in [
