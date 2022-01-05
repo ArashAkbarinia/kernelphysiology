@@ -234,4 +234,5 @@ def _train_val(train_loader, model, optimizer, epoch, args):
         if not is_train:
             # printing the accuracy of the epoch
             print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
+    print('\n')
     return [epoch, batch_time.avg, losses.avg, top1.avg]
