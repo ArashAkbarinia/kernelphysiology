@@ -38,7 +38,8 @@ def main(argv):
         return
 
     # dumping all passed arguments to a json file
-    system_utils.save_arguments(args)
+    if not args.test_net:
+        system_utils.save_arguments(args)
 
     _main_worker(args)
 
