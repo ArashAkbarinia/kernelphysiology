@@ -225,7 +225,10 @@ def _train_val(db_loader, model, optimizer, epoch, args):
             end = time.time()
 
             # to use for correlations
-            pred_outs = output.detach().cpu().numpy()
+            pred_outs = np.concatenate(
+                [output.detach().cpu().numpy(), odd_ind.unsqueeze(dim=1).cpu().numpy()],
+                axis=1
+            )
             # I'm not sure if this is all necessary, copied from keras
             if not isinstance(pred_outs, list):
                 pred_outs = [pred_outs]
