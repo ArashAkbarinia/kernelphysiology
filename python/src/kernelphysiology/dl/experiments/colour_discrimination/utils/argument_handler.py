@@ -24,6 +24,12 @@ def train_arg_parser(argvs, extra_args_fun=None):
         type=float,
         help='Filtering images with <high,low> spatial freq (default: None)'
     )
+    misc_group.add_argument(
+        '--test_net',
+        default=None,
+        type=str,
+        help='Path of the model to be tested (default: None)'
+    )
 
     if extra_args_fun is not None:
         extra_args_fun(parser)
