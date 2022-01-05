@@ -47,14 +47,32 @@ def _main_worker(args):
     mean, std = model_utils.get_mean_std(args.colour_space, args.vision_type)
 
     # create model
-    model = networks.ColourDiscrimination(
-        args.architecture, args.target_size, args.transfer_weights,
-    )
+    if args.test_net:
+        model = networks.ColourDiscrimination(args.test_net, args.target_size)
+    else:
+        model = networks.ColourDiscrimination(
+            args.architecture, args.target_size, args.transfer_weights,
+        )
 
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
 
-    # define loss function (criterion) and optimizer
+    # defyining validation set here so if only test don't do the rest
+    if args.val_dir is None:
+        args.val_dir = args.data_dir + '/validation_set/'
+
+    validation_dataset = dataloader.val_set(args.val_dir, args.target_size, preprocess=(mean, std))
+
+    val_loader = torch.utils.data.DataLoader(
+        validation_dataset, batch_size=args.batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True
+    )
+
+    if args.test_net:
+        preds = _train_val(val_loader, model, None, -1, args)
+        output_file = os.path.join(args.output_dir, 'predictions.csv')
+        np.savetxt(output_file, preds, delimiter=',', fmt='%f')
+        return
 
     # if transfer_weights, only train the fc layer, otherwise all parameters
     if args.transfer_weights is None or '_scratch' in args.architecture:
@@ -94,20 +112,6 @@ def _main_worker(args):
                 model_progress = model_progress.tolist()
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
-
-    if args.val_dir is None:
-        args.val_dir = args.data_dir + '/validation_set/'
-
-    validation_dataset = dataloader.val_set(args.val_dir, args.target_size, preprocess=(mean, std))
-
-    val_loader = torch.utils.data.DataLoader(
-        validation_dataset, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True
-    )
-
-    # if args.test_net:
-    #     # FIXME
-    #     return
 
     if args.train_dir is None:
         args.train_dir = args.data_dir + '/training_set/'
@@ -163,13 +167,14 @@ def _adjust_learning_rate(optimizer, epoch, args):
         param_group['lr'] = lr
 
 
-def _train_val(train_loader, model, optimizer, epoch, args):
+def _train_val(db_loader, model, optimizer, epoch, args):
     batch_time = report_utils.AverageMeter()
     data_time = report_utils.AverageMeter()
     losses = report_utils.AverageMeter()
     top1 = report_utils.AverageMeter()
 
     is_train = optimizer is not None
+    is_test = epoch == -1
 
     if is_train:
         model.train()
@@ -178,10 +183,11 @@ def _train_val(train_loader, model, optimizer, epoch, args):
         model.eval()
         num_samples = args.val_samples
 
+    all_predictions = []
     epoch_str = 'train' if is_train else 'val'
     end = time.time()
     with torch.set_grad_enabled(is_train):
-        for i, (img0, img1, img2, img3, odd_ind) in enumerate(train_loader):
+        for i, (img0, img1, img2, img3, odd_ind) in enumerate(db_loader):
             # measure data loading time
             data_time.update(time.time() - end)
 
@@ -217,15 +223,30 @@ def _train_val(train_loader, model, optimizer, epoch, args):
             batch_time.update(time.time() - end)
             end = time.time()
 
+            # to use for correlations
+            pred_outs = output.detach().cpu().numpy()
+            # I'm not sure if this is all necessary, copied from keras
+            if not isinstance(pred_outs, list):
+                pred_outs = [pred_outs]
+
+            if not all_predictions:
+                for _ in pred_outs:
+                    all_predictions.append([])
+
+            for j, out in enumerate(pred_outs):
+                all_predictions[j].append(out)
+
             # printing the accuracy at certain intervals
-            if i % args.print_freq == 0:
+            if is_test:
+                print('Testing: [{0}/{1}]'.format(i, len(db_loader)))
+            elif i % args.print_freq == 0:
                 print(
                     '{0}: [{1}][{2}/{3}]\t'
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                     'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                     'Acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                        epoch_str, epoch, i, len(train_loader), batch_time=batch_time,
+                        epoch_str, epoch, i, len(db_loader), batch_time=batch_time,
                         data_time=data_time, loss=losses, top1=top1
                     )
                 )
@@ -235,4 +256,11 @@ def _train_val(train_loader, model, optimizer, epoch, args):
             # printing the accuracy of the epoch
             print(' * Acc@1 {top1.avg:.3f}'.format(top1=top1))
     print()
+
+    if len(all_predictions) == 1:
+        prediction_output = np.concatenate(all_predictions[0])
+    else:
+        prediction_output = [np.concatenate(out) for out in all_predictions]
+    if is_test:
+        return prediction_output
     return [epoch, batch_time.avg, losses.avg, top1.avg]
