@@ -55,10 +55,6 @@ def _main_worker(args):
     model = model.cuda(args.gpu)
 
     # define loss function (criterion) and optimizer
-    # FIXME
-    # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
-    criterion = nn.MSELoss().cuda(args.gpu)
-    criterion = nn.BCEWithLogitsLoss().cuda(args.gpu)
 
     # if transfer_weights, only train the fc layer, otherwise all parameters
     if args.transfer_weights is None or '_scratch' in args.architecture:
@@ -129,10 +125,10 @@ def _main_worker(args):
         _adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train_log = _train_val(train_loader, model, criterion, optimizer, epoch, args)
+        train_log = _train_val(train_loader, model, optimizer, epoch, args)
 
         # evaluate on validation set
-        validation_log = _train_val(val_loader, model, criterion, None, epoch, args)
+        validation_log = _train_val(val_loader, model, None, epoch, args)
 
         model_progress.append([*train_log, *validation_log[1:]])
 
@@ -167,7 +163,7 @@ def _adjust_learning_rate(optimizer, epoch, args):
         param_group['lr'] = lr
 
 
-def _train_val(train_loader, model, criterion, optimizer, epoch, args):
+def _train_val(train_loader, model, optimizer, epoch, args):
     batch_time = report_utils.AverageMeter()
     data_time = report_utils.AverageMeter()
     losses = report_utils.AverageMeter()
@@ -203,7 +199,6 @@ def _train_val(train_loader, model, criterion, optimizer, epoch, args):
 
             # compute output
             output = model(img0, img1, img2, img3)
-            # loss = criterion(output, target)
             loss = model.loss_function(output, target)
 
             # measure accuracy and record loss
