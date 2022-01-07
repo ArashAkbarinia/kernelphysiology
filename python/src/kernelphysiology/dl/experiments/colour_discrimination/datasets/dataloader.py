@@ -11,8 +11,22 @@ from torch.utils import data as torch_data
 import torchvision.transforms as torch_transforms
 
 from skimage import io
+import scipy.stats as ss
 
 from . import cv2_transforms
+
+
+def _normal_dist_munsell_int(max_diff):
+    diffs = np.arange(-max_diff + 1, max_diff)
+    x_u, x_l = diffs + 0.5, diffs - 0.5
+    probs = ss.norm.cdf(x_u, scale=3) - ss.norm.cdf(x_l, scale=3)
+
+    ind0 = np.where(diffs == 0)
+    diffs = np.delete(diffs, ind0)
+    probs = np.delete(probs, ind0)
+    # normalise the probabilities so their sum is 1
+    probs = probs / probs.sum()
+    return diffs, probs
 
 
 class OddOneOutTrain(torch_data.Dataset):
@@ -27,6 +41,7 @@ class OddOneOutTrain(torch_data.Dataset):
         self.objects = img_info[4:]
         self.imgdir = '%s/img/' % self.root
         self.img_paths = sorted(glob.glob(self.imgdir + '*.png'))
+        self.muns_diffs, self.muns_probs = _normal_dist_munsell_int(self.munsells[1] - 1)
 
     def __getitem__(self, item):
         target_path = self.img_paths[item]
@@ -34,18 +49,29 @@ class OddOneOutTrain(torch_data.Dataset):
 
         # munsell pool
         munsell_ind = int(target_parts[0].replace('MunsellNo', ''))
-        muns_pool = np.arange(*self.munsells).tolist()
-        muns_pool.remove(munsell_ind)
-        random.shuffle(muns_pool)
+        # muns_pool = np.arange(*self.munsells).tolist()
+        # muns_pool.remove(munsell_ind)
+        # random.shuffle(muns_pool)
+        # same_munsells_ind = muns_pool[0]
+
+        # selecting a munsell close to current munsell chip with a gaussian dist
+        munsell_diff = np.random.choice(self.muns_diffs, size=1, p=self.muns_probs)[0]
+        munsell_pool = munsell_ind + munsell_diff
+        min_mun = self.munsells[0]
+        max_mun = self.munsells[1] - 1
+        if munsell_pool > max_mun:
+            munsell_pool = munsell_pool - max_mun
+        elif munsell_pool < min_mun:
+            munsell_pool = max_mun + munsell_pool
 
         # rotation pool
         rots_pool = np.arange(*self.rotations).tolist()
         random.shuffle(rots_pool)
 
         identical_munsell_paths = [
-            '%s/MunsellNo%d_rot%d_%s' % (self.imgdir, muns_pool[0], rots_pool[0], target_parts[-1]),
-            '%s/MunsellNo%d_rot%d_%s' % (self.imgdir, muns_pool[0], rots_pool[1], target_parts[-1]),
-            '%s/MunsellNo%d_rot%d_%s' % (self.imgdir, muns_pool[0], rots_pool[2], target_parts[-1]),
+            '%s/MunsellNo%d_rot%d_%s' % (self.imgdir, munsell_pool, rots_pool[0], target_parts[-1]),
+            '%s/MunsellNo%d_rot%d_%s' % (self.imgdir, munsell_pool, rots_pool[1], target_parts[-1]),
+            '%s/MunsellNo%d_rot%d_%s' % (self.imgdir, munsell_pool, rots_pool[2], target_parts[-1]),
         ]
 
         imgs = [
