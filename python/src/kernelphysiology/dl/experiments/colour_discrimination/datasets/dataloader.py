@@ -126,6 +126,88 @@ class OddOneOutVal(torch_data.Dataset):
         return len(self.data_file)
 
 
+class ShapeOddOneOutTrain(torch_data.Dataset):
+
+    def __init__(self, root, transform=None, **kwargs):
+        self.root = root
+        self.transform = transform
+        self.num_stimuli = 4
+        self.angles = (1, 11)
+        self.target_size = 128
+        # quadrant_path = self.root + '/quadrant_points.csv'
+        # quadrant_pts = np.loadtxt(quadrant_path, delimiter=',', dtype=str)[1:]
+        self.imgdir = '%s/shape2D/' % self.root
+        self.img_paths = sorted(glob.glob(self.imgdir + '*.png'))
+        self.rgb_diffs, self.rgb_probs = _normal_dist_munsell_int(25)
+
+    def __getitem__(self, item):
+        target_path = self.img_paths[item]
+        angle = int(ntpath.basename(target_path[:-4]).split('_')[-1].replace('angle', ''))
+
+        # angles pool
+        angles_pool = np.arange(*self.angles).tolist()
+        angles_pool.remove(angle)
+        random.shuffle(angles_pool)
+
+        other_paths = [
+            target_path.replace('angle%d.png' % angle, 'angle%d.png' % angles_pool[0]),
+            target_path.replace('angle%d.png' % angle, 'angle%d.png' % angles_pool[1]),
+            target_path.replace('angle%d.png' % angle, 'angle%d.png' % angles_pool[2]),
+        ]
+
+        masks = [
+            io.imread(target_path),
+            io.imread(other_paths[0]),
+            io.imread(other_paths[1]),
+            io.imread(other_paths[2])
+        ]
+
+        # set the colours
+        target_colour = [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]
+        others_diff = np.random.choice(self.rgb_diffs, size=3, p=self.rgb_probs)
+        others_colour = []
+        for chn_ind in range(3):
+            chn_colour = target_colour[chn_ind] + others_diff[chn_ind]
+            if chn_colour < 0 or chn_colour > 255:
+                chn_colour = target_colour[chn_ind] - others_diff[chn_ind]
+            others_colour.append(chn_colour)
+
+        imgs = []
+        for mask_ind, mask in enumerate(masks):
+            if mask_ind == 0:
+                current_colour = target_colour
+            else:
+                current_colour = others_colour
+            print(current_colour)
+            mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
+            for chn_ind in range(3):
+                current_chn = mask_img[:, :, chn_ind]
+                current_chn[mask == 255] = current_colour[chn_ind]
+                current_chn[mask == 0] = 128
+
+            img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
+
+            mask_size = mask.shape
+            srow = random.randint(0, self.target_size - mask_size[0])
+            erow = srow + mask_size[0]
+            scol = random.randint(0, self.target_size - mask_size[1])
+            ecol = scol + mask_size[1]
+            img[srow:erow, scol:ecol] = mask_img
+            imgs.append(img)
+
+        if self.transform is not None:
+            imgs = self.transform(imgs)
+
+        inds = np.arange(0, self.num_stimuli).tolist()
+        random.shuffle(inds)
+        # the target is always added the first element in the imgs list
+        target = inds.index(0)
+        return imgs[inds[0]], imgs[inds[1]], imgs[inds[2]], imgs[inds[3]], target
+
+    def __len__(self):
+        return len(self.img_paths)
+
+
 def train_set(root, target_size, preprocess, **kwargs):
     mean, std = preprocess
 
@@ -137,7 +219,8 @@ def train_set(root, target_size, preprocess, **kwargs):
         cv2_transforms.Normalize(mean, std),
     ])
 
-    return OddOneOutTrain(root, transform, **kwargs)
+    # return OddOneOutTrain(root, transform, **kwargs)
+    return ShapeOddOneOutTrain(root, transform, **kwargs)
 
 
 def val_set(root, target_size, preprocess, **kwargs):
