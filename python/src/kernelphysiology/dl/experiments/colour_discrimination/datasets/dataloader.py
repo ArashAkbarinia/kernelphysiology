@@ -11,6 +11,7 @@ from torch.utils import data as torch_data
 import torchvision.transforms as torch_transforms
 
 from skimage import io
+import cv2
 import scipy.stats as ss
 
 from . import cv2_transforms
@@ -133,7 +134,7 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
         self.transform = transform
         self.num_stimuli = 4
         self.angles = (1, 11)
-        self.target_size = 128
+        self.target_size = 224
         self.imgdir = '%s/shape2D/' % self.root
         self.img_paths = sorted(glob.glob(self.imgdir + '*.png'))
         self.rgb_diffs, self.rgb_probs = _normal_dist_munsell_int(25)
@@ -172,6 +173,7 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
 
         imgs = []
         for mask_ind, mask in enumerate(masks):
+            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
             if mask_ind == 0:
                 current_colour = target_colour
             else:
@@ -211,7 +213,7 @@ class ShapeOddOneOutVal(torch_data.Dataset):
         self.root = root
         self.transform = transform
         self.num_stimuli = 4
-        self.target_size = 128
+        self.target_size = 224
         self.imgdir = '%s/shape2D/' % self.root
         stimuli_path = '%s/validation.cvs' % self.root
         self.stimuli = np.loadtxt(stimuli_path, delimiter=',', dtype=int)
@@ -221,12 +223,15 @@ class ShapeOddOneOutVal(torch_data.Dataset):
     def __getitem__(self, item):
         masks = []
         for i in range(4):
+            # image names start from 1
+            imgi = item + 1
             masks.append(
-                io.imread('%s/img_shape%d_angle%d.png' % (self.imgdir, item, self.stimuli[item, i]))
+                io.imread('%s/img_shape%d_angle%d.png' % (self.imgdir, imgi, self.stimuli[item, i]))
             )
 
         imgs = []
         for mask_ind, mask in enumerate(masks):
+            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
             if mask_ind == 0:
                 current_colour = self.target_colour
             else:
