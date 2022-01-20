@@ -81,30 +81,7 @@ def _main_worker(args):
         args.val_dir = args.data_dir + '/validation_set/'
 
     if args.test_net:
-        val_dataset = dataloader.val_set(args.val_dir, args.target_size, preprocess=(mean, std))
-    else:
-        val_dataset = []
-        for ref_pts in args.test_pts.values():
-            others_colour = colour_spaces.dkl2rgb(np.expand_dims(ref_pts['ref'][:3], axis=(0, 1)))
-            for ext_pts in ref_pts['ext']:
-                target_colour = colour_spaces.dkl2rgb(np.expand_dims(ext_pts[:3], axis=(0, 1)))
-                val_colours = {'target_colour': target_colour, 'others_colour': others_colour}
-                val_dataset.append(
-                    dataloader.val_set(
-                        args.val_dir, args.target_size, preprocess=(mean, std), **val_colours
-                    )
-                )
-        val_dataset = torch.utils.data.ConcatDataset(val_dataset)
-
-    val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True
-    )
-
-    if args.test_net:
-        preds = _train_val(val_loader, model, None, -1, args)
-        output_file = os.path.join(args.output_dir, 'predictions.csv')
-        np.savetxt(output_file, preds, delimiter=',', fmt='%f')
+        _sensitivity_test_points(args, model, (mean, std))
         return
 
     # if transfer_weights, only train the fc layer, otherwise all parameters
@@ -145,6 +122,23 @@ def _main_worker(args):
                 model_progress = model_progress.tolist()
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
+
+    # loading the validation set
+    val_dataset = []
+    for ref_pts in args.test_pts.values():
+        others_colour = colour_spaces.dkl2rgb(np.expand_dims(ref_pts['ref'][:3], axis=(0, 1)))
+        for ext_pts in ref_pts['ext']:
+            target_colour = colour_spaces.dkl2rgb(np.expand_dims(ext_pts[:3], axis=(0, 1)))
+            val_colours = {'target_colour': target_colour, 'others_colour': others_colour}
+            val_dataset.append(dataloader.val_set(
+                args.val_dir, args.target_size, preprocess=(mean, std), **val_colours
+            ))
+    val_dataset = torch.utils.data.ConcatDataset(val_dataset)
+
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset, batch_size=args.batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True
+    )
 
     if args.train_dir is None:
         args.train_dir = args.data_dir + '/training_set/'
@@ -298,5 +292,59 @@ def _train_val(db_loader, model, optimizer, epoch, args):
     else:
         prediction_output = [np.concatenate(out) for out in all_predictions]
     if is_test:
-        return prediction_output
+        accuracy = top1.avg if top1.avg <= 1.0 else top1.avg / 100
+        return prediction_output, accuracy
     return [epoch, batch_time.avg, losses.avg, top1.avg]
+
+
+def _sensitivity_test_points(args, model, preprocess):
+    for qname, qval in args.test_pts.items():
+        for pt_ind in range(0, len(qval['ext'])):
+            _sensitivity_test_point(args, model, preprocess, qname, pt_ind)
+
+
+def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
+    qval = args.test_pts[qname]
+    others_colour = colour_spaces.dkl2rgb(np.expand_dims(qval['ref'][:3], axis=(0, 1)))
+    target_colour = colour_spaces.dkl2rgb(np.expand_dims(qval['ext'][0][:3], axis=(0, 1)))
+
+    low = others_colour
+    mid = (others_colour + target_colour) / 2
+    high = target_colour
+
+    all_results = []
+    j = 0
+    while True:
+        print(j, low, mid, high)
+
+        kwargs = {'target_colour': mid, 'others_colour': others_colour}
+        db = dataloader.val_set(args.val_dir, args.target_size, preprocess=preprocess, **kwargs)
+
+        db_loader = torch.utils.data.DataLoader(
+            db, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, pin_memory=True
+        )
+
+        _, accuracy = _train_val(db_loader, model, None, -1, args)
+
+        all_results.append([mid, accuracy])
+        output_file = os.path.join(args.output_dir, 'evolutoin_%s_%d.csv' % (qname, pt_ind))
+        np.savetxt(output_file, all_results, delimiter=',', fmt='%f')
+
+        new_low, new_mid, new_high = _midpoint_colour(accuracy, low, mid, high, th=0.625)
+
+        if new_low is None or j == 20:
+            print('had to skip')
+            break
+        else:
+            low, mid, high = new_low, new_mid, new_high
+        j += 1
+
+
+def _midpoint_colour(accuracy, low, mid, high, th=0.625):
+    diff_acc = accuracy - th
+    if abs(diff_acc) < 0.005:
+        return None, None, None
+    elif diff_acc > 0:
+        return low, (low + mid) / 2, mid
+    else:
+        return mid, (high + mid) / 2, high
