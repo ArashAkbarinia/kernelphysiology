@@ -17,10 +17,10 @@ import scipy.stats as ss
 from . import cv2_transforms
 
 
-def _normal_dist_munsell_int(max_diff):
+def _normal_dist_ints(max_diff, scale=3):
     diffs = np.arange(-max_diff + 1, max_diff)
     x_u, x_l = diffs + 0.5, diffs - 0.5
-    probs = ss.norm.cdf(x_u, scale=3) - ss.norm.cdf(x_l, scale=3)
+    probs = ss.norm.cdf(x_u, scale=scale) - ss.norm.cdf(x_l, scale=scale)
 
     ind0 = np.where(diffs == 0)
     diffs = np.delete(diffs, ind0)
@@ -42,7 +42,7 @@ class OddOneOutTrain(torch_data.Dataset):
         self.objects = img_info[4:]
         self.imgdir = '%s/img/' % self.root
         self.img_paths = sorted(glob.glob(self.imgdir + '*.png'))
-        self.muns_diffs, self.muns_probs = _normal_dist_munsell_int(self.munsells[1] - 1)
+        self.muns_diffs, self.muns_probs = _normal_dist_ints(self.munsells[1] - 1)
 
     def __getitem__(self, item):
         target_path = self.img_paths[item]
@@ -137,7 +137,7 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
         self.target_size = 224
         self.imgdir = '%s/shape2D/' % self.root
         self.img_paths = sorted(glob.glob(self.imgdir + '*.png'))
-        self.rgb_diffs, self.rgb_probs = _normal_dist_munsell_int(25)
+        self.rgb_diffs, self.rgb_probs = _normal_dist_ints(25, scale=5)
 
     def __getitem__(self, item):
         target_path = self.img_paths[item]

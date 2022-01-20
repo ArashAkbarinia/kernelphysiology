@@ -85,9 +85,9 @@ def _main_worker(args):
     else:
         val_dataset = []
         for ref_pts in args.test_pts.values():
-            target_colour = colour_spaces.dkl2rgb(np.expand_dims(ref_pts['ref'][:3], axis=(0, 1)))
+            others_colour = colour_spaces.dkl2rgb(np.expand_dims(ref_pts['ref'][:3], axis=(0, 1)))
             for ext_pts in ref_pts['ext']:
-                others_colour = colour_spaces.dkl2rgb(np.expand_dims(ext_pts[:3], axis=(0, 1)))
+                target_colour = colour_spaces.dkl2rgb(np.expand_dims(ext_pts[:3], axis=(0, 1)))
                 val_colours = {'target_colour': target_colour, 'others_colour': others_colour}
                 val_dataset.append(
                     dataloader.val_set(
