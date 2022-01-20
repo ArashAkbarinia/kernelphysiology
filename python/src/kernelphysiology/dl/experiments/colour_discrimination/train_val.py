@@ -7,13 +7,12 @@ import numpy as np
 import time
 
 import torch
-import torch.nn as nn
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 
-from .datasets import dataloader
+from .datasets import dataloader, colour_spaces
 from .models import model as networks, model_utils
 from .utils import report_utils, system_utils, argument_handler
 
@@ -58,14 +57,47 @@ def _main_worker(args):
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
 
-    # defyining validation set here so if only test don't do the rest
+    # setting the quadrant points FIXME: make it nicer from the file
+    if args.pts_path is None:
+        args.pts_path = args.val_dir + '/quadrant_points.csv'
+    test_pts = np.loadtxt(args.pts_path, delimiter=',', dtype=str)[1:]
+    test_pts = test_pts[:, :6].astype('float')
+    test_pts[:, 0] = 1.0
+
+    # NOTE: they're in DKL
+    args.test_pts = {
+        'q1': {
+            'ref': test_pts[4],
+            'ext': ((test_pts[:4] - test_pts[4]) * 1.5) + test_pts[4]
+        },
+        'q4': {
+            'ref': test_pts[9],
+            'ext': ((test_pts[5:9] - test_pts[9]) * 1.5) + test_pts[9]
+        },
+    }
+
+    # defining validation set here so if only test don't do the rest
     if args.val_dir is None:
         args.val_dir = args.data_dir + '/validation_set/'
 
-    validation_dataset = dataloader.val_set(args.val_dir, args.target_size, preprocess=(mean, std))
+    if args.test_net:
+        val_dataset = dataloader.val_set(args.val_dir, args.target_size, preprocess=(mean, std))
+    else:
+        val_dataset = []
+        for ref_pts in args.test_pts.values():
+            target_colour = colour_spaces.dkl2rgb(np.expand_dims(ref_pts['ref'][:3], axis=(0, 1)))
+            for ext_pts in ref_pts['ext']:
+                others_colour = colour_spaces.dkl2rgb(np.expand_dims(ext_pts[:3], axis=(0, 1)))
+                val_colours = {'target_colour': target_colour, 'others_colour': others_colour}
+                val_dataset.append(
+                    dataloader.val_set(
+                        args.val_dir, args.target_size, preprocess=(mean, std), **val_colours
+                    )
+                )
+        val_dataset = torch.utils.data.ConcatDataset(val_dataset)
 
     val_loader = torch.utils.data.DataLoader(
-        validation_dataset, batch_size=args.batch_size, shuffle=False,
+        val_dataset, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True
     )
 

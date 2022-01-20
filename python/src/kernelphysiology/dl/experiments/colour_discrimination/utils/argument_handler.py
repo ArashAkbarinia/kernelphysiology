@@ -247,6 +247,12 @@ def _add_dataset_group(parser):
         default=None,
         help='Number of validation samples (default: All)'
     )
+    dataset_group.add_argument(
+        '--pts_path',
+        type=str,
+        default=None,
+        help='The path to the quadrant points (default: None)'
+    )
 
 
 def _add_lesion_group(parser):

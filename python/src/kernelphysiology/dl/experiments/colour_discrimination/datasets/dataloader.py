@@ -207,7 +207,7 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
 
 class ShapeOddOneOutVal(torch_data.Dataset):
 
-    def __init__(self, root, transform=None, **kwargs):
+    def __init__(self, root, transform=None, target_colour=None, others_colour=None, **kwargs):
         self.root = root
         self.transform = transform
         self.num_stimuli = 4
@@ -215,8 +215,8 @@ class ShapeOddOneOutVal(torch_data.Dataset):
         self.imgdir = '%s/shape2D/' % self.root
         stimuli_path = '%s/validation.cvs' % self.root
         self.stimuli = np.loadtxt(stimuli_path, delimiter=',', dtype=int)
-        self.target_colour = [255, 255, 255]
-        self.others_colour = [0, 0, 0]
+        self.target_colour = target_colour
+        self.others_colour = others_colour
 
     def __getitem__(self, item):
         masks = []
@@ -231,6 +231,8 @@ class ShapeOddOneOutVal(torch_data.Dataset):
                 current_colour = self.target_colour
             else:
                 current_colour = self.others_colour
+            current_colour = current_colour.squeeze()
+
             mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
             for chn_ind in range(3):
                 current_chn = mask_img[:, :, chn_ind]
