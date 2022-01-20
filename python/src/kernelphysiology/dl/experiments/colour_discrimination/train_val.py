@@ -68,11 +68,11 @@ def _main_worker(args):
     args.test_pts = {
         'q1': {
             'ref': test_pts[4],
-            'ext': ((test_pts[:4] - test_pts[4]) * 1.5) + test_pts[4]
+            'ext': ((test_pts[:4] - test_pts[4]) * 1.0) + test_pts[4]
         },
         'q4': {
             'ref': test_pts[9],
-            'ext': ((test_pts[5:9] - test_pts[9]) * 1.5) + test_pts[9]
+            'ext': ((test_pts[5:9] - test_pts[9]) * 1.0) + test_pts[9]
         },
     }
 

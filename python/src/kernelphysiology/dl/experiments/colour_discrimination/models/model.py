@@ -60,21 +60,12 @@ class ColourDiscrimination(nn.Module):
         x2 = x2.view(x2.size(0), -1)
         x3 = self.features(x3)
         x3 = x3.view(x3.size(0), -1)
-        # x = torch.cat([x0, x1, x2, x3], dim=1)
 
-        # comp3 = self.fc(torch.cat([x0, x1, x2], dim=1))
-        # comp2 = self.fc(torch.cat([x0, x1, x3], dim=1))
-        # comp1 = self.fc(torch.cat([x0, x2, x3], dim=1))
-        # comp0 = self.fc(torch.cat([x1, x2, x3], dim=1))
-        comp3 = self.fc(torch.abs(torch.cat([x3-x0, x3-x1, x3-x2], dim=1)))
-        comp2 = self.fc(torch.abs(torch.cat([x2-x0, x2-x1, x2-x3], dim=1)))
-        comp1 = self.fc(torch.abs(torch.cat([x1-x0, x1-x2, x1-x3], dim=1)))
-        comp0 = self.fc(torch.abs(torch.cat([x0-x1, x0-x2, x0-x3], dim=1)))
+        comp3 = self.fc(torch.abs(torch.cat([x3 - x0, x3 - x1, x3 - x2], dim=1)))
+        comp2 = self.fc(torch.abs(torch.cat([x2 - x0, x2 - x1, x2 - x3], dim=1)))
+        comp1 = self.fc(torch.abs(torch.cat([x1 - x0, x1 - x2, x1 - x3], dim=1)))
+        comp0 = self.fc(torch.abs(torch.cat([x0 - x1, x0 - x2, x0 - x3], dim=1)))
 
-
-        # x = self.avgpool(x)
-        # x = torch.tanh(x)
-        # x = x.view(x.size(0), -1)
         return torch.cat([comp0, comp1, comp2, comp3], dim=1)
 
     def loss_function(self, output, target):
