@@ -165,7 +165,6 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
         target_colour = [random.randint(0, 255) for _ in range(3)]
         # others_diff = np.random.choice(self.rgb_diffs, size=3, p=self.rgb_probs)
         others_diff = [random.choice([1, -1]) * random.randint(5, 50) for _ in range(3)]
-        print(others_diff)
         others_colour = []
         for chn_ind in range(3):
             chn_colour = target_colour[chn_ind] + others_diff[chn_ind]
