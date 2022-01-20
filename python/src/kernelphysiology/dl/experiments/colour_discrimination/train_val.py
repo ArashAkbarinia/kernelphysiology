@@ -194,7 +194,7 @@ def _adjust_learning_rate(optimizer, epoch, args):
         param_group['lr'] = lr
 
 
-def _train_val(db_loader, model, optimizer, epoch, args):
+def _train_val(db_loader, model, optimizer, epoch, args, print_test=True):
     batch_time = report_utils.AverageMeter()
     data_time = report_utils.AverageMeter()
     losses = report_utils.AverageMeter()
@@ -267,7 +267,7 @@ def _train_val(db_loader, model, optimizer, epoch, args):
                 all_predictions[j].append(out)
 
             # printing the accuracy at certain intervals
-            if is_test:
+            if is_test and print_test:
                 print('Testing: [{0}/{1}]'.format(i, len(db_loader)))
             elif i % args.print_freq == 0:
                 print(
@@ -315,7 +315,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     all_results = []
     j = 0
     while True:
-        print(j, low, mid, high)
+        print(qname, pt_ind, j, low, mid, high)
 
         kwargs = {'target_colour': mid, 'others_colour': others_colour}
         db = dataloader.val_set(args.val_dir, args.target_size, preprocess=preprocess, **kwargs)
@@ -324,11 +324,11 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
             db, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, pin_memory=True
         )
 
-        _, accuracy = _train_val(db_loader, model, None, -1, args)
+        _, accuracy = _train_val(db_loader, model, None, -1, args, print_test=False)
 
-        all_results.append([mid, accuracy])
+        all_results.append(np.array([*mid.squeeze(), accuracy]))
         output_file = os.path.join(args.output_dir, 'evolutoin_%s_%d.csv' % (qname, pt_ind))
-        np.savetxt(output_file, all_results, delimiter=',', fmt='%f')
+        np.savetxt(output_file, np.array(all_results), delimiter=',', fmt='%f')
 
         new_low, new_mid, new_high = _midpoint_colour(accuracy, low, mid, high, th=0.625)
 
@@ -336,7 +336,9 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
             print('had to skip')
             break
         else:
-            low, mid, high = new_low, new_mid, new_high
+            low = new_low.astype('uint8')
+            mid = new_mid.astype('uint8')
+            high = new_high.astype('uint8')
         j += 1
 
 
