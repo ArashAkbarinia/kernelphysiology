@@ -337,9 +337,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
             print('had to skip')
             break
         else:
-            low = new_low.astype('uint8')
-            mid = new_mid.astype('uint8')
-            high = new_high.astype('uint8')
+            low, high, mid = new_low, new_mid, new_high
         j += 1
 
 
