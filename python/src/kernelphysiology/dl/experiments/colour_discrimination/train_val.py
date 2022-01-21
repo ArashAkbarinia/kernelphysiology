@@ -327,7 +327,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
         _, accuracy = _train_val(db_loader, model, None, -1, args, print_test=False)
         print(qname, pt_ind, accuracy, j, low, mid, high)
 
-        all_results.append(np.array([accuracy, *mid.squeeze(), *target_colour]))
+        all_results.append(np.array([accuracy, *mid.squeeze(), *target_colour.squeeze()]))
         output_file = os.path.join(args.output_dir, 'evolutoin_%s_%d.csv' % (qname, pt_ind))
         np.savetxt(output_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
 
