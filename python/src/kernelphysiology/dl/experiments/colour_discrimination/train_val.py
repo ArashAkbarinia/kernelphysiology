@@ -305,19 +305,20 @@ def _sensitivity_test_points(args, model, preprocess):
 
 def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     qval = args.test_pts[qname]
-    others_colour = colour_spaces.dkl2rgb(np.expand_dims(qval['ref'][:3], axis=(0, 1)))
-    target_colour = colour_spaces.dkl2rgb(np.expand_dims(qval['ext'][0][:3], axis=(0, 1)))
 
-    low = others_colour
-    mid = (others_colour + target_colour) / 2
-    high = target_colour
+    low = np.expand_dims(qval['ref'][:3], axis=(0, 1))
+    high = np.expand_dims(qval['ext'][pt_ind][:3], axis=(0, 1))
+    mid = (low + high) / 2
+
+    others_colour = colour_spaces.dkl2rgb(low)
 
     all_results = []
     j = 0
     while True:
         print(qname, pt_ind, j, low, mid, high)
 
-        kwargs = {'target_colour': mid, 'others_colour': others_colour}
+        target_colour = colour_spaces.dkl2rgb(mid)
+        kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
         db = dataloader.val_set(args.val_dir, args.target_size, preprocess=preprocess, **kwargs)
 
         db_loader = torch.utils.data.DataLoader(
