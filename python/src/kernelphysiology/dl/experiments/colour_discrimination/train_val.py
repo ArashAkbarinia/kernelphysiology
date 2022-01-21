@@ -315,8 +315,6 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     all_results = []
     j = 0
     while True:
-        print(qname, pt_ind, j, low, mid, high)
-
         target_colour = colour_spaces.dkl2rgb(mid)
         kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
         db = dataloader.val_set(args.val_dir, args.target_size, preprocess=preprocess, **kwargs)
@@ -326,6 +324,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
         )
 
         _, accuracy = _train_val(db_loader, model, None, -1, args, print_test=False)
+        print(qname, pt_ind, accuracy, j, low, mid, high)
 
         all_results.append(np.array([*mid.squeeze(), accuracy]))
         output_file = os.path.join(args.output_dir, 'evolutoin_%s_%d.csv' % (qname, pt_ind))
@@ -337,7 +336,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
             print('had to skip')
             break
         else:
-            low, high, mid = new_low, new_mid, new_high
+            low, mid, high = new_low, new_mid, new_high
         j += 1
 
 
