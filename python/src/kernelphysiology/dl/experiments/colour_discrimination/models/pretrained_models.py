@@ -91,9 +91,9 @@ def _resnet_features(model, network_name, layer):
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
-                org_classes = 262144
-            else:
                 org_classes = 100352
+            else:
+                org_classes = 401408
         elif layer == 'area3':
             layer = 7
             if network_name in [
