@@ -104,8 +104,7 @@ def _resnet_features(model, network_name, layer):
             elif 'custom' not in network_name and (
                     'deeplabv3_' in network_name or 'fcn_' in network_name
             ):
-                # FIXME
-                org_classes = 2097152
+                org_classes = 802816
             else:
                 org_classes = 200704
         elif layer == 'area4':
@@ -118,8 +117,7 @@ def _resnet_features(model, network_name, layer):
             elif 'custom' not in network_name and (
                     'deeplabv3_' in network_name or 'fcn_' in network_name
             ):
-                # FIXME
-                org_classes = 4194304
+                org_classes = 1605632
             else:
                 org_classes = 100352
         elif layer == 'fc':
