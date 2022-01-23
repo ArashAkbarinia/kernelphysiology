@@ -253,6 +253,12 @@ def _add_dataset_group(parser):
         default=None,
         help='The path to the quadrant points (default: None)'
     )
+    dataset_group.add_argument(
+        '--train_colours',
+        type=str,
+        default=None,
+        help='The path to the train colour distribution (default: None)'
+    )
 
 
 def _add_lesion_group(parser):

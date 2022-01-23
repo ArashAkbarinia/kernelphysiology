@@ -129,7 +129,7 @@ class OddOneOutVal(torch_data.Dataset):
 
 class ShapeOddOneOutTrain(torch_data.Dataset):
 
-    def __init__(self, root, transform=None, **kwargs):
+    def __init__(self, root, transform=None, colour_dist=None, **kwargs):
         self.root = root
         self.transform = transform
         self.num_stimuli = 4
@@ -138,6 +138,9 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
         self.imgdir = '%s/shape2D/' % self.root
         self.img_paths = sorted(glob.glob(self.imgdir + '*.png'))
         self.rgb_diffs, self.rgb_probs = _normal_dist_ints(25, scale=5)
+        self.colour_dist = colour_dist
+        if self.colour_dist is not None:
+            self.colour_dist = np.loadtxt(self.colour_dist, delimiter=',', dtype=int)
 
     def __getitem__(self, item):
         target_path = self.img_paths[item]
@@ -162,7 +165,11 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
         ]
 
         # set the colours
-        target_colour = [random.randint(0, 255) for _ in range(3)]
+        if self.colour_dist is not None:
+            rand_row = random.randint(0, len(self.colour_dist))
+            target_colour = self.colour_dist[rand_row]
+        else:
+            target_colour = [random.randint(0, 255) for _ in range(3)]
         # others_diff = np.random.choice(self.rgb_diffs, size=3, p=self.rgb_probs)
         others_diff = [random.choice([1, -1]) * random.randint(5, 50) for _ in range(3)]
         others_colour = []

@@ -144,7 +144,10 @@ def _main_worker(args):
         args.train_dir = args.data_dir + '/training_set/'
 
     # loading the training set
-    train_dataset = dataloader.train_set(args.train_dir, args.target_size, preprocess=(mean, std))
+    train_colours = {'colour_dist': args.train_colours}
+    train_dataset = dataloader.train_set(
+        args.train_dir, args.target_size, preprocess=(mean, std), **train_colours
+    )
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True,
