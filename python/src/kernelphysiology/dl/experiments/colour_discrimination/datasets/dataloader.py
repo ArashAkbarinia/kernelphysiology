@@ -166,7 +166,7 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
 
         # set the colours
         if self.colour_dist is not None:
-            rand_row = random.randint(0, len(self.colour_dist))
+            rand_row = random.randint(0, len(self.colour_dist) - 1)
             target_colour = self.colour_dist[rand_row]
         else:
             target_colour = [random.randint(0, 255) for _ in range(3)]
