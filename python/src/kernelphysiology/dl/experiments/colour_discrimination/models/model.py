@@ -36,6 +36,7 @@ class ColourDiscrimination(nn.Module):
         if (
                 'deeplabv3_' in architecture or 'fcn_' in architecture or 'deeplab' in architecture
                 or 'resnet' in architecture or 'resnext' in architecture
+                or 'taskonomy_' in architecture
         ):
             features, org_classes = pretrained_models._resnet_features(model, architecture, layer)
         else:

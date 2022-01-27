@@ -5,11 +5,13 @@
 import os
 import sys
 
+import torch
 import torch.nn as nn
 
 from torchvision.models import segmentation
 
 from . import model_utils
+from .taskonomy import taskonomy_network
 
 
 class LayerActivation(nn.Module):
@@ -74,6 +76,8 @@ def _resnet_features(model, network_name, layer):
             layer = 4
             if network_name in ['resnet18', 'resnet34']:
                 org_classes = 200704
+            elif 'taskonomy_' in network_name:
+                org_classes = 186624
             else:
                 org_classes = 200704
         elif layer == 'area1':
@@ -83,11 +87,13 @@ def _resnet_features(model, network_name, layer):
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
                 org_classes = 200704
+            elif 'taskonomy_' in network_name:
+                org_classes = 186624
             else:
                 org_classes = 802816
         elif layer == 'area2':
             layer = 6
-            if network_name in [
+            if 'taskonomy_' in network_name or network_name in [
                 'resnet18', 'resnet34', 'resnet_basic_custom',
                 'resnet18_custom', 'deeplabv3_resnet18_custom'
             ]:
@@ -118,12 +124,18 @@ def _resnet_features(model, network_name, layer):
                     'deeplabv3_' in network_name or 'fcn_' in network_name
             ):
                 org_classes = 1605632
+            elif 'taskonomy_' in network_name:
+                org_classes = 401408
             else:
                 org_classes = 100352
         elif layer == 'fc':
             # FIXME
             org_classes = 1000
             return model, org_classes
+        elif layer == 'encoder':
+            if 'taskonomy_' in network_name:
+                layer = len(list(model.children()))
+                org_classes = 8 * 14 * 14
         else:
             sys.exit('Unsupported layer %s' % layer)
     features = nn.Sequential(*list(model.children())[:layer])
@@ -131,7 +143,14 @@ def _resnet_features(model, network_name, layer):
 
 
 def get_pretrained_model(network_name, transfer_weights):
-    if os.path.isfile(transfer_weights[0]):
+    if 'taskonomy_' in network_name:
+        # NOTE: always assumed pretrained
+        feature_task = network_name.replace('taskonomy_', '')
+        model = taskonomy_network.TaskonomyEncoder()
+        feature_type_url = taskonomy_network.TASKONOMY_PRETRAINED_URLS[feature_task + '_encoder']
+        checkpoint = torch.utils.model_zoo.load_url(feature_type_url, model_dir=None, progress=True)
+        model.load_state_dict(checkpoint['state_dict'])
+    elif os.path.isfile(transfer_weights[0]):
         model = model_utils.which_network(
             transfer_weights[0], transfer_weights[2],
             num_classes=1000 if 'class' in transfer_weights[2] else 21
