@@ -14,7 +14,7 @@ from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import segmentation_utils
 
-folder_dbs = ['imagenet', 'fruits', 'leaves', 'land', 'vggface2']
+folder_dbs = ['imagenet', 'fruits', 'leaves', 'land', 'vggface2', 'ecoset']
 
 
 def prepare_transformations_train(dataset_name, colour_transformations,
