@@ -34,9 +34,7 @@ from kernelphysiology.utils.path_utils import create_dir
 
 def main(argv):
     args = argument_handler.train_arg_parser(argv)
-    args.lr, args.weight_decay = default_configs.optimisation_params(
-        'classification', args
-    )
+    args.lr, args.weight_decay = default_configs.optimisation_params('classification', args)
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]
 
@@ -80,18 +78,14 @@ def main(argv):
         args.world_size = ngpus_per_node * args.world_size
         # Use torch.multiprocessing.spawn to launch distributed processes: the
         # main_worker process function
-        mp.spawn(
-            main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args)
-        )
+        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
     else:
         # Simply call main_worker function
         main_worker(ngpus_per_node, args)
 
 
 def main_worker(ngpus_per_node, args):
-    mean, std = model_utils.get_preprocessing_function(
-        args.colour_space, args.vision_type
-    )
+    mean, std = model_utils.get_preprocessing_function(args.colour_space, args.vision_type)
 
     # preparing the output folder
     create_dir(args.out_dir)
@@ -117,15 +111,12 @@ def main_worker(ngpus_per_node, args):
     if args.transfer_weights is not None:
         print('Transferred model!')
         (model, _) = model_utils.which_network(
-            args.transfer_weights[0], args.task_type,
-            num_classes=args.old_classes
+            args.transfer_weights[0], args.task_type, num_classes=args.old_classes
         )
         which_layer = -1
         if len(args.transfer_weights) == 2:
             which_layer = args.transfer_weights[1]
-        model = model_utils.NewClassificationModel(
-            model, which_layer, args.num_classes
-        )
+        model = model_utils.NewClassificationModel(model, which_layer, args.num_classes)
     elif args.custom_arch:
         print('Custom model!')
         supported_customs = ['resnet_basic_custom', 'resnet_bottleneck_custom']
@@ -137,8 +128,7 @@ def main_worker(ngpus_per_node, args):
             )
         else:
             model = custom_models.__dict__[args.network_name](
-                pooling_type=args.pooling_type, in_chns=len(mean),
-                num_classes=args.num_classes
+                pooling_type=args.pooling_type, in_chns=len(mean), num_classes=args.num_classes
             )
     elif args.pretrained:
         print("=> using pre-trained model '{}'".format(args.network_name))
@@ -159,9 +149,7 @@ def main_worker(ngpus_per_node, args):
             # ourselves based on the total number of GPUs we have
             args.batch_size = int(args.batch_size / ngpus_per_node)
             args.workers = int(args.workers / ngpus_per_node)
-            model = torch.nn.parallel.DistributedDataParallel(
-                model, device_ids=[args.gpus]
-            )
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpus])
         else:
             model.cuda()
             # DistributedDataParallel will divide and allocate batch_size to all
@@ -172,8 +160,7 @@ def main_worker(ngpus_per_node, args):
         model = model.cuda(args.gpus)
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
-        if (args.network_name.startswith('alexnet') or
-                args.network_name.startswith('vgg')):
+        if args.network_name.startswith('alexnet') or args.network_name.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
             model.cuda()
         else:
@@ -185,8 +172,7 @@ def main_worker(ngpus_per_node, args):
     # optimiser
     if args.transfer_weights is None:
         optimizer = torch.optim.SGD(
-            model.parameters(), args.lr,
-            momentum=args.momentum, weight_decay=args.weight_decay
+            model.parameters(), args.lr, momentum=args.momentum, weight_decay=args.weight_decay
         )
     else:
         for p in model.features.parameters():
@@ -249,34 +235,25 @@ def main_worker(ngpus_per_node, args):
         )
         train_trans.append(augmentations)
 
-    target_size = default_configs.get_default_target_size(
-        args.dataset, args.target_size
-    )
+    target_size = default_configs.get_default_target_size(args.dataset, args.target_size)
 
-    target_transform = utils_db.ImagenetCategoryTransform(
-        args.categories, args.cat_dir
-    )
+    target_transform = utils_db.ImagenetCategoryTransform(args.categories, args.cat_dir)
 
     # loading the training set
     train_trans = [*both_trans, *train_trans]
     train_dataset = utils_db.get_train_dataset(
-        args.dataset, args.train_dir, args.vision_type,
-        args.colour_space, train_trans, normalize, target_size,
-        target_transform=target_transform
+        args.dataset, args.train_dir, args.vision_type, args.colour_space, train_trans, normalize,
+        target_size, target_transform=target_transform
     )
 
     if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(
-            train_dataset
-        )
+        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     else:
         train_sampler = None
 
     train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True,
-        sampler=train_sampler
+        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
+        num_workers=args.workers, pin_memory=True, sampler=train_sampler
     )
 
     # loading validation set
@@ -288,8 +265,7 @@ def main_worker(ngpus_per_node, args):
     )
 
     val_loader = torch.utils.data.DataLoader(
-        validation_dataset,
-        batch_size=args.batch_size, shuffle=False,
+        validation_dataset, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True
     )
 
@@ -305,9 +281,7 @@ def main_worker(ngpus_per_node, args):
         )
 
         # evaluate on validation set
-        validation_log = misc_utils.validate_on_data(
-            val_loader, model, criterion, args
-        )
+        validation_log = misc_utils.validate_on_data(val_loader, model, criterion, args)
 
         model_progress.append([*train_log, *validation_log])
 
@@ -316,9 +290,7 @@ def main_worker(ngpus_per_node, args):
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
 
-        if misc_utils.is_saving_node(
-                args.multiprocessing_distributed, args.rank, ngpus_per_node
-        ):
+        if misc_utils.is_saving_node(args.multiprocessing_distributed, args.rank, ngpus_per_node):
             misc_utils.save_checkpoint(
                 {
                     'epoch': epoch + 1,
@@ -341,10 +313,7 @@ def main_worker(ngpus_per_node, args):
             )
         # TODO: get this header directly as a dictionary keys
         header = 'epoch,t_time,t_loss,t_top1,t_top5,v_time,v_loss,v_top1,v_top5'
-        np.savetxt(
-            model_progress_path, np.array(model_progress),
-            delimiter=',', header=header
-        )
+        np.savetxt(model_progress_path, np.array(model_progress), delimiter=',', header=header)
 
 
 if __name__ == '__main__':
