@@ -23,16 +23,12 @@ def prepare_transformations_train(dataset_name, colour_transformations,
     if 'cifar' in dataset_name or dataset_name in folder_dbs:
         if 'cifar' in dataset_name:
             size_transform = cv2_transforms.RandomCrop(target_size, padding=4)
-        elif 'imagenet' in dataset_name:
+        elif 'imagenet' in dataset_name or 'ecoset' in dataset_name:
             scale = (0.08, 1.0)
-            size_transform = cv2_transforms.RandomResizedCrop(
-                target_size, scale=scale
-            )
+            size_transform = cv2_transforms.RandomResizedCrop(target_size, scale=scale)
         else:
             scale = (0.50, 1.0)
-            size_transform = cv2_transforms.RandomResizedCrop(
-                target_size, scale=scale
-            )
+            size_transform = cv2_transforms.RandomResizedCrop(target_size, scale=scale)
         transformations = torch_transforms.Compose([
             size_transform,
             *colour_transformations,
@@ -108,12 +104,8 @@ def prepare_transformations_test(dataset_name, colour_transformations,
 def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
                            other_transformations, normalize, target_size,
                            task=None, target_transform=None):
-    colour_transformations = preprocessing.colour_transformation(
-        vision_type, colour_space
-    )
-    chns_transformation = preprocessing.channel_transformation(
-        vision_type, colour_space
-    )
+    colour_transformations = preprocessing.colour_transformation(vision_type, colour_space)
+    chns_transformation = preprocessing.channel_transformation(vision_type, colour_space)
 
     transformations = prepare_transformations_test(
         dataset_name, colour_transformations,
