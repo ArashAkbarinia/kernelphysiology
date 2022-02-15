@@ -12,9 +12,7 @@ def colour_transformation(vision_type, colour_space='rgb'):
     ct = []
     if colour_space != 'lms':
         colour_inds = imutils.get_colour_inds(vision_type)
-        ct.append(cv2_preprocessing.VisionTypeTransformation(
-            colour_inds, colour_space
-        ))
+        ct.append(cv2_preprocessing.VisionTypeTransformation(colour_inds, colour_space))
     return ct
 
 
@@ -24,9 +22,7 @@ def channel_transformation(vision_type, colour_space='rgb'):
         colour_inds = imutils.get_colour_inds(vision_type)
         # check if it's a valid colour index
         if colour_inds is not None:
-            ct.append(cv2_preprocessing.ChannelTransformation(
-                colour_inds, colour_space
-            ))
+            ct.append(cv2_preprocessing.ChannelTransformation(colour_inds, colour_space))
         else:
             warnings.warn('Unsupported colour transformation %s' % colour_space)
     return ct
@@ -62,9 +58,7 @@ def mosaic_transformation(mosaic_pattern):
 
 
 def sf_transformation(sf_filter, sf_filter_chn):
-    return cv2_preprocessing.SpatialFrequencyTransformation(
-        sf_filter, sf_filter_chn
-    )
+    return cv2_preprocessing.SpatialFrequencyTransformation(sf_filter, sf_filter_chn)
 
 
 def prediction_transformation(parameters, colour_space='rgb', tmp_c=False):

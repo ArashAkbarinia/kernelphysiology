@@ -17,9 +17,8 @@ from kernelphysiology.dl.pytorch.utils import segmentation_utils
 folder_dbs = ['imagenet', 'fruits', 'leaves', 'land', 'vggface2', 'ecoset']
 
 
-def prepare_transformations_train(dataset_name, colour_transformations,
-                                  other_transformations, chns_transformation,
-                                  normalize, target_size):
+def prepare_transformations_train(dataset_name, colour_transformations, other_transformations,
+                                  chns_transformation, normalize, target_size):
     if 'cifar' in dataset_name or dataset_name in folder_dbs:
         if 'cifar' in dataset_name:
             size_transform = cv2_transforms.RandomCrop(target_size, padding=4)
@@ -57,15 +56,12 @@ def prepare_transformations_train(dataset_name, colour_transformations,
             normalize,
         ])
     else:
-        sys.exit(
-            'Transformations for dataset %s is not supported.' % dataset_name
-        )
+        sys.exit('Transformations for dataset %s is not supported.' % dataset_name)
     return transformations
 
 
-def prepare_transformations_test(dataset_name, colour_transformations,
-                                 other_transformations, chns_transformation,
-                                 normalize, target_size, task=None):
+def prepare_transformations_test(dataset_name, colour_transformations, other_transformations,
+                                 chns_transformation, normalize, target_size, task=None):
     if 'cifar' in dataset_name or dataset_name in folder_dbs:
         transformations = torch_transforms.Compose([
             cv2_transforms.Resize(target_size),
@@ -95,21 +91,17 @@ def prepare_transformations_test(dataset_name, colour_transformations,
     elif 'voc' in dataset_name or task == 'segmentation':
         transformations = []
     else:
-        sys.exit(
-            'Transformations for dataset %s is not supported.' % dataset_name
-        )
+        sys.exit('Transformations for dataset %s is not supported.' % dataset_name)
     return transformations
 
 
-def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
-                           other_transformations, normalize, target_size,
-                           task=None, target_transform=None):
+def get_validation_dataset(dataset_name, valdir, vision_type, colour_space, other_transformations,
+                           normalize, target_size, task=None, target_transform=None):
     colour_transformations = preprocessing.colour_transformation(vision_type, colour_space)
     chns_transformation = preprocessing.channel_transformation(vision_type, colour_space)
 
     transformations = prepare_transformations_test(
-        dataset_name, colour_transformations,
-        other_transformations, chns_transformation,
+        dataset_name, colour_transformations, other_transformations, chns_transformation,
         normalize, target_size, task=task
     )
     if task == 'segmentation' or 'voc' in dataset_name:
@@ -125,8 +117,7 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
         )
     elif dataset_name in folder_dbs:
         validation_dataset = datasets.ImageFolder(
-            valdir, transformations, loader=pil2numpy_loader,
-            target_transform=target_transform
+            valdir, transformations, loader=pil2numpy_loader, target_transform=target_transform
         )
     elif dataset_name == 'cifar10':
         validation_dataset = datasets.CIFAR10(
@@ -144,34 +135,25 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space,
             valdir, data_loader_validation, ('.npy',), transformations
         )
     elif 'wcs_jpg' in dataset_name:
-        validation_dataset = datasets.ImageFolder(
-            valdir, transformations, loader=pil2numpy_loader
-        )
+        validation_dataset = datasets.ImageFolder(valdir, transformations, loader=pil2numpy_loader)
     else:
         sys.exit('Dataset %s is not supported.' % dataset_name)
     return validation_dataset
 
 
 # TODO: train and validation merge together
-def get_train_dataset(dataset_name, traindir, vision_type, colour_space,
-                      other_transformations, normalize, target_size,
-                      target_transform=None):
-    colour_transformations = preprocessing.colour_transformation(
-        vision_type, colour_space
-    )
-    chns_transformation = preprocessing.channel_transformation(
-        vision_type, colour_space
-    )
+def get_train_dataset(dataset_name, traindir, vision_type, colour_space, other_transformations,
+                      normalize, target_size, target_transform=None):
+    colour_transformations = preprocessing.colour_transformation(vision_type, colour_space)
+    chns_transformation = preprocessing.channel_transformation(vision_type, colour_space)
 
     transformations = prepare_transformations_train(
-        dataset_name, colour_transformations,
-        other_transformations, chns_transformation,
+        dataset_name, colour_transformations, other_transformations, chns_transformation,
         normalize, target_size
     )
     if dataset_name in folder_dbs:
         train_dataset = datasets.ImageFolder(
-            traindir, transformations, loader=pil2numpy_loader,
-            target_transform=target_transform
+            traindir, transformations, loader=pil2numpy_loader, target_transform=target_transform
         )
     elif dataset_name == 'cifar10':
         train_dataset = datasets.CIFAR10(
@@ -188,9 +170,7 @@ def get_train_dataset(dataset_name, traindir, vision_type, colour_space,
             traindir, data_loader_train, ('.npy',), transformations
         )
     elif 'wcs_jpg' in dataset_name:
-        train_dataset = datasets.ImageFolder(
-            traindir, transformations, loader=pil2numpy_loader
-        )
+        train_dataset = datasets.ImageFolder(traindir, transformations, loader=pil2numpy_loader)
     else:
         sys.exit('Dataset %s is not supported.' % dataset_name)
 

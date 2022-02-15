@@ -206,9 +206,7 @@ class RandomAugmentationTransformation(object):
         if self.num_augmentations is None:
             augmentation_inds = self.all_inds
         else:
-            augmentation_inds = random.sample(
-                self.all_inds, self.num_augmentations
-            )
+            augmentation_inds = random.sample(self.all_inds, self.num_augmentations)
             # sorting it according to the order provided by user
             augmentation_inds.sort()
 

@@ -326,7 +326,7 @@ def get_preprocessing_function(colour_space, colour_vision=None):
     elif colour_space == 'grey':
         mean = [0.5]
         std = [0.25]
-    elif colour_space == 'lab' or colour_space == 'lms':
+    elif colour_space in ['lab', 'lms', 'dkl']:
         if 'dichromat' in colour_vision or 'anopia' in colour_vision:
             mean = [0.5, 0.5]
             std = [0.25, 0.25]
