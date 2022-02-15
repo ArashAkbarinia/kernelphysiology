@@ -318,15 +318,18 @@ def which_architecture(network_name, customs=None):
 
 # TODO: use different values fo preprocessing
 def get_preprocessing_function(colour_space, colour_vision=None):
-    mean = [0.5, 0.5, 0.5]
-    std = [0.25, 0.25, 0.25]
-    if colour_space in ['rgb', 'red', 'green', 'blue', 'grey3']:
+    if colour_space in ['imagenet_rgb']:
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
+    elif colour_space in ['rgb', 'grey3']:
+        mean = [0.5, 0.5, 0.5]
+        std = [0.25, 0.25, 0.25]
     elif colour_space == 'grey':
         mean = [0.5]
         std = [0.25]
     elif colour_space in ['lab', 'lms', 'dkl']:
+        mean = [0.5, 0.5, 0.5]
+        std = [0.25, 0.25, 0.25]
         if 'dichromat' in colour_vision or 'anopia' in colour_vision:
             mean = [0.5, 0.5]
             std = [0.25, 0.25]

@@ -153,10 +153,8 @@ def cart2sph(x, y, z):
 
 # Rotation matrix along the x axis (luminance axis)
 def rotation(x, teta):
-    # rotation of a an image coded in color one opponent space around
-    # achromatic axis
-    rm = np.array([[1, 0, 0], [0, np.cos(teta), -np.sin(teta)],
-                   [0, np.sin(teta), np.cos(teta)]])
+    # rotation of a an image coded in color one opponent space around achromatic axis
+    rm = np.array([[1, 0, 0], [0, np.cos(teta), -np.sin(teta)], [0, np.sin(teta), np.cos(teta)]])
     return np.dot(x, rm.T)
 
 
@@ -170,15 +168,22 @@ def pca2rgb(x):
     return np.dot(x, np.linalg.inv(m))
 
 
-def rotate_hue(image, hue_angle, norm_fact=0.4):
+# def rotate_hue(image, hue_angle, norm_fact=0.4):
+#     hue_angle = math.radians(hue_angle)
+#     image = im2double(image) - 0.5
+#     im_pca = rgb2pca(image)
+#
+#     # FIXME: this is a trick to avoid getting out of gamma
+#     norm = norm_fact / np.amax(np.absolute(im_pca))
+#
+#     output = pca2rgb(rotation(im_pca * norm, hue_angle)) + 0.5
+#     return output
+
+def rotate_hue(image, hue_angle):
     hue_angle = math.radians(hue_angle)
-    image = im2double(image) - 0.5
-    im_pca = rgb2pca(image)
+    img_dkl = colour_spaces.rgb2dkl01(image) - 0.5
 
-    # FIXME: this is a trick to avoid getting out of gamma
-    norm = norm_fact / np.amax(np.absolute(im_pca))
-
-    output = pca2rgb(rotation(im_pca * norm, hue_angle)) + 0.5
+    output = colour_spaces.dkl012rgb(rotation(img_dkl, hue_angle) + 0.5)
     return output
 
 
