@@ -181,6 +181,19 @@ class SpatialFrequencyTransformation(object):
         return x
 
 
+class RotateHueTransformation(object):
+
+    def __init__(self, hue_angle):
+        self.hue_angle = hue_angle
+
+    def __call__(self, x):
+        kwargs = {'hue_angle': self.hue_angle}
+        if type(x) is list:
+            return _call_recursive(x, imutils.rotate_hue, **kwargs)
+        x = imutils.rotate_hue(x, **kwargs)
+        return x
+
+
 class UniqueTransformation(object):
 
     def __init__(self, manipulation_function, **kwargs):

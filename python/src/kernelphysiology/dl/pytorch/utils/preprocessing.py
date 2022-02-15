@@ -61,6 +61,10 @@ def sf_transformation(sf_filter, sf_filter_chn):
     return cv2_preprocessing.SpatialFrequencyTransformation(sf_filter, sf_filter_chn)
 
 
+def rotate_hue_transformation(hue_angle):
+    return cv2_preprocessing.RotateHueTransformation(hue_angle)
+
+
 def prediction_transformation(parameters, colour_space='rgb', tmp_c=False):
     return cv2_preprocessing.PredictionTransformation(
         parameters, colour_space=colour_space, tmp_c=tmp_c

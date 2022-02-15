@@ -229,6 +229,10 @@ def main_worker(ngpus_per_node, args):
         sf_trans = preprocessing.sf_transformation(args.sf_filter)
         both_trans.append(sf_trans)
 
+    if args.rotate_hue is not None:
+        hue_trans = preprocessing.rotate_hue_transformation(args.rotate_hue)
+        both_trans.append(hue_trans)
+
     if args.num_augmentations != 0:
         augmentations = preprocessing.random_augmentation(
             args.augmentation_settings, args.num_augmentations

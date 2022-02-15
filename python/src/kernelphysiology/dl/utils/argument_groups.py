@@ -133,6 +133,13 @@ def get_input_group(parser):
         help='Filtering specific channels (default: None)'
     )
 
+    input_group.add_argument(
+        '--rotate_hue',
+        default=None,
+        type=float,
+        help='The angle in degree to rotate hue (default: None)'
+    )
+
 
 def get_output_group(parser):
     output_group = parser.add_argument_group('output')
