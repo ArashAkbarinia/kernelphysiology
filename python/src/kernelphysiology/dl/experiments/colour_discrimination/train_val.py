@@ -251,7 +251,7 @@ def _train_val(db_loader, model, optimizer, epoch, args, print_test=True):
             # compute output
             if args.mac_adam:
                 output = model(img0, img1)
-                odd_ind = target.squeeze().clone()
+                odd_ind = target
             else:
                 output = model(img0, img1, img2, img3)
             loss = model.loss_function(output, target)
@@ -273,10 +273,16 @@ def _train_val(db_loader, model, optimizer, epoch, args, print_test=True):
             end = time.time()
 
             # to use for correlations
-            pred_outs = np.concatenate(
-                [output.detach().cpu().numpy(), odd_ind.unsqueeze(dim=1).cpu().numpy()],
-                axis=1
-            )
+            if args.mac_adam:
+                pred_outs = np.concatenate(
+                    [output.detach().cpu().numpy(), odd_ind.cpu().numpy()],
+                    axis=1
+                )
+            else:
+                pred_outs = np.concatenate(
+                    [output.detach().cpu().numpy(), odd_ind.unsqueeze(dim=1).cpu().numpy()],
+                    axis=1
+                )
             # I'm not sure if this is all necessary, copied from keras
             if not isinstance(pred_outs, list):
                 pred_outs = [pred_outs]
