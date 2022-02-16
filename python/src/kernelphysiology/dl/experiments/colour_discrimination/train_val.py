@@ -50,13 +50,17 @@ def main(argv):
 def _main_worker(args):
     mean, std = model_utils.get_mean_std(args.colour_space, args.vision_type)
 
-    # create model
-    if args.test_net:
-        model = networks.ColourDiscrimination(args.test_net, args.target_size)
+    if args.mac_adam:
+        net_class = networks.ColourDiscrimination2AFC
+        task = '2afc'
     else:
-        model = networks.ColourDiscrimination(
-            args.architecture, args.target_size, args.transfer_weights,
-        )
+        net_class = networks.ColourDiscriminationOddOneOut
+        task = 'odd4'
+
+    if args.test_net:
+        model = net_class(args.test_net, args.target_size)
+    else:
+        model = net_class(args.architecture, args.target_size, args.transfer_weights)
 
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
@@ -135,7 +139,7 @@ def _main_worker(args):
             target_colour = colour_spaces.dkl2rgb(np.expand_dims(ext_pts[:3], axis=(0, 1)))
             val_colours = {'target_colour': target_colour, 'others_colour': others_colour}
             val_dataset.append(dataloader.val_set(
-                args.val_dir, args.target_size, preprocess=(mean, std), **val_colours
+                args.val_dir, args.target_size, preprocess=(mean, std), task=task, **val_colours
             ))
     val_dataset = torch.utils.data.ConcatDataset(val_dataset)
 
@@ -150,7 +154,7 @@ def _main_worker(args):
     # loading the training set
     train_colours = {'colour_dist': args.train_colours}
     train_dataset = dataloader.train_set(
-        args.train_dir, args.target_size, preprocess=(mean, std), **train_colours
+        args.train_dir, args.target_size, preprocess=(mean, std), task=task, **train_colours
     )
 
     train_loader = torch.utils.data.DataLoader(
@@ -221,24 +225,35 @@ def _train_val(db_loader, model, optimizer, epoch, args, print_test=True):
     epoch_str = 'train' if is_train else 'val'
     end = time.time()
     with torch.set_grad_enabled(is_train):
-        for i, (img0, img1, img2, img3, odd_ind) in enumerate(db_loader):
+        for i, cu_batch in enumerate(db_loader):
             # measure data loading time
             data_time.update(time.time() - end)
 
-            img0 = img0.cuda(args.gpu, non_blocking=True)
-            img1 = img1.cuda(args.gpu, non_blocking=True)
-            img2 = img2.cuda(args.gpu, non_blocking=True)
-            img3 = img3.cuda(args.gpu, non_blocking=True)
+            if args.mac_adam:
+                (img0, img1, target) = cu_batch
+                img0 = img0.cuda(args.gpu, non_blocking=True)
+                img1 = img1.cuda(args.gpu, non_blocking=True)
+                target = target.unsqueeze(dim=1).float()
+            else:
+                (img0, img1, img2, img3, odd_ind) = cu_batch
+                img0 = img0.cuda(args.gpu, non_blocking=True)
+                img1 = img1.cuda(args.gpu, non_blocking=True)
+                img2 = img2.cuda(args.gpu, non_blocking=True)
+                img3 = img3.cuda(args.gpu, non_blocking=True)
 
-            # preparing the target
-            target = torch.zeros(odd_ind.shape[0], 4)
-            target[torch.arange(odd_ind.shape[0]), odd_ind] = 1
-            # target = (target * 2) - 1
+                # preparing the target
+                target = torch.zeros(odd_ind.shape[0], 4)
+                target[torch.arange(odd_ind.shape[0]), odd_ind] = 1
+                odd_ind = odd_ind.cuda(args.gpu, non_blocking=True)
+
             target = target.cuda(args.gpu, non_blocking=True)
-            odd_ind = odd_ind.cuda(args.gpu, non_blocking=True)
 
             # compute output
-            output = model(img0, img1, img2, img3)
+            if args.mac_adam:
+                output = model(img0, img1)
+                odd_ind = target.squeeze().clone()
+            else:
+                output = model(img0, img1, img2, img3)
             loss = model.loss_function(output, target)
 
             # measure accuracy and record loss
@@ -322,10 +337,14 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     all_results = []
     j = 0
     header = 'acc,lum,rg,yb,R,G,B'
+
+    task = '2afc' if args.mac_adam else 'odd4'
     while True:
         target_colour = colour_spaces.dkl2rgb(mid)
         kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
-        db = dataloader.val_set(args.val_dir, args.target_size, preprocess=preprocess, **kwargs)
+        db = dataloader.val_set(
+            args.val_dir, args.target_size, preprocess=preprocess, task=task, **kwargs
+        )
 
         db_loader = torch.utils.data.DataLoader(
             db, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, pin_memory=True

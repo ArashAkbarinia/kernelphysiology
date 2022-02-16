@@ -30,19 +30,12 @@ def train_arg_parser(argvs, extra_args_fun=None):
         type=str,
         help='Path of the model to be tested (default: None)'
     )
-
-    if extra_args_fun is not None:
-        extra_args_fun(parser)
-
-    args = parser.parse_args(argvs)
-    return args
-
-
-def test_arg_parser(argvs, extra_args_fun=None):
-    parser = _common_arg_parser(description='Colour discrimination testing')
-
-    _add_optimisation_group(parser)
-    _add_lesion_group(parser)
+    misc_group.add_argument(
+        '--mac_adam',
+        action='store_true',
+        default=False,
+        help='MacAdam experiment (default: False)'
+    )
 
     if extra_args_fun is not None:
         extra_args_fun(parser)

@@ -127,12 +127,11 @@ class OddOneOutVal(torch_data.Dataset):
         return len(self.data_file)
 
 
-class ShapeOddOneOutTrain(torch_data.Dataset):
+class ShapeTrain(torch_data.Dataset):
 
     def __init__(self, root, transform=None, colour_dist=None, **kwargs):
         self.root = root
         self.transform = transform
-        self.num_stimuli = 4
         self.angles = (1, 11)
         self.target_size = 224
         self.imgdir = '%s/shape2D/' % self.root
@@ -141,6 +140,32 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
         self.colour_dist = colour_dist
         if self.colour_dist is not None:
             self.colour_dist = np.loadtxt(self.colour_dist, delimiter=',', dtype=int)
+
+    def __len__(self):
+        return len(self.img_paths)
+
+
+class ShapeVal(torch_data.Dataset):
+
+    def __init__(self, root, transform=None, target_colour=None, others_colour=None, **kwargs):
+        self.root = root
+        self.transform = transform
+        self.target_size = 224
+        self.imgdir = '%s/shape2D/' % self.root
+        stimuli_path = '%s/validation.cvs' % self.root
+        self.stimuli = np.loadtxt(stimuli_path, delimiter=',', dtype=int)
+        self.target_colour = target_colour
+        self.others_colour = others_colour
+
+    def __len__(self):
+        return len(self.stimuli)
+
+
+class ShapeOddOneOutTrain(ShapeTrain):
+
+    def __init__(self, root, transform=None, colour_dist=None, **kwargs):
+        ShapeTrain.__init__(self, root, transform=transform, colour_dist=colour_dist, **kwargs)
+        self.num_stimuli = 4
 
     def __getitem__(self, item):
         target_path = self.img_paths[item]
@@ -211,22 +236,12 @@ class ShapeOddOneOutTrain(torch_data.Dataset):
         target = inds.index(0)
         return imgs[inds[0]], imgs[inds[1]], imgs[inds[2]], imgs[inds[3]], target
 
-    def __len__(self):
-        return len(self.img_paths)
 
+class ShapeOddOneOutVal(ShapeVal):
 
-class ShapeOddOneOutVal(torch_data.Dataset):
-
-    def __init__(self, root, transform=None, target_colour=None, others_colour=None, **kwargs):
-        self.root = root
-        self.transform = transform
+    def __init__(self, root, transform=None, **kwargs):
+        ShapeVal.__init__(self, root, transform=transform, **kwargs)
         self.num_stimuli = 4
-        self.target_size = 224
-        self.imgdir = '%s/shape2D/' % self.root
-        stimuli_path = '%s/validation.cvs' % self.root
-        self.stimuli = np.loadtxt(stimuli_path, delimiter=',', dtype=int)
-        self.target_colour = target_colour
-        self.others_colour = others_colour
 
     def __getitem__(self, item):
         masks = []
@@ -273,11 +288,125 @@ class ShapeOddOneOutVal(torch_data.Dataset):
         imgs[0] = tmp_img
         return imgs[inds[0]], imgs[inds[1]], imgs[inds[2]], imgs[inds[3]], target
 
-    def __len__(self):
-        return len(self.stimuli)
+
+class Shape2AFCTrain(ShapeTrain):
+
+    def __init__(self, root, transform=None, colour_dist=None, **kwargs):
+        ShapeTrain.__init__(self, root, transform=transform, colour_dist=colour_dist, **kwargs)
+
+    def __getitem__(self, item):
+        target_path = self.img_paths[item]
+        angle = int(ntpath.basename(target_path[:-4]).split('_')[-1].replace('angle', ''))
+
+        # angles pool
+        angles_pool = np.arange(*self.angles).tolist()
+        angles_pool.remove(angle)
+        random.shuffle(angles_pool)
+
+        other_paths = target_path.replace('angle%d.png' % angle, 'angle%d.png' % angles_pool[0])
+
+        masks = [
+            io.imread(target_path),
+            io.imread(other_paths)
+        ]
+
+        # set the colours
+        if self.colour_dist is not None:
+            rand_row = random.randint(0, len(self.colour_dist) - 1)
+            target_colour = self.colour_dist[rand_row]
+        else:
+            target_colour = [random.randint(0, 255) for _ in range(3)]
+        # others_diff = np.random.choice(self.rgb_diffs, size=3, p=self.rgb_probs)
+        if random.random() < 0.5:
+            others_colour = target_colour
+            target = 1
+        else:
+            target = 0
+            others_diff = [random.choice([1, -1]) * random.randint(5, 50) for _ in range(3)]
+            others_colour = []
+            for chn_ind in range(3):
+                chn_colour = target_colour[chn_ind] + others_diff[chn_ind]
+                if chn_colour < 0 or chn_colour > 255:
+                    chn_colour = target_colour[chn_ind] - others_diff[chn_ind]
+                others_colour.append(chn_colour)
+
+        imgs = []
+        for mask_ind, mask in enumerate(masks):
+            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
+            if mask_ind == 0:
+                current_colour = target_colour
+            else:
+                current_colour = others_colour
+            mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
+            for chn_ind in range(3):
+                current_chn = mask_img[:, :, chn_ind]
+                current_chn[mask == 255] = current_colour[chn_ind]
+                current_chn[mask == 0] = 128
+
+            img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
+
+            mask_size = mask.shape
+            srow = random.randint(0, self.target_size - mask_size[0])
+            erow = srow + mask_size[0]
+            scol = random.randint(0, self.target_size - mask_size[1])
+            ecol = scol + mask_size[1]
+            img[srow:erow, scol:ecol] = mask_img
+            imgs.append(img)
+
+        if self.transform is not None:
+            imgs = self.transform(imgs)
+
+        return imgs[0], imgs[1], target
 
 
-def train_set(root, target_size, preprocess, **kwargs):
+class Shape2AFCVal(ShapeVal):
+
+    def __init__(self, root, transform=None, **kwargs):
+        ShapeVal.__init__(self, root, transform=transform, **kwargs)
+
+    def __getitem__(self, item):
+        masks = []
+        for i in range(2):
+            # image names start from 1
+            imgi = item + 1
+            masks.append(
+                io.imread('%s/img_shape%d_angle%d.png' % (self.imgdir, imgi, self.stimuli[item, i]))
+            )
+
+        imgs = []
+        for mask_ind, mask in enumerate(masks):
+            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
+            if mask_ind == 0:
+                current_colour = self.target_colour
+            else:
+                current_colour = self.others_colour
+            current_colour = current_colour.squeeze()
+
+            mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
+            for chn_ind in range(3):
+                current_chn = mask_img[:, :, chn_ind]
+                current_chn[mask == 255] = current_colour[chn_ind]
+                current_chn[mask == 0] = 128
+
+            img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
+
+            mask_size = mask.shape
+            srow = int(mask_size[0] / 2)
+            erow = srow + mask_size[0]
+            scol = int(mask_size[1] / 2)
+            ecol = scol + mask_size[1]
+            img[srow:erow, scol:ecol] = mask_img
+            imgs.append(img)
+
+        if self.transform is not None:
+            imgs = self.transform(imgs)
+
+        # target doesn't have a meaning in this test, it's always False
+        target = 0
+        return imgs[0], imgs[1], target
+
+
+def train_set(root, target_size, preprocess, task, **kwargs):
     mean, std = preprocess
 
     scale = (0.8, 1.0)
@@ -289,10 +418,13 @@ def train_set(root, target_size, preprocess, **kwargs):
     ])
 
     # return OddOneOutTrain(root, transform, **kwargs)
-    return ShapeOddOneOutTrain(root, transform, **kwargs)
+    if task == 'odd4':
+        return ShapeOddOneOutTrain(root, transform, **kwargs)
+    else:
+        return Shape2AFCTrain(root, transform, **kwargs)
 
 
-def val_set(root, target_size, preprocess, **kwargs):
+def val_set(root, target_size, preprocess, task, **kwargs):
     mean, std = preprocess
 
     transform = torch_transforms.Compose([
@@ -302,4 +434,7 @@ def val_set(root, target_size, preprocess, **kwargs):
     ])
 
     # return OddOneOutVal(root, transform, **kwargs)
-    return ShapeOddOneOutVal(root, transform, **kwargs)
+    if task == 'odd4':
+        return ShapeOddOneOutVal(root, transform, **kwargs)
+    else:
+        return Shape2AFCVal(root, transform, **kwargs)

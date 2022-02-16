@@ -11,10 +11,10 @@ from . import pretrained_models
 
 
 class ColourDiscrimination(nn.Module):
-    def __init__(self, architecture, target_size, transfer_weights=None):
+    def __init__(self, architecture, target_size, num_classes, transfer_weights=None):
         super(ColourDiscrimination, self).__init__()
 
-        num_classes = 3
+        num_classes = num_classes
 
         checkpoint = None
         # assuming architecture is path
@@ -52,6 +52,11 @@ class ColourDiscrimination(nn.Module):
         if checkpoint is not None:
             self.load_state_dict(checkpoint['state_dict'])
 
+
+class ColourDiscriminationOddOneOut(ColourDiscrimination):
+    def __init__(self, architecture, target_size, transfer_weights=None):
+        ColourDiscrimination.__init__(self, architecture, target_size, 3, transfer_weights)
+
     def forward(self, x0, x1, x2, x3):
         x0 = self.features(x0)
         x0 = x0.view(x0.size(0), -1)
@@ -74,3 +79,22 @@ class ColourDiscrimination(nn.Module):
         for i in range(4):
             loss += t_functional.binary_cross_entropy_with_logits(output[:, i], target[:, i])
         return loss / (4 * output.shape[0])
+
+
+class ColourDiscrimination2AFC(ColourDiscrimination):
+    def __init__(self, architecture, target_size, transfer_weights=None):
+        ColourDiscrimination.__init__(self, architecture, target_size, 2, transfer_weights)
+
+    def forward(self, x0, x1):
+        x0 = self.features(x0)
+        x0 = x0.view(x0.size(0), -1)
+        x1 = self.features(x1)
+        x1 = x1.view(x1.size(0), -1)
+
+        x = self.fc(torch.cat([x0, x1], dim=1))
+
+        return x
+
+    def loss_function(self, output, target):
+        loss = t_functional.binary_cross_entropy_with_logits(output, target)
+        return loss
