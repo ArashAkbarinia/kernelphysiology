@@ -83,7 +83,7 @@ class ColourDiscriminationOddOneOut(ColourDiscrimination):
 
 class ColourDiscrimination2AFC(ColourDiscrimination):
     def __init__(self, architecture, target_size, transfer_weights=None):
-        ColourDiscrimination.__init__(self, architecture, target_size, 2, transfer_weights)
+        ColourDiscrimination.__init__(self, architecture, target_size, 1, transfer_weights)
 
     def forward(self, x0, x1):
         x0 = self.features(x0)
@@ -91,7 +91,8 @@ class ColourDiscrimination2AFC(ColourDiscrimination):
         x1 = self.features(x1)
         x1 = x1.view(x1.size(0), -1)
 
-        x = self.fc(torch.cat([x0, x1], dim=1))
+        # x = self.fc(torch.cat([x0, x1], dim=1))
+        x = self.fc(torch.abs(x0 - x1))
 
         return x
 
