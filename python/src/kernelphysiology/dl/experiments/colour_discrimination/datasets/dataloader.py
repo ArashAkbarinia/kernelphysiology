@@ -142,6 +142,53 @@ class ShapeTrain(torch_data.Dataset):
         if self.colour_dist is not None:
             self.colour_dist = np.loadtxt(self.colour_dist, delimiter=',', dtype=int)
 
+    def _prepare_train_imgs(self, masks, others_colour, target_colour):
+        imgs = []
+        for mask_ind, mask in enumerate(masks):
+            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
+            current_colour = target_colour if mask_ind == 0 else others_colour
+            # TODO: option for type of the background
+            if self.bg == 'rnd':
+                mask_img = np.random.randint(0, 256, (*mask.shape, 3), dtype='uint8')
+                img = np.random.randint(0, 256, (self.target_size, self.target_size, 3),
+                                        dtype='uint8')
+            else:
+                mask_img = np.zeros((*mask.shape, 3), dtype='uint8') + 128
+                img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
+            for chn_ind in range(3):
+                current_chn = mask_img[:, :, chn_ind]
+                current_chn[mask == 255] = current_colour[chn_ind]
+
+            mask_size = mask.shape
+            srow = random.randint(0, self.target_size - mask_size[0])
+            erow = srow + mask_size[0]
+            scol = random.randint(0, self.target_size - mask_size[1])
+            ecol = scol + mask_size[1]
+            img[srow:erow, scol:ecol] = mask_img
+            imgs.append(img)
+        if self.transform is not None:
+            imgs = self.transform(imgs)
+        return imgs
+
+    def _get_target_colour(self):
+        if self.colour_dist is not None:
+            rand_row = random.randint(0, len(self.colour_dist) - 1)
+            target_colour = self.colour_dist[rand_row]
+        else:
+            target_colour = [random.randint(0, 255) for _ in range(3)]
+        return target_colour
+
+    def _get_others_colour(self, target_colour):
+        others_colour = []
+        # others_diff = np.random.choice(self.rgb_diffs, size=3, p=self.rgb_probs)
+        others_diff = [random.choice([1, -1]) * random.randint(5, 50) for _ in range(3)]
+        for chn_ind in range(3):
+            chn_colour = target_colour[chn_ind] + others_diff[chn_ind]
+            if chn_colour < 0 or chn_colour > 255:
+                chn_colour = target_colour[chn_ind] - others_diff[chn_ind]
+            others_colour.append(chn_colour)
+        return others_colour
+
     def __len__(self):
         return len(self.img_paths)
 
@@ -209,42 +256,10 @@ class ShapeOddOneOutTrain(ShapeTrain):
         ]
 
         # set the colours
-        if self.colour_dist is not None:
-            rand_row = random.randint(0, len(self.colour_dist) - 1)
-            target_colour = self.colour_dist[rand_row]
-        else:
-            target_colour = [random.randint(0, 255) for _ in range(3)]
-        # others_diff = np.random.choice(self.rgb_diffs, size=3, p=self.rgb_probs)
-        others_diff = [random.choice([1, -1]) * random.randint(5, 50) for _ in range(3)]
-        others_colour = []
-        for chn_ind in range(3):
-            chn_colour = target_colour[chn_ind] + others_diff[chn_ind]
-            if chn_colour < 0 or chn_colour > 255:
-                chn_colour = target_colour[chn_ind] - others_diff[chn_ind]
-            others_colour.append(chn_colour)
+        target_colour = self._get_target_colour()
+        others_colour = self._get_others_colour(target_colour)
 
-        imgs = []
-        for mask_ind, mask in enumerate(masks):
-            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
-            current_colour = target_colour if mask_ind == 0 else others_colour
-            mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
-            for chn_ind in range(3):
-                current_chn = mask_img[:, :, chn_ind]
-                current_chn[mask == 255] = current_colour[chn_ind]
-                current_chn[mask == 0] = 128
-
-            img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
-
-            mask_size = mask.shape
-            srow = random.randint(0, self.target_size - mask_size[0])
-            erow = srow + mask_size[0]
-            scol = random.randint(0, self.target_size - mask_size[1])
-            ecol = scol + mask_size[1]
-            img[srow:erow, scol:ecol] = mask_img
-            imgs.append(img)
-
-        if self.transform is not None:
-            imgs = self.transform(imgs)
+        imgs = self._prepare_train_imgs(masks, others_colour, target_colour)
 
         inds = np.arange(0, self.num_stimuli).tolist()
         random.shuffle(inds)
@@ -303,51 +318,15 @@ class Shape2AFCTrain(ShapeTrain):
         ]
 
         # set the colours
-        if self.colour_dist is not None:
-            rand_row = random.randint(0, len(self.colour_dist) - 1)
-            target_colour = self.colour_dist[rand_row]
-        else:
-            target_colour = [random.randint(0, 255) for _ in range(3)]
-        # others_diff = np.random.choice(self.rgb_diffs, size=3, p=self.rgb_probs)
+        target_colour = self._get_target_colour()
         if random.random() < 0.5:
             others_colour = target_colour
             target = 1
         else:
             target = 0
-            others_diff = [random.choice([1, -1]) * random.randint(5, 50) for _ in range(3)]
-            others_colour = []
-            for chn_ind in range(3):
-                chn_colour = target_colour[chn_ind] + others_diff[chn_ind]
-                if chn_colour < 0 or chn_colour > 255:
-                    chn_colour = target_colour[chn_ind] - others_diff[chn_ind]
-                others_colour.append(chn_colour)
+            others_colour = self._get_others_colour(target_colour)
 
-        imgs = []
-        for mask_ind, mask in enumerate(masks):
-            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
-            current_colour = target_colour if mask_ind == 0 else others_colour
-            # TODO: option for type of the background
-            if self.bg == 'rnd':
-                mask_img = np.random.randint(0, 256, (*mask.shape, 3), dtype='uint8')
-                img = np.random.randint(0, 256, (self.target_size, self.target_size, 3),
-                                        dtype='uint8')
-            else:
-                mask_img = np.zeros((*mask.shape, 3), dtype='uint8') + 128
-                img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
-            for chn_ind in range(3):
-                current_chn = mask_img[:, :, chn_ind]
-                current_chn[mask == 255] = current_colour[chn_ind]
-
-            mask_size = mask.shape
-            srow = random.randint(0, self.target_size - mask_size[0])
-            erow = srow + mask_size[0]
-            scol = random.randint(0, self.target_size - mask_size[1])
-            ecol = scol + mask_size[1]
-            img[srow:erow, scol:ecol] = mask_img
-            imgs.append(img)
-
-        if self.transform is not None:
-            imgs = self.transform(imgs)
+        imgs = self._prepare_train_imgs(masks, others_colour, target_colour)
 
         return imgs[0], imgs[1], target
 
