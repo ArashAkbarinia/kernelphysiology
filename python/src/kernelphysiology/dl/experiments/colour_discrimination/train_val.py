@@ -134,9 +134,9 @@ def _main_worker(args):
     # loading the validation set
     val_dataset = []
     for ref_pts in args.test_pts.values():
-        others_colour = colour_spaces.dkl2rgb(np.expand_dims(ref_pts['ref'][:3], axis=(0, 1)))
+        others_colour = colour_spaces.dkl2rgb01(np.expand_dims(ref_pts['ref'][:3], axis=(0, 1)))
         for ext_pts in ref_pts['ext']:
-            target_colour = colour_spaces.dkl2rgb(np.expand_dims(ext_pts[:3], axis=(0, 1)))
+            target_colour = colour_spaces.dkl2rgb01(np.expand_dims(ext_pts[:3], axis=(0, 1)))
             val_colours = {'target_colour': target_colour, 'others_colour': others_colour}
             val_dataset.append(dataloader.val_set(
                 args.val_dir, args.target_size, preprocess=(mean, std), task=task, **val_colours
@@ -338,7 +338,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     high = np.expand_dims(qval['ext'][pt_ind][:3], axis=(0, 1))
     mid = (low + high) / 2
 
-    others_colour = colour_spaces.dkl2rgb(low)
+    others_colour = colour_spaces.dkl2rgb01(low)
 
     all_results = []
     j = 0
@@ -346,7 +346,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
 
     task = '2afc' if args.mac_adam else 'odd4'
     while True:
-        target_colour = colour_spaces.dkl2rgb(mid)
+        target_colour = colour_spaces.dkl2rgb01(mid)
         kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
         db = dataloader.val_set(
             args.val_dir, args.target_size, preprocess=preprocess, task=task, **kwargs
@@ -373,7 +373,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
         j += 1
 
 
-def _midpoint_colour(accuracy, low, mid, high, th=0.625):
+def _midpoint_colour(accuracy, low, mid, high, th):
     diff_acc = accuracy - th
     if abs(diff_acc) < 0.005:
         return None, None, None

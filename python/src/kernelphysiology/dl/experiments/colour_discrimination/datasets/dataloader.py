@@ -158,6 +158,24 @@ class ShapeVal(torch_data.Dataset):
         self.target_colour = target_colour
         self.others_colour = others_colour
 
+    def _prepare_test_imgs(self, masks):
+        imgs = []
+        for mask_ind, mask in enumerate(masks):
+            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
+            current_colour = self.target_colour if mask_ind == 0 else self.others_colour
+            current_colour = current_colour.squeeze()
+
+            mask_img = np.zeros((*mask.shape, 3), dtype='float32') + 0.5
+            for chn_ind in range(3):
+                current_chn = mask_img[:, :, chn_ind]
+                current_chn[mask == 255] = current_colour[chn_ind]
+
+            imgs.append(_random_place(mask_img, self.target_size, 0.5))
+
+        if self.transform is not None:
+            imgs = self.transform(imgs)
+        return imgs
+
     def __len__(self):
         return len(self.stimuli)
 
@@ -250,29 +268,7 @@ class ShapeOddOneOutVal(ShapeVal):
                 io.imread('%s/img_shape%d_angle%d.png' % (self.imgdir, imgi, self.stimuli[item, i]))
             )
 
-        imgs = []
-        for mask_ind, mask in enumerate(masks):
-            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
-            current_colour = self.target_colour if mask_ind == 0 else self.others_colour
-            current_colour = current_colour.squeeze()
-
-            mask_img = np.zeros((*mask.shape, 3), dtype='uint8') + 128
-            for chn_ind in range(3):
-                current_chn = mask_img[:, :, chn_ind]
-                current_chn[mask == 255] = current_colour[chn_ind]
-
-            img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
-
-            mask_size = mask.shape
-            srow = int(mask_size[0] / 2)
-            erow = srow + mask_size[0]
-            scol = int(mask_size[1] / 2)
-            ecol = scol + mask_size[1]
-            img[srow:erow, scol:ecol] = mask_img
-            imgs.append(img)
-
-        if self.transform is not None:
-            imgs = self.transform(imgs)
+        imgs = self._prepare_test_imgs(masks)
 
         # the target is always added the first element in the imgs list
         target = self.stimuli[item, -1]
@@ -370,34 +366,25 @@ class Shape2AFCVal(ShapeVal):
                 io.imread('%s/img_shape%d_angle%d.png' % (self.imgdir, imgi, self.stimuli[item, 0]))
             )
 
-        imgs = []
-        for mask_ind, mask in enumerate(masks):
-            mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
-            current_colour = self.target_colour if mask_ind == 0 else self.others_colour
-            current_colour = current_colour.squeeze()
-
-            mask_img = np.zeros((*mask.shape, 3), dtype='uint8') + 128
-            for chn_ind in range(3):
-                current_chn = mask_img[:, :, chn_ind]
-                current_chn[mask == 255] = current_colour[chn_ind]
-
-            # TODO: option for type of the background
-            img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
-
-            mask_size = mask.shape
-            srow = int(mask_size[0] / 2)
-            erow = srow + mask_size[0]
-            scol = int(mask_size[1] / 2)
-            ecol = scol + mask_size[1]
-            img[srow:erow, scol:ecol] = mask_img
-            imgs.append(img)
-
-        if self.transform is not None:
-            imgs = self.transform(imgs)
+        imgs = self._prepare_test_imgs(masks)
 
         # target doesn't have a meaning in this test, it's always False
         target = 0
         return imgs[0], imgs[1], target
+
+
+def _random_place(mask_img, target_size, bg):
+    # TODO: option for type of the background
+    img = np.zeros((target_size, target_size, 3), dtype='float32') + bg
+
+    mask_size = mask_img.shape
+    srow = int(mask_size[0] / 2)
+    erow = srow + mask_size[0]
+    scol = int(mask_size[1] / 2)
+    ecol = scol + mask_size[1]
+    img[srow:erow, scol:ecol] = mask_img
+
+    return img
 
 
 def train_set(root, target_size, preprocess, task, **kwargs):
