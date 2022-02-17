@@ -205,6 +205,12 @@ def _add_input_group(parser):
         type=int,
         help='Target size'
     )
+    input_group.add_argument(
+        '--background',
+        default='128',
+        type=str,
+        help='Type of background'
+    )
 
 
 def _add_dataset_group(parser):

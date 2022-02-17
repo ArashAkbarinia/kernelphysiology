@@ -129,7 +129,7 @@ class OddOneOutVal(torch_data.Dataset):
 
 class ShapeTrain(torch_data.Dataset):
 
-    def __init__(self, root, transform=None, colour_dist=None, **kwargs):
+    def __init__(self, root, transform=None, colour_dist=None, background='rnd', **kwargs):
         self.root = root
         self.transform = transform
         self.angles = (1, 11)
@@ -138,6 +138,7 @@ class ShapeTrain(torch_data.Dataset):
         self.img_paths = sorted(glob.glob(self.imgdir + '*.png'))
         self.rgb_diffs, self.rgb_probs = _normal_dist_ints(25, scale=5)
         self.colour_dist = colour_dist
+        self.bg = background
         if self.colour_dist is not None:
             self.colour_dist = np.loadtxt(self.colour_dist, delimiter=',', dtype=int)
 
@@ -330,15 +331,16 @@ class Shape2AFCTrain(ShapeTrain):
             mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
             current_colour = target_colour if mask_ind == 0 else others_colour
             # TODO: option for type of the background
-            mask_img = np.zeros((*mask.shape, 3), dtype='uint8') + 128
-            # mask_img = np.random.randint(0, 256, (*mask.shape, 3), dtype='uint8')
+            if self.bg == 'rnd':
+                mask_img = np.random.randint(0, 256, (*mask.shape, 3), dtype='uint8')
+                img = np.random.randint(0, 256, (self.target_size, self.target_size, 3),
+                                        dtype='uint8')
+            else:
+                mask_img = np.zeros((*mask.shape, 3), dtype='uint8') + 128
+                img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
             for chn_ind in range(3):
                 current_chn = mask_img[:, :, chn_ind]
                 current_chn[mask == 255] = current_colour[chn_ind]
-
-            # TODO: option for type of the background
-            img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
-            # img = np.random.randint(0, 256, (self.target_size, self.target_size, 3), dtype='uint8')
 
             mask_size = mask.shape
             srow = random.randint(0, self.target_size - mask_size[0])
