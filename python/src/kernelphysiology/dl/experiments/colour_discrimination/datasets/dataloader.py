@@ -303,7 +303,8 @@ class Shape2AFCTrain(ShapeTrain):
         angles_pool.remove(angle)
         random.shuffle(angles_pool)
 
-        other_paths = target_path.replace('angle%d.png' % angle, 'angle%d.png' % angles_pool[0])
+        # other_paths = target_path.replace('angle%d.png' % angle, 'angle%d.png' % angles_pool[0])
+        other_paths = target_path
 
         masks = [
             io.imread(target_path),
@@ -337,13 +338,15 @@ class Shape2AFCTrain(ShapeTrain):
                 current_colour = target_colour
             else:
                 current_colour = others_colour
-            mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
+            # mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
+            mask_img = np.random.randint(0, 256, (*mask.shape, 3), dtype='uint8')
             for chn_ind in range(3):
                 current_chn = mask_img[:, :, chn_ind]
                 current_chn[mask == 255] = current_colour[chn_ind]
-                current_chn[mask == 0] = 128
+                # current_chn[mask == 0] = 128
 
-            img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
+            # img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
+            img = np.random.randint(0, 256, (self.target_size, self.target_size, 3), dtype='uint8')
 
             mask_size = mask.shape
             srow = random.randint(0, self.target_size - mask_size[0])
