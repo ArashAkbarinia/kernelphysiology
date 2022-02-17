@@ -207,10 +207,7 @@ class ShapeOddOneOutTrain(ShapeTrain):
         imgs = []
         for mask_ind, mask in enumerate(masks):
             mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
-            if mask_ind == 0:
-                current_colour = target_colour
-            else:
-                current_colour = others_colour
+            current_colour = target_colour if mask_ind == 0 else others_colour
             mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
             for chn_ind in range(3):
                 current_chn = mask_img[:, :, chn_ind]
@@ -255,17 +252,13 @@ class ShapeOddOneOutVal(ShapeVal):
         imgs = []
         for mask_ind, mask in enumerate(masks):
             mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
-            if mask_ind == 0:
-                current_colour = self.target_colour
-            else:
-                current_colour = self.others_colour
+            current_colour = self.target_colour if mask_ind == 0 else self.others_colour
             current_colour = current_colour.squeeze()
 
-            mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
+            mask_img = np.zeros((*mask.shape, 3), dtype='uint8') + 128
             for chn_ind in range(3):
                 current_chn = mask_img[:, :, chn_ind]
                 current_chn[mask == 255] = current_colour[chn_ind]
-                current_chn[mask == 0] = 128
 
             img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
 
@@ -304,6 +297,7 @@ class Shape2AFCTrain(ShapeTrain):
         random.shuffle(angles_pool)
 
         # other_paths = target_path.replace('angle%d.png' % angle, 'angle%d.png' % angles_pool[0])
+        # FIXME: should target path and other paths be the same?
         other_paths = target_path
 
         masks = [
@@ -334,16 +328,15 @@ class Shape2AFCTrain(ShapeTrain):
         imgs = []
         for mask_ind, mask in enumerate(masks):
             mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
-            if mask_ind == 0:
-                current_colour = target_colour
-            else:
-                current_colour = others_colour
+            current_colour = target_colour if mask_ind == 0 else others_colour
+            # TODO: option for type of the background
             mask_img = np.zeros((*mask.shape, 3), dtype='uint8') + 128
             # mask_img = np.random.randint(0, 256, (*mask.shape, 3), dtype='uint8')
             for chn_ind in range(3):
                 current_chn = mask_img[:, :, chn_ind]
                 current_chn[mask == 255] = current_colour[chn_ind]
 
+            # TODO: option for type of the background
             img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
             # img = np.random.randint(0, 256, (self.target_size, self.target_size, 3), dtype='uint8')
 
@@ -368,28 +361,25 @@ class Shape2AFCVal(ShapeVal):
 
     def __getitem__(self, item):
         masks = []
-        for i in range(2):
+        for _ in range(2):
             # image names start from 1
             imgi = item + 1
             masks.append(
-                io.imread('%s/img_shape%d_angle%d.png' % (self.imgdir, imgi, self.stimuli[item, i]))
+                io.imread('%s/img_shape%d_angle%d.png' % (self.imgdir, imgi, self.stimuli[item, 0]))
             )
 
         imgs = []
         for mask_ind, mask in enumerate(masks):
             mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
-            if mask_ind == 0:
-                current_colour = self.target_colour
-            else:
-                current_colour = self.others_colour
+            current_colour = self.target_colour if mask_ind == 0 else self.others_colour
             current_colour = current_colour.squeeze()
 
-            mask_img = np.zeros((*mask.shape, 3), dtype='uint8')
+            mask_img = np.zeros((*mask.shape, 3), dtype='uint8') + 128
             for chn_ind in range(3):
                 current_chn = mask_img[:, :, chn_ind]
                 current_chn[mask == 255] = current_colour[chn_ind]
-                current_chn[mask == 0] = 128
 
+            # TODO: option for type of the background
             img = np.zeros((self.target_size, self.target_size, 3), dtype='uint8') + 128
 
             mask_size = mask.shape
