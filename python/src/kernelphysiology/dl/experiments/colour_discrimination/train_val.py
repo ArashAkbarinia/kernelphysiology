@@ -65,24 +65,21 @@ def _main_worker(args):
     torch.cuda.set_device(args.gpu)
     model = model.cuda(args.gpu)
 
-    # setting the quadrant points FIXME: make it nicer from the file
+    # setting the quadrant points
     if args.pts_path is None:
-        args.pts_path = args.val_dir + '/quadrant_points.csv'
-    test_pts = np.loadtxt(args.pts_path, delimiter=',', dtype=str)[1:]
-    test_pts = test_pts[:, :6].astype('float')
-    test_pts[:, 0] = 1.0
+        args.pts_path = args.val_dir + '/macadam_points.csv'
+    test_pts = np.loadtxt(args.pts_path, delimiter=',', dtype=str)
 
     # NOTE: they're in DKL
-    args.test_pts = {
-        'q1': {
-            'ref': test_pts[4],
-            'ext': ((test_pts[:4] - test_pts[4]) * 1.0) + test_pts[4]
-        },
-        'q4': {
-            'ref': test_pts[9],
-            'ext': ((test_pts[5:9] - test_pts[9]) * 1.0) + test_pts[9]
-        },
-    }
+    args.test_pts = dict()
+    for test_pt in test_pts:
+        pt_val = test_pt[:3].astype('float')
+        test_pt_name = test_pt[-1]
+        if 'ref_' == test_pt_name[:4]:
+            test_pt_name = test_pt_name[4:]
+            args.test_pts[test_pt_name] = {'ref': pt_val, 'ext': []}
+        else:
+            args.test_pts[test_pt_name]['ext'].append(pt_val)
 
     # defining validation set here so if only test don't do the rest
     if args.val_dir is None:
