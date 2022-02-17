@@ -16,14 +16,10 @@ from kernelphysiology.utils import system_utils
 class ArgumentParser(argparse.ArgumentParser):
     def add_argument_group(self, *args, **kwargs):
         ignore = ['positional arguments', 'optional arguments']
-        if (args[0] in ignore or
-                ('title' in kwargs.keys() and kwargs['title'] in ignore)
-        ):
+        if args[0] in ignore or ('title' in kwargs.keys() and kwargs['title'] in ignore):
             return super().add_argument_group(*args, **kwargs)
         for group in self._action_groups:
-            if (group.title == args[0] or
-                    ('title' in kwargs and group.title == kwargs['title'])
-            ):
+            if group.title == args[0] or ('title' in kwargs and group.title == kwargs['title']):
                 return group
         return super().add_argument_group(*args, **kwargs)
 
