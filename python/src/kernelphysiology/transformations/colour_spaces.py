@@ -146,6 +146,10 @@ def rgb2dkl(x):
     return rgb012dkl(normalisations.rgb2double(x))
 
 
+def rgb012dkl01(x):
+    return rgb2dkl01(x)
+
+
 def rgb2dkl01(x):
     x = rgb2dkl(x)
     x /= 2
