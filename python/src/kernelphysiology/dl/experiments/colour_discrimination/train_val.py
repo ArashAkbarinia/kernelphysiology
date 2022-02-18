@@ -342,6 +342,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     header = 'acc,lum,rg,yb,R,G,B'
 
     task = '2afc' if args.mac_adam else 'odd4'
+    th = 0.95 if args.mac_adam else 0.625
     while True:
         target_colour = colour_spaces.dkl2rgb01(mid)
         kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
@@ -360,7 +361,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
         output_file = os.path.join(args.output_dir, 'evolutoin_%s_%d.csv' % (qname, pt_ind))
         np.savetxt(output_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
 
-        new_low, new_mid, new_high = _midpoint_colour(accuracy, low, mid, high, th=0.625)
+        new_low, new_mid, new_high = _midpoint_colour(accuracy, low, mid, high, th=th)
 
         if new_low is None or j == 20:
             print('had to skip')
