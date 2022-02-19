@@ -67,7 +67,7 @@ def _main_worker(args):
 
     # setting the quadrant points
     if args.pts_path is None:
-        args.pts_path = args.val_dir + '/macadam_points.csv'
+        args.pts_path = args.val_dir + '/rgb_points.csv'
     test_pts = np.loadtxt(args.pts_path, delimiter=',', dtype=str)
 
     # NOTE: they're in DKL
@@ -342,7 +342,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     header = 'acc,lum,rg,yb,R,G,B'
 
     task = '2afc' if args.mac_adam else 'odd4'
-    th = 0.95 if args.mac_adam else 0.625
+    th = 0.75 if args.mac_adam else 0.625
     while True:
         target_colour = colour_spaces.dkl2rgb01(mid)
         kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
