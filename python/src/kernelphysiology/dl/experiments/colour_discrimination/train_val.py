@@ -348,7 +348,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
 
     all_results = []
     j = 0
-    chns_name = qval['ref']['space']
+    chns_name = qval['space']
     header = 'acc,%s,%s,%s,R,G,B' % (chns_name[0], chns_name[1], chns_name[2])
 
     task = '2afc' if args.mac_adam else 'odd4'
