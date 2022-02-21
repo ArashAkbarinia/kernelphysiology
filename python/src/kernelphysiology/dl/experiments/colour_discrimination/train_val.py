@@ -82,7 +82,7 @@ def _main_worker(args):
                 chns_name = ['D', 'K', 'L']
             elif test_pt[-1] == 'hsv':
                 ffun = colour_spaces.hsv012rgb01
-                bfun = colour_spaces.rgb012hsv01
+                bfun = colour_spaces.rgb2hsv01
                 chns_name = ['H', 'S', 'V']
             args.test_pts[test_pt_name] = {
                 'ref': pt_val, 'ffun': ffun, 'bfun': bfun, 'space': chns_name, 'ext': []
