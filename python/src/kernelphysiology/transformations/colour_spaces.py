@@ -222,9 +222,13 @@ def rgb2hsv01(x):
 
 
 def hsv012rgb(x):
+    return normalisations.uint8im(hsv012rgb01(x))
+
+
+def hsv012rgb01(x):
     x[:, :, 0] *= 360
     x = cv2.cvtColor(x, cv2.COLOR_HSV2RGB)
-    return normalisations.uint8im(x)
+    return normalisations.clip01(x)
 
 
 def lab2lch01(x):
