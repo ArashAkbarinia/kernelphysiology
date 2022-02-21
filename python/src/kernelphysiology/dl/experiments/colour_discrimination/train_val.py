@@ -70,14 +70,23 @@ def _main_worker(args):
         args.pts_path = args.val_dir + '/rgb_points.csv'
     test_pts = np.loadtxt(args.pts_path, delimiter=',', dtype=str)
 
-    # NOTE: they're in DKL
     args.test_pts = dict()
     for test_pt in test_pts:
         pt_val = test_pt[:3].astype('float')
-        test_pt_name = test_pt[-1]
+        test_pt_name = test_pt[-2]
         if 'ref_' == test_pt_name[:4]:
             test_pt_name = test_pt_name[4:]
-            args.test_pts[test_pt_name] = {'ref': pt_val, 'ext': []}
+            if test_pt[-1] == 'dkl':
+                ffun = colour_spaces.dkl2rgb01
+                bfun = colour_spaces.rgb012dkl
+                chns_name = ['D', 'K', 'L']
+            elif test_pt[-1] == 'hsv':
+                ffun = colour_spaces.hsv012rgb01
+                bfun = colour_spaces.rgb012hsv01
+                chns_name = ['H', 'S', 'V']
+            args.test_pts[test_pt_name] = {
+                'ref': pt_val, 'ffun': ffun, 'bfun': bfun, 'space': chns_name, 'ext': []
+            }
         else:
             args.test_pts[test_pt_name]['ext'].append(pt_val)
 
@@ -131,9 +140,9 @@ def _main_worker(args):
     # loading the validation set
     val_dataset = []
     for ref_pts in args.test_pts.values():
-        others_colour = colour_spaces.dkl2rgb01(np.expand_dims(ref_pts['ref'][:3], axis=(0, 1)))
+        others_colour = ref_pts['ffun'](np.expand_dims(ref_pts['ref'][:3], axis=(0, 1)))
         for ext_pts in ref_pts['ext']:
-            target_colour = colour_spaces.dkl2rgb01(np.expand_dims(ext_pts[:3], axis=(0, 1)))
+            target_colour = ref_pts['bfun'](np.expand_dims(ext_pts[:3], axis=(0, 1)))
             val_colours = {'target_colour': target_colour, 'others_colour': others_colour}
             val_dataset.append(dataloader.val_set(
                 args.val_dir, args.target_size, preprocess=(mean, std), task=task, **val_colours
@@ -335,16 +344,17 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     high = np.expand_dims(qval['ext'][pt_ind][:3], axis=(0, 1))
     mid = (low + high) / 2
 
-    others_colour = colour_spaces.dkl2rgb01(low)
+    others_colour = qval['ffun'](low)
 
     all_results = []
     j = 0
-    header = 'acc,lum,rg,yb,R,G,B'
+    chns_name = qval['ref']['space']
+    header = 'acc,%s,%s,%s,R,G,B' % (chns_name[0], chns_name[1], chns_name[2])
 
     task = '2afc' if args.mac_adam else 'odd4'
     th = 0.75 if args.mac_adam else 0.625
     while True:
-        target_colour = colour_spaces.dkl2rgb01(mid)
+        target_colour = qval['ffun'](mid)
         kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
         db = dataloader.val_set(
             args.val_dir, args.target_size, preprocess=preprocess, task=task, **kwargs

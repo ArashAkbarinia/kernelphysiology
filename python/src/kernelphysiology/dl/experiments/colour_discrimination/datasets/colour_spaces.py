@@ -3,6 +3,7 @@ Functions related to change or manipulation of colour spaces.
 """
 
 import numpy as np
+import cv2
 
 rgb_from_dkl = np.array(
     [[+0.49995000, +0.50001495, +0.49999914],
@@ -76,3 +77,20 @@ def dkl012rgb01(x):
     x[:, :, 2] -= 0.5
     x *= 2
     return dkl2rgb01(x)
+
+
+def rgb2hsv01(x):
+    x = _rgb2double(x)
+    x = np.float32(cv2.cvtColor(x, cv2.COLOR_RGB2HSV))
+    x[:, :, 0] /= 360
+    return x
+
+
+def hsv012rgb(x):
+    return _uint8im(hsv012rgb01(x))
+
+
+def hsv012rgb01(x):
+    x[:, :, 0] *= 360
+    x = cv2.cvtColor(x, cv2.COLOR_HSV2RGB)
+    return _clip01(x)
