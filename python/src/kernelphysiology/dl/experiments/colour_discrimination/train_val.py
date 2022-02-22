@@ -402,7 +402,9 @@ def _midpoint_colour(accuracy, low, mid, high, th, circ_chns=None):
 
 def _circular_mean(a, b):
     if abs(a - b) > 0.5:
-        mu = (a + b + 1) / 2 - 1
+        mu = (a + b + 1) / 2
     else:
         mu = (a + b) / 2
+    if mu >= 1:
+        mu = mu - 1
     return mu
