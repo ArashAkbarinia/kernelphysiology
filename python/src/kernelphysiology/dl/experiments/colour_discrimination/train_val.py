@@ -389,12 +389,12 @@ def _midpoint_colour(accuracy, low, mid, high, th, circ_chns=None):
     elif diff_acc > 0:
         new_mid = (low + mid) / 2
         for i in circ_chns:
-            new_mid[i] = _circular_mean(low[i], mid[i])
+            new_mid[0, 0, i] = _circular_mean(low[0, 0, i], mid[0, 0, i])
         return low, new_mid, mid
     else:
         new_mid = (high + mid) / 2
         for i in circ_chns:
-            new_mid[i] = _circular_mean(high[i], mid[i])
+            new_mid[0, 0, i] = _circular_mean(high[0, 0, i], mid[0, 0, i])
         return mid, new_mid, high
 
 
