@@ -339,21 +339,23 @@ def _sensitivity_test_points(args, model, preprocess):
 
 def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     qval = args.test_pts[qname]
+    chns_name = qval['space']
+    circ_chns = [0] if chns_name[0] == 'H' else None
 
     low = np.expand_dims(qval['ref'][:3], axis=(0, 1))
     high = np.expand_dims(qval['ext'][pt_ind][:3], axis=(0, 1))
     mid = (low + high) / 2
+    for i in circ_chns:
+        mid[0, 0, i] = _circular_mean(low[0, 0, i], high[0, 0, i])
 
     others_colour = qval['ffun'](low)
 
     all_results = []
     j = 0
-    chns_name = qval['space']
     header = 'acc,%s,%s,%s,R,G,B' % (chns_name[0], chns_name[1], chns_name[2])
 
     task = '2afc' if args.mac_adam else 'odd4'
     th = 0.75 if args.mac_adam else 0.625
-    circ_chns = [0] if chns_name[0] == 'H' else None
     while True:
         target_colour = qval['ffun'](mid)
         kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
@@ -366,7 +368,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
         )
 
         _, accuracy = _train_val(db_loader, model, None, -1, args, print_test=False)
-        print(qname, pt_ind, accuracy, j, low, mid, high)
+        print(qname, pt_ind, accuracy, j, low.squeeze(), mid.squeeze(), high.squeeze())
 
         all_results.append(np.array([accuracy, *mid.squeeze(), *target_colour.squeeze()]))
         output_file = os.path.join(args.output_dir, 'evolutoin_%s_%d.csv' % (qname, pt_ind))
