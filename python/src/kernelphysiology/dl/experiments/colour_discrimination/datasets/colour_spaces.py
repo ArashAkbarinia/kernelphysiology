@@ -80,6 +80,7 @@ def dkl012rgb01(x):
 
 
 def rgb2hsv01(x):
+    x = x.copy()
     x = _rgb2double(x)
     x = np.float32(cv2.cvtColor(x.astype('float32'), cv2.COLOR_RGB2HSV))
     x[:, :, 0] /= 360
@@ -91,6 +92,7 @@ def hsv012rgb(x):
 
 
 def hsv012rgb01(x):
+    x = x.copy()
     x[:, :, 0] *= 360
     x = cv2.cvtColor(x.astype('float32'), cv2.COLOR_HSV2RGB)
     return _clip01(x)
