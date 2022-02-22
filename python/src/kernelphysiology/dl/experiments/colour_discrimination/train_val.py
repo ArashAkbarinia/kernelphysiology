@@ -353,6 +353,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
 
     task = '2afc' if args.mac_adam else 'odd4'
     th = 0.75 if args.mac_adam else 0.625
+    circ_chns = [0] if chns_name[0] == 'H' else None
     while True:
         target_colour = qval['ffun'](mid)
         kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
@@ -371,7 +372,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
         output_file = os.path.join(args.output_dir, 'evolutoin_%s_%d.csv' % (qname, pt_ind))
         np.savetxt(output_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
 
-        new_low, new_mid, new_high = _midpoint_colour(accuracy, low, mid, high, th=th)
+        new_low, new_mid, new_high = _midpoint_colour(accuracy, low, mid, high, th, circ_chns)
 
         if new_low is None or j == 20:
             print('had to skip')
@@ -381,11 +382,25 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
         j += 1
 
 
-def _midpoint_colour(accuracy, low, mid, high, th):
+def _midpoint_colour(accuracy, low, mid, high, th, circ_chns=None):
     diff_acc = accuracy - th
     if abs(diff_acc) < 0.005:
         return None, None, None
     elif diff_acc > 0:
-        return low, (low + mid) / 2, mid
+        new_mid = (low + mid) / 2
+        for i in circ_chns:
+            new_mid[i] = _circular_mean(low[i], mid[i])
+        return low, new_mid, mid
     else:
-        return mid, (high + mid) / 2, high
+        new_mid = (high + mid) / 2
+        for i in circ_chns:
+            new_mid[i] = _circular_mean(high[i], mid[i])
+        return mid, new_mid, high
+
+
+def _circular_mean(a, b):
+    if abs(a - b) > 0.5:
+        mu = (a + b + 1) / 2 - 1
+    else:
+        mu = (a + b) / 2
+    return mu
