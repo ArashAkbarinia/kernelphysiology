@@ -340,13 +340,11 @@ def _sensitivity_test_points(args, model, preprocess):
 def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     qval = args.test_pts[qname]
     chns_name = qval['space']
-    circ_chns = [0] if chns_name[0] == 'H' else None
+    circ_chns = [0] if chns_name[0] == 'H' else []
 
     low = np.expand_dims(qval['ref'][:3], axis=(0, 1))
     high = np.expand_dims(qval['ext'][pt_ind][:3], axis=(0, 1))
-    mid = (low + high) / 2
-    for i in circ_chns:
-        mid[0, 0, i] = _circular_mean(low[0, 0, i], high[0, 0, i])
+    mid = _compute_mean(low, high, circ_chns)
 
     others_colour = qval['ffun'](low)
 
@@ -389,15 +387,18 @@ def _midpoint_colour(accuracy, low, mid, high, th, circ_chns=None):
     if abs(diff_acc) < 0.005:
         return None, None, None
     elif diff_acc > 0:
-        new_mid = (low + mid) / 2
-        for i in circ_chns:
-            new_mid[0, 0, i] = _circular_mean(low[0, 0, i], mid[0, 0, i])
+        new_mid = _compute_mean(low, mid, circ_chns)
         return low, new_mid, mid
     else:
-        new_mid = (high + mid) / 2
-        for i in circ_chns:
-            new_mid[0, 0, i] = _circular_mean(high[0, 0, i], mid[0, 0, i])
+        new_mid = _compute_mean(high, mid, circ_chns)
         return mid, new_mid, high
+
+
+def _compute_mean(a, b, circ_chns):
+    c = (a + b) / 2
+    for i in circ_chns:
+        c[0, 0, i] = _circular_mean(a[0, 0, i], b[0, 0, i])
+    return c
 
 
 def _circular_mean(a, b):
