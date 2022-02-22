@@ -215,8 +215,9 @@ def yog012rgb01(x):
 
 
 def rgb2hsv01(x):
+    x = x.copy()
     x = normalisations.rgb2double(x)
-    x = np.float32(cv2.cvtColor(x, cv2.COLOR_RGB2HSV))
+    x = np.float32(cv2.cvtColor(x.astype('float32'), cv2.COLOR_RGB2HSV))
     x[:, :, 0] /= 360
     return x
 
@@ -226,8 +227,9 @@ def hsv012rgb(x):
 
 
 def hsv012rgb01(x):
+    x = x.copy()
     x[:, :, 0] *= 360
-    x = cv2.cvtColor(x, cv2.COLOR_HSV2RGB)
+    x = cv2.cvtColor(x.astype('float32'), cv2.COLOR_HSV2RGB)
     return normalisations.clip01(x)
 
 
