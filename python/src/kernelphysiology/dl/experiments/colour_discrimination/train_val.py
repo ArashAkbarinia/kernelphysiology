@@ -29,8 +29,8 @@ def main(argv):
     args.num_classes = 4
 
     # preparing the output folder
-    args.output_dir = '%s/networks/t%.3d/%s/%s/' % (
-        args.output_dir, args.target_size, args.architecture, args.experiment_name
+    args.output_dir = '%s/networks/t%.3d/%s%s/%s/' % (
+        args.output_dir, args.target_size, args.architecture, args.arch_suf, args.experiment_name
     )
     system_utils.create_dir(args.output_dir)
 

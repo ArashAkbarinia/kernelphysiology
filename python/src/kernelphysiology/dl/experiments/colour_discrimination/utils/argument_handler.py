@@ -124,6 +124,12 @@ def _add_network_group(parser):
         help='Name of the architecture or network'
     )
     network_group.add_argument(
+        '--arch_suf',
+        default='',
+        type=str,
+        help='Giving a suffix to the name of arch directory'
+    )
+    network_group.add_argument(
         '--resume',
         default=None,
         type=str,
