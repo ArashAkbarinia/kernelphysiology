@@ -341,6 +341,9 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     qval = args.test_pts[qname]
     chns_name = qval['space']
     circ_chns = [0] if chns_name[0] == 'H' else []
+    output_file = os.path.join(args.output_dir, 'evolutoin_%s_%d.csv' % (qname, pt_ind))
+    if os.path.exists((output_file)):
+        return
 
     low = np.expand_dims(qval['ref'][:3], axis=(0, 1))
     high = np.expand_dims(qval['ext'][pt_ind][:3], axis=(0, 1))
@@ -369,7 +372,6 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
         print(qname, pt_ind, accuracy, j, low.squeeze(), mid.squeeze(), high.squeeze())
 
         all_results.append(np.array([accuracy, *mid.squeeze(), *target_colour.squeeze()]))
-        output_file = os.path.join(args.output_dir, 'evolutoin_%s_%d.csv' % (qname, pt_ind))
         np.savetxt(output_file, np.array(all_results), delimiter=',', fmt='%f', header=header)
 
         new_low, new_mid, new_high = _midpoint_colour(accuracy, low, mid, high, th, circ_chns)
