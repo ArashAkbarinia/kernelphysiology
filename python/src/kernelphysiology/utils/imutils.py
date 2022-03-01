@@ -19,9 +19,8 @@ from kernelphysiology.filterfactory.mask import ring_mask
 from kernelphysiology.transformations.colour_spaces import rgb2opponency
 from kernelphysiology.transformations.colour_spaces import opponency2rgb
 from kernelphysiology.transformations.colour_spaces import get_max_lightness
-from kernelphysiology.transformations import colour_spaces
+from kernelphysiology.transformations import colour_spaces, normalisations
 from kernelphysiology.transformations.normalisations import im2double_max
-from kernelphysiology.transformations.normalisations import im2double
 from kernelphysiology.transformations.normalisations import img_midvals
 from kernelphysiology.utils.noise import random_noise
 
@@ -180,10 +179,22 @@ def pca2rgb(x):
 #     return output
 
 def rotate_hue(image, hue_angle):
-    hue_angle = math.radians(hue_angle)
+    hue_rad = math.radians(hue_angle)
     img_dkl = colour_spaces.rgb2dkl01(image) - 0.5
 
-    output = colour_spaces.dkl012rgb(rotation(img_dkl, hue_angle) + 0.5)
+    output = colour_spaces.dkl012rgb01(rotation(img_dkl, hue_rad) + 0.5, raw=True)
+    if hue_angle == 90:
+        minvs = [-0.15963513, -0.24257698, -0.61854306]
+        maxvs = [+1.15951755, +1.24262220, +1.61844135]
+    elif hue_angle == 270:
+        minvs = [-0.90117482, 0.00000000, -0.17976814]
+        maxvs = [+1.90109239, 1.00001458, +1.17986642]
+    if hue_angle in [90, 270]:
+        for i in range(3):
+            output[:, :, i] = normalisations.min_max_normalise(
+                output[:, :, i], minv=minvs[i], maxv=maxvs[i]
+            )
+        output = normalisations.clip01(output)
     return output
 
 

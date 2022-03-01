@@ -162,8 +162,10 @@ def dkl2rgb(x):
     return normalisations.uint8im(dkl2rgb01(x))
 
 
-def dkl2rgb01(x):
+def dkl2rgb01(x, raw=False):
     x = np.dot(x, rgb_from_dkl)
+    if raw:
+        return x
     return normalisations.clip01(x)
 
 
@@ -171,12 +173,12 @@ def dkl012rgb(x):
     return normalisations.uint8im(dkl012rgb01(x))
 
 
-def dkl012rgb01(x):
+def dkl012rgb01(x, raw=False):
     x = x.copy()
     x[:, :, 1] -= 0.5
     x[:, :, 2] -= 0.5
     x *= 2
-    return dkl2rgb01(x)
+    return dkl2rgb01(x, raw=raw)
 
 
 def rgb012yog(x):
