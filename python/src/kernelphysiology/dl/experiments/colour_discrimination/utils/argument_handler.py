@@ -31,6 +31,12 @@ def train_arg_parser(argvs, extra_args_fun=None):
         help='Path of the model to be tested (default: None)'
     )
     misc_group.add_argument(
+        '--test_attempts',
+        default=20,
+        type=int,
+        help='Number of attempts to test between reference and target (default: 20)'
+    )
+    misc_group.add_argument(
         '--mac_adam',
         action='store_true',
         default=False,

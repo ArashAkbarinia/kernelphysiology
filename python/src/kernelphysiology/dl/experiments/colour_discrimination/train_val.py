@@ -84,18 +84,26 @@ def _main_worker(args):
                 ffun = colour_spaces.hsv012rgb01
                 bfun = colour_spaces.rgb2hsv01
                 chns_name = ['H', 'S', 'V']
+            elif test_pt[-1] == 'rgb':
+                ffun = lambda x: x
+                bfun = lambda x: x
+                chns_name = ['R', 'G', 'B']
             args.test_pts[test_pt_name] = {
-                'ref': pt_val, 'ffun': ffun, 'bfun': bfun, 'space': chns_name, 'ext': []
+                'ref': pt_val, 'ffun': ffun, 'bfun': bfun, 'space': chns_name, 'ext': [], 'chns': []
             }
         else:
             args.test_pts[test_pt_name]['ext'].append(pt_val)
+            args.test_pts[test_pt_name]['chns'].append(test_pt[-1])
 
     # defining validation set here so if only test don't do the rest
     if args.val_dir is None:
         args.val_dir = args.data_dir + '/validation_set/'
 
     if args.test_net:
-        _sensitivity_test_points(args, model, (mean, std))
+        if args.test_attempts > 0:
+            _sensitivity_test_points(args, model, (mean, std))
+        else:
+            _accuracy_test_points(args, model, (mean, std))
         return
 
     # if transfer_weights, only train the fc layer, otherwise all parameters
@@ -337,6 +345,43 @@ def _sensitivity_test_points(args, model, preprocess):
             _sensitivity_test_point(args, model, preprocess, qname, pt_ind)
 
 
+def _accuracy_test_points(args, model, preprocess):
+    for qname, qval in args.test_pts.items():
+        tosave = []
+        for pt_ind in range(0, len(qval['ext'])):
+            acc = _accuracy_test_point(args, model, preprocess, qname, pt_ind)
+            tosave.append([acc, *qval['ext'][pt_ind], qval['chns'][pt_ind]])
+        output_file = os.path.join(args.output_dir, 'accuracy_%s.csv' % (qname))
+        chns_name = qval['space']
+        header = 'acc,%s,%s,%s,chn' % (chns_name[0], chns_name[1], chns_name[2])
+        np.savetxt(output_file, np.array(tosave), delimiter=',', fmt='%s', header=header)
+
+
+def _accuracy_test_point(args, model, preprocess, qname, pt_ind):
+    qval = args.test_pts[qname]
+
+    low = np.expand_dims(qval['ref'][:3], axis=(0, 1))
+    high = np.expand_dims(qval['ext'][pt_ind][:3], axis=(0, 1))
+
+    others_colour = qval['ffun'](low)
+
+    task = '2afc' if args.mac_adam else 'odd4'
+
+    target_colour = qval['ffun'](high)
+    kwargs = {'target_colour': target_colour, 'others_colour': others_colour}
+    db = dataloader.val_set(
+        args.val_dir, args.target_size, preprocess=preprocess, task=task, **kwargs
+    )
+
+    db_loader = torch.utils.data.DataLoader(
+        db, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, pin_memory=True
+    )
+
+    _, accuracy = _train_val(db_loader, model, None, -1, args, print_test=False)
+    print(qname, pt_ind, accuracy, low.squeeze(), high.squeeze())
+    return accuracy
+
+
 def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
     qval = args.test_pts[qname]
     chns_name = qval['space']
@@ -376,7 +421,7 @@ def _sensitivity_test_point(args, model, preprocess, qname, pt_ind):
 
         new_low, new_mid, new_high = _midpoint_colour(accuracy, low, mid, high, th, circ_chns)
 
-        if new_low is None or j == 20:
+        if new_low is None or j == args.test_attempts:
             print('had to skip')
             break
         else:
