@@ -2,6 +2,7 @@
 
 """
 
+import os
 import numpy as np
 import glob
 import random
@@ -148,7 +149,12 @@ class ShapeTrain(torch_data.Dataset):
             mask = cv2.resize(mask, (128, 128), interpolation=cv2.INTER_NEAREST)
             current_colour = target_colour if mask_ind == 0 else others_colour
             # TODO: option for type of the background
-            if self.bg == 'rnd':
+            if os.path.exists(self.bg):
+                bg_img = io.imread(self.bg)
+                mask_img = cv2.resize(bg_img, mask.shape, interpolation=cv2.INTER_NEAREST)
+                img = cv2.resize(bg_img, (self.target_size, self.target_size),
+                                 interpolation=cv2.INTER_NEAREST)
+            elif self.bg == 'rnd':
                 mask_img = np.random.randint(0, 256, (*mask.shape, 3), dtype='uint8')
                 img = np.random.randint(0, 256, (self.target_size, self.target_size, 3),
                                         dtype='uint8')
