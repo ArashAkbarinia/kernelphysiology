@@ -211,16 +211,13 @@ class ShapeTrain(ShapeDataset):
             others_colour.append(chn_colour)
         return others_colour
 
-    def _prepare_angle_paths(self, target_path, num_angles):
-        angle = int(ntpath.basename(target_path[:-4]).split('_')[-1].replace('angle', ''))
-        # angles pool
-        angles_pool = np.arange(*self.angles).tolist()
-        angles_pool.remove(angle)
-        random.shuffle(angles_pool)
-        angle_paths = [
-            target_path.replace('angle%d.png' % angle, 'angle%d.png' % angles_pool[i]) for i in
-            range(num_angles)
-        ]
+    def _prepare_angle_paths(self, path, samples):
+        angle = int(ntpath.basename(path[:-4]).split('_')[-1].replace('angle', ''))
+        ang_pool = np.arange(*self.angles).tolist()
+        ang_pool.remove(angle)
+        random.shuffle(ang_pool)
+        org_angle = 'angle%d.png' % angle
+        angle_paths = [path.replace(org_angle, 'angle%d.png' % ang_pool[i]) for i in range(samples)]
         return angle_paths
 
     def __len__(self):
