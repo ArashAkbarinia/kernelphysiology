@@ -129,14 +129,14 @@ class OddOneOutVal(torch_data.Dataset):
 
 
 class ShapeDataset(torch_data.Dataset):
-    def __init__(self, root, transform=None, background=None, same_shapes=None, **kwargs):
+    def __init__(self, root, transform=None, background=None, same_rotation=None, **kwargs):
         self.root = root
         self.transform = transform
         self.target_size = (224, 224)
         self.mask_size = (128, 128)
         self.imgdir = '%s/shape2D/' % self.root
         self.bg = background
-        self.same_shapes = same_shapes
+        self.same_rotation = same_rotation
 
     def _prepare_out_imgs(self, masks, others_colour, target_colour, place_fun):
         imgs = []
@@ -177,8 +177,8 @@ class ShapeTrain(ShapeDataset):
         ShapeDataset.__init__(self, root, transform=transform, **kwargs)
         if self.bg is None:
             self.bg = 'rnd'
-        if self.same_shapes is None:
-            self.same_shapes = False
+        if self.same_rotation is None:
+            self.same_rotation = False
         self.angles = (1, 11)
         self.rgb_diffs, self.rgb_probs = _normal_dist_ints(25, scale=5)
         self.img_paths = sorted(glob.glob(self.imgdir + '*.png'))
@@ -230,8 +230,8 @@ class ShapeVal(ShapeDataset):
         ShapeDataset.__init__(self, root, transform=transform, **kwargs)
         if self.bg is None:
             self.bg = 128
-        if self.same_shapes is None:
-            self.same_shapes = True
+        if self.same_rotation is None:
+            self.same_rotation = True
         stimuli_path = '%s/validation.cvs' % self.root
         self.stimuli = np.loadtxt(stimuli_path, delimiter=',', dtype=int)
         self.target_colour = target_colour
@@ -255,7 +255,7 @@ class ShapeOddOneOutTrain(ShapeTrain):
 
     def __getitem__(self, item):
         target_path = self.img_paths[item]
-        if self.same_shapes:
+        if self.same_rotation:
             other_paths = [target_path, target_path, target_path]
         else:
             other_paths = self._prepare_angle_paths(target_path, 3)
@@ -286,7 +286,7 @@ class ShapeOddOneOutVal(ShapeVal):
         imgi = item + 1
         base_path = '%s/img_shape%d_angle' % (self.imgdir, imgi)
         target_path = '%s%d.png' % (base_path, self.stimuli[item, 0])
-        if self.same_shapes:
+        if self.same_rotation:
             other_paths = [target_path, target_path, target_path]
         else:
             other_paths = ['%s%d.png' % (base_path, self.stimuli[item, i]) for i in range(3)]
@@ -310,7 +310,7 @@ class Shape2AFCTrain(ShapeTrain):
 
     def __getitem__(self, item):
         target_path = self.img_paths[item]
-        if self.same_shapes:
+        if self.same_rotation:
             other_paths = target_path
         else:
             other_paths = self._prepare_angle_paths(target_path, 1)
@@ -340,7 +340,7 @@ class Shape2AFCVal(ShapeVal):
         # image names start from 1
         imgi = item + 1
         target_path = '%s/img_shape%d_angle%d.png' % (self.imgdir, imgi, self.stimuli[item, 0])
-        if self.same_shapes:
+        if self.same_rotation:
             other_paths = target_path
         else:
             other_paths = '%s/img_shape%d_angle%d.png' % (self.imgdir, imgi, self.stimuli[item, 1])
