@@ -219,9 +219,22 @@ def _add_input_group(parser):
     )
     input_group.add_argument(
         '--background',
-        default='128',
+        default=None,
         type=str,
-        help='Type of background'
+        help='Type of background (default: rnd for train and uniform 128 for test)'
+    )
+    rotation_parser = input_group.add_mutually_exclusive_group(required=False)
+    rotation_parser.add_argument(
+        '--same_rotation',
+        default=None,
+        action='store_true',
+        help='Type of shape rotation (default: random for train and identical for test)'
+    )
+    rotation_parser.add_argument(
+        '--diff_rotation', dest='same_rotation',
+        default=None,
+        action='store_false',
+        help='Type of shape rotation (default: random for train and identical for test)'
     )
 
 
