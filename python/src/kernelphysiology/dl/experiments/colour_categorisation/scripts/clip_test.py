@@ -20,6 +20,9 @@ def main(argv):
     parser.add_argument('--clip_arch', default='ViT-B/32', type=str)
 
     args = parser.parse_args(argv)
+
+    os.makedirs(args.out_dir, exist_ok=True)
+
     _main_worker(args)
 
 
@@ -29,14 +32,21 @@ def _main_worker(args):
 
     munsell_img = io.imread(args.munsell_path)[1:-1, 1:]
 
+    out_file = '%s/text_probs.npy' % args.out_dir
+    old_results = np.load(out_file, allow_pickle=True)[0]
+
     all_text_probls = dict()
     for img_path in sorted(glob.glob(args.val_dir + '/*.gif')):
         image_name = ntpath.basename(img_path)[:-4]
-        text_probs = _one_image(img_path, munsell_img, model, preprocess)
-        all_text_probls[image_name] = text_probs
+        if image_name in old_results.keys():
+            all_text_probls[image_name] = old_results[image_name]
+            continue
+        else:
+            print(img_path)
+            text_probs = _one_image(img_path, munsell_img, model, preprocess)
+            all_text_probls[image_name] = text_probs
 
-    os.makedirs(args.out_dir, exist_ok=True)
-    np.save('%s/text_probs.npy' % args.out_dir, [all_text_probls])
+        np.save(out_file, [all_text_probls])
 
 
 def _one_image(img_path, munsell_img, model, preprocess):
