@@ -16,6 +16,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description='Testing CLIP.')
     parser.add_argument('--val_dir', required=True, type=str)
     parser.add_argument('--munsell_path', required=True, type=str)
+    parser.add_argument('--text_path', required=True, type=str)
     parser.add_argument('--out_dir', default='outputs', type=str)
     parser.add_argument('--clip_arch', default='ViT-B/32', type=str)
 
@@ -32,8 +33,10 @@ def _main_worker(args):
 
     munsell_img = io.imread(args.munsell_path)[1:-1, 1:]
 
+    labels = np.loadtxt(args.text_path, dtype=str)
+
     out_file = '%s/text_probs.npy' % args.out_dir
-    old_results = np.load(out_file, allow_pickle=True)[0]
+    old_results = np.load(out_file, allow_pickle=True)[0] if os.path.exists(out_file) else dict()
 
     all_text_probls = dict()
     for img_path in sorted(glob.glob(args.val_dir + '/*.gif')):
@@ -43,13 +46,13 @@ def _main_worker(args):
             continue
         else:
             print(img_path)
-            text_probs = _one_image(img_path, munsell_img, model, preprocess)
+            text_probs = _one_image(img_path, munsell_img, labels, model, preprocess)
             all_text_probls[image_name] = text_probs
 
         np.save(out_file, [all_text_probls])
 
 
-def _one_image(img_path, munsell_img, model, preprocess):
+def _one_image(img_path, munsell_img, labels, model, preprocess):
     image = io.imread(img_path)
     image_mask = image == 255
 
@@ -65,9 +68,7 @@ def _one_image(img_path, munsell_img, model, preprocess):
             original_images.append(image_vis)
             images.append(preprocess(Image.fromarray(image_vis)))
 
-    # 'black', 'grey', 'white'
-    colour_names = ['pink', 'red', 'orange', 'brown', 'yellow', 'green', 'blue', 'purple']
-    text_descriptions = [f"This is a {label} object" for label in colour_names]
+    text_descriptions = [f"This is a {label} object" for label in labels]
     text_tokens = clip.tokenize(text_descriptions).cuda()
 
     image_input = torch.tensor(np.stack(images)).cuda()
