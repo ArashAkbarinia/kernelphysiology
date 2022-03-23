@@ -59,18 +59,15 @@ def _one_image(img_path, munsell_img, labels, model, preprocess):
     grey_img = np.zeros((*image.shape, 3), dtype='uint8')
     grey_img[:, :] = 128
 
-    original_images = []
     images = []
     for i in range(munsell_img.shape[0]):
         for j in range(munsell_img.shape[1]):
             image_vis = grey_img.copy()
             image_vis[image_mask] = munsell_img[i, j]
-            original_images.append(image_vis)
             images.append(preprocess(Image.fromarray(image_vis)))
 
     text_descriptions = [f"This is a {label} object" for label in labels]
     text_tokens = clip.tokenize(text_descriptions).cuda()
-
     image_input = torch.tensor(np.stack(images)).cuda()
 
     with torch.no_grad():
@@ -80,9 +77,9 @@ def _one_image(img_path, munsell_img, labels, model, preprocess):
     image_features /= image_features.norm(dim=-1, keepdim=True)
     text_features /= text_features.norm(dim=-1, keepdim=True)
 
-    text_probs = (100.0 * image_features @ text_features.T).softmax(dim=-1)
+    text_probs_raw = image_features @ text_features.T
 
-    return text_probs.cpu().numpy()
+    return text_probs_raw.cpu().numpy()
 
 
 if __name__ == '__main__':
