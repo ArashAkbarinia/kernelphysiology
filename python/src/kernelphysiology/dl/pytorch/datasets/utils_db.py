@@ -21,8 +21,10 @@ folder_dbs = ['imagenet', 'fruits', 'leaves', 'land', 'vggface2', 'ecoset']
 def prepare_transformations_train(dataset_name, colour_transformations, other_transformations,
                                   chns_transformation, normalize, target_size, random_labels=False):
     if 'cifar' in dataset_name or dataset_name in folder_dbs:
+        flip_p = 0.5
         if random_labels:
             size_transform = cv2_transforms.Resize(target_size)
+            flip_p = -1
         elif 'cifar' in dataset_name:
             size_transform = cv2_transforms.RandomCrop(target_size, padding=4)
         elif 'imagenet' in dataset_name or 'ecoset' in dataset_name:
@@ -35,7 +37,7 @@ def prepare_transformations_train(dataset_name, colour_transformations, other_tr
             size_transform,
             *colour_transformations,
             *other_transformations,
-            cv2_transforms.RandomHorizontalFlip(),
+            cv2_transforms.RandomHorizontalFlip(p=flip_p),
             cv2_transforms.ToTensor(),
             *chns_transformation,
             normalize,
