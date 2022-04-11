@@ -49,6 +49,21 @@ class ImageFolder(tdatasets.ImageFolder):
         return imgin, imgout, path
 
 
+class RandomImageNet(tdatasets.ImageFolder):
+    def __init__(self, root, **kwargs):
+        tdatasets.ImageFolder.__init__(self, root, **kwargs)
+        num_imgs = self.__len__()
+        num_repeats = np.floor(num_imgs / 1000)
+        self.rand_gts = np.arange(0, 1000).repeat(num_repeats)
+        diff = num_imgs - len(self.rand_gts)
+        self.rand_gts = np.concatenate([self.rand_gts, np.random.randint(0, 1000, size=diff)])
+        np.random.shuffle(self.rand_gts)
+
+    def __getitem__(self, index):
+        img, _ = super().__getitem__(index)
+        return img, self.rand_gts[index]
+
+
 class OneFolder(tdatasets.VisionDataset):
     def __init__(self, intransform=None, outtransform=None, **kwargs):
         super(OneFolder, self).__init__(**kwargs)

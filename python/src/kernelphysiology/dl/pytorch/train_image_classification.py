@@ -38,11 +38,16 @@ def main(argv):
     # FIXME: cant take more than one GPU
     args.gpus = args.gpus[0]
 
+    if 'random_' in args.dataset:
+        args.dataset = args.dataset.replace('random_', '')
+        args.random_labels = True
+    else:
+        args.random_labels = False
+
     # TODO: why load weights is False?
     args.out_dir = prepare_training.prepare_output_directories(
-        dataset_name=args.dataset, network_name=args.network_name,
-        optimiser='sgd', load_weights=False,
-        experiment_name=args.experiment_name, framework='pytorch'
+        dataset_name=args.dataset, network_name=args.network_name, optimiser='sgd',
+        load_weights=False, experiment_name=args.experiment_name, framework='pytorch'
     )
 
     if args.seed is not None:
@@ -58,8 +63,7 @@ def main(argv):
 
     if args.gpus is not None:
         warnings.warn(
-            'You have chosen a specific GPU. This will completely '
-            'disable data parallelism.'
+            'You have chosen a specific GPU. This will completely disable data parallelism.'
         )
 
     if args.dist_url == "env://" and args.world_size == -1:
@@ -101,10 +105,8 @@ def main_worker(ngpus_per_node, args):
             # global rank among all the processes
             args.rank = args.rank * ngpus_per_node + args.gpus
         dist.init_process_group(
-            backend=args.dist_backend,
-            init_method=args.dist_url,
-            world_size=args.world_size,
-            rank=args.rank
+            backend=args.dist_backend, init_method=args.dist_url,
+            world_size=args.world_size, rank=args.rank
         )
 
     # create model
@@ -177,9 +179,7 @@ def main_worker(ngpus_per_node, args):
     else:
         for p in model.features.parameters():
             p.requires_grad = False
-        params_to_optimize = [
-            {'params': [p for p in model.fc.parameters()]},
-        ]
+        params_to_optimize = [{'params': [p for p in model.fc.parameters()]}]
         optimizer = torch.optim.SGD(
             params_to_optimize, lr=args.lr,
             momentum=args.momentum, weight_decay=args.weight_decay
@@ -203,11 +203,7 @@ def main_worker(ngpus_per_node, args):
                 best_acc1 = best_acc1.to(args.gpus)
                 model = model.cuda(args.gpus)
             optimizer.load_state_dict(checkpoint['optimizer'])
-            print(
-                "=> loaded checkpoint '{}' (epoch {})".format(
-                    args.resume, checkpoint['epoch']
-                )
-            )
+            print("=> loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
             if os.path.exists(model_progress_path):
                 model_progress = np.loadtxt(model_progress_path, delimiter=',')
                 model_progress = model_progress.tolist()
@@ -247,8 +243,11 @@ def main_worker(ngpus_per_node, args):
     train_trans = [*both_trans, *train_trans]
     train_dataset = utils_db.get_train_dataset(
         args.dataset, args.train_dir, args.vision_type, args.colour_space, train_trans, normalize,
-        target_size, target_transform=target_transform
+        target_size, target_transform=target_transform, random_labels=args.random_labels
     )
+    # if random gts save them for future references
+    if args.random_labels:
+        np.savetxt(os.path.join(args.out_dir, 'random_gts.txt'), train_dataset.rand_gts)
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)

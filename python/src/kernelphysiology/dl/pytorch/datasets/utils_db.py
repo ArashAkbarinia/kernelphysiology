@@ -13,6 +13,7 @@ import torchvision.transforms as torch_transforms
 from kernelphysiology.dl.pytorch.utils import cv2_transforms
 from kernelphysiology.dl.pytorch.utils import preprocessing
 from kernelphysiology.dl.pytorch.utils import segmentation_utils
+from kernelphysiology.dl.pytorch.datasets import data_loaders as custom_datasets
 
 folder_dbs = ['imagenet', 'fruits', 'leaves', 'land', 'vggface2', 'ecoset']
 
@@ -143,7 +144,7 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space, othe
 
 # TODO: train and validation merge together
 def get_train_dataset(dataset_name, traindir, vision_type, colour_space, other_transformations,
-                      normalize, target_size, target_transform=None):
+                      normalize, target_size, target_transform=None, random_labels=False):
     colour_transformations = preprocessing.colour_transformation(vision_type, colour_space)
     chns_transformation = preprocessing.channel_transformation(vision_type, colour_space)
 
@@ -152,9 +153,16 @@ def get_train_dataset(dataset_name, traindir, vision_type, colour_space, other_t
         normalize, target_size
     )
     if dataset_name in folder_dbs:
-        train_dataset = datasets.ImageFolder(
-            traindir, transformations, loader=pil2numpy_loader, target_transform=target_transform
-        )
+        if random_labels:
+            train_dataset = custom_datasets.RandomImageNet(
+                traindir, transform=transformations, loader=pil2numpy_loader,
+                target_transform=target_transform
+            )
+        else:
+            train_dataset = datasets.ImageFolder(
+                traindir, transformations, loader=pil2numpy_loader,
+                target_transform=target_transform
+            )
     elif dataset_name == 'cifar10':
         train_dataset = datasets.CIFAR10(
             traindir, train=True, download=False, transform=transformations
