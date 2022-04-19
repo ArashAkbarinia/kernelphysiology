@@ -19,6 +19,7 @@ def main(argv):
     parser.add_argument('--text_path', required=True, type=str)
     parser.add_argument('--out_dir', default='outputs', type=str)
     parser.add_argument('--clip_arch', default='ViT-B/32', type=str)
+    parser.add_argument('--bg', default='128', type=int)
 
     args = parser.parse_args(argv)
 
@@ -35,7 +36,7 @@ def _main_worker(args):
 
     labels = np.loadtxt(args.text_path, dtype=str)
 
-    out_file = '%s/text_probs.npy' % args.out_dir
+    out_file = '%s/text_probs_%.3d.npy' % (args.out_dir, args.bg)
     old_results = np.load(out_file, allow_pickle=True)[0] if os.path.exists(out_file) else dict()
 
     all_img_paths = [*glob.glob(args.val_dir + '/*.png'), *glob.glob(args.val_dir + '/*.gif')]
@@ -47,23 +48,23 @@ def _main_worker(args):
             continue
         else:
             print(img_path)
-            text_probs = _one_image(img_path, munsell_img, labels, model, preprocess)
+            text_probs = _one_image(img_path, munsell_img, labels, model, preprocess, args.bg)
             all_text_probls[image_name] = text_probs
 
         np.save(out_file, [all_text_probls])
 
 
-def _one_image(img_path, munsell_img, labels, model, preprocess):
+def _one_image(img_path, munsell_img, labels, model, preprocess, bg_lum):
     image = io.imread(img_path)
     image_mask = image == 255
 
-    grey_img = np.zeros((*image.shape, 3), dtype='uint8')
-    grey_img[:, :] = 128
+    bg_img = np.zeros((*image.shape, 3), dtype='uint8')
+    bg_img[:, :] = bg_lum
 
     images = []
     for i in range(munsell_img.shape[0]):
         for j in range(munsell_img.shape[1]):
-            image_vis = grey_img.copy()
+            image_vis = bg_img.copy()
             image_vis[image_mask] = munsell_img[i, j]
             images.append(preprocess(Image.fromarray(image_vis)))
 
