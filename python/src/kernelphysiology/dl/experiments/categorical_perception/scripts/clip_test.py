@@ -38,8 +38,9 @@ def _main_worker(args):
     out_file = '%s/text_probs.npy' % args.out_dir
     old_results = np.load(out_file, allow_pickle=True)[0] if os.path.exists(out_file) else dict()
 
+    all_img_paths = [*glob.glob(args.val_dir + '/*.png'), *glob.glob(args.val_dir + '/*.gif')]
     all_text_probls = dict()
-    for img_path in sorted(glob.glob(args.val_dir + '/*.gif')):
+    for img_path in sorted(all_img_paths):
         image_name = ntpath.basename(img_path)[:-4]
         if image_name in old_results.keys():
             all_text_probls[image_name] = old_results[image_name]
