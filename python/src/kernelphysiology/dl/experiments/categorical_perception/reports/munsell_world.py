@@ -10,16 +10,20 @@ def plot_shape_with_pred(preds, which_inds, shapes_conf, colours, in_img_dir, bg
     preds = preds[which_inds]
     fig = plt.figure(figsize=(8, 8))
     j = 1
+    rows = int(np.sqrt(len(shapes_conf[which_inds, :])))
+    cols = rows
     for param_ind, params in enumerate(shapes_conf[which_inds, :]):
-        ax = fig.add_subplot(6, 6, j)
+        ax = fig.add_subplot(rows, cols, j)
         j = j + 1
         img_path = '%s/m_%.4d_n1_%.4d_n2_%.4d_n3_%.4d.png' % (in_img_dir, *params)
+        # img_path = '%s/a_%.4d_b_%.4d_m_%.4d_n_%.4d_rot_%.4d.png' % (in_img_dir, *params)
         img = io.imread(img_path)
-        img[img == 0] = bg
+        bg_inds = img == 0
         res_img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
         for cind in range(3):
             cchn = res_img[:, :, cind]
             cchn[cchn == 255] = colours[preds[param_ind]][cind]
+            cchn[bg_inds] = bg
             res_img[:, :, cind] = cchn
         ax.imshow(res_img)
         ax.axis('off')
@@ -27,24 +31,27 @@ def plot_shape_with_pred(preds, which_inds, shapes_conf, colours, in_img_dir, bg
     return fig
 
 
-def colour_categorise_shapes(shapes_conf, preds, params, colours, out_dir, out_name, in_img_dir):
+def colour_categorise_shapes(shapes_conf, preds, params, colours, out_dir, out_name, in_img_dir,
+                             bg=128):
     unique_params = []
     for i in range(shapes_conf.shape[1]):
         unique_params.append(np.unique(shapes_conf[:, i]))
+    l_unique0 = len(unique_params[params[0]])
+    l_unique1 = len(unique_params[params[1]])
 
-    tmp_dir = '/tmp/supercuertmp/'
+    tmp_dir = '/tmp/colour_categorise_tmp/'
     os.makedirs(tmp_dir, exist_ok=True)
-    cat_fig = plt.figure(figsize=(16, 16))
+    cat_fig = plt.figure(figsize=(6 * l_unique1, 6 * l_unique0))
     cat_fig_ax_ind = 1
     for i, ri in enumerate(unique_params[params[0]]):
         for j, cj in enumerate(unique_params[params[1]]):
             fig_path = '%simg_i%.2d_j%.2d.png' % (tmp_dir, i, j)
             which_inds = (shapes_conf[:, params[0]] == ri) & (shapes_conf[:, params[1]] == cj)
-            fig = plot_shape_with_pred(preds, which_inds, shapes_conf, colours, in_img_dir)
+            fig = plot_shape_with_pred(preds, which_inds, shapes_conf, colours, in_img_dir, bg)
             fig.savefig(fig_path)
             plt.close(fig)
 
-            cat_fig_ax = cat_fig.add_subplot(6, 6, cat_fig_ax_ind)
+            cat_fig_ax = cat_fig.add_subplot(l_unique0, l_unique1, cat_fig_ax_ind)
             cat_fig_ax_ind = cat_fig_ax_ind + 1
             img = io.imread(fig_path)
             cat_fig_ax.imshow(img)
