@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import glob
 
 from matplotlib import pyplot as plt
 from scipy import stats
@@ -98,14 +99,143 @@ def human_csf(f, method='uhlrich'):
         return 2.6 * (0.0192 + 0.114 * f) * np.exp(-(0.114 * f) ** 1.1)
 
 
+def plot_sensitivity_one(all_results, param_name, key_chn, target_size=None,
+                         nrows=5, figsize=(22, 4), log_axis=False, till64=False,
+                         normalise=True, model_name=None, old_fig=None,
+                         pre_label=None):
+    if old_fig is None:
+        fig = plt.figure(figsize=figsize)
+    else:
+        fig = old_fig
+    num_tests = len(all_results)
+    current_avg = []
+    for i in range(num_tests):
+        plot_human = True
+        cur_sen = all_results[i][0]['sensitivities']
+        # getting the x and y values
+        if type(param_name) is list:
+            org_yvals = cur_sen[param_name[0]][param_name[1]]
+        else:
+            org_yvals = cur_sen[param_name]
+        org_xvals = all_results[i][0]['unique_params']['wave']
+        # convert to array
+        org_xvals = np.array(org_xvals)
+        org_yvals = np.array(org_yvals)
+
+        ax = fig.add_subplot(1, nrows, i + 1)
+        parts = all_results[i][1].split('_')
+        if parts[-1] in ['trichromat', 'monochromat']:
+            tmp = parts[-1]
+            parts[-1] = parts[-2]
+            parts[-2] = tmp
+        elif parts[-1] in ['rg', 'yb']:
+            tmp = parts[-1]
+            parts[-1] = parts[-3]
+            parts[-3] = 'dichromat'
+            parts[-2] = tmp
+        title = '%s%d' % (parts[-1][:-1], int(parts[-1][-1]) - 1)
+        title = title.replace('layer', 'area')
+        title = all_results[i][1]
+        ax.set_title(title)
+
+        current_avg.append(org_yvals)
+        if key_chn in ['red', 'green', 'blue']:
+            continue
+        label, marker, kwargs = get_label_colour(key_chn)
+
+        base_sf = ((target_size / 2) / np.pi)
+        org_freqs = [((1 / e) * base_sf) for e in org_xvals]
+
+        if till64:
+            xsinds = np.argsort(org_freqs)
+            org_freqs = np.array([org_freqs[sind] for sind in xsinds])
+            cut_yvals = np.array([org_yvals[sind] for sind in xsinds])
+            cut_xvals = np.array([org_xvals[sind] for sind in xsinds])
+
+            ind64 = np.where(org_freqs > 64)
+            if len(ind64[0]) > 0:
+                ind64 = ind64[0][0]
+            else:
+                ind64 = -1
+            org_freqs = org_freqs[:ind64]
+            cut_yvals = cut_yvals[:ind64]
+            cut_xvals = cut_xvals[:ind64]
+
+            last_freq = org_freqs[-1]
+        else:
+            cut_xvals = org_xvals
+            cut_yvals = org_yvals
+            last_freq = org_freqs[0]
+
+        if normalise:
+            cut_yvals /= cut_yvals.max()
+
+        # first plot the human CSF
+        if model_name is not None and 'lum' in key_chn:
+            hcsf = np.array(
+                [human_csf(f, model_name) for f in org_freqs]
+            )
+            hcsf /= hcsf.max()
+            hcsf *= np.max(cut_yvals)
+            ax.plot(org_freqs, hcsf, '--', color='black', label='human')
+
+        # interpolating to all points
+        int_xvals, int_yvals = interpolate_all_sfs(
+            org_xvals, org_yvals, target_size, last_freq
+        )
+        int_freqs = [((1 / e) * base_sf) for e in int_xvals]
+
+        # compute the correlation
+        if model_name is not None:
+            hcsf = np.array([human_csf(f, model_name) for f in int_freqs])
+            hcsf /= hcsf.max()
+            int_yvals /= int_yvals.max()
+            p_corr, r_corr = stats.pearsonr(int_yvals, hcsf)
+            euc_dis = np.linalg.norm(hcsf - int_yvals)
+            suffix_label = ' [r=%.2f | d=%.2f]' % (p_corr, euc_dis)
+        else:
+            suffix_label = ''
+        if pre_label is not None:
+            label = pre_label
+        ax.plot(
+            org_freqs, cut_yvals, #marker,
+            label='%s%s' % (label, suffix_label),
+            #**kwargs
+        )
+
+        # model_name = 'uhlrich'
+        # popt, pcov = fit_to_model(int_freqs, int_yvals, model_name)
+        # if model_name == 'uhlrich':
+        #     fit_yvals = [animal_csf(f, *popt) for f in int_freqs]
+        # else:
+        #     fit_yvals = [manos_model(f, *popt) for f in int_freqs]
+        # fit_yvals = np.array(fit_yvals)
+        # # fit_yvals /= fit_yvals.max()
+        # error = 0
+        # ax.plot(
+        #     int_freqs, fit_yvals, '--', color='blue',
+        #     label='fit [r=%.2f]' % error
+        # )
+
+        ax.set_xlabel('Spatial Frequency (Cycle/Image)')
+        ax.set_ylabel('Sensitivity (1/Contrast)')
+        if log_axis:
+            ax.set_xscale('log')
+        ax.legend()
+    return fig
+
+
 def plot_sensitivity(all_summaries, param_name, out_file=None, target_size=None,
                      nrows=5, figsize=(22, 4), log_axis=False, till64=False,
-                     normalise=True, model_name='uhlrich'):
+                     normalise=True, model_name='uhlrich', old_fig=None):
     if log_axis:
         till64 = True
 
     for key_exp, exp_results in all_summaries.items():
-        fig = plt.figure(figsize=figsize)
+        if old_fig is None:
+            fig = plt.figure(figsize=figsize)
+        else:
+            fig = old_fig
         first_axes = True
         axes = []
         avg_plots = []
@@ -230,6 +360,7 @@ def plot_sensitivity(all_summaries, param_name, out_file=None, target_size=None,
             fig.savefig(
                 os.path.join(out_file, '%s_sensitivity.png' % (key_exp))
             )
+    return fig
 
 
 def compute_corrs(all_summaries, param_name, target_size=None, animal='human',
@@ -405,3 +536,70 @@ def group_plot(results, out_file=None, nrows=5, figsize=(22, 4),
     if out_file is not None:
         fig.tight_layout()
         fig.savefig(out_file + '_sensitivity.png')
+
+
+def summarise_results(result_mat, toprint=False, low_range=0, target_size=None):
+    unique_params = dict()
+    unique_params['wave'] = np.unique(result_mat[:, 1])
+    accuracies = dict()
+    contrasts_waves = dict()
+
+    sensitivities = dict()
+    sensitivities['all'] = report_csf(result_mat, toprint, low_range,
+                                      target_size)
+    return unique_params, accuracies, contrasts_waves, sensitivities
+
+
+def report_csf(result_mat, toprint=False, low_range=0, target_size=None):
+    unique_waves = np.unique(result_mat[:, 1])
+
+    csf_inds = []
+    accatth = []
+    base_sf = ((target_size / 2) / np.pi)
+    for wave in unique_waves:
+        wave_results = result_mat[result_mat[:, 1] == wave, :]
+        last_result = wave_results[-1, :]
+        con75_result = result_mat[result_mat[:, 0] == last_result[0], :]
+        accatth.append(con75_result[:, -1].mean())
+        csf_inds.append(1 / (last_result[0] - low_range))
+        if toprint:
+            print(
+                '%.2f %.5f %f' % (
+                    con75_result[:, -1].mean(), last_result[0],
+                    (1 / wave) * base_sf
+                )
+            )
+
+    return csf_inds
+
+
+def read_and_plot(dir_path, target_size, log_axis, till64, old_fig=None,
+                  label=None, normalise=False):
+    all_results = []
+    for file_path in sorted(glob.glob(dir_path + '*.csv')):
+        for lind in range(1, 6):
+            if 'layer%d' % lind in file_path:
+                instant_name = 'area%d' % (lind-1)
+                break
+        all_results.append([np.loadtxt(file_path, delimiter=','), instant_name])
+
+    all_summaries = []
+    num_tests = len(all_results)
+    for i in range(num_tests):
+        (unique_params, accuracies,
+         contrasts_waves, sensitivities) = summarise_results(
+            all_results[i][0], target_size=target_size
+        )
+        current_dic = {
+            'unique_params': unique_params, 'accuracies': accuracies,
+            'contrasts_waves': contrasts_waves,
+            'sensitivities': sensitivities
+        }
+        all_summaries.append([current_dic, all_results[i][1]])
+
+    fig = plot_sensitivity_one(
+        all_summaries, 'all', 'lum', nrows=5, normalise=normalise,
+        log_axis=log_axis, target_size=target_size,
+        till64=till64, old_fig=old_fig, pre_label=label
+    )
+    return fig
