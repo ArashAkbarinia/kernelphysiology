@@ -229,6 +229,7 @@ def create_manipulation_list(manipulation, parameters, supported_functions):
             parameters['others'] = other_params
         else:
             parameters = parameters[0]
+            parameters['others'] = []
 
         manipulation_exist = False
         for key in parameters['kwargs'].keys():
