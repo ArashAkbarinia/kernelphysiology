@@ -102,7 +102,7 @@ def prepare_transformations_test(dataset_name, colour_transformations, other_tra
 
 def is_image_file(filename: str):
     img_extensions = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")
-    img_extensions = [*img_extensions, *[s.upper() for s in img_extensions]]
+    img_extensions = (*img_extensions, *[s.upper() for s in img_extensions])
     return datasets.folder.has_file_allowed_extension(filename, img_extensions)
 
 
