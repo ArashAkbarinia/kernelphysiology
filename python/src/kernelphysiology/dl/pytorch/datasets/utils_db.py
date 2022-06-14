@@ -172,7 +172,7 @@ def get_train_dataset(dataset_name, traindir, vision_type, colour_space, other_t
         else:
             train_dataset = datasets.ImageFolder(
                 traindir, transformations, loader=pil2numpy_loader,
-                target_transform=target_transform
+                target_transform=target_transform, is_valid_file=is_image_file
             )
     elif dataset_name == 'cifar10':
         train_dataset = datasets.CIFAR10(
