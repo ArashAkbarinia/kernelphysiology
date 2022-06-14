@@ -100,6 +100,12 @@ def prepare_transformations_test(dataset_name, colour_transformations, other_tra
     return transformations
 
 
+def is_image_file(filename: str):
+    img_extensions = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")
+    img_extensions = [*img_extensions, *[s.upper() for s in img_extensions]]
+    return datasets.folder.has_file_allowed_extension(filename, img_extensions)
+
+
 def get_validation_dataset(dataset_name, valdir, vision_type, colour_space, other_transformations,
                            normalize, target_size, task=None, target_transform=None):
     colour_transformations = preprocessing.colour_transformation(vision_type, colour_space)
@@ -122,7 +128,8 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space, othe
         )
     elif dataset_name in folder_dbs:
         validation_dataset = datasets.ImageFolder(
-            valdir, transformations, loader=pil2numpy_loader, target_transform=target_transform
+            valdir, transformations, loader=pil2numpy_loader, target_transform=target_transform,
+            is_valid_file=is_image_file
         )
     elif dataset_name == 'cifar10':
         validation_dataset = datasets.CIFAR10(
