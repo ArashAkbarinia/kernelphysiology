@@ -131,7 +131,7 @@ def _main_worker(args):
             target_colour = ref_pts['bfun'](np.expand_dims(ext_pts[:3], axis=(0, 1)))
             val_colours = {'target_colour': target_colour, 'others_colour': others_colour}
             val_dataset.append(dataloader.val_set(
-                args.val_dir, args.target_size, args.args.preprocess, task=task, **val_colours
+                args.val_dir, args.target_size, args.preprocess, task=task, **val_colours
             ))
     val_dataset = torch.utils.data.ConcatDataset(val_dataset)
 
