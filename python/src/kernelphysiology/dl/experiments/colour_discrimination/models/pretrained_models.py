@@ -4,11 +4,14 @@
 
 import os
 import sys
+import numpy as np
 
 import torch
 import torch.nn as nn
 
 from torchvision.models import segmentation
+import torchvision.transforms.functional as torchvis_fun
+import clip
 
 from . import model_utils
 from .taskonomy import taskonomy_network
@@ -70,80 +73,126 @@ class LayerActivation(nn.Module):
         return x
 
 
-def _resnet_features(model, network_name, layer):
-    if type(layer) is str:
-        if layer == 'area0':
-            layer = 4
-            if network_name in ['resnet18', 'resnet34']:
-                org_classes = 200704
-            elif 'taskonomy_' in network_name:
-                org_classes = 186624
-            else:
-                org_classes = 200704
-        elif layer == 'area1':
-            layer = 5
-            if network_name in [
-                'resnet18', 'resnet34', 'resnet_basic_custom',
-                'resnet18_custom', 'deeplabv3_resnet18_custom'
-            ]:
-                org_classes = 200704
-            elif 'taskonomy_' in network_name:
-                org_classes = 186624
-            else:
-                org_classes = 802816
-        elif layer == 'area2':
-            layer = 6
-            if 'taskonomy_' in network_name or network_name in [
-                'resnet18', 'resnet34', 'resnet_basic_custom',
-                'resnet18_custom', 'deeplabv3_resnet18_custom'
-            ]:
-                org_classes = 100352
-            else:
-                org_classes = 401408
-        elif layer == 'area3':
-            layer = 7
-            if network_name in [
-                'resnet18', 'resnet34', 'resnet_basic_custom',
-                'resnet18_custom', 'deeplabv3_resnet18_custom'
-            ]:
-                org_classes = 50176
-            elif 'custom' not in network_name and (
-                    'deeplabv3_' in network_name or 'fcn_' in network_name
-            ):
-                org_classes = 802816
-            else:
-                org_classes = 200704
-        elif layer == 'area4':
-            layer = 8
-            if network_name in [
-                'resnet18', 'resnet34', 'resnet_basic_custom',
-                'resnet18_custom', 'deeplabv3_resnet18_custom'
-            ]:
-                org_classes = 25088
-            elif 'custom' not in network_name and (
-                    'deeplabv3_' in network_name or 'fcn_' in network_name
-            ):
-                org_classes = 1605632
-            elif 'taskonomy_' in network_name:
-                org_classes = 401408
-            else:
-                org_classes = 100352
-        elif layer == 'fc':
-            # FIXME
-            org_classes = 1000
-            return model, org_classes
-        elif layer == 'encoder':
-            if 'taskonomy_' in network_name:
-                layer = len(list(model.children()))
-                org_classes = 8 * 14 * 14
+class ViTLayers(nn.Module):
+    def __init__(self, parent_model, encoder_layer):
+        super().__init__()
+        self.parent_model = parent_model
+        encoder_layer = encoder_layer + 1
+        self.parent_model.encoder.layers = self.parent_model.encoder.layers[:encoder_layer]
+        del self.parent_model.heads
+
+    def forward(self, x):
+        # Reshape and permute the input tensor
+        x = self.parent_model._process_input(x)
+        n = x.shape[0]
+
+        # Expand the class token to the full batch
+        batch_class_token = self.parent_model.class_token.expand(n, -1, -1)
+        x = torch.cat([batch_class_token, x], dim=1)
+
+        x = self.parent_model.encoder(x)
+
+        # Classifier "token" as used by standard language architectures
+        x = x[:, 0]
+
+        return x
+
+
+def vit_features(model, layer, target_size):
+    encoder_layer = int(layer.replace('encoder', '')) + 1
+    features = ViTLayers(model, encoder_layer)
+    org_classes = generic_features_size(features, target_size)
+    return features, org_classes
+
+
+def vgg_features(model, layer, target_size):
+    if 'feature' in layer:
+        layer = int(layer.replace('feature', '')) + 1
+        features = nn.Sequential(*list(model.features.children())[:layer])
+    elif 'classifier' in layer:
+        layer = int(layer.replace('classifier', '')) + 1
+        features = nn.Sequential(
+            model.features, model.avgpool, nn.Flatten(1), *list(model.classifier.children())[:layer]
+        )
+    else:
+        sys.exit('Unsupported layer %s' % layer)
+    org_classes = generic_features_size(features, target_size)
+    return features, org_classes
+
+
+def generic_features_size(model, target_size):
+    img = np.random.randint(0, 256, (target_size, target_size, 3)).astype('float32') / 255
+    img = torchvis_fun.to_tensor(img).unsqueeze(0)
+    model.eval()
+    with torch.no_grad():
+        out = model(img)
+    return np.prod(out[0].shape)
+
+
+def clip_features(model, network_name, layer):
+    if layer == 'encoder':
+        features = model
+        if 'B32' in network_name or 'B16' in network_name or 'RN101' in network_name:
+            org_classes = 512
+        elif 'L14' in network_name or 'RN50x16' in network_name:
+            org_classes = 768
+        elif 'RN50x4' in network_name:
+            org_classes = 640
         else:
-            sys.exit('Unsupported layer %s' % layer)
+            org_classes = 1024
+    elif network_name.replace('clip_', '') in ['RN50', 'RN101', 'RN50x4', 'RN50x16', 'RN50x64']:
+        if layer == 'area0':
+            layer = 8
+            org_classes = 200704
+        elif layer == 'area1':
+            layer = 9
+            org_classes = 802816
+        elif layer == 'area2':
+            layer = 10
+            org_classes = 401408
+        elif layer == 'area3':
+            layer = 11
+            org_classes = 200704
+        elif layer == 'area4':
+            layer = 12
+            org_classes = 100352
+        features = nn.Sequential(*list(model.children())[:layer])
+    return features, org_classes
+
+
+def resnet_features(model, network_name, layer, target_size):
+    if layer == 'area0':
+        layer = 4
+    elif layer == 'area1':
+        layer = 5
+    elif layer == 'area2':
+        layer = 6
+    elif layer == 'area3':
+        layer = 7
+    elif layer == 'area4':
+        layer = 8
+    elif layer == 'encoder':
+        if 'taskonomy_' in network_name:
+            layer = len(list(model.children()))
+    else:
+        sys.exit('Unsupported layer %s' % layer)
     features = nn.Sequential(*list(model.children())[:layer])
+    org_classes = generic_features_size(features, target_size)
     return features, org_classes
 
 
 def get_pretrained_model(network_name, transfer_weights):
-    if 'taskonomy_' in network_name:
+    if 'clip' in network_name:
+        if 'B32' in network_name:
+            clip_version = 'ViT-B/32'
+        elif 'B16' in network_name:
+            clip_version = 'ViT-B/16'
+        elif 'L14' in network_name:
+            clip_version = 'ViT-L/14'
+        else:
+            clip_version = network_name.replace('clip_', '')
+        model, _ = clip.load(clip_version)
+    elif 'taskonomy_' in network_name:
         # NOTE: always assumed pretrained
         feature_task = network_name.replace('taskonomy_', '')
         model = taskonomy_network.TaskonomyEncoder()
@@ -157,18 +206,18 @@ def get_pretrained_model(network_name, transfer_weights):
         )
     elif '_scratch' in network_name:
         model = model_utils.which_architecture(network_name.replace('_scratch', ''))
-    elif ('deeplabv3_' in network_name or 'fcn_' in network_name or
-          'deeplab' in network_name
-    ):
+    elif 'fcn_' in network_name or 'deeplab' in network_name:
         model = segmentation.__dict__[network_name](pretrained=True)
     else:
-        model = model_utils.which_network(
-            transfer_weights[0], 'classification', num_classes=1000
-        )
+        model = model_utils.which_network(transfer_weights[0], 'classification', num_classes=1000)
     return model
 
 
 def get_backbone(network_name, model):
-    if 'deeplabv3_' in network_name or 'fcn_' in network_name or 'deeplab' in network_name:
+    if 'clip' in network_name:
+        return model.visual
+    elif 'vqvae' in network_name:
+        return model.backbone_encoder.features
+    elif 'fcn_' in network_name or 'deeplab' in network_name:
         return model.backbone
     return model

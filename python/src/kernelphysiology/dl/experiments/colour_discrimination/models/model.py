@@ -33,21 +33,35 @@ class ColourDiscrimination(nn.Module):
         if len(transfer_weights) >= 2:
             layer = transfer_weights[1]
 
-        if (
-                'deeplabv3_' in architecture or 'fcn_' in architecture or 'deeplab' in architecture
+        if layer == 'fc':
+            features = model
+            if hasattr(model, 'num_classes'):
+                org_classes = model.num_classes
+            else:
+                last_layer = list(model.children())[-1]
+                if type(last_layer) is torch.nn.modules.container.Sequential:
+                    org_classes = last_layer[-1].out_features
+                else:
+                    org_classes = last_layer.out_features
+        elif (
+                'fcn_' in architecture or 'deeplab' in architecture
                 or 'resnet' in architecture or 'resnext' in architecture
                 or 'taskonomy_' in architecture
         ):
-            features, org_classes = pretrained_models._resnet_features(model, architecture, layer)
+            features, org_classes = pretrained_models.resnet_features(
+                model, architecture, layer, target_size
+            )
+        elif 'vgg' in architecture:
+            features, org_classes = pretrained_models.vgg_features(model, layer, target_size)
+        elif 'vit_' in architecture:
+            features, org_classes = pretrained_models.vit_features(model, layer, target_size)
+        elif 'clip' in architecture:
+            features, org_classes = pretrained_models.clip_features(model, architecture, layer)
         else:
             sys.exit('Unsupported network %s' % architecture)
         self.features = features
 
-        # the numbers for fc layers are hard-coded according to larger image size.
-        scale_factor = (target_size / 224) * num_classes
-        self.fc = nn.Linear(int(org_classes * scale_factor), 1)
-        # self.fc = nn.Conv2d(512 * 4, num_classes, kernel_size=1, bias=False)
-        # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(int(org_classes * num_classes), 1)
 
         if checkpoint is not None:
             self.load_state_dict(checkpoint['state_dict'])
