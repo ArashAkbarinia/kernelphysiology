@@ -126,9 +126,9 @@ def plot_results(similarity, labels, original_images, row_wise, figmag=1):
 
 
 def inv_normalise(img, mean, std):
-    img_inv = img.numpy().copy().transpose(1, 2, 0)
+    img_inv = img.clone()
     for i in range(3):
-        img_inv[:, :, i] = (img_inv[:, :, i] * std[i]) + mean[i]
+        img_inv[i] = (img_inv[i] * std[i]) + mean[i]
     return img_inv
 
 
