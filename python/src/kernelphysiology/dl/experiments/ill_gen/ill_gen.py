@@ -205,7 +205,7 @@ def main(argv):
         for i in range(3):
             target[:, i] = colour_illusion[i]
         target = target.cuda()
-        loss_colour = torch_f.mse_loss(output, target)
+        loss_colour = 1 / torch_f.mse_loss(output, target)
 
         # preparing the input for CLIP
         target = torch.tensor([args.clip_gt] * output.shape[0]).cuda()
