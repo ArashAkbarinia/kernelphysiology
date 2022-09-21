@@ -135,12 +135,13 @@ def main(argv):
     # parser.add_argument('--val_dir', required=True, type=str)
     # parser.add_argument('--munsell_path', required=True, type=str)
     # parser.add_argument('--text_path', required=True, type=str)
+    parser.add_argument('--colour_path', type=str)
+    parser.add_argument('--clip_gt', type=int)
     parser.add_argument('--out_dir', default='outputs', type=str)
     parser.add_argument('--clip_arch', default='ViT-B/32', type=str)
     parser.add_argument('--lr', default=1e-5, type=float)
     parser.add_argument('--num_iters', default=10000, type=int)
     parser.add_argument('-b', '--batch_size', default=8, type=int)
-    parser.add_argument('--clip_gt', type=int)
 
     args = parser.parse_args(argv)
 
@@ -160,8 +161,12 @@ def main(argv):
     optimizer = torch.optim.SGD(params_to_optimize, lr=args.lr)
 
     # which colour to make the illusion, NOW JUST BLUE
-    other_colours_ind = np.delete(np.arange(len(colour_labels)), [args.clip_gt])
-    min_hue, max_hue = (np.array([173, 253]) / 360) * 2 * np.pi
+    # other_colours_ind = np.delete(np.arange(len(colour_labels)), [args.clip_gt])
+    # min_hue, max_hue = (np.array([173, 253]) / 360) * 2 * np.pi
+    focal_colours = np.loadtxt(args.colour_path, delimiter=',')
+    if focal_colours.shape[0] == 3:
+        focal_colours = focal_colours.T
+    colour_illusion = focal_colours[args.clip_gt]
 
     batch_size = args.batch_size
     num_iterations = int(args.num_iters / args.batch_size)
@@ -189,13 +194,18 @@ def main(argv):
         # normalising the image to 0-1
         output = (output + 1) / 2.0
         # loss colour to perform before clip
-        output_hsv = K.color.rgb_to_hsv(output)
-        hue_mask = (
-                (output_hsv[:, 0] >= min_hue) & (output_hsv[:, 0] <= max_hue) &
-                (output_hsv[:, 1] >= 0.50) & (output_hsv[:, 2] >= 0.50)
-        )
-        hue_mask = hue_mask.unsqueeze(dim=1).repeat(1, 3, 1, 1)
-        loss_colour = torch.sum(hue_mask)
+        # output_hsv = K.color.rgb_to_hsv(output)
+        # hue_mask = (
+        #         (output_hsv[:, 0] >= min_hue) & (output_hsv[:, 0] <= max_hue) &
+        #         (output_hsv[:, 1] >= 0.50) & (output_hsv[:, 2] >= 0.50)
+        # )
+        # hue_mask = hue_mask.unsqueeze(dim=1).repeat(1, 3, 1, 1)
+        # loss_colour = torch.sum(hue_mask)
+        target = torch.ones(output.shape)
+        for i in range(3):
+            target[:, i] = colour_illusion[i]
+        target = target.cuda()
+        loss_colour = torch_f.mse_loss(output, target)
 
         # preparing the input for CLIP
         target = torch.tensor([args.clip_gt] * output.shape[0]).cuda()
