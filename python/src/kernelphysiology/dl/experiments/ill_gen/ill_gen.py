@@ -134,6 +134,7 @@ def main(argv):
     parser.add_argument('--colour_path', type=str)
     parser.add_argument('--clip_gt', type=int)
     parser.add_argument('--fake_colour', type=int)
+    parser.add_argument('--object_name', default=None, type=str)
     parser.add_argument('--out_dir', default='outputs', type=str)
     parser.add_argument('--clip_arch', default='ViT-B/32', type=str)
     parser.add_argument('--lr', default=1e-5, type=float)
@@ -171,7 +172,12 @@ def main(argv):
     losses = []
     for iter_ind in range(num_iterations):
         # Prepare a input
-        class_vector = one_hot_from_names(['dress'] * batch_size, batch_size=batch_size)
+        if args.object_name is None:
+            class_vector = one_hot_from_int([np.random.randint(1000) for i in range(batch_size)],
+                                            batch_size=batch_size)
+        else:
+            class_vector = one_hot_from_names([args.object_name] * batch_size,
+                                              batch_size=batch_size)
         truncation = 1.0
         noise_vector = truncated_noise_sample(truncation=truncation, batch_size=batch_size)
 
