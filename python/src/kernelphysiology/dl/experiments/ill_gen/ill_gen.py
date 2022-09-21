@@ -8,6 +8,7 @@ import torch
 from torch.nn import functional as torch_f
 from torch.utils.tensorboard import SummaryWriter
 import torchvision as tv
+import kornia as K
 
 biggan_path = '/home/arash/Software/repositories/others/gans/pytorch-pretrained-BigGAN/'
 sys.path.append(biggan_path)
@@ -160,6 +161,7 @@ def main(argv):
 
     # which colour to make the illusion, NOW JUST BLUE
     other_colours_ind = np.delete(np.arange(len(colour_labels)), [args.clip_gt])
+    min_hue, max_hue = (np.array([173, 253]) / 360) * 2 * np.pi
 
     batch_size = args.batch_size
     num_iterations = int(args.num_iters / args.batch_size)
@@ -187,8 +189,15 @@ def main(argv):
         # normalising the image to 0-1
         output = (output + 1) / 2.0
         # loss colour to perform before clip
-        chns_probs = output.sum(dim=(3, 2, 0))
-        loss_colour = chns_probs[2] / (chns_probs[0] * 0.5 + chns_probs[1] * 0.5)
+        output_hsv = K.color.rgb_to_hsv(output)
+        hue_mask = (
+                (output_hsv[:, 0] >= min_hue) & (output_hsv[:, 0] <= max_hue) &
+                (output_hsv[:, 1] >= 0.50) & (output_hsv[:, 2] >= 0.50)
+        )
+        hue_mask = hue_mask.unsqueeze(dim=1).repeat(1, 3, 1, 1)
+
+        # loss colour to perform before clip
+        loss_colour = len(output[hue_mask])
 
         # preparing the input for CLIP
         target = torch.tensor([args.clip_gt] * output.shape[0]).cuda()
@@ -213,7 +222,7 @@ def main(argv):
         optimizer.step()
 
         if np.mod(iter_ind, 100):
-            print(iter_ind, np.mean(losses))
+            print('[%d]/[%d] %.2f' % (iter_ind, num_iterations, np.mean(losses)))
             img_inv = [inv_normalise(img.cpu(), clip_mean, clip_std) for img in output.detach()]
             for j in range(min(16, len(img_inv))):
                 img_name = 'img%03d' % j
@@ -223,6 +232,10 @@ def main(argv):
             clip_res_buf = plot_results(probs.cpu(), colour_labels, img_inv, False, figmag=1)
             tv_image = tv.transforms.ToTensor()(Image.open(clip_res_buf))
             tb_writer.add_image('{}'.format('clip_pred'), tv_image, iter_ind)
+
+        if np.mod(iter_ind, 1000):
+            gan_model_path = '%s/gan_model.pth' % (args.out_dir)
+            torch.save(gan_model.state_dict(), gan_model_path)
 
     gan_model_path = '%s/gan_model.pth' % (args.out_dir)
     torch.save(gan_model.state_dict(), gan_model_path)
