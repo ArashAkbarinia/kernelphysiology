@@ -195,9 +195,7 @@ def main(argv):
                 (output_hsv[:, 1] >= 0.50) & (output_hsv[:, 2] >= 0.50)
         )
         hue_mask = hue_mask.unsqueeze(dim=1).repeat(1, 3, 1, 1)
-
-        # loss colour to perform before clip
-        loss_colour = len(output[hue_mask])
+        loss_colour = torch.sum(hue_mask)
 
         # preparing the input for CLIP
         target = torch.tensor([args.clip_gt] * output.shape[0]).cuda()
