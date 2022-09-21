@@ -15,8 +15,8 @@ def plot_shape_with_pred(preds, which_inds, shapes_conf, colours, in_img_dir, bg
     for param_ind, params in enumerate(shapes_conf[which_inds, :]):
         ax = fig.add_subplot(rows, cols, j)
         j = j + 1
-        img_path = '%s/m_%.4d_n1_%.4d_n2_%.4d_n3_%.4d.png' % (in_img_dir, *params)
-        # img_path = '%s/a_%.4d_b_%.4d_m_%.4d_n_%.4d_rot_%.4d.png' % (in_img_dir, *params)
+        # img_path = '%s/m_%.4d_n1_%.4d_n2_%.4d_n3_%.4d.png' % (in_img_dir, *params)
+        img_path = '%s/a_%.4d_b_%.4d_m_%.4d_n_%.4d_rot_%.4d.png' % (in_img_dir, *params)
         img = io.imread(img_path)
         bg_inds = img == 0
         res_img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
@@ -41,8 +41,9 @@ def colour_categorise_shapes(shapes_conf, preds, params, colours, out_dir, out_n
 
     tmp_dir = '/tmp/colour_categorise_tmp/'
     os.makedirs(tmp_dir, exist_ok=True)
-    cat_fig = plt.figure(figsize=(6 * l_unique1, 6 * l_unique0))
+    cat_fig = plt.figure(figsize=(6 * l_unique1/2, 6 * l_unique0))
     cat_fig_ax_ind = 1
+    k = 0
     for i, ri in enumerate(unique_params[params[0]]):
         for j, cj in enumerate(unique_params[params[1]]):
             fig_path = '%simg_i%.2d_j%.2d.png' % (tmp_dir, i, j)
@@ -50,13 +51,15 @@ def colour_categorise_shapes(shapes_conf, preds, params, colours, out_dir, out_n
             fig = plot_shape_with_pred(preds, which_inds, shapes_conf, colours, in_img_dir, bg)
             fig.savefig(fig_path)
             plt.close(fig)
-
-            cat_fig_ax = cat_fig.add_subplot(l_unique0, l_unique1, cat_fig_ax_ind)
+            k = k+1
+            if k in [1,3,5]:
+                continue
+            cat_fig_ax = cat_fig.add_subplot(l_unique0, 3, cat_fig_ax_ind)
             cat_fig_ax_ind = cat_fig_ax_ind + 1
             img = io.imread(fig_path)
             cat_fig_ax.imshow(img)
             cat_fig_ax.axis('off')
-    fig_path = '%s/%s.jpg' % (out_dir, out_name)
+    fig_path = '%s/%s.svg' % (out_dir, out_name)
     cat_fig.tight_layout()
     cat_fig.savefig(fig_path)
     shutil.rmtree(tmp_dir)
