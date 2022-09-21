@@ -30,7 +30,7 @@ import glob
 import ntpath
 
 from matplotlib import pyplot as plt
-from skimage import io
+import io
 import cv2
 from PIL import Image
 from matplotlib import pyplot as plt
