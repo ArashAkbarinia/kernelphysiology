@@ -3,12 +3,19 @@ import sys
 import os
 import argparse
 import shutil
+import warnings
+import logging
 
 import torch
 from torch.nn import functional as torch_f
 from torch.utils.tensorboard import SummaryWriter
 import torchvision as tv
-import kornia as K
+
+import io
+from PIL import Image
+from matplotlib import pyplot as plt
+
+import clip
 
 biggan_path = '/home/arash/Software/repositories/others/gans/pytorch-pretrained-BigGAN/'
 sys.path.append(biggan_path)
@@ -17,20 +24,9 @@ from pytorch_pretrained_biggan import (BigGAN, one_hot_from_names, truncated_noi
                                        save_as_images, display_in_terminal, convert_to_images,
                                        one_hot_from_int)
 
-import warnings
-
-warnings.filterwarnings('ignore')
-
 # OPTIONAL: if you want to have more information on what's happening, activate the logger as follows
-import logging
-
 logging.basicConfig(level=logging.CRITICAL)
-
-import io
-from PIL import Image
-from matplotlib import pyplot as plt
-
-import clip
+warnings.filterwarnings('ignore')
 
 text_templates = [
     'itap of a {} {}.',
@@ -137,6 +133,7 @@ def main(argv):
     # parser.add_argument('--text_path', required=True, type=str)
     parser.add_argument('--colour_path', type=str)
     parser.add_argument('--clip_gt', type=int)
+    parser.add_argument('--fake_colour', type=int)
     parser.add_argument('--out_dir', default='outputs', type=str)
     parser.add_argument('--clip_arch', default='ViT-B/32', type=str)
     parser.add_argument('--lr', default=1e-5, type=float)
@@ -161,12 +158,10 @@ def main(argv):
     optimizer = torch.optim.SGD(params_to_optimize, lr=args.lr)
 
     # which colour to make the illusion, NOW JUST BLUE
-    # other_colours_ind = np.delete(np.arange(len(colour_labels)), [args.clip_gt])
-    # min_hue, max_hue = (np.array([173, 253]) / 360) * 2 * np.pi
     focal_colours = np.loadtxt(args.colour_path, delimiter=',')
     if focal_colours.shape[0] == 3:
         focal_colours = focal_colours.T
-    colour_illusion = focal_colours[args.clip_gt]
+    colour_illusion = focal_colours[args.fake_colour]
 
     batch_size = args.batch_size
     num_iterations = int(args.num_iters / args.batch_size)
@@ -194,18 +189,11 @@ def main(argv):
         # normalising the image to 0-1
         output = (output + 1) / 2.0
         # loss colour to perform before clip
-        # output_hsv = K.color.rgb_to_hsv(output)
-        # hue_mask = (
-        #         (output_hsv[:, 0] >= min_hue) & (output_hsv[:, 0] <= max_hue) &
-        #         (output_hsv[:, 1] >= 0.50) & (output_hsv[:, 2] >= 0.50)
-        # )
-        # hue_mask = hue_mask.unsqueeze(dim=1).repeat(1, 3, 1, 1)
-        # loss_colour = torch.sum(hue_mask)
         target = torch.ones(output.shape)
         for i in range(3):
             target[:, i] = colour_illusion[i]
         target = target.cuda()
-        loss_colour = 1 / torch_f.mse_loss(output, target)
+        loss_colour = torch_f.mse_loss(output, target)
 
         # preparing the input for CLIP
         target = torch.tensor([args.clip_gt] * output.shape[0]).cuda()
@@ -214,9 +202,6 @@ def main(argv):
             output[:, i] = (output[:, i] - clip_mean[i]) / clip_std[i]
 
         text_probs_raw = clip_response(text_templates, colour_labels, 'object', output, clip_model)
-        # colour_probs = (1 * text_probs_raw).softmax(dim=-1).T
-        # colour_probs = torch.mean(colour_probs, dim=1)
-        # loss_illusion = torch.mean(colour_probs[other_colours_ind]) / colour_probs[args.clip_gt]
         loss_illusion = torch_f.cross_entropy(text_probs_raw, target)
         loss = loss_illusion * 0.5 + loss_colour * 0.5
 
