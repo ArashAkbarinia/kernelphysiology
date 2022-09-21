@@ -112,7 +112,8 @@ def plot_results(similarity, labels, original_images, row_wise, figmag=1):
         ax.set_xticks(np.arange(-.5, similarity.shape[1], 1), minor=True)
 
     for i, image in enumerate(original_images):
-        ax.imshow(image, extent=(i - 0.5, i + 0.5, -1.6, -0.6), origin="lower")
+        ax.imshow(image.numpy().transpose(1, 2, 0),
+                  extent=(i - 0.5, i + 0.5, -1.6, -0.6), origin="lower")
     for x in range(similarity.shape[1]):
         for y in range(similarity.shape[0]):
             ax.text(x, y, f"{similarity[y, x]:.2f}", ha="center", va="center", size=12)
@@ -220,7 +221,7 @@ def main(argv):
         loss.backward()
         optimizer.step()
 
-        if np.mod(iter_ind, 10):
+        if np.mod(iter_ind, 100):
             print(iter_ind, np.mean(losses))
             img_inv = [inv_normalise(img.cpu(), clip_mean, clip_std) for img in output.detach()]
             for j in range(min(16, len(img_inv))):
@@ -228,9 +229,7 @@ def main(argv):
                 tb_writer.add_image('{}'.format(img_name), img_inv[j], iter_ind)
 
             probs = (1 * text_probs_raw.detach()).softmax(dim=-1).T
-            clip_res_buf = plot_results(
-                probs.cpu(), colour_labels, img_inv.numpy().transpose(1, 2, 0), False, figmag=1
-            )
+            clip_res_buf = plot_results(probs.cpu(), colour_labels, img_inv, False, figmag=1)
             tv_image = tv.io.decode_png(clip_res_buf.getvalue())
             tb_writer.add_image('{}'.format('clip_pred'), tv_image, iter_ind)
 
