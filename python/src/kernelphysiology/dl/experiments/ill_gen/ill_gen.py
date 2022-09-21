@@ -25,25 +25,11 @@ import logging
 
 logging.basicConfig(level=logging.CRITICAL)
 
-import random
-import glob
-import ntpath
-
-from matplotlib import pyplot as plt
 import io
-import cv2
 from PIL import Image
 from matplotlib import pyplot as plt
 
 import clip
-
-sys.path.append('/home/arash/Software/repositories/kernelphysiology/python/src/')
-from kernelphysiology.utils import controls
-from kernelphysiology.transformations import normalisations
-
-sys.path.append('/home/arash/Software/repositories/DeepTHS/src/')
-from deepths.models import readout, model_utils
-from deepths.datasets import stimuli_bank, dataset_utils
 
 text_templates = [
     'itap of a {} {}.',
@@ -153,6 +139,7 @@ def main(argv):
     parser.add_argument('--lr', default=1e-5, type=float)
     parser.add_argument('--num_iters', default=10000, type=int)
     parser.add_argument('-b', '--batch_size', default=8, type=int)
+    parser.add_argument('--clip_gt', type=int)
 
     args = parser.parse_args(argv)
 
@@ -172,8 +159,7 @@ def main(argv):
     optimizer = torch.optim.SGD(params_to_optimize, lr=args.lr)
 
     # which colour to make the illusion, NOW JUST BLUE
-    colour_ill_ind = 6
-    other_colours_ind = np.delete(np.arange(len(colour_labels)), [colour_ill_ind])
+    other_colours_ind = np.delete(np.arange(len(colour_labels)), [args.clip_gt])
 
     batch_size = args.batch_size
     num_iterations = int(args.num_iters / args.batch_size)
@@ -199,20 +185,22 @@ def main(argv):
         output = gan_model(noise_vector, class_vector, truncation)
 
         # normalising the image to 0-1
-        output = ((output + 1) / 2.0)
+        output = (output + 1) / 2.0
         # loss colour to perform before clip
         chns_probs = output.sum(dim=(3, 2, 0))
         loss_colour = chns_probs[2] / (chns_probs[0] * 0.5 + chns_probs[1] * 0.5)
 
         # preparing the input for CLIP
+        target = torch.tensor([args.clip_gt] * output.shape[0]).cuda()
         output = torch_f.interpolate(output, (224, 224))
         for i in range(3):
             output[:, i] = (output[:, i] - clip_mean[i]) / clip_std[i]
 
         text_probs_raw = clip_response(text_templates, colour_labels, 'object', output, clip_model)
-        colour_probs = (1 * text_probs_raw).softmax(dim=-1).T
-        colour_probs = torch.mean(colour_probs, dim=1)
-        loss_illusion = torch.mean(colour_probs[other_colours_ind]) / colour_probs[colour_ill_ind]
+        # colour_probs = (1 * text_probs_raw).softmax(dim=-1).T
+        # colour_probs = torch.mean(colour_probs, dim=1)
+        # loss_illusion = torch.mean(colour_probs[other_colours_ind]) / colour_probs[args.clip_gt]
+        loss_illusion = torch_f.cross_entropy(text_probs_raw, target)
         loss = loss_illusion * 0.5 + loss_colour * 0.5
 
         losses.append(loss.detach().item())
