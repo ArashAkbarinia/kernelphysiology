@@ -5,6 +5,7 @@ import argparse
 
 import torch
 from torch.nn import functional as torch_f
+from torch.utils.tensorboard import SummaryWriter
 
 biggan_path = '/home/arash/Software/repositories/others/gans/pytorch-pretrained-BigGAN/'
 sys.path.append(biggan_path)
@@ -31,7 +32,6 @@ from skimage import io
 import cv2
 from PIL import Image
 from matplotlib import pyplot as plt
-
 
 import clip
 
@@ -166,6 +166,8 @@ def main(argv):
     batch_size = args.batch_size
     num_iterations = int(args.num_iters / args.batch_size)
 
+    tb_writer = SummaryWriter(os.path.join(args.out_dir, 'tb_logger'))
+
     losses = []
     for iter_ind in range(num_iterations):
         # Prepare a input
@@ -200,7 +202,11 @@ def main(argv):
         colour_probs = torch.mean(colour_probs, dim=1)
         loss_illusion = torch.mean(colour_probs[other_colours_ind]) / colour_probs[colour_ill_ind]
         loss = loss_illusion * 0.5 + loss_colour * 0.5
+
         losses.append(loss.detach().item())
+        tb_writer.add_scalar("{}".format('loss'), loss.detach().item(), iter_ind)
+        tb_writer.add_scalar("{}".format('loss_ill'), loss_illusion.detach().item(), iter_ind)
+        tb_writer.add_scalar("{}".format('loss_colour'), loss_colour.detach().item(), iter_ind)
 
         optimizer.zero_grad()
         loss.backward()
@@ -208,7 +214,13 @@ def main(argv):
 
         if np.mod(iter_ind, 10):
             print(iter_ind, np.mean(losses))
+            img_inv = [inv_normalise(img.cpu(), clip_mean, clip_std) for img in output.detach()]
+            for j in range(min(16, len(img_inv))):
+                img_name = 'img%03d' % j
+                tb_writer.add_image('{}'.format(img_name), img_inv[j], iter_ind)
 
+    gan_model_path = '%s/gan_model.pth' % (args.out_dir)
+    torch.save(gan_model.state_dict(), gan_model_path)
     return np.array(losses)
 
 
