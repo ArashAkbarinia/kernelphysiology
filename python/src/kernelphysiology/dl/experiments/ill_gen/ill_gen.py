@@ -230,7 +230,7 @@ def main(argv):
 
             probs = (1 * text_probs_raw.detach()).softmax(dim=-1).T
             clip_res_buf = plot_results(probs.cpu(), colour_labels, img_inv, False, figmag=1)
-            tv_image = tv.transforms.ToTensor()(Image.open(clip_res_buf)).unsqueeze(0)
+            tv_image = tv.transforms.ToTensor()(Image.open(clip_res_buf))
             tb_writer.add_image('{}'.format('clip_pred'), tv_image, iter_ind)
 
     gan_model_path = '%s/gan_model.pth' % (args.out_dir)
