@@ -14,6 +14,7 @@ import torchvision as tv
 import io
 from PIL import Image
 from matplotlib import pyplot as plt
+import kornia as K
 
 import clip
 
@@ -126,14 +127,30 @@ def inv_normalise(img, mean, std):
     return img_inv
 
 
+def angular_mse(output_hsv, hue_range):
+    min_hue, max_hue = hue_range
+
+    ret_min = output_hsv[:, 0] - min_hue
+    ret_min[ret_min > np.pi] -= (2 * np.pi)
+    ret_min[ret_min < -np.pi] += (2 * np.pi)
+    ret_min = ret_min ** 2
+
+    ret_max = output_hsv[:, 0] - max_hue
+    ret_max[ret_max > np.pi] -= (2 * np.pi)
+    ret_max[ret_max < -np.pi] += (2 * np.pi)
+    ret_max = ret_max ** 2
+
+    return ret_min * 0.5 + ret_max * 0.5
+
+
 def main(argv):
     parser = argparse.ArgumentParser(description='Testing CLIP.')
     # parser.add_argument('--val_dir', required=True, type=str)
     # parser.add_argument('--munsell_path', required=True, type=str)
     # parser.add_argument('--text_path', required=True, type=str)
-    parser.add_argument('--colour_path', type=str)
     parser.add_argument('--clip_gt', type=int)
-    parser.add_argument('--fake_colour', type=int)
+    # parser.add_argument('--colour_path', type=str)
+    # parser.add_argument('--fake_colour', type=int)
     parser.add_argument('--object_name', default=None, type=str)
     parser.add_argument('--out_dir', default='outputs', type=str)
     parser.add_argument('--clip_arch', default='ViT-B/32', type=str)
@@ -159,10 +176,11 @@ def main(argv):
     optimizer = torch.optim.SGD(params_to_optimize, lr=args.lr)
 
     # which colour to make the illusion, NOW JUST BLUE
-    focal_colours = np.loadtxt(args.colour_path, delimiter=',')
-    if focal_colours.shape[0] == 3:
-        focal_colours = focal_colours.T
-    colour_illusion = focal_colours[args.fake_colour]
+    # focal_colours = np.loadtxt(args.colour_path, delimiter=',')
+    # if focal_colours.shape[0] == 3:
+    #     focal_colours = focal_colours.T
+    # colour_illusion = focal_colours[args.fake_colour]
+    min_hue, max_hue = (np.array([173, 253]) / 360) * 2 * np.pi
 
     batch_size = args.batch_size
     num_iterations = int(args.num_iters / args.batch_size)
@@ -195,11 +213,13 @@ def main(argv):
         # normalising the image to 0-1
         output = (output + 1) / 2.0
         # loss colour to perform before clip
-        target = torch.ones(output.shape)
-        for i in range(3):
-            target[:, i] = colour_illusion[i]
-        target = target.cuda()
-        loss_colour = torch_f.mse_loss(output, target)
+        output_hsv = K.color.rgb_to_hsv(output)
+        loss_colour = 1 / angular_mse(output_hsv, (min_hue, max_hue))
+        # target_colour = torch.ones(output.shape)
+        # for i in range(3):
+        #     target_colour[:, i] = colour_illusion[i]
+        # target_colour = target_colour.cuda()
+        # loss_colour = torch_f.mse_loss(output, target_colour)
 
         # preparing the input for CLIP
         target = torch.tensor([args.clip_gt] * output.shape[0]).cuda()
