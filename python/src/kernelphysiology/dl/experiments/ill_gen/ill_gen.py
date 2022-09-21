@@ -219,7 +219,7 @@ def main(argv):
         loss.backward()
         optimizer.step()
 
-        if np.mod(iter_ind, 100):
+        if np.mod(iter_ind, 100) == 0:
             print('[%d]/[%d] %.2f' % (iter_ind, num_iterations, np.mean(losses)))
             img_inv = [inv_normalise(img.cpu(), clip_mean, clip_std) for img in output.detach()]
             for j in range(min(16, len(img_inv))):
@@ -231,7 +231,7 @@ def main(argv):
             tv_image = tv.transforms.ToTensor()(Image.open(clip_res_buf))
             tb_writer.add_image('{}'.format('clip_pred'), tv_image, iter_ind)
 
-        if np.mod(iter_ind, 1000):
+        if np.mod(iter_ind, 1000) == 0:
             gan_model_path = '%s/gan_model.pth' % (args.out_dir)
             torch.save(gan_model.state_dict(), gan_model_path)
 
