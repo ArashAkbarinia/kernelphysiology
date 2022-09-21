@@ -128,7 +128,7 @@ def plot_results(similarity, labels, original_images, row_wise, figmag=1):
     fig.tight_layout()
 
     buf = io.BytesIO()
-    fig.savefig(buf, format='png')
+    fig.savefig(buf, format='jpeg')
     buf.seek(0)
     return buf
 
