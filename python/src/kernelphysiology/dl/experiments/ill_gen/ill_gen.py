@@ -55,7 +55,10 @@ text_templates = [
     'a photo of the small {} {}.',
 ]
 
-colour_labels = ['pink', 'red', 'orange', 'brown', 'yellow', 'green', 'blue', 'purple']
+colour_labels = [
+    'pink', 'red', 'orange', 'brown', 'yellow', 'green', 'blue', 'purple',
+    'white', 'grey', 'black'
+]
 
 
 def _load_clip_model():
@@ -128,7 +131,7 @@ def plot_results(similarity, labels, original_images, row_wise, figmag=1):
     fig.tight_layout()
 
     buf = io.BytesIO()
-    fig.savefig(buf, format='jpeg')
+    fig.savefig(buf, format='png')
     buf.seek(0)
     return buf
 
@@ -170,7 +173,7 @@ def main(argv):
 
     # which colour to make the illusion, NOW JUST BLUE
     colour_ill_ind = 6
-    other_colours_ind = np.delete(np.arange(8), [colour_ill_ind])
+    other_colours_ind = np.delete(np.arange(len(colour_labels)), [colour_ill_ind])
 
     batch_size = args.batch_size
     num_iterations = int(args.num_iters / args.batch_size)
