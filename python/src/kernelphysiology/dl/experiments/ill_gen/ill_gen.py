@@ -214,7 +214,7 @@ def main(argv):
         output = (output + 1) / 2.0
         # loss colour to perform before clip
         output_hsv = K.color.rgb_to_hsv(output)
-        loss_colour = 1 / angular_mse(output_hsv, (min_hue, max_hue))
+        loss_colour = 1 / torch.sum(angular_mse(output_hsv, (min_hue, max_hue)))
         # target_colour = torch.ones(output.shape)
         # for i in range(3):
         #     target_colour[:, i] = colour_illusion[i]
