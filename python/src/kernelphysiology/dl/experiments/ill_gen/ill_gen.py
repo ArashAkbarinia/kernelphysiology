@@ -1,13 +1,13 @@
-import shutil
-
 import numpy as np
 import sys
 import os
 import argparse
+import shutil
 
 import torch
 from torch.nn import functional as torch_f
 from torch.utils.tensorboard import SummaryWriter
+import torchvision as tv
 
 biggan_path = '/home/arash/Software/repositories/others/gans/pytorch-pretrained-BigGAN/'
 sys.path.append(biggan_path)
@@ -126,6 +126,11 @@ def plot_results(similarity, labels, original_images, row_wise, figmag=1):
     ax.grid(which='minor', color='orange', linestyle='-', linewidth=2)
     fig.tight_layout()
 
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    buf.seek(0)
+    return buf
+
 
 def inv_normalise(img, mean, std):
     img_inv = img.clone()
@@ -221,6 +226,13 @@ def main(argv):
             for j in range(min(16, len(img_inv))):
                 img_name = 'img%03d' % j
                 tb_writer.add_image('{}'.format(img_name), img_inv[j], iter_ind)
+
+            probs = (1 * text_probs_raw.detach()).softmax(dim=-1).T
+            clip_res_buf = plot_results(
+                probs.cpu(), colour_labels, img_inv.numpy().transpose(1, 2, 0), False, figmag=1
+            )
+            tv_image = tv.io.decode_png(clip_res_buf.getvalue())
+            tb_writer.add_image('{}'.format('clip_pred'), tv_image, iter_ind)
 
     gan_model_path = '%s/gan_model.pth' % (args.out_dir)
     torch.save(gan_model.state_dict(), gan_model_path)
