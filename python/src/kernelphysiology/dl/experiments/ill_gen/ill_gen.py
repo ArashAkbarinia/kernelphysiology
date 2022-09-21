@@ -1,3 +1,5 @@
+import shutil
+
 import numpy as np
 import sys
 import os
@@ -146,6 +148,7 @@ def main(argv):
     args = parser.parse_args(argv)
 
     os.makedirs(args.out_dir, exist_ok=True)
+    shutil.copy('ill_gen.py', args.out_dir)
 
     # CLIP-Model
     clip_model, clip_mean, clip_std = _load_clip_model()
