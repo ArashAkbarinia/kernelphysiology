@@ -132,12 +132,12 @@ def angular_mse(output_hsv, hue_range):
 
     ret_min = output_hsv[:, 0] - min_hue
     ret_min[ret_min > np.pi] -= (2 * np.pi)
-    ret_min[ret_min < -np.pi] += (2 * np.pi)
+    ret_min[ret_min <= -np.pi] += (2 * np.pi)
     ret_min = ret_min ** 2
 
     ret_max = output_hsv[:, 0] - max_hue
     ret_max[ret_max > np.pi] -= (2 * np.pi)
-    ret_max[ret_max < -np.pi] += (2 * np.pi)
+    ret_max[ret_max <= -np.pi] += (2 * np.pi)
     ret_max = ret_max ** 2
 
     return ret_min * 0.5 + ret_max * 0.5
@@ -214,7 +214,7 @@ def main(argv):
         output = (output + 1) / 2.0
         # loss colour to perform before clip
         output_hsv = K.color.rgb_to_hsv(output)
-        loss_colour = torch.mean(angular_mse(output_hsv, (min_hue, max_hue)))
+        loss_colour = 1 / torch.mean(angular_mse(output_hsv, (min_hue, max_hue)))
         # target_colour = torch.ones(output.shape)
         # for i in range(3):
         #     target_colour[:, i] = colour_illusion[i]
