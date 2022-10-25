@@ -58,6 +58,8 @@ def get_input_group(parser):
         default='rgb',
         choices=[
             'rgb',
+            'imagenet_rgb',
+            'cifar_rgb',
             'lab',
             'lms',
             'grey', 'grey3'

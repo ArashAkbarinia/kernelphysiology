@@ -244,7 +244,8 @@ def _requires_colour_transform(exp, chromaticity):
 def generic_evaluation(args, fn, save_fn=None, **kwargs):
     manipulation_values = args.parameters['kwargs'][args.manipulation]
     manipulation_name = args.parameters['f_name']
-    other_mans = args.parameters['others']
+    other_mans = args.parameters['others'] if 'others' in args.parameters.keys() else []
+
     for j, current_network in enumerate(args.network_files):
         # which architecture
         (model, target_size) = model_utils.which_network(
@@ -308,26 +309,18 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
             # reading it after the model, because each might have their own
             # specific size
             # loading validation set
-            target_size = get_default_target_size(
-                args.dataset, args.target_size
-            )
+            target_size = get_default_target_size(args.dataset, args.target_size)
 
-            target_transform = utils_db.ImagenetCategoryTransform(
-                args.categories, args.cat_dir
-            )
+            target_transform = utils_db.ImagenetCategoryTransform(args.categories, args.cat_dir)
 
             validation_dataset = utils_db.get_validation_dataset(
-                args.dataset, args.validation_dir, colour_vision,
-                args.colour_space, other_transformations, normalize,
-                target_size, task=args.task_type,
+                args.dataset, args.validation_dir, colour_vision, args.colour_space,
+                other_transformations, normalize, target_size, task=args.task_type,
                 target_transform=target_transform
             )
 
             # TODO: nicer solution:
-            if 'sampler' not in args:
-                sampler = None
-            else:
-                sampler = args.sampler(validation_dataset)
+            sampler = None if 'sampler' not in args else args.sampler(validation_dataset)
             if 'collate_fn' not in args:
                 args.collate_fn = None
 
@@ -340,31 +333,21 @@ def generic_evaluation(args, fn, save_fn=None, **kwargs):
 
             if args.random_images is not None:
                 out_folder = prepapre_testing.prepare_saving_dir(
-                    args.experiment_name, args.network_names[j],
-                    args.dataset, manipulation_name
+                    args.experiment_name, args.network_names[j], args.dataset, manipulation_name
                 )
                 normalize_inverse = NormalizeInverse(mean, std)
-                fn(
-                    val_loader, out_folder, normalize_inverse,
-                    manipulation_value, **kwargs
-                )
+                fn(val_loader, out_folder, normalize_inverse, manipulation_value, **kwargs)
             elif args.activation_map is not None:
                 model = model_utils.LayerActivation(model, args.activation_map)
-                current_results = fn(
-                    val_loader, model, **kwargs
-                )
+                current_results = fn(val_loader, model, **kwargs)
                 save_fn(
-                    current_results, args.experiment_name,
-                    args.network_names[j],
+                    current_results, args.experiment_name, args.network_names[j],
                     args.dataset, manipulation_name, manipulation_value
                 )
             else:
-                (_, _, current_results) = fn(
-                    val_loader, model, **kwargs
-                )
+                (_, _, current_results) = fn(val_loader, model, **kwargs)
                 save_fn(
-                    current_results, args.experiment_name,
-                    args.network_names[j],
+                    current_results, args.experiment_name, args.network_names[j],
                     args.dataset, manipulation_name, manipulation_value
                 )
 

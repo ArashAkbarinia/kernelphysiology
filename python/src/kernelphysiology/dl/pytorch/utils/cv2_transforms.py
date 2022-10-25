@@ -388,6 +388,16 @@ class ToTensor(object):
         return self.__class__.__name__ + '()'
 
 
+class ToCV2(object):
+
+    def __call__(self, pics):
+        fun = tfunctional.to_cv2
+        return _call_recursive(pics, fun)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
+
 class ToTensorSegmentation(object):
     """Convert a ``cv2 Image`` or ``numpy.ndarray`` to tensor.
     In the other cases, tensors are returned without scaling.

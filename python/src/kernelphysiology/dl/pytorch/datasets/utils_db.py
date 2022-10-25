@@ -69,6 +69,7 @@ def prepare_transformations_test(dataset_name, colour_transformations, other_tra
                                  chns_transformation, normalize, target_size, task=None):
     if 'cifar' in dataset_name or dataset_name in folder_dbs:
         transformations = torch_transforms.Compose([
+            cv2_transforms.ToCV2(),
             cv2_transforms.Resize(target_size),
             cv2_transforms.CenterCrop(target_size),
             *colour_transformations,

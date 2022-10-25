@@ -16,6 +16,7 @@ except ImportError:
     from torch.utils.model_zoo import load_url as load_state_dict_from_url
 
 from kernelphysiology.dl.pytorch import models as custom_models
+from kernelphysiology.dl.pytorch.models import cifar10_models as cifar_models
 from kernelphysiology.dl.pytorch.models.lesion_utility import lesion_kernels
 
 
@@ -159,6 +160,11 @@ class NewClassificationModel(nn.Module):
 
 
 def which_network_classification(network_name, num_classes, **kwargs):
+    # FIXME: hack for CIFAR!
+    if num_classes == 10:
+        model = cifar_models.__dict__[network_name](pretrained=True)
+        return model, 32
+
     if os.path.isfile(network_name):
         print('Loading %s' % network_name)
         checkpoint = torch.load(network_name, map_location='cpu')
@@ -192,9 +198,7 @@ def which_network_classification(network_name, num_classes, **kwargs):
             target_size = 224
     elif network_name == 'inception_v3':
         target_size = 299
-        model = pmodels.__dict__[network_name](
-            pretrained=True, aux_logits=False
-        )
+        model = pmodels.__dict__[network_name](pretrained=True, aux_logits=False)
     else:
         model = pmodels.__dict__[network_name](pretrained=True)
         target_size = 224
@@ -321,6 +325,9 @@ def get_preprocessing_function(colour_space, colour_vision=None):
     if colour_space in ['imagenet_rgb']:
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
+    elif colour_space in ['cifar_rgb']:
+        mean = [0.4914, 0.4822, 0.4465]
+        std = [0.2471, 0.2435, 0.2616]
     elif colour_space in ['rgb', 'grey3']:
         mean = [0.5, 0.5, 0.5]
         std = [0.25, 0.25, 0.25]

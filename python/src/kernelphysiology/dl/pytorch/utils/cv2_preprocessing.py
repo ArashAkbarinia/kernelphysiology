@@ -107,7 +107,7 @@ class VisionTypeTransformation(object):
         self.colour_space = colour_space
 
     def __call__(self, img):
-        if self.colour_space != 'rgb' or self.colour_inds is not None:
+        if 'rgb' not in self.colour_space or self.colour_inds is not None:
             img = np.asarray(img).copy()
             img = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
 
@@ -119,7 +119,7 @@ class VisionTypeTransformation(object):
                 else:
                     img[:, :, self.colour_inds] = 128
             # FIXME: right now it's only for lab
-            if self.colour_space == 'rgb':
+            if 'rgb' in self.colour_space:
                 img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
         return img
 

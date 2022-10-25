@@ -8,10 +8,16 @@ import numpy as np
 import numbers
 import collections
 import warnings
+import sys
 
 import torch
 
 import cv2
+
+if sys.version_info < (3, 3):
+    Iterable = collections.Iterable
+else:
+    Iterable = collections.abc.Iterable
 
 INTER_MODE = {
     'NEAREST': cv2.INTER_NEAREST, 'BILINEAR': cv2.INTER_LINEAR,
@@ -29,6 +35,10 @@ def _is_tensor_image(img):
 
 def _is_numpy_image(img):
     return isinstance(img, np.ndarray) and (img.ndim in {2, 3})
+
+
+def to_cv2(pic):
+    return np.asarray(pic).copy()
 
 
 def to_tensor(pic):
@@ -118,8 +128,7 @@ def resize(img, size, interpolation='BILINEAR'):
     """
     if not _is_numpy_image(img):
         raise TypeError('img should be CV Image. Got {}'.format(type(img)))
-    if not (isinstance(size, int) or (
-            isinstance(size, collections.Iterable) and len(size) == 2)):
+    if not (isinstance(size, int) or (isinstance(size, Iterable) and len(size) == 2)):
         raise TypeError('Got inappropriate size arg: {}'.format(size))
 
     if isinstance(size, int):
