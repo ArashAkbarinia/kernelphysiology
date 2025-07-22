@@ -282,9 +282,13 @@ def main_worker(ngpus_per_node, args):
         train_log = misc_utils.train_on_data(
             train_loader, model, criterion, optimizer, epoch, args
         )
+        train_log[-1] = train_log[-1].cpu().numpy()
+        train_log[-2] = train_log[-2].cpu().numpy()
 
         # evaluate on validation set
         validation_log = misc_utils.validate_on_data(val_loader, model, criterion, args)
+        validation_log[-1] = validation_log[-1].cpu().numpy()
+        validation_log[-2] = validation_log[-2].cpu().numpy()
 
         model_progress.append([*train_log, *validation_log])
 
