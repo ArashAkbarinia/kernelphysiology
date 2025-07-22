@@ -200,7 +200,7 @@ def main_worker(ngpus_per_node, args):
             model.load_state_dict(checkpoint['state_dict'])
             if args.gpus is not None:
                 # best_acc1 may be from a checkpoint from a different GPU
-                best_acc1 = best_acc1.to(args.gpus)
+                best_acc1 = best_acc1
                 model = model.cuda(args.gpus)
             optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
