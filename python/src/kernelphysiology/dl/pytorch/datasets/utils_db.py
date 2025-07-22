@@ -19,7 +19,8 @@ folder_dbs = ['imagenet', 'fruits', 'leaves', 'land', 'vggface2', 'ecoset']
 
 
 def prepare_transformations_train(dataset_name, colour_transformations, other_transformations,
-                                  chns_transformation, normalize, target_size, random_labels=False):
+                                  chns_transformation, normalize, target_size, random_labels=False,
+                                  scale=None):
     if 'cifar' in dataset_name or dataset_name in folder_dbs:
         flip_p = 0.5
         if random_labels:
@@ -28,7 +29,7 @@ def prepare_transformations_train(dataset_name, colour_transformations, other_tr
         elif 'cifar' in dataset_name:
             size_transform = cv2_transforms.RandomCrop(target_size, padding=4)
         elif 'imagenet' in dataset_name or 'ecoset' in dataset_name:
-            scale = (0.08, 1.0)
+            scale = (0.08, 1.0) if scale is None else scale
             size_transform = cv2_transforms.RandomResizedCrop(target_size, scale=scale)
         else:
             scale = (0.50, 1.0)
@@ -156,13 +157,17 @@ def get_validation_dataset(dataset_name, valdir, vision_type, colour_space, othe
 
 # TODO: train and validation merge together
 def get_train_dataset(dataset_name, traindir, vision_type, colour_space, other_transformations,
-                      normalize, target_size, target_transform=None, random_labels=False):
+                      normalize, target_size, target_transform=None, random_labels=False,
+                      scale=None):
     colour_transformations = preprocessing.colour_transformation(vision_type, colour_space)
     chns_transformation = preprocessing.channel_transformation(vision_type, colour_space)
 
+    if scale == 'moderate':
+        scale = (0.5, 1.0)
+
     transformations = prepare_transformations_train(
         dataset_name, colour_transformations, other_transformations, chns_transformation,
-        normalize, target_size, random_labels=random_labels
+        normalize, target_size, random_labels=random_labels, scale=scale
     )
     if dataset_name in folder_dbs:
         if random_labels:

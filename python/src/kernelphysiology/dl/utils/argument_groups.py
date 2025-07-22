@@ -1,6 +1,7 @@
 """
 A collection of argument groups ready to be added to any other argparser.
 """
+from pygments.lexer import default
 
 
 def get_logging_group(parser):
@@ -264,6 +265,7 @@ def get_augmentation_group(parser):
         default=None,
         help='List of augmentations to be conducted (default: None)'
     )
+    augmentation_group.add_argument('--scale', default=None, type=str)
 
 
 def get_network_manipulation_group(parser):
