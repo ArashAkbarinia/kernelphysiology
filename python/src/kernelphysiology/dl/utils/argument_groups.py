@@ -85,15 +85,15 @@ def get_input_group(parser):
         type=str,
         default='trichromat',
         # TODO: add luminance blindness
-        choices=[
-            'trichromat',
-            'monochromat',
-            'dichromat_rg',
-            'dichromat_yb',
-            'protanopia',
-            'deuteranopia',
-            'tritanopia'
-        ],
+        # choices=[
+        #     'trichromat',
+        #     'monochromat',
+        #     'dichromat_rg',
+        #     'dichromat_yb',
+        #     'protanopia',
+        #     'deuteranopia',
+        #     'tritanopia'
+        # ],
         help='The vision type of the network (default: trichromat)'
     )
 

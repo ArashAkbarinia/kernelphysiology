@@ -8,6 +8,7 @@ import random
 
 from PIL import Image as PilImage
 import cv2
+from daltonlens import simulate
 
 from kernelphysiology.dl.pytorch.utils.cv2_transforms import _call_recursive
 from kernelphysiology.utils import imutils
@@ -122,6 +123,23 @@ class VisionTypeTransformation(object):
             if 'rgb' in self.colour_space:
                 img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
         return img
+
+
+class DaltonlensTransformation(object):
+
+    def __init__(self, vision_type):
+        self.simulator = simulate.Simulator_Machado2009()
+        if 'protan' in vision_type:
+            self.deficiency = simulate.Deficiency.PROTAN
+        elif 'deutan' in vision_type:
+            self.deficiency = simulate.Deficiency.DEUTAN
+        else:
+            self.deficiency = simulate.Deficiency.TRITAN
+        self.severity = float(vision_type.split('_')[-1])
+        print(f"Simulating deficiency {self.deficiency} with severity {self.severity}")
+
+    def __call__(self, img):
+        return self.simulator.simulate_cvd(img, self.deficiency, severity=self.severity)
 
 
 class ChannelTransformation(object):

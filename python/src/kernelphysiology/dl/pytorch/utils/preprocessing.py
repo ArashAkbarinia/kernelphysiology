@@ -10,7 +10,9 @@ from kernelphysiology.utils import imutils
 
 def colour_transformation(vision_type, colour_space='rgb'):
     ct = []
-    if colour_space != 'lms':
+    if 'daltonlens' in vision_type:
+        ct.append(cv2_preprocessing.DaltonlensTransformation(vision_type))
+    elif colour_space != 'lms':
         colour_inds = imutils.get_colour_inds(vision_type)
         ct.append(cv2_preprocessing.VisionTypeTransformation(colour_inds, colour_space))
     return ct
